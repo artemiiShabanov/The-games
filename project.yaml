@@ -1,0 +1,8 @@
+# Метаданные для gamedev-hub. Хаб читает этот файл из main и показывает на дашборде.
+# phase: idea | prototype | vertical-slice | content | polish | released | paused | archived
+name: The Games
+tagline: The Movies, только про игры: симулятор студии, где в собранную по параметрам игру можно реально поиграть перед выпуском
+engine: Godot 4.4
+phase: idea
+tracker: github-issues
+next: ""            # одна строка: что сейчас главное

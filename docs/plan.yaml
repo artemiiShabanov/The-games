@@ -1,0 +1,42 @@
+# Единый источник плана The Games. Из него генерируются docs/PLAN.md и метки/вехи/issues на GitHub:
+#   python3 tools/sync_plan.py            # обновить PLAN.md
+#   python3 tools/sync_plan.py --github   # плюс создать метки, вехи и issues (идемпотентно)
+#
+# size: S = полдня, M = день, L = два дня, XL = три дня
+# Задачи атомарны. Issue закрываются на GitHub; done: true здесь только для уже закрытых при миграции.
+
+project: The Games
+
+labels:
+  types:
+    "type: code":     {color: "1d76db", desc: "Геймплей, системы, инструменты"}
+    "type: 3d":       {color: "8e44ad", desc: "Модели, риги, анимации, сцены"}
+    "type: design":   {color: "0e8a16", desc: "Контент, баланс, правила"}
+    "type: vfx":      {color: "f39c12", desc: "Частицы, шейдеры, свет, пост-обработка"}
+    "type: ui":       {color: "e91e63", desc: "HUD, меню, экраны"}
+    "type: audio":    {color: "1abc9c", desc: "Звук и музыка"}
+    "type: art":      {color: "fbca04", desc: "2D-арт: иконки, капсула, текстуры"}
+    "type: release":  {color: "5a5a5a", desc: "Сборки, магазины, инфраструктура"}
+  sizes:
+    "size: S":  {color: "c5def5", desc: "Полдня"}
+    "size: M":  {color: "9ec5e8", desc: "День"}
+    "size: L":  {color: "6fa8dc", desc: "Два дня"}
+    "size: XL": {color: "3d85c6", desc: "Три дня"}
+  owners:
+    "owner: artemii": {color: "c2e0c6", desc: "Делает Артемий"}
+    "owner: claude":  {color: "bfd4f2", desc: "Делает Claude"}
+    "owner: both":    {color: "e6d7f5", desc: "Совместно"}
+  status:
+    "status: needs decision": {color: "b60205", desc: "Нужно решение Артемия по дизайну"}
+    "status: in progress":    {color: "fef2c0", desc: "В работе"}
+    "status: blocked":        {color: "d93f0b", desc: "Заблокировано"}
+    "status: needs playtest": {color: "d4c5f9", desc: "Готово, ждёт проверки в игре"}
+
+phases:
+  - id: M0
+    title: "M0 Прототип"
+    goal: "Ответить на главный вопрос GDD: весело ли ядро."
+    done_when: "Ядро играется 5 минут без заглушек в критичных местах; автотест есть."
+    status: open
+    issues:
+      - {title: "Скаффолд: автотест, дебаг-меню, базовая сцена", types: [code], owner: claude, size: S}
