@@ -5,8 +5,7 @@
 # size: S = полдня, M = день, L = два дня, XL = три дня
 # Задачи атомарны. Issue закрываются на GitHub; done: true здесь только для уже закрытых при миграции.
 
-project: The Games
-
+project: "The Games"
 labels:
   types:
     "type: code":     {color: "1d76db", desc: "Геймплей, системы, инструменты"}
