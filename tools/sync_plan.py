@@ -106,6 +106,9 @@ def sync_github(plan, dry_run):
         milestones = {m["title"]: m for m in json.loads(raw or "[]")}
     for ph in phases:
         m = milestones.get(ph["title"]) if not dry_run else None
+        if m and (m.get("description") or "") != ph.get("goal", ""):
+            gh(["api", "-X", "PATCH", "repos/{owner}/{repo}/milestones/" + str(m["number"]),
+                "-f", "description=" + ph.get("goal", "")], dry_run)
         if ph.get("status") == "done" and (dry_run or (m and m["state"] == "open")):
             gh(["api", "-X", "PATCH", "repos/{owner}/{repo}/milestones/" + (str(m["number"]) if m else "<n>"),
                 "-f", "state=closed"], dry_run)
