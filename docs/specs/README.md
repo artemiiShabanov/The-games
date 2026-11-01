@@ -7,3 +7,6 @@
 Правка числа в `.tres` не делает спеку устаревшей.
 
 Статусы: `Draft` → `Building` → `Shipped` → `Synced YYYY-MM-DD` (после сверки с кодом).
+
+Системы: `constructor.md`, `minigames.md`, `demos.md` (демки и каталог багов), `success.md`,
+`economy.md`, `studio.md`, `meta.md`, `run.md`.
