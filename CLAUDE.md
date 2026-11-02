@@ -1,13 +1,15 @@
 # The Games: рабочие заметки для Claude
 
-Перед дизайном читай `docs/GDD.md`, перед планированием `docs/PLAN.md`. Решения, принятые в чате,
-в тот же день попадают в журнал `docs/DESIGN.md`. Общий процесс всех проектов: gamedev-hub/WORKFLOW.md.
+Перед дизайном читай `docs/GDD.md`, перед планированием `docs/PLAN.md`, перед любым UI, мини-игрой
+или экраном `docs/STYLE.md`. Решения, принятые в чате, в тот же день попадают в журнал
+`docs/DESIGN.md`. Общий процесс всех проектов: gamedev-hub/WORKFLOW.md.
 
 ## Layout
 
 - `thegames/` проект Godot: `scenes/`, `scripts/`, `resources/` (тюнинг-числа как Resource),
   `assets/`, `debug/` (дебаг-меню, тест-сцены; `debug/playtest/` в gitignore).
-- `docs/` GDD, журнал решений, план (`plan.yaml` источник, `PLAN.md` генерируется), спеки.
+- `docs/` GDD, журнал решений, план (`plan.yaml` источник, `PLAN.md` генерируется), спеки,
+  визуальный код `STYLE.md` и концепты к нему в `docs/concepts/` (правятся только после текста).
 - `tools/` скрипты: `sync_plan.py` зеркалит план в GitHub.
 
 ## Verification loop
