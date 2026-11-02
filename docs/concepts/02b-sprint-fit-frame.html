@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>02b Спринт: мини-игра «Подгони»</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .timer { width: 62%; }
+  .aspect { left: 96px; top: 56px; }
+  .dots { position: absolute; right: 96px; top: 56px; display: flex; gap: 12px; }
+  .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); }
+  .dot.ok { background: var(--success); } .dot.miss { background: var(--ink-3); }
+  .plate { position: absolute; left: 50%; top: 50%; width: 720px; height: 720px; transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle at 50% 45%, #FFFFFF 0%, #F8F6F1 55%, #EFEBE3 100%);
+    box-shadow: inset 0 0 0 2px rgba(30,42,74,.06), inset 0 24px 60px rgba(30,42,74,.06), 0 2px 12px rgba(0,0,0,.04); }
+  .fig { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; transform: translate(-50%, -50%); }
+  .fig svg { width: 100%; height: 100%; overflow: visible; }
+  .fig .blur { filter: blur(10px); opacity: .55; }
+  .stencil { position: absolute; left: 50%; width: 240px; height: 240px; transform: translateX(-50%); }
+  .stencil.top { top: 72px; } .stencil.bot { bottom: 72px; }
+  .stencil svg { width: 100%; height: 100%; overflow: visible; fill: none; stroke-width: 14; stroke-linejoin: round; }
+  .stencil .n { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--mono); font-size: 64px; font-weight: 700; }
+  .sunk { position: absolute; left: 50%; top: 50%; opacity: .18; filter: blur(3px); }
+  .legend { position: absolute; left: 96px; bottom: 120px; font-size: 18px; color: var(--ink-3); max-width: 300px; line-height: 1.4; }
+</style></head>
+<body>
+  <div class="timer"></div>
+  <div class="aspect"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.7 5.7M44.7 44.7l5.7 5.7M13.6 50.4l5.7-5.7M44.7 19.3l5.7-5.7"/></svg></div>
+  <div class="dots"><span class="dot ok"></span><span class="dot ok"></span><span class="dot miss"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+
+  <!-- верхний трафарет: a1, 5 сторон -->
+  <div class="stencil top"><svg viewBox="0 0 100 100"><polygon id="p1" stroke="var(--a1)"/></svg></div>
+  <!-- нижний трафарет: a2, 5 сторон -->
+  <div class="stencil bot"><svg viewBox="0 0 100 100"><polygon id="p2" stroke="var(--a2)"/></svg></div>
+
+  <div class="plate">
+    <!-- утонувшая прошлая фигура -->
+    <svg class="sunk" width="200" height="200" viewBox="0 0 100 100" style="margin:-160px 0 0 60px"><polygon id="p0" fill="var(--a2)"/></svg>
+    <!-- всплывающая фигура: a1, 5 сторон, ещё чуть размыта -->
+    <div class="fig"><svg viewBox="0 0 100 100"><polygon id="p3" class="blur" fill="var(--a1)"/><polygon id="p4" fill="var(--a1)" opacity=".92"/></svg></div>
+  </div>
+
+  <div class="hints">
+    <span class="pill"><span class="key">←</span><span class="key">→</span> стороны</span>
+    <span class="pill"><span class="key">↑</span><span class="key">↓</span> в трафарет</span>
+  </div>
+  <div class="label">02b · мини-игра «Подгони», 3-я фигура из 7, стороны совпали, ждёт ↑ · 1920×1080</div>
+  <script>
+    function poly(n, r, cx, cy, rot) { const pts = []; for (let i = 0; i < n; i++) { const a = rot + i * 2 * Math.PI / n; pts.push((cx + r * Math.cos(a)).toFixed(2) + "," + (cy + r * Math.sin(a)).toFixed(2)); } return pts.join(" "); }
+    document.getElementById("p1").setAttribute("points", poly(5, 42, 50, 50, -Math.PI / 2));
+    document.getElementById("p2").setAttribute("points", poly(5, 42, 50, 50, -Math.PI / 2));
+    document.getElementById("p3").setAttribute("points", poly(5, 46, 50, 50, -Math.PI / 2));
+    document.getElementById("p4").setAttribute("points", poly(5, 40, 50, 50, -Math.PI / 2));
+    document.getElementById("p0").setAttribute("points", poly(7, 40, 50, 50, -Math.PI / 2));
+  </script>
+</body></html>

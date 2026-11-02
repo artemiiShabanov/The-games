@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>05b Студия: десятый релиз, предложение прокачки</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .money { position: absolute; right: 96px; top: 48px; font-size: 32px; font-weight: 600; color: var(--money); }
+  .release { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+  .offer { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1392px; padding: 40px 48px 48px; }
+  .offer .h1 { margin-bottom: 8px; }
+  .offer .cap { margin-bottom: 32px; }
+  .opts { display: flex; gap: 24px; }
+  .opt { flex: 1; background: var(--surface-solid); border-radius: var(--r-card); padding: 32px; min-height: 300px; display: flex; flex-direction: column; }
+  .opt .kind { font-size: 18px; color: var(--ink-2); margin-bottom: 12px; }
+  .opt .name { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 12px; }
+  .opt .desc { font-size: 22px; line-height: 1.35; color: var(--ink-2); flex: 1; }
+  .opt .price { font-size: 28px; font-weight: 600; color: var(--money); margin-top: 20px; }
+  .opt .price.red { color: var(--danger); }
+  .opt .upkeep { font-size: 18px; color: var(--ink-3); margin-top: 4px; }
+  .thumb { width: 96px; height: 96px; border-radius: 16px; background: var(--surface-2); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+  .thumb svg { width: 64px; height: 64px; shape-rendering: crispEdges; }
+  .thumb.icon svg { shape-rendering: auto; stroke: var(--ink); stroke-width: 4; fill: none; stroke-linecap: round; }
+</style></head>
+<body>
+  <div class="studio"><svg id="s"></svg></div>
+  <div class="dim"></div>
+  <div class="release">Релиз 10 · после отклика</div>
+  <div class="money num">$ 38 200</div>
+
+  <div class="card offer">
+    <div class="h1">Что улучшим?</div>
+    <div class="cap">Одно из трёх или ничего. Содержание студии сейчас $ 3 000 за релиз.</div>
+    <div class="opts">
+      <div class="opt">
+        <div class="thumb"><svg id="t1"></svg></div>
+        <div class="kind">Технология</div>
+        <div class="name">Low poly 3D</div>
+        <div class="desc">Новая карточка в конструкторе. Дольше и дороже в разработке, массовые продажи.</div>
+        <div class="price num">$ 18 000</div>
+        <div class="upkeep">содержание +$ 800</div>
+      </div>
+      <div class="opt focus">
+        <div class="thumb icon"><svg viewBox="0 0 64 64"><path d="M14 32a18 18 0 1 0 6-13"/><path d="M12 10v12h12"/></svg></div>
+        <div class="kind">Возможность</div>
+        <div class="name">Переигровка</div>
+        <div class="desc">Один проваленный спринт за релиз можно сыграть ещё раз. Результат переигровки окончательный.</div>
+        <div class="price num">$ 9 000</div>
+        <div class="upkeep">содержание +$ 300</div>
+      </div>
+      <div class="opt">
+        <div class="thumb"><svg id="t3"></svg></div>
+        <div class="kind">Жанр</div>
+        <div class="name">Файтинг</div>
+        <div class="desc">Новая карточка в конструкторе и своя мини-игра «Выстрой».</div>
+        <div class="price num red">$ 42 000</div>
+        <div class="upkeep">не хватает $ 3 800</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hints">
+    <span class="pill"><span class="key">←</span><span class="key">→</span> выбрать</span>
+    <span class="pill"><span class="key">Enter</span> купить</span>
+    <span class="pill"><span class="key">Esc</span> ничего</span>
+  </div>
+  <div class="label">05b · студия десятого релиза, предложение прокачки · 1920×1080</div>
+  <script src="_pixels.js"></script>
+  <script>
+    drawStudio(document.getElementById("s"), "grown");
+    // миниатюры: low poly многогранник и жанр файтинг пиктограммой из пикселей
+    const t1 = document.getElementById("t1"); t1.setAttribute("viewBox", "0 0 16 16");
+    pixelPut(t1, ["......####......",".....#....#.....","....#......#....","...#........#...","..#....#.....#..",".#....#.#.....#.","#....#...#.....#","#...#.....#....#","#..#.......#...#","#.#.........#..#","##...........#.#","#.............##",".#...........#..","..#.........#...","...#.......#....","....#######....."], 0, 0, "#1E2A4A");
+    const t3 = document.getElementById("t3"); t3.setAttribute("viewBox", "0 0 16 16");
+    pixelPut(t3, ["................","....####........","...######.......","..###..###......","..##....##......","..##....##.####.","..###..###.#..#.","...######..####.","....####........","..####..####....",".##.######.##...",".#..######..#...",".#...####...#...","................","................","................"], 0, 0, "#1E2A4A");
+  </script>
+</body></html>

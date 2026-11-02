@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>06 Мета-вставка</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .release { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+  .money { position: absolute; right: 96px; top: 48px; font-size: 32px; font-weight: 600; color: var(--money); }
+  .ev { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1120px; padding: 48px; }
+  .head { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 36px; }
+  .face { width: 160px; height: 160px; border-radius: 28px; background: var(--surface-2); flex: none; display: flex; align-items: center; justify-content: center; }
+  .face svg { width: 128px; height: 128px; shape-rendering: crispEdges; }
+  .who { font-size: 18px; color: var(--ink-3); }
+  .name { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; margin: 4px 0 16px; }
+  .say { font-size: 26px; line-height: 1.4; }
+  .opts { display: flex; flex-direction: column; gap: 16px; }
+  .opt { background: var(--surface-solid); border-radius: var(--r-ctl); padding: 22px 28px; display: flex; align-items: center; gap: 20px; }
+  .opt .t { font-size: 26px; font-weight: 600; flex: 1; }
+  .opt .pill { height: 36px; font-size: 17px; }
+  .pill.plus { background: #E3F4EA; color: var(--money); }
+  .pill.minus { background: #FBE5E2; color: var(--danger); }
+  .pill.lock { background: #E6ECFF; color: var(--focus); }
+</style></head>
+<body>
+  <div class="studio"><svg id="s"></svg></div>
+  <div class="dim"></div>
+  <div class="release">Релиз 6 · после отклика</div>
+  <div class="money num">$ 7 200</div>
+
+  <div class="card ev">
+    <div class="head">
+      <div class="face"><svg id="f"></svg></div>
+      <div>
+        <div class="who">Издатель · Holl &amp; Sons · уже приходил после третьего релиза</div>
+        <div class="name">Виктор Холл</div>
+        <div class="say">«Пираты зашли. Хочу гонки в том же сеттинге к следующему кварталу. Денег дам сейчас, долю возьму с хвоста. Ну или не дам, и вы продолжите делать свои милые платформеры».</div>
+      </div>
+    </div>
+    <div class="opts">
+      <div class="opt focus">
+        <div class="t">Берём аванс, делаем гонки</div>
+        <span class="pill plus">+$ 20 000</span><span class="pill lock">следующая игра: гонки · пираты</span><span class="pill minus">−30 % с хвоста</span>
+      </div>
+      <div class="opt">
+        <div class="t">Гонки сделаем, но без аванса и без доли</div>
+        <span class="pill lock">следующая игра: гонки</span><span class="pill plus">репутация ↑</span>
+      </div>
+      <div class="opt">
+        <div class="t">Милые платформеры нас устраивают</div>
+        <span class="pill minus">Виктор обидится</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hints">
+    <span class="pill"><span class="key">↑</span><span class="key">↓</span> выбрать</span>
+    <span class="pill"><span class="key">Enter</span> решить</span>
+  </div>
+  <div class="label">06 · мета-вставка: издатель с оффером · 1920×1080</div>
+  <script src="_pixels.js"></script>
+  <script>
+    drawStudio(document.getElementById("s"), "grown");
+    drawPortrait(document.getElementById("f"), "publisher", "#2F5BFF");
+  </script>
+</body></html>

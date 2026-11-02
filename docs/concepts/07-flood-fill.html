@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>07 Мини-игра «Залей»</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .timer { width: 38%; }
+  .aspect { left: 96px; top: 56px; }
+  .dots { position: absolute; right: 96px; top: 56px; display: flex; gap: 12px; }
+  .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); }
+  .dot.ok { background: var(--success); } .dot.miss { background: var(--ink-3); }
+  .grid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -56%); display: grid; grid-template-columns: repeat(8, 80px); gap: 6px; padding: 12px; background: var(--surface-solid); border-radius: 24px; box-shadow: var(--shadow); }
+  .c { width: 80px; height: 80px; border-radius: 10px; }
+  .pal { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); display: flex; gap: 24px; }
+  .sw { width: 96px; height: 96px; border-radius: 24px; }
+  .moves { position: absolute; right: 96px; top: 50%; transform: translateY(-50%); text-align: right; }
+  .moves .v { font-family: var(--mono); font-size: 120px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .moves .k { font-size: 24px; color: var(--ink-2); }
+  .pic { position: absolute; left: 96px; top: 50%; transform: translateY(-50%); font-size: 24px; color: var(--ink-2); }
+</style></head>
+<body>
+  <div class="timer"></div>
+  <div class="aspect"><svg viewBox="0 0 64 64"><rect x="10" y="10" width="20" height="20" rx="3" fill="#1C1B19"/><rect x="34" y="10" width="20" height="20" rx="3"/><rect x="10" y="34" width="20" height="20" rx="3"/><rect x="34" y="34" width="20" height="20" rx="3"/></svg></div>
+  <div class="dots"><span class="dot ok"></span><span class="dot ok"></span><span class="dot miss"></span><span class="dot ok"></span><span class="dot"></span></div>
+
+  <div class="pic">картинка 2 из 2</div>
+  <div class="grid" id="g"></div>
+  <div class="moves"><div class="v">5</div><div class="k">заливок осталось</div></div>
+
+  <div class="pal">
+    <div class="sw" style="background:var(--a1)"></div>
+    <div class="sw focus" style="background:var(--a2)"></div>
+    <div class="sw" style="background:var(--a3)"></div>
+    <div class="sw" style="background:var(--a4)"></div>
+  </div>
+
+  <div class="hints">
+    <span class="pill"><span class="key">←</span><span class="key">→</span> цвет</span>
+    <span class="pill"><span class="key">A</span> залить из угла</span>
+  </div>
+  <div class="label">07 · мини-игра «Залей», вторая картинка, область угла уже синяя · 1920×1080</div>
+  <script>
+    const map = [
+      "11112324","11113442","11123414","11214231","12343121","23412413","31234342","42131224",
+    ];
+    const col = { "1": "var(--a1)", "2": "var(--a2)", "3": "var(--a3)", "4": "var(--a4)" };
+    const g = document.getElementById("g");
+    map.forEach(row => [...row].forEach(ch => { const d = document.createElement("div"); d.className = "c"; d.style.background = col[ch]; g.appendChild(d); }));
+  </script>
+</body></html>

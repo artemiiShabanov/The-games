@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>03b Результат спринта: баг</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .top { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+  .dots { position: absolute; right: 96px; top: 56px; display: flex; gap: 12px; }
+  .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--surface-2); }
+  .dot.ok { background: var(--success); } .dot.bug { background: var(--bug); }
+  .center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-54%) rotate(-1.2deg); text-align: center; }
+  .aspect.big { position: static; width: 128px; height: 128px; margin: 0 auto 36px; }
+  .aspect.big svg { width: 72px; height: 72px; }
+  .stamp { display: inline-block; padding: 16px 56px 24px; border-radius: 999px; background: var(--bug); color: #fff;
+    font-size: 140px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; transform: rotate(-6deg);
+    box-shadow: 0 16px 40px rgba(240,122,28,.35); }
+  .sub { margin-top: 44px; font-size: 32px; color: var(--ink-2); }
+</style></head>
+<body>
+  <div class="top">Спринт 2 из 5 · Пираты на платформах</div>
+  <div class="dots"><span class="dot ok"></span><span class="dot bug"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="center">
+    <div class="aspect big"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.7 5.7M44.7 44.7l5.7 5.7M13.6 50.4l5.7-5.7M44.7 19.3l5.7-5.7"/></svg></div>
+    <div class="stamp">СКВОЗЬ ПОЛ</div>
+    <div class="sub">Баг движка. Будет в демке</div>
+  </div>
+  <div class="label">03b · результат спринта: провал, штамп бага · 1920×1080</div>
+</body></html>

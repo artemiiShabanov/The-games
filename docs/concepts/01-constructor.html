@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>01 Конструктор поверх студии</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .release { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+  .money { position: absolute; right: 96px; top: 48px; font-size: 32px; font-weight: 600; color: var(--money); }
+  .title { position: absolute; left: 96px; top: 92px; }
+  .rows { position: absolute; left: 96px; top: 200px; width: 1200px; overflow: hidden; padding-left: 12px; margin-left: -12px; }
+  .rows::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: linear-gradient(90deg, rgba(244,241,236,0), rgba(244,241,236,.9)); }
+  .row { height: 250px; position: relative; margin-bottom: 20px; }
+  .row .cap { position: absolute; left: 0; top: 0; }
+  .cards { position: absolute; left: 0; top: 34px; display: flex; gap: 24px; align-items: center; height: 220px; }
+  .gcard { width: 260px; height: 190px; border-radius: var(--r-card); position: relative; overflow: hidden; box-shadow: var(--shadow); flex: none; color: #fff; }
+  .gcard .name { position: absolute; left: 24px; bottom: 20px; font-size: 32px; font-weight: 700; letter-spacing: -0.01em; text-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .gcard.on { transform: scale(1.06); box-shadow: 0 8px 24px rgba(0,0,0,.12), 0 24px 60px rgba(0,0,0,.10); }
+  .gcard.locked { filter: saturate(.3); opacity: .4; }
+  .gcard .lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+  .gcard .sat { position: absolute; right: 16px; top: 16px; background: rgba(28,27,25,.75); color: #fff; }
+  .gcard svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .peek { width: 60px; opacity: .55; }
+  /* смета */
+  .est { position: absolute; right: 96px; top: 200px; width: 500px; height: 760px; padding: 40px; display: flex; flex-direction: column; }
+  .est .h2 { color: var(--ink-2); font-weight: 500; }
+  .est .gname { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; margin: 8px 0 4px; line-height: 1.1; }
+  .est .regen { font-size: 18px; color: var(--ink-3); margin-bottom: 36px; }
+  .line { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--surface-2); font-size: 24px; }
+  .line .v { font-family: var(--mono); font-weight: 600; }
+  .line.total { font-size: 32px; border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 20px; }
+  .line.total .v { font-size: 56px; letter-spacing: -0.02em; }
+  .line.left .v { color: var(--money); }
+  .line.left.red .v, .line.left.red { color: var(--danger); }
+  .est .btn { margin-top: auto; }
+</style></head>
+<body>
+  <div class="studio"><svg id="s"></svg></div>
+  <div class="dim"></div>
+  <div class="release">Релиз 4</div>
+  <div class="money num">$ 15 400</div>
+  <div class="title h1">Следующая игра</div>
+
+  <div class="rows">
+    <div class="row">
+      <div class="cap">Жанр</div>
+      <div class="cards">
+        <div class="gcard peek" style="background:#5B4FE0"></div>
+        <div class="gcard" style="background:#E0457B">
+          <svg viewBox="0 0 300 200"><g fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".9"><path d="M40 150c40-60 80-60 120-20s80 40 120-30"/><path d="M60 170c40-60 80-60 120-20"/></g></svg>
+          <div class="name">Гонки</div>
+        </div>
+        <div class="gcard" style="background:#2BB37A">
+          <svg viewBox="0 0 300 200"><g fill="none" stroke="#fff" stroke-width="10" opacity=".9"><circle cx="190" cy="90" r="50"/><path d="M190 10v40M190 130v40M110 90h40M230 90h40"/></g></svg>
+          <div class="name">Шутер</div>
+        </div>
+        <div class="gcard" style="background:#F2C230">
+          <svg viewBox="0 0 300 200"><g fill="none" stroke="#fff" stroke-width="10" opacity=".9"><path d="M30 150h60v-40h60v-40h60v-40h60"/></g></svg>
+          <div class="name">Платформер</div>
+          <span class="pill sat">третий подряд</span>
+        </div>
+        <div class="gcard" style="background:#F07A1C">
+          <svg viewBox="0 0 300 200"><g fill="none" stroke="#fff" stroke-width="10" opacity=".9"><circle cx="200" cy="100" r="60"/><path d="M150 60l100 80M150 140l100-80"/></g></svg>
+          <div class="name">Спорт</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row tech">
+      <div class="cap">Технология</div>
+      <div class="cards">
+        <div class="gcard peek" style="background:#1C1B19">
+          <svg viewBox="0 0 60 190"><text x="14" y="60" font-family="Menlo,monospace" font-size="26" fill="#9BE37A" opacity=".85">#</text><text x="14" y="100" font-family="Menlo,monospace" font-size="26" fill="#9BE37A" opacity=".85">@</text><text x="14" y="140" font-family="Menlo,monospace" font-size="26" fill="#9BE37A" opacity=".85">#</text></svg>
+        </div>
+        <div class="gcard on focus" style="background:#3B6BE0">
+          <svg viewBox="0 0 300 200" shape-rendering="crispEdges"><g fill="#fff" opacity=".9"><rect x="120" y="40" width="20" height="20"/><rect x="140" y="40" width="20" height="20"/><rect x="160" y="40" width="20" height="20"/><rect x="100" y="60" width="20" height="20"/><rect x="180" y="60" width="20" height="20"/><rect x="100" y="80" width="20" height="20"/><rect x="140" y="80" width="20" height="20"/><rect x="180" y="80" width="20" height="20"/><rect x="100" y="100" width="20" height="20"/><rect x="180" y="100" width="20" height="20"/><rect x="120" y="120" width="20" height="20"/><rect x="140" y="120" width="20" height="20"/><rect x="160" y="120" width="20" height="20"/></g><g fill="#F2C230"><rect x="220" y="100" width="20" height="20"/><rect x="240" y="80" width="20" height="20"/><rect x="260" y="100" width="20" height="20"/></g></svg>
+          <div class="name">8-bit</div>
+        </div>
+        <div class="gcard" style="background:#7A4FE0">
+          <svg viewBox="0 0 300 200" shape-rendering="crispEdges"><g fill="#fff"><rect x="40" y="130" width="220" height="8" opacity=".9"/><rect x="60" y="110" width="180" height="8" opacity=".7"/><rect x="80" y="90" width="140" height="8" opacity=".5"/><rect x="100" y="70" width="100" height="8" opacity=".35"/><rect x="120" y="50" width="60" height="8" opacity=".25"/></g></svg>
+          <div class="name">16/32-bit</div>
+        </div>
+        <div class="gcard" style="background:#2BB37A">
+          <svg viewBox="0 0 300 200"><g><polygon points="150,30 230,80 190,160" fill="#fff" opacity=".95"/><polygon points="150,30 70,80 190,160" fill="#fff" opacity=".7"/><polygon points="70,80 110,170 190,160" fill="#fff" opacity=".45"/></g></svg>
+          <div class="name">Low poly</div>
+        </div>
+        <div class="gcard locked" style="background:#1E2A4A">
+          <svg viewBox="0 0 300 200"><defs><radialGradient id="g" cx=".35" cy=".3"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#5B7BEA"/></radialGradient></defs><circle cx="150" cy="100" r="70" fill="url(#g)"/></svg>
+          <div class="name">3D</div>
+          <span class="pill lock">придёт с прокачкой</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="cap">Сеттинг</div>
+      <div class="cards">
+        <div class="gcard" style="background:#0F6E8C">
+          <svg viewBox="0 0 300 200"><g fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".9"><circle cx="150" cy="60" r="18"/><path d="M150 78v90M100 120c0 40 100 40 100 0M80 110l20 10M220 110l-20 10"/></g></svg>
+          <div class="name">Пираты</div>
+        </div>
+        <div class="gcard" style="background:#2A1F5E">
+          <svg viewBox="0 0 300 200"><g fill="none" stroke="#fff" stroke-width="10" opacity=".9"><circle cx="150" cy="100" r="45"/><ellipse cx="150" cy="100" rx="110" ry="28" transform="rotate(-18 150 100)"/></g></svg>
+          <div class="name">Космос</div>
+        </div>
+        <div class="gcard" style="background:#8C4A1F">
+          <svg viewBox="0 0 300 200"><g fill="#fff" opacity=".9"><rect x="60" y="80" width="180" height="90"/><rect x="60" y="56" width="30" height="30"/><rect x="110" y="56" width="30" height="30"/><rect x="160" y="56" width="30" height="30"/><rect x="210" y="56" width="30" height="30"/></g><rect x="130" y="120" width="40" height="50" fill="#8C4A1F"/></svg>
+          <div class="name">Замки</div>
+          <span class="pill sat">надоели</span>
+        </div>
+        <div class="gcard peek" style="background:#C23B8A"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card est">
+    <div class="h2">Смета</div>
+    <div class="gname">Пираты<br>на платформах</div>
+    <div class="regen">R другое название</div>
+    <div class="line"><span>Спринтов</span><span class="v">5</span></div>
+    <div class="line"><span>Цена спринта</span><span class="v">$ 2 400</span></div>
+    <div class="line total"><span>Итого</span><span class="v">$ 12 000</span></div>
+    <div class="line left"><span>Останется</span><span class="v">$ 3 400</span></div>
+    <div class="btn">В разработку</div>
+  </div>
+
+  <div class="hints">
+    <span class="pill"><span class="key">←</span><span class="key">→</span> листать</span>
+    <span class="pill"><span class="key">↑</span><span class="key">↓</span> карусель</span>
+    <span class="pill"><span class="key">Enter</span> в разработку</span>
+  </div>
+  <div class="label">01 · конструктор поверх студии · 1920×1080</div>
+  <script src="_pixels.js"></script>
+  <script>drawStudio(document.getElementById("s"), "grown");</script>
+</body></html>

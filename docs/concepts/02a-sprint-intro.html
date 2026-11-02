@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>02a Спринт: интро-карточка</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .top { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+  .dots { position: absolute; right: 96px; top: 56px; display: flex; gap: 12px; }
+  .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--surface-2); }
+  .dot.ok { background: var(--success); } .dot.bug { background: var(--bug); } .dot.now { background: var(--ink); }
+  .center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-54%); text-align: center; }
+  .aspect.big { position: static; width: 128px; height: 128px; margin: 0 auto 36px; }
+  .aspect.big svg { width: 72px; height: 72px; }
+  .verb { font-size: 160px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+  .hint { margin-top: 28px; font-size: 32px; color: var(--ink-2); }
+  .asp { margin-top: 12px; font-size: 18px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+</style></head>
+<body>
+  <div class="top">Спринт 2 из 5 · Пираты на платформах</div>
+  <div class="dots"><span class="dot ok"></span><span class="dot now"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+
+  <div class="center">
+    <div class="aspect big"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.7 5.7M44.7 44.7l5.7 5.7M13.6 50.4l5.7-5.7M44.7 19.3l5.7-5.7"/></svg></div>
+    <div class="verb">Подгони</div>
+    <div class="hint">Фигуру в трафарет её цвета, когда стороны совпали</div>
+    <div class="asp">движок</div>
+  </div>
+
+  <div class="hints">
+    <span class="pill"><span class="key">←</span><span class="key">→</span> стороны трафарета</span>
+    <span class="pill"><span class="key">↑</span><span class="key">↓</span> отправить фигуру</span>
+  </div>
+  <div class="label">02a · интро-карточка спринта, первый релиз (со строкой-подсказкой) · 1920×1080</div>
+</body></html>

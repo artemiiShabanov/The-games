@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>05a Студия: первый релиз</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .money { position: absolute; right: 96px; top: 48px; font-size: 32px; font-weight: 600; color: var(--money); }
+  .release { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+</style></head>
+<body>
+  <div class="studio"><svg id="s"></svg></div>
+  <div class="release">Релиз 1 · Платформер · 8-bit</div>
+  <div class="money num">$ 24 000</div>
+  <div class="label">05a · студия первого релиза · 1920×1080</div>
+  <script src="_pixels.js"></script>
+  <script>drawStudio(document.getElementById("s"), "empty");</script>
+</body></html>

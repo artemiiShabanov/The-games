@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>04 Лента отклика</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .release { position: absolute; left: 96px; top: 48px; font-size: 24px; color: var(--ink-2); }
+  .money { position: absolute; right: 96px; top: 48px; font-size: 32px; font-weight: 600; color: var(--money); }
+  .title { position: absolute; left: 96px; top: 92px; }
+  .col { position: absolute; left: 520px; top: 140px; width: 880px; display: flex; flex-direction: column; gap: 16px; }
+  .item { padding: 20px 28px; }
+  .n { padding: 14px 24px !important; }
+  .btn { height: 64px; }
+  .tweet { display: flex; gap: 20px; align-items: flex-start; }
+  .av { width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2); flex: none; }
+  .handle { font-size: 18px; color: var(--ink-3); margin-bottom: 4px; }
+  .txt { font-size: 24px; line-height: 1.4; }
+  .tag { color: var(--focus); }
+  .person { display: flex; gap: 24px; align-items: flex-start; }
+  .face { width: 112px; height: 112px; border-radius: 20px; background: var(--surface-2); flex: none; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .face svg { width: 96px; height: 96px; shape-rendering: crispEdges; }
+  .who { font-size: 18px; color: var(--ink-3); }
+  .name { font-size: 28px; font-weight: 600; margin: 2px 0 10px; }
+  .score { margin-left: auto; font-family: var(--mono); font-size: 72px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+  .score small { font-size: 24px; color: var(--ink-3); font-weight: 500; }
+  .clip { margin-top: 14px; height: 150px; border-radius: 16px; background: #1C1B19; position: relative; overflow: hidden; }
+  .clip svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; shape-rendering: crispEdges; }
+  .clip .stamp { position: absolute; right: 24px; top: 20px; background: var(--bug); color: #fff; font-weight: 800; font-size: 22px; padding: 6px 16px; border-radius: 999px; transform: rotate(-6deg); }
+  .clip .views { position: absolute; left: 24px; bottom: 16px; color: #fff; font-size: 18px; opacity: .8; }
+  .clip .play { position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 50%; background: rgba(255,255,255,.9); }
+  .clip .play::after { content: ""; position: absolute; left: 28px; top: 20px; border-left: 24px solid var(--ink); border-top: 16px solid transparent; border-bottom: 16px solid transparent; }
+  .nums { display: flex; gap: 24px; align-items: stretch; }
+  .n { flex: 1; background: var(--surface-solid); border-radius: 16px; padding: 20px 24px; }
+  .n .k { font-size: 18px; color: var(--ink-2); }
+  .n .v { font-family: var(--mono); font-size: 44px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; }
+  .n .v.m { color: var(--money); }
+  .cta { display: flex; gap: 16px; align-items: center; margin-top: 4px; }
+  .cta .cap { margin-left: 8px; }
+  .fade { position: absolute; left: 0; right: 0; top: 150px; height: 60px; background: linear-gradient(rgba(244,241,236,1), rgba(244,241,236,0)); }
+</style></head>
+<body>
+  <div class="studio"><svg id="s"></svg></div>
+  <div class="dim"></div>
+  <div class="release">Релиз 4 · отклик · <b style="color:var(--ink)">#ПиратыНаПлатформах</b></div>
+  <div class="money num">$ 3 400</div>
+
+  <div class="col">
+    <div class="card item tweet" style="margin-top:-30px">
+      <div class="av"></div>
+      <div><div class="handle">@noodle_dev</div><div class="txt">восьмибитные пираты, музыка качает, но на втором экране я провалился в пол и не вернулся <span class="tag">#ПиратыНаПлатформах</span></div></div>
+    </div>
+
+    <div class="card item">
+      <div class="person">
+        <div class="face"><svg id="f1"></svg></div>
+        <div><div class="who">Критик · Pixel Gazette</div><div class="name">Марта Гринвуд</div>
+          <div class="txt">«Прыжок приятный, уровень в меру короткий. Физика пола иногда отсутствует. Шесть, потому что музыка».</div></div>
+        <div class="score">6<small>/10</small></div>
+      </div>
+    </div>
+
+    <div class="card item">
+      <div class="person">
+        <div class="face"><svg id="f2"></svg></div>
+        <div><div class="who">Стример · 48 тыс. онлайн</div><div class="name">KrakenPlays</div>
+          <div class="txt">«ОН ПРОСТО ПРОВАЛИЛСЯ. чат, это лучшее за неделю»</div></div>
+      </div>
+      <div class="clip">
+        <svg id="clip" viewBox="0 0 110 33" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="stamp">СКВОЗЬ ПОЛ</div>
+        <div class="play"></div>
+        <div class="views">клип · 1,2 млн просмотров</div>
+      </div>
+    </div>
+
+    <div class="nums">
+      <div class="n"><div class="k">Критики</div><div class="v">6.4</div></div>
+      <div class="n"><div class="k">Продажи, первый тик</div><div class="v m">$ 4 100</div></div>
+      <div class="n"><div class="k">Стримеры</div><div class="v">вирусно</div></div>
+    </div>
+
+    <div class="cta">
+      <div class="btn focus">В демо</div>
+      <div class="btn" style="background:var(--surface-solid);color:var(--ink)">Дальше</div>
+      <div class="cap">Enter запускает вашу игру, Esc в студию</div>
+    </div>
+  </div>
+  <div class="fade"></div>
+  <div class="label">04 · лента отклика после релиза · 1920×1080</div>
+  <script src="_pixels.js"></script>
+  <script>
+    drawStudio(document.getElementById("s"), "grown");
+    drawPortrait(document.getElementById("f1"), "critic1", "#E0457B");
+    drawPortrait(document.getElementById("f2"), "streamer1", "#F07A1C");
+    // кадр 8-bit демки: платформа, герой по пояс в полу
+    const c = document.getElementById("clip");
+    const px = (x, y, w, h, col) => { const r = document.createElementNS("http://www.w3.org/2000/svg", "rect"); r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", w); r.setAttribute("height", h); r.setAttribute("fill", col); c.appendChild(r); };
+    px(0, 0, 110, 33, "#2D6BE0");
+    for (let i = 0; i < 110; i += 2) px(i, 24, 1, 9, (i % 4) ? "#7A4B1F" : "#5A3614");
+    px(0, 23, 110, 1, "#3DBE5A");
+    px(70, 14, 10, 7, "#7A4B1F"); px(70, 13, 10, 1, "#3DBE5A");
+    px(30, 17, 6, 2, "#F2C230"); px(31, 19, 4, 4, "#E0457B"); px(30, 23, 6, 5, "#E0457B");
+    px(98, 4, 6, 6, "#F2C230"); px(12, 6, 10, 3, "#fff"); px(40, 3, 14, 3, "#fff");
+  </script>
+</body></html>
