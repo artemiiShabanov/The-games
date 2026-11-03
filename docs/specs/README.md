@@ -10,5 +10,5 @@
 
 Системы: `constructor.md`, `minigames.md` (+ `minigames_catalog.md`), `demos.md` (демки и
 каталог багов, + `demos_catalog.md` с описаниями пар и набором ассетов сеттинга), `success.md`
-(+ `success_model.md` с весами и модельным забегом), `economy.md`, `studio.md`, `meta.md`,
-`run.md`.
+(+ `success_model.md` с весами и модельным забегом), `economy.md` (+ `economy_model.md`, цены
+и два забега, считаются `tools/model_run.py`), `studio.md`, `meta.md`, `run.md`.
