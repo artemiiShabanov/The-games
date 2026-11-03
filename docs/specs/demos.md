@@ -1,6 +1,6 @@
 # Демки и каталог багов
 
-**Status:** Draft · **Issue:** #
+**Status:** Draft (дизайн согласован 2026-11-03 вместе с `demos_catalog.md`) · **Issue:** #
 
 ## Цель
 
