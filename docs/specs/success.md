@@ -1,6 +1,6 @@
 # Успех и отклик
 
-**Status:** Draft · **Issue:** #
+**Status:** Draft (дизайн согласован 2026-11-03 вместе с `success_model.md`) · **Issue:** #
 
 ## Цель
 
