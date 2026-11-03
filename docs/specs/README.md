@@ -9,5 +9,6 @@
 Статусы: `Draft` → `Building` → `Shipped` → `Synced YYYY-MM-DD` (после сверки с кодом).
 
 Системы: `constructor.md`, `minigames.md` (+ `minigames_catalog.md`), `demos.md` (демки и
-каталог багов, + `demos_catalog.md` с описаниями пар и набором ассетов сеттинга), `success.md`,
-`economy.md`, `studio.md`, `meta.md`, `run.md`.
+каталог багов, + `demos_catalog.md` с описаниями пар и набором ассетов сеттинга), `success.md`
+(+ `success_model.md` с весами и модельным забегом), `economy.md`, `studio.md`, `meta.md`,
+`run.md`.
