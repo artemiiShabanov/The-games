@@ -7,7 +7,9 @@
 ## Layout
 
 - `thegames/` проект Godot: `scenes/`, `scripts/`, `resources/` (тюнинг-числа как Resource),
-  `assets/`, `debug/` (дебаг-меню, тест-сцены; `debug/playtest/` в gitignore).
+  `assets/`, `debug/` (дебаг-меню и тестовые сцены `debug/scenes/*_test.tscn`; продовые сцены
+  на них не ссылаются; `debug/playtest/` в gitignore). Новая система регистрирует свои ручки
+  в дебаг-меню через `Debug.add_*` в той же задаче, спека `docs/specs/debug.md`.
 - `docs/` GDD, журнал решений, план (`plan.yaml` источник, `PLAN.md` генерируется), спеки,
   визуальный код `STYLE.md` и концепты к нему в `docs/concepts/` (правятся только после текста).
 - `tools/` скрипты: `sync_plan.py` зеркалит план в GitHub.

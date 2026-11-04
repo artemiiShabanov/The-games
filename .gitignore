@@ -1,6 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 
+# The Games: скриншоты, логи и сохранения плейтестов
+thegames/debug/playtest/
+
 # Godot-specific ignores
 .import/
 export.cfg

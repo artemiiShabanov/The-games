@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """docs/plan.yaml -> docs/PLAN.md и, с --github, метки, вехи и issues на GitHub через gh.
-Идемпотентно: существующее пропускается, ничего не удаляется.
+Идемпотентно: issue ищется по заголовку, тело обновляется при изменении, ничего не удаляется.
+Переименовал задачу в plan.yaml: сначала `gh issue edit <n> --title ...`, иначе будет дубль.
 
     python3 tools/sync_plan.py                       # PLAN.md
     python3 tools/sync_plan.py --github              # плюс GitHub
@@ -82,18 +83,21 @@ def sync_github(plan, dry_run):
             gh(["api", "repos/{owner}/{repo}/milestones", "-f", "title=" + ph["title"],
                 "-f", "description=" + ph.get("goal", "")], dry_run)
 
-    titles = set()
+    existing_issues = {}
     if not dry_run:
-        raw = gh(["issue", "list", "--state", "all", "--limit", "1000", "--json", "title"], dry_run, capture=True)
-        titles = {i["title"] for i in json.loads(raw or "[]")}
+        raw = gh(["issue", "list", "--state", "all", "--limit", "1000", "--json", "number,title,body"], dry_run, capture=True)
+        existing_issues = {i["title"]: i for i in json.loads(raw or "[]")}
     for ph in phases:
         for i in ph.get("issues") or []:
-            if i["title"] in titles:
+            body = (i.get("body") or "") + "\n\nРазмер: %s (%.1f дн.)\nВеха: %s" % (i["size"], SIZE_DAYS[i["size"]], ph["title"])
+            found = existing_issues.get(i["title"])
+            if found:
+                if (found.get("body") or "").strip() != body.strip():
+                    gh(["issue", "edit", str(found["number"]), "--body", body], dry_run)
                 continue
             labels = ["type: " + t for t in i.get("types", [])] + ["size: " + i["size"]]
             if i.get("owner"):
                 labels.append("owner: " + i["owner"])
-            body = (i.get("body") or "") + "\n\nРазмер: %s (%.1f дн.)\nВеха: %s" % (i["size"], SIZE_DAYS[i["size"]], ph["title"])
             args = ["issue", "create", "--title", i["title"], "--body", body, "--milestone", ph["title"]]
             for l in labels:
                 args += ["--label", l]
