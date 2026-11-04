@@ -21,8 +21,8 @@
 - Автотест: `sh tools/autotest.sh [--frames=N]` прогоняет игру ботом, пишет скриншот в
   `thegames/debug/playtest/autotest.png`, падает при `ERROR` в выводе или без `END ok`.
   `HEADLESS=1` без окна и скриншота. Внутри: `Godot --path thegames -- --auto-test
-  --screenshot=debug/playtest/x.png`; автолоад `AutoTest`, флаг `AutoTest.bot_active`,
-  `AutoTest.fail(reason)` из любой системы.
+  --screenshot=debug/playtest/x.png`; автолоад `AutoTest`, бот `AutoTest.bot_mode` (OFF, WIN, LOSE),
+  `AutoTest.fail(reason)` из любой системы. Дебаг-меню F1, `--debug`, `--scene=<id>`.
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.
 
 ## Process
