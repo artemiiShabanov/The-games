@@ -16,9 +16,13 @@
 
 ## Verification loop
 
-- Godot: `/Applications/Godot.app/Contents/MacOS/Godot`. После добавления ассетов: `--headless --import`.
-- Автотест: `Godot --path thegames -- --auto-test --screenshot=<dir>/x.png` должен печатать `END ok`
-  (завести в первой же задаче: игра прогоняет N кадров с ботом, пишет скриншот, выходит).
+- Godot 4.7: `/Applications/Godot.app/Contents/MacOS/Godot`. После добавления ассетов:
+  `--headless --path thegames --import`. Файлы `*.uid` и `*.import` коммитятся.
+- Автотест: `sh tools/autotest.sh [--frames=N]` прогоняет игру ботом, пишет скриншот в
+  `thegames/debug/playtest/autotest.png`, падает при `ERROR` в выводе или без `END ok`.
+  `HEADLESS=1` без окна и скриншота. Внутри: `Godot --path thegames -- --auto-test
+  --screenshot=debug/playtest/x.png`; автолоад `AutoTest`, флаг `AutoTest.bot_active`,
+  `AutoTest.fail(reason)` из любой системы.
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.
 
 ## Process
