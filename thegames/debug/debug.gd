@@ -296,11 +296,11 @@ func _build_ui() -> void:
 
 	var dim := ColorRect.new()
 	dim.color = Color(INK, 0.55)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_layer.add_child(dim)
 
 	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.offset_left = 360
 	panel.offset_top = 160
 	panel.offset_right = -360

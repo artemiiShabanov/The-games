@@ -21,10 +21,10 @@ func _ready() -> void:
 	tuning = MinigamePool.load_tuning()
 	var bg := ColorRect.new()
 	bg.color = Style.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	_label = Label.new()
-	_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_label.offset_left = 48
 	_label.offset_top = 40
 	_label.offset_right = -48
