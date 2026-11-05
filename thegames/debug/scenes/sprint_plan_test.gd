@@ -5,7 +5,7 @@ extends Control
 ## автотест при нарушении.
 
 const SECTION: StringName = &"Спринты"
-const INK := Color("#1E2A4A")
+const INK := Style.STUDIO_INK
 
 var genre := Game.Genre.PLATFORMER
 var tech := Game.Tech.BIT8
@@ -20,7 +20,7 @@ func _ready() -> void:
 	pool = MinigamePool.load_all()
 	tuning = MinigamePool.load_tuning()
 	var bg := ColorRect.new()
-	bg.color = Color("#F4F1EC")
+	bg.color = Style.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	_label = Label.new()

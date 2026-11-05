@@ -53,6 +53,11 @@ phases:
         owner: claude
         size: S
         body: "InputMap по спеке мини-игр: A = Z, пробел, Enter, кнопка юга; B = X, Esc, кнопка востока; стрелки = крестовина и левый стик. Один хелпер `GameInput` для мини-игр и демок."
+      - title: "Стиль оболочки: токены Style и тема окна по STYLE.md"
+        types: [ui]
+        owner: claude
+        size: S
+        body: "Единая точка визуального кода в Godot: `scripts/ui/style.gd` с цветами, размерами шрифта, радиусами, отступами и геометрией из `STYLE.md`, фабрики стилей (`flat`, `focus_ring`, `card`), тема оболочки `Style.make_theme()` на корневом окне через автолоад `UiTheme`. Дебаг-меню, тестовые сцены и главная сцена без своих литералов цвета. Окно 1920×1080."
       - title: "MinigameDef, SprintTuning и подбор набора спринтов как чистая функция"
         types: [code]
         owner: claude

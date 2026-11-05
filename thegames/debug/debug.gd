@@ -23,9 +23,9 @@ const BOT_LABELS: Array[String] = ["как игрок", "всегда выигр
 const SECTION_SCENES: StringName = &"Сцены"
 const SECTION_TOGGLES: StringName = &"Переключатели"
 const SECTION_TOOLS: StringName = &"Инструменты"
-const INK := Color("#1E2A4A")
-const BG := Color("#F4F1EC")
-const FOCUS := Color("#2F5BFF")
+const INK := Style.STUDIO_INK
+const BG := Style.BG
+const FOCUS := Style.FOCUS
 
 
 class Entry:
@@ -306,7 +306,7 @@ func _build_ui() -> void:
 	panel.offset_right = -360
 	panel.offset_bottom = -160
 	panel.theme = _make_theme()
-	var style := _flat(BG, 16)
+	var style := Style.flat(BG, 16)
 	style.set_content_margin_all(24)
 	panel.add_theme_stylebox_override("panel", style)
 	_layer.add_child(panel)
@@ -362,25 +362,13 @@ func _build_ui() -> void:
 	add_child(overlay_layer)
 
 
-func _flat(color: Color, radius: int, border: Color = Color.TRANSPARENT) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.set_corner_radius_all(radius)
-	sb.set_content_margin_all(10)
-	if border.a > 0.0:
-		sb.set_border_width_all(3)
-		sb.border_color = border
-		sb.set_expand_margin_all(3)
-	return sb
-
-
-## Светлая тема в цветах оболочки поверх дефолтной тёмной темы Godot.
+## Компактная светлая тема меню поверх темы оболочки: мелкие кнопки, список, ползунки.
 func _make_theme() -> Theme:
 	var t := Theme.new()
-	var normal := _flat(Color(INK, 0.08), 8)
-	var hover := _flat(Color(INK, 0.14), 8)
-	var pressed := _flat(Color(INK, 0.22), 8)
-	var focus := _flat(Color.TRANSPARENT, 8, FOCUS)
+	var normal := Style.flat(Color(INK, 0.08), 8)
+	var hover := Style.flat(Color(INK, 0.14), 8)
+	var pressed := Style.flat(Color(INK, 0.22), 8)
+	var focus := Style.flat(Color.TRANSPARENT, 8, FOCUS)
 	for cls in ["Button", "CheckButton", "OptionButton"]:
 		t.set_stylebox("normal", cls, normal)
 		t.set_stylebox("hover", cls, hover)
@@ -388,24 +376,24 @@ func _make_theme() -> Theme:
 		t.set_stylebox("focus", cls, focus)
 		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 			t.set_color(state, cls, INK)
-	t.set_stylebox("panel", "ItemList", _flat(Color(INK, 0.06), 8))
+	t.set_stylebox("panel", "ItemList", Style.flat(Color(INK, 0.06), 8))
 	t.set_stylebox("focus", "ItemList", focus)
-	t.set_stylebox("selected", "ItemList", _flat(Color(INK, 0.18), 6))
-	t.set_stylebox("selected_focus", "ItemList", _flat(FOCUS, 6))
-	t.set_stylebox("hovered", "ItemList", _flat(Color(INK, 0.1), 6))
+	t.set_stylebox("selected", "ItemList", Style.flat(Color(INK, 0.18), 6))
+	t.set_stylebox("selected_focus", "ItemList", Style.flat(FOCUS, 6))
+	t.set_stylebox("hovered", "ItemList", Style.flat(Color(INK, 0.1), 6))
 	t.set_color("font_color", "ItemList", INK)
 	t.set_color("font_hovered_color", "ItemList", INK)
 	t.set_color("font_selected_color", "ItemList", BG)
 	t.set_constant("v_separation", "ItemList", 10)
-	t.set_stylebox("panel", "PopupMenu", _flat(BG, 8))
-	t.set_stylebox("hover", "PopupMenu", _flat(Color(INK, 0.14), 6))
+	t.set_stylebox("panel", "PopupMenu", Style.flat(BG, 8))
+	t.set_stylebox("hover", "PopupMenu", Style.flat(Color(INK, 0.14), 6))
 	t.set_color("font_color", "PopupMenu", INK)
 	t.set_color("font_hover_color", "PopupMenu", INK)
 	t.set_color("font_color", "Label", INK)
 	t.set_color("font_color", "HSlider", INK)
-	t.set_stylebox("slider", "HSlider", _flat(Color(INK, 0.15), 4))
-	t.set_stylebox("grabber_area", "HSlider", _flat(FOCUS, 4))
-	t.set_stylebox("grabber_area_highlight", "HSlider", _flat(FOCUS, 4))
+	t.set_stylebox("slider", "HSlider", Style.flat(Color(INK, 0.15), 4))
+	t.set_stylebox("grabber_area", "HSlider", Style.flat(FOCUS, 4))
+	t.set_stylebox("grabber_area_highlight", "HSlider", Style.flat(FOCUS, 4))
 	return t
 
 
