@@ -25,6 +25,8 @@ const SECTION_TOGGLES: StringName = &"Переключатели"
 const SECTION_TOOLS: StringName = &"Инструменты"
 const SECTION_MINIGAMES: StringName = &"Мини-игры"
 const MINIGAME_SCENE := "sprint_runner_test"
+const SECTION_DEMOS: StringName = &"Демки"
+const DEMO_SCENE := "demo_test"
 const INK := Style.STUDIO_INK
 const BG := Style.BG
 const FOCUS := Style.FOCUS
@@ -52,6 +54,9 @@ var minigame_seed := 1
 var minigame_loop := false
 ## true: одна мини-игра `minigame_id`, false: весь план из 8.
 var minigame_single := false
+## Раздел «Демки»: сид и набор багов для `demo_test`.
+var demo_seed := 1
+var demo_bugs: Array[StringName] = []
 var active := false
 
 var _sections: Dictionary = {}
@@ -297,6 +302,20 @@ func _register_builtin() -> void:
 	add_action(SECTION_MINIGAMES, "Весь план из 8 спринтов", func() -> void:
 		minigame_single = false
 		run_test_scene(MINIGAME_SCENE))
+	add_number(SECTION_DEMOS, "Сид", func() -> int: return demo_seed,
+			func(v: float) -> void: demo_seed = int(v), 1, 999, 1, true)
+	var catalog := BugCatalog.load_default()
+	if catalog != null:
+		for bug in catalog.bugs:
+			var id := bug.id
+			add_toggle(SECTION_DEMOS, "%s (%s)" % [bug.stamp, bug.owner_name()],
+					func() -> bool: return demo_bugs.has(id),
+					func(v: bool) -> void:
+						if v and not demo_bugs.has(id):
+							demo_bugs.append(id)
+						elif not v:
+							demo_bugs.erase(id))
+	add_action(SECTION_DEMOS, "Запустить демку", func() -> void: run_test_scene(DEMO_SCENE))
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())

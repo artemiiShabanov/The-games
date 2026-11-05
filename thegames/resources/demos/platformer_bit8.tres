@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PlatformerDemoTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_demo_tuning.gd" id="1_demo"]
+
+[resource]
+script = ExtResource("1_demo")
+run_speed = 96.0
+jump_height = 56.0
+jump_time = 0.95
+jump_cut = 0.4
+enemy_speed = 28.0
+stomp_bounce = 120.0
+invulnerable_seconds = 1.2
+run_fps = 10.0
+enemy_fps = 4.0
+hero_width = 12.0
+hero_height = 15.0
