@@ -3,9 +3,11 @@ extends Minigame
 ## Три дорожки, как в Guitar Hero: ←, ↓, →. Ноты бегут сверху к метке, нужная стрелка в такт.
 ## Длинные ноты зажать и держать до конца. 16 нот, провал при менее чем 11 попаданиях.
 ## С `t` быстрее темп, появляются длинные ноты, затем аккорды из двух дорожек.
-## Метроном тикает каждую долю, попадание и промах звучат сами.
+## Ложное нажатие (нет ноты в окне) это ошибка: метка дрожит, звучит промах (плейтест
+## 2026-11-05). Метроном тикает каждую долю с упреждением на задержку вывода звука, метки
+## пульсируют в такт; синкопы на полдоли появляются с ростом `t`.
 ## Параметры от `t` в `resources/minigames/in_time.tres`: beat, travel, window, long_share,
-## chord_share.
+## chord_share, offbeat_share.
 
 enum NoteState { PENDING, HOLDING, HIT, MISS }
 
@@ -28,6 +30,9 @@ const NOTE_R := 44.0
 const TOP_Y := 70.0
 const HIT_FROM_BOTTOM := 150.0
 const POP_SECONDS := 0.25
+const SHAKE_SECONDS := 0.35
+const PULSE_SECONDS := 0.18
+const MAX_ERRORS := TOTAL_NOTES - NEED_HITS
 const BOT_PRECISION := 0.03
 
 var beat := 1.0
@@ -35,12 +40,17 @@ var travel := 1.6
 var window := 0.14
 var long_share := 0.0
 var chord_share := 0.0
+var offbeat_share := 0.0
 
 var notes: Array[Note] = []
 var hits := 0
 var misses := 0
+## Ложные нажатия: ошибки сверх промахов по нотам.
+var false_presses := 0
 var held: Array[bool] = [false, false, false]
 var lane_flash: Array[float] = [0.0, 0.0, 0.0]
+var lane_shake: Array[float] = [0.0, 0.0, 0.0]
+var pulse := 0.0
 var _next_beat_time := 0.0
 var _tick: AudioStreamPlayer
 var _hit_sound: AudioStreamPlayer
@@ -53,6 +63,7 @@ func _on_start() -> void:
 	window = def.param(&"window", t, 0.14)
 	long_share = def.param(&"long_share", t, 0.0)
 	chord_share = def.param(&"chord_share", t, 0.0)
+	offbeat_share = def.param(&"offbeat_share", t, 0.0)
 	_build_chart()
 	_tick = Sfx.player(Sfx.blip(1100.0, 0.05, 0.25, 40.0), -6.0)
 	_hit_sound = Sfx.player(Sfx.blip(660.0, 0.12, 0.5, 20.0))
@@ -73,7 +84,7 @@ func _build_chart() -> void:
 	var slot := 0
 	while k < TOTAL_NOTES:
 		var time := start + slot * beat
-		if slot > 0 and k < TOTAL_NOTES - 1 and rng.randf() < 0.3:
+		if slot > 0 and k < TOTAL_NOTES - 1 and rng.randf() < offbeat_share:
 			time += beat * 0.5
 		var free: Array[int] = []
 		for lane in LANES:
@@ -120,9 +131,15 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_tick(delta: float) -> void:
 	for lane in LANES:
 		lane_flash[lane] = maxf(lane_flash[lane] - delta, 0.0)
-	if elapsed >= _next_beat_time and _next_beat_time <= notes[notes.size() - 1].time + 0.01:
+		lane_shake[lane] = maxf(lane_shake[lane] - delta, 0.0)
+	pulse = maxf(pulse - delta, 0.0)
+	# Тик уходит в звук с упреждением на задержку вывода, чтобы слышаться ровно на доле.
+	var latency := AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix()
+	if elapsed + latency >= _next_beat_time and _next_beat_time <= notes[notes.size() - 1].time + 0.01:
 		_tick.play()
 		_next_beat_time += beat
+	if _next_beat_time - beat <= elapsed and elapsed < _next_beat_time - beat + 0.02 and pulse <= 0.0:
+		pulse = PULSE_SECONDS
 	for n in notes:
 		match n.state:
 			NoteState.PENDING:
@@ -132,14 +149,14 @@ func _on_tick(delta: float) -> void:
 				if elapsed >= n.time + n.length:
 					_hit(n)
 	queue_redraw()
-	if misses > TOTAL_NOTES - NEED_HITS:
+	if misses + false_presses > MAX_ERRORS:
 		finish(false)
 	elif hits + misses >= TOTAL_NOTES:
-		finish(hits >= NEED_HITS)
+		finish(misses + false_presses <= MAX_ERRORS)
 
 
 func _on_timeout() -> bool:
-	return hits >= NEED_HITS
+	return hits >= NEED_HITS and misses + false_presses <= MAX_ERRORS
 
 
 ## Бот: WIN жмёт в такт и держит длинные, LOSE молчит.
@@ -164,6 +181,10 @@ func _press(lane: int) -> void:
 			if best == null or n.time < best.time:
 				best = n
 	if best == null:
+		# Ложное нажатие: ошибка, метка дрожит.
+		false_presses += 1
+		lane_shake[lane] = SHAKE_SECONDS
+		_miss_sound.play()
 		return
 	if best.length > 0.0:
 		best.state = NoteState.HOLDING
@@ -225,13 +246,17 @@ func _draw() -> void:
 				Color(Style.INK, 0.035))
 		# Метка: кольцо с глифом, при зажатии и попадании заливается.
 		var pop := lane_flash[lane] / POP_SECONDS
-		var ring_r := NOTE_R + 10.0 + 8.0 * pop
+		var beat_pulse := pulse / PULSE_SECONDS
+		var ring_r := NOTE_R + 10.0 + 8.0 * pop + 4.0 * beat_pulse
+		var sx := x
+		if lane_shake[lane] > 0.0:
+			sx += sin(lane_shake[lane] * 45.0) * 12.0 * lane_shake[lane] / SHAKE_SECONDS
 		if held[lane] or pop > 0.0:
-			draw_circle(Vector2(x, hit_y), ring_r, Color(col, 0.25 + 0.35 * pop))
-		draw_arc(Vector2(x, hit_y), ring_r, 0.0, TAU, 64, col, 5.0, true)
+			draw_circle(Vector2(sx, hit_y), ring_r, Color(col, 0.25 + 0.35 * pop))
+		draw_arc(Vector2(sx, hit_y), ring_r, 0.0, TAU, 64, col, 5.0 + 2.0 * beat_pulse, true)
 		var glyph := LANE_GLYPHS[lane]
 		var w := font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, 40).x
-		draw_string(font, Vector2(x - w / 2.0, hit_y + 14.0), glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, col)
+		draw_string(font, Vector2(sx - w / 2.0, hit_y + 14.0), glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, col)
 	# Ноты: сначала хвосты длинных, потом головы.
 	for n in notes:
 		var x := _lane_x(n.lane)

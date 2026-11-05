@@ -8,6 +8,16 @@ _limits = [0.75, 1.0, 0.0, 1.0]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.75), 0.0, 0.0, 0, 0]
 point_count = 2
 
+[sub_resource type="Curve" id="Curve_iobv8"]
+_limits = [0.0, 0.3, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_hqqee"]
+_limits = [0.0, 0.45, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="Curve" id="Curve_e8e68"]
 _limits = [0.99, 1.6, 0.0, 1.0]
 _data = [Vector2(0, 1.6), 0.0, 0.0, 0, 0, Vector2(1, 1.2), 0.0, 0.0, 0, 0]
@@ -18,14 +28,9 @@ _limits = [0.1, 0.14, 0.0, 1.0]
 _data = [Vector2(0, 0.14), 0.0, 0.0, 0, 0, Vector2(1, 0.1), 0.0, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="Curve" id="Curve_hqqee"]
-_limits = [0.0, 0.45, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
-point_count = 2
-
-[sub_resource type="Curve" id="Curve_iobv8"]
-_limits = [0.0, 0.3, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+[sub_resource type="Curve" id="Curve_e1mjj"]
+_limits = [0.0, 0.35, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.35), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [resource]
@@ -40,6 +45,7 @@ params = Dictionary[StringName, Curve]({
 &"beat": SubResource("Curve_j8pgh"),
 &"chord_share": SubResource("Curve_iobv8"),
 &"long_share": SubResource("Curve_hqqee"),
+&"offbeat_share": SubResource("Curve_e1mjj"),
 &"travel": SubResource("Curve_e8e68"),
 &"window": SubResource("Curve_7rr11")
 })
