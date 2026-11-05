@@ -17,6 +17,7 @@ var bot_mode := BotMode.OFF
 var frames_left := 0
 var screenshot_path := ""
 var failures: PackedStringArray = []
+var _required: PackedStringArray = []
 
 
 func _ready() -> void:
@@ -43,6 +44,19 @@ func fail(reason: String) -> void:
 	push_error("AUTO-TEST fail: " + reason)
 
 
+## Объявить обязательную отметку: если к концу прогона её не сняли `fulfill`, это провал.
+## Так незавершившиеся проверки не проходят молча.
+func require(tag: String) -> void:
+	if not _required.has(tag):
+		_required.append(tag)
+
+
+func fulfill(tag: String) -> void:
+	var i := _required.find(tag)
+	if i >= 0:
+		_required.remove_at(i)
+
+
 ## Заметка в лог прогона, для чтения глазами.
 func note(text: String) -> void:
 	print("AUTO-TEST note: " + text)
@@ -61,6 +75,8 @@ func _finish() -> void:
 	if not headless:
 		# В headless кадры не рисуются и сигнал не приходит, ждать его нельзя.
 		await RenderingServer.frame_post_draw
+	for tag in _required:
+		failures.append("не дождались: " + tag)
 	if screenshot_path != "" and not headless:
 		var err := Screenshot.save(get_viewport(), screenshot_path)
 		if err != OK:

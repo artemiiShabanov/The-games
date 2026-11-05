@@ -39,6 +39,8 @@ func _ready() -> void:
 		if args.has("lose"):
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
 		# `--minigame=<id>` гоняет одну мини-игру ботом вместо плана: WIN, потом LOSE.
+		if Debug.skip_cards:
+			AutoTest.require("sprint runner checks")
 		if args.has("minigame"):
 			Debug.minigame_id = str(args["minigame"])
 			Debug.minigame_loop = false
@@ -103,4 +105,5 @@ func _check(results: Array[bool]) -> void:
 			_expect(_started == 2 * n and _finished == 2 * n, "LOSE: сигналов %d/%d" % [_started, _finished])
 			_check_phase = 2
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
+			AutoTest.fulfill("sprint runner checks")
 			AutoTest.note("sprint runner checks done: %s, %d sprints, frames_left=%d" % [what, 2 * n, AutoTest.frames_left])

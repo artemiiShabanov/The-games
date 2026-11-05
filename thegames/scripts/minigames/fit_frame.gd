@@ -1,27 +1,29 @@
 extends Minigame
-## «Подгони» (fit_frame, оптимизация), каталог `docs/specs/minigames_catalog.md`, концепт `02b`.
-## Тарелка с мутной жидкостью, из глубины по одной всплывают правильные многоугольники двух
-## цветов: сначала размытое пятно, потом чёткая фигура. Сверху и снизу трафареты, по одному
-## на цвет; ← → меняют число сторон у обоих сразу, ↑ ↓ отправляют фигуру в трафарет. Совпали
-## цвет и стороны: вошла. Нет или не успел: тонет. Провал при двух непопавших.
+## «Подгони» (fit_frame, оптимизация), каталог `docs/specs/minigames_catalog.md`.
+## Вся карточка это поверхность мутной жидкости (тарелки нет). Из глубины по одной всплывают
+## правильные многоугольники двух цветов: сначала размытое пятно, потом чёткая фигура; каждая
+## всплывает в своём месте около центра и покачивается на волнах. Слева и справа трафареты,
+## по одному на цвет; ↑ ↓ меняют число сторон у обоих сразу, ← → отправляют фигуру в трафарет.
+## Совпали цвет и стороны: влетает, трафарет пружинит. Нет: фигура и трафарет трясутся, фигура
+## тонет. Не успел: тонет. Провал при двух непопавших. (Компоновка и анимации: решения
+## 2026-11-05 по плейтесту.)
 ## Параметры от `t` в `resources/minigames/fit_frame.tres`: shapes, rise, hold, sides_max.
 
 enum State { NONE, RISING, READY, HIT, MISS, SINK }
 
 const MIN_SIDES := 3
 const MAX_SIDES := 8
-const PLATE_R := 260.0
 const SHAPE_R := 84.0
 const STENCIL_R := 110.0
 const STENCIL_WIDTH := 22.0
-## Центр трафарета чуть внутри борта: нижняя половина прячется под тарелку, как в концепте.
-const STENCIL_INSET := 30.0
-## Поле приподнято, чтобы нижний трафарет не лез на пилюлю ввода.
-const FIELD_SHIFT := Vector2(0, -30)
+const STENCIL_OFFSET := 540.0
+const SPAWN_SPREAD := 140.0
 const HIT_SECONDS := 0.22
-const MISS_SECONDS := 0.45
+const MISS_SECONDS := 0.5
 const GAP_SECONDS := 0.3
 const FLASH_SECONDS := 0.3
+const BOUNCE_SECONDS := 0.45
+const SHAKE_SECONDS := 0.35
 const FAIL_AT := 2
 const BOT_REACTION := 0.25
 
@@ -42,7 +44,12 @@ var cur_sides := 3
 var cur_color := 0
 var cur_age := 0.0
 var cur_target := 0
+## Своё место всплытия и фаза покачивания у каждой фигуры.
+var cur_origin := Vector2.ZERO
+var cur_phase := 0.0
 var flash: Array[float] = [0.0, 0.0]
+var bounce: Array[float] = [0.0, 0.0]
+var shake: Array[float] = [0.0, 0.0]
 
 
 func _on_start() -> void:
@@ -57,13 +64,13 @@ func _on_start() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not running or event.is_echo():
 		return
-	if event.is_action_pressed(GameInput.LEFT):
-		stencil_sides = maxi(stencil_sides - 1, MIN_SIDES)
-	elif event.is_action_pressed(GameInput.RIGHT):
+	if event.is_action_pressed(GameInput.UP):
 		stencil_sides = mini(stencil_sides + 1, MAX_SIDES)
-	elif event.is_action_pressed(GameInput.UP):
-		_send(0)
 	elif event.is_action_pressed(GameInput.DOWN):
+		stencil_sides = maxi(stencil_sides - 1, MIN_SIDES)
+	elif event.is_action_pressed(GameInput.LEFT):
+		_send(0)
+	elif event.is_action_pressed(GameInput.RIGHT):
 		_send(1)
 	else:
 		return
@@ -74,6 +81,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_tick(delta: float) -> void:
 	for i in 2:
 		flash[i] = maxf(flash[i] - delta, 0.0)
+		bounce[i] = maxf(bounce[i] - delta, 0.0)
+		shake[i] = maxf(shake[i] - delta, 0.0)
 	cur_age += delta
 	match state:
 		State.NONE:
@@ -89,6 +98,7 @@ func _on_tick(delta: float) -> void:
 				_miss(State.SINK)
 		State.HIT:
 			if cur_age >= HIT_SECONDS:
+				bounce[cur_target] = BOUNCE_SECONDS
 				_resolve()
 		State.MISS, State.SINK:
 			if cur_age >= MISS_SECONDS:
@@ -115,6 +125,9 @@ func _spawn() -> void:
 		sides = MIN_SIDES + (sides - MIN_SIDES + 1) % (sides_max - MIN_SIDES + 1)
 	cur_sides = sides
 	cur_color = rng.randi_range(0, 1)
+	var a := rng.randf_range(0.0, TAU)
+	cur_origin = Vector2(cos(a), sin(a)) * rng.randf_range(0.0, SPAWN_SPREAD)
+	cur_phase = rng.randf_range(0.0, TAU)
 	state = State.RISING
 	cur_age = 0.0
 
@@ -130,6 +143,7 @@ func _send(target: int) -> void:
 		state = State.HIT
 		cur_age = 0.0
 	else:
+		shake[target] = SHAKE_SECONDS
 		_miss(State.MISS)
 
 
@@ -154,43 +168,39 @@ func _resolve() -> void:
 func _draw() -> void:
 	if def == null:
 		return
-	var center := size / 2.0 + FIELD_SHIFT
-	var stencil_pos: Array[Vector2] = [center + Vector2(0, -PLATE_R + STENCIL_INSET), center + Vector2(0, PLATE_R - STENCIL_INSET)]
-	# Трафареты под тарелкой: их нижняя часть прячется под неё, как в концепте.
+	var center := size / 2.0
+	var stencil_pos: Array[Vector2] = [center + Vector2(-STENCIL_OFFSET, 0), center + Vector2(STENCIL_OFFSET, 0)]
 	for i in 2:
 		var col := Style.accent(i)
-		var pts := _polygon(stencil_pos[i], STENCIL_R, stencil_sides, PI if i == 1 else 0.0)
+		var pos := stencil_pos[i] + Vector2(_shake_offset(shake[i], SHAKE_SECONDS, 12.0), 0)
+		var pts := _polygon(pos, STENCIL_R * _bounce_scale(bounce[i]), stencil_sides, 0.0)
 		if flash[i] > 0.0:
 			draw_colored_polygon(pts, Color(col, 0.35 * flash[i] / FLASH_SECONDS))
 		_draw_outline(pts, col, STENCIL_WIDTH)
-	# Тарелка с мутной жидкостью.
-	draw_circle(center, PLATE_R + 6.0, Color(Style.INK, 0.05))
-	draw_circle(center, PLATE_R, Color(0.91, 0.915, 0.93))
-	for k in 5:
-		draw_circle(center, PLATE_R * (0.92 - k * 0.17), Color(1, 1, 1, 0.22))
-	# Фигура.
+
+	var home := center + cur_origin
 	match state:
 		State.RISING:
 			var p := clampf(cur_age / rise_seconds, 0.0, 1.0)
-			_draw_shape(center, lerpf(0.6, 1.0, p), Style.accent(cur_color), p, 1.0 - p)
+			_draw_shape(home + _float_offset(cur_age), lerpf(0.6, 1.0, p), Style.accent(cur_color), p, 1.0 - p, cur_age)
 		State.READY:
-			_draw_shape(center, 1.0, Style.accent(cur_color), 1.0, 0.25)
+			var age := rise_seconds + cur_age
+			_draw_shape(home + _float_offset(age), 1.0, Style.accent(cur_color), 1.0, 0.25, age)
 		State.HIT:
 			var p := clampf(cur_age / HIT_SECONDS, 0.0, 1.0)
 			var e := 1.0 - (1.0 - p) * (1.0 - p)
-			var pos := center.lerp(stencil_pos[cur_target], e)
-			_draw_shape(pos, lerpf(1.0, STENCIL_R / SHAPE_R * 0.8, e), Style.accent(cur_color), 1.0, 0.0)
+			var pos := home.lerp(stencil_pos[cur_target], e)
+			_draw_shape(pos, lerpf(1.0, STENCIL_R / SHAPE_R * 0.8, e), Style.accent(cur_color), 1.0, 0.0, 0.0)
 		State.MISS:
 			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
-			var dir := (stencil_pos[cur_target] - center).normalized()
-			var pos := center + dir * sin(p * PI) * 70.0
+			var pos := home + Vector2(_shake_offset(MISS_SECONDS - cur_age, MISS_SECONDS, 14.0), 0)
 			var col := Style.accent(cur_color).lerp(Style.INK_3, p)
-			_draw_shape(pos, lerpf(1.0, 0.6, p), col, 1.0 - p * 0.9, 0.0)
+			_draw_shape(pos, lerpf(1.0, 0.6, p), col, 1.0 - p * 0.9, p * 0.5, 0.0)
 		State.SINK:
 			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
 			var col := Style.accent(cur_color).lerp(Style.INK_3, p)
-			_draw_shape(center, lerpf(1.0, 0.5, p), col, 1.0 - p, p)
-	# Счёт фигур справа сверху поля.
+			_draw_shape(home, lerpf(1.0, 0.5, p), col, 1.0 - p, p, 0.0)
+
 	var r := 7.0
 	var gap := 28.0
 	var x0 := size.x - 48.0 - (shapes_total - 1) * gap
@@ -203,14 +213,44 @@ func _draw() -> void:
 		draw_circle(Vector2(x0 + i * gap, 60.0), r, c)
 
 
-## Фигура с размытием: `blur` 1 это пятно, 0 чёткий многоугольник.
-func _draw_shape(pos: Vector2, scale_: float, col: Color, alpha: float, blur: float) -> void:
+## Дрейф на волнах: медленное кружение около места всплытия.
+func _float_offset(age: float) -> Vector2:
+	return Vector2(sin(age * 1.1 + cur_phase) * 9.0, cos(age * 0.8 + cur_phase) * 12.0)
+
+
+## Тряска: затухающая синусоида, `left` сколько осталось.
+func _shake_offset(left: float, total: float, amp: float) -> float:
+	if left <= 0.0:
+		return 0.0
+	var k := left / total
+	return sin(left * 45.0) * amp * k
+
+
+## Пружина трафарета после попадания: перелёт и короткий второй отскок.
+func _bounce_scale(left: float) -> float:
+	if left <= 0.0:
+		return 1.0
+	var p := 1.0 - left / BOUNCE_SECONDS
+	return 1.0 + 0.22 * sin(p * PI) * (1.0 - p) + 0.06 * sin(p * TAU) * (1.0 - p)
+
+
+## Фигура с размытием: `blur` 1 это пятно, 0 чёткий многоугольник. `wobble_age` > 0 даёт
+## покачивание на волнах: лёгкий наклон, как у плавающей пластинки (сжатие вдоль плывущей оси).
+func _draw_shape(pos: Vector2, scale_: float, col: Color, alpha: float, blur: float, wobble_age: float) -> void:
 	var radius := SHAPE_R * scale_
 	if blur > 0.0:
 		for k in 6:
 			draw_circle(pos, radius * (1.6 - k * 0.15), Color(col, 0.07 * blur * alpha))
 	if alpha > 0.0 and blur < 1.0:
-		var pts := _polygon(pos, radius, cur_sides, 0.0)
+		var pts := _polygon(Vector2.ZERO, radius, cur_sides, 0.0)
+		if wobble_age > 0.0:
+			var axis := wobble_age * 0.7 + cur_phase
+			var squash := 1.0 - 0.14 * (0.5 + 0.5 * sin(wobble_age * 1.6 + cur_phase))
+			var tilt := Transform2D(axis, Vector2.ZERO) * Transform2D(0.0, Vector2(squash, 1.0), 0.0, Vector2.ZERO) * Transform2D(-axis, Vector2.ZERO)
+			var rot := Transform2D(sin(wobble_age * 0.9 + cur_phase) * 0.08, Vector2.ZERO)
+			pts = (rot * tilt) * pts
+		for i in pts.size():
+			pts[i] += pos
 		draw_colored_polygon(pts, Color(col, alpha * (1.0 - blur * 0.6)))
 
 

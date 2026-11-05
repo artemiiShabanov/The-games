@@ -27,9 +27,9 @@ point_count = 2
 script = ExtResource("1_qrhuq")
 id = &"fit_frame"
 verb = "Подгони"
-hint = "Влево-вправо число сторон, вверх или вниз отправить в трафарет"
+hint = "Вверх-вниз число сторон, влево или вправо отправить в трафарет"
 scene = ExtResource("1_lxmw3")
-inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
+inputs = Array[StringName]([&"move_up", &"move_down", &"move_left", &"move_right"])
 params = Dictionary[StringName, Curve]({
 &"hold": SubResource("Curve_lxmw3"),
 &"rise": SubResource("Curve_p32do"),
