@@ -23,6 +23,9 @@
   `HEADLESS=1` без окна и скриншота. Внутри: `Godot --path thegames -- --auto-test
   --screenshot=debug/playtest/x.png`; автолоад `AutoTest`, бот `AutoTest.bot_mode` (OFF, WIN, LOSE),
   `AutoTest.fail(reason)` из любой системы. Дебаг-меню F1, `--debug`, `--scene=<id>`.
+- Одна мини-игра ботом (WIN, затем LOSE): `sh tools/autotest.sh --scene=sprint_runner_test
+  --minigame=<id> --frames=1500`. Кривые параметров и сцена в ресурс мини-игры:
+  `Godot --headless --path thegames -s debug/tools/set_params.gd -- <id> tscn=res://... key=from:to`.
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.
 
 ## Process

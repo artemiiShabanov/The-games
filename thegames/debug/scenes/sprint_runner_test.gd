@@ -38,7 +38,13 @@ func _ready() -> void:
 		Debug.skip_cards = not args.has("cards")
 		if args.has("lose"):
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
-		_run_plan()
+		# `--minigame=<id>` гоняет одну мини-игру ботом вместо плана: WIN, потом LOSE.
+		if args.has("minigame"):
+			Debug.minigame_id = str(args["minigame"])
+			Debug.minigame_loop = false
+			_run_single()
+		else:
+			_run_plan()
 	elif Debug.minigame_single:
 		_run_single()
 	else:
@@ -78,18 +84,23 @@ func _expect(ok: bool, what: String) -> void:
 
 
 func _check(results: Array[bool]) -> void:
+	var n := 1 if single else 8
+	var what := Debug.minigame_id if single else "план"
 	match _check_phase:
 		0:
-			_expect(results.size() == 8, "WIN: %d результатов, не 8" % results.size())
-			_expect(not results.has(false), "WIN: есть провал %s" % [results])
-			_expect(_started == 8 and _finished == 8, "WIN: сигналов %d/%d" % [_started, _finished])
+			_expect(results.size() == n, "%s WIN: %d результатов, не %d" % [what, results.size(), n])
+			_expect(not results.has(false), "%s WIN: есть провал %s" % [what, results])
+			_expect(_started == n and _finished == n, "WIN: сигналов %d/%d" % [_started, _finished])
 			_check_phase = 1
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
-			_run_plan()
+			if single:
+				_run_single()
+			else:
+				_run_plan()
 		1:
-			_expect(results.size() == 8, "LOSE: %d результатов, не 8" % results.size())
-			_expect(not results.has(true), "LOSE: есть успех %s" % [results])
-			_expect(_started == 16 and _finished == 16, "LOSE: сигналов %d/%d" % [_started, _finished])
+			_expect(results.size() == n, "%s LOSE: %d результатов, не %d" % [what, results.size(), n])
+			_expect(not results.has(true), "%s LOSE: есть успех %s" % [what, results])
+			_expect(_started == 2 * n and _finished == 2 * n, "LOSE: сигналов %d/%d" % [_started, _finished])
 			_check_phase = 2
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
-			AutoTest.note("sprint runner checks done: 16 sprints, fps=%d, frames_left=%d" % [Engine.get_frames_per_second(), AutoTest.frames_left])
+			AutoTest.note("sprint runner checks done: %s, %d sprints, frames_left=%d" % [what, 2 * n, AutoTest.frames_left])

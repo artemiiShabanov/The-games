@@ -1,10 +1,38 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/fit_frame.tscn" id="1_lxmw3"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_qrhuq"]
+
+[sub_resource type="Curve" id="Curve_lxmw3"]
+_limits = [0.99, 1.5, 0.0, 1.0]
+_data = [Vector2(0, 1.5), 0.0, 0.0, 0, 0, Vector2(1, 1.1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_p32do"]
+_limits = [0.99, 1.6, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1.6), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_a24ub"]
+_limits = [0.99, 8.0, 0.0, 1.0]
+_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_6i35d"]
+_limits = [0.99, 8.0, 0.0, 1.0]
+_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_qrhuq")
 id = &"fit_frame"
 verb = "Подгони"
 hint = "Влево-вправо число сторон, вверх или вниз отправить в трафарет"
+scene = ExtResource("1_lxmw3")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
+params = Dictionary[StringName, Curve]({
+&"hold": SubResource("Curve_lxmw3"),
+&"rise": SubResource("Curve_p32do"),
+&"shapes": SubResource("Curve_a24ub"),
+&"sides_max": SubResource("Curve_6i35d")
+})
