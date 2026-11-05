@@ -54,6 +54,9 @@ const ESTIMATE_WIDTH := 500
 const FEED_WIDTH := 880
 const PEEK := 60
 const BUTTON_HEIGHT := 72
+## Карточка спринта поверх студии: отступы по бокам EDGE, сверху под шапку, снизу.
+const SPRINT_CARD_TOP := 112
+const SPRINT_CARD_BOTTOM := 72
 const PILL_HEIGHT := 40
 
 # --- Фокус и движение ------------------------------------------------------------------------
@@ -63,6 +66,9 @@ const FOCUS_OFFSET := 6
 const FOCUS_SCALE := 1.06
 const FOCUS_MOVE_SECONDS := 0.12
 const SCREEN_SLIDE_PX := 24
+const CARD_RISE_SECONDS := 0.3
+const CARD_DROP_SECONDS := 0.24
+const SWITCH_SECONDS := 0.24
 const SHAKE_PX := 4
 const DIM_LOCKED := 0.4
 

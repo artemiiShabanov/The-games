@@ -1,9 +1,11 @@
 class_name SprintRunner
 extends Control
-## Раннер спринтов релиза, спека `docs/specs/minigames.md`: для каждой мини-игры плана
-## карточка-интро, сама мини-игра, карточка результата («готово» или штамп бага), пауза под
-## анимацию студии (в M0 пустой фон), дальше следующая. Карточки пропускаются любой клавишей,
-## `Debug.skip_cards` убирает их совсем. Вид по концептам `02a`, `03a`, `03b`.
+## Раннер спринтов релиза, спека `docs/specs/minigames.md`. Каждый спринт идёт в одной большой
+## карточке поверх студии (решение 2026-11-05): карточка всплывает снизу с интро, внутри неё
+## интро → мини-игра → результат сменяются сдвигом справа налево, после результата карточка
+## уезжает вниз, пауза под анимацию студии (в M0 пустой фон), следующая всплывает. Интро,
+## результат и пауза пропускаются любой клавишей, `Debug.skip_cards` убирает ожидания и
+## анимации. Содержимое карточек по концептам `02a`, `03a`, `03b`.
 ## Хозяин (петля релиза или тестовая сцена) зовёт `run()` и слушает сигналы.
 
 signal sprint_started(def: MinigameDef)
@@ -13,7 +15,6 @@ signal plan_finished(results: Array[bool])
 enum Phase { IDLE, INTRO, PLAY, RESULT, STUDIO }
 
 const PLACEHOLDER := preload("res://scenes/minigames/placeholder_minigame.tscn")
-const SLIDE_SECONDS := 0.24
 const STAMP_SECONDS := 0.2
 
 var tuning: SprintTuning
@@ -30,9 +31,10 @@ var phase := Phase.IDLE
 var index := -1
 
 var _minigame: Minigame
-var _card: Control
+var _view: Control
 var _skip := false
-var _stage: Control
+var _frame: PanelContainer
+var _content: Control
 var _header: Label
 var _dots: Control
 
@@ -46,9 +48,7 @@ func _ready() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
-	_stage = Control.new()
-	_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(_stage)
+
 	var chrome := Control.new()
 	chrome.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -63,6 +63,17 @@ func _ready() -> void:
 	_dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dots.draw.connect(_draw_dots)
 	chrome.add_child(_dots)
+
+	_frame = PanelContainer.new()
+	_frame.add_theme_stylebox_override("panel", Style.card())
+	_frame.clip_contents = true
+	_frame.visible = false
+	add_child(_frame)
+	_content = Control.new()
+	_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_frame.add_child(_content)
+	resized.connect(_layout_frame)
+	_layout_frame()
 
 
 ## Запустить план. `seed_base + номер спринта` сид мини-игры.
@@ -103,12 +114,11 @@ func _next() -> void:
 func _run_sprint(def: MinigameDef) -> void:
 	phase = Phase.INTRO
 	sprint_started.emit(def)
-	_show_card(_make_intro_card(def))
+	_set_view(_make_intro_card(def))
+	await _raise_card()
 	await _wait(tuning.intro_seconds)
-	_clear_card()
 
 	phase = Phase.PLAY
-	_header.visible = false
 	var scene: PackedScene = def.scene if def.scene != null else PLACEHOLDER
 	_minigame = scene.instantiate() as Minigame
 	if _minigame == null:
@@ -116,27 +126,45 @@ func _run_sprint(def: MinigameDef) -> void:
 		_minigame = PLACEHOLDER.instantiate() as Minigame
 	var mult := tuning.first_release_time_multiplier if first_release else 1.0
 	_minigame.setup(def, t, seed_base + index, mult)
-	_stage.add_child(_minigame)
+	await _switch_view(_minigame)
 	_minigame.start()
 	var success: bool = await _minigame.finished
-	_minigame.queue_free()
-	_minigame = null
 	results.append(success)
 	sprint_finished.emit(def, success)
 
 	phase = Phase.RESULT
-	_header.visible = true
 	_dots.queue_redraw()
-	_show_card(_make_result_card(def, success))
+	var result_card := _make_result_card(def, success)
+	await _switch_view(result_card)
+	_minigame = null
+	if not success:
+		_animate_stamp(result_card)
 	await _wait(tuning.result_seconds)
-	_clear_card()
+	await _drop_card()
+	_set_view(null)
 
 	phase = Phase.STUDIO
 	await _wait(tuning.studio_seconds)
 	_next()
 
 
-## Пауза карточки: пропуск любой клавишей, `Debug.skip_cards` сводит к одному кадру.
+# --- Карточка и переходы ---------------------------------------------------------------------
+
+func _card_rect() -> Rect2:
+	return Rect2(Style.EDGE, Style.SPRINT_CARD_TOP, size.x - 2 * Style.EDGE,
+			size.y - Style.SPRINT_CARD_TOP - Style.SPRINT_CARD_BOTTOM)
+
+
+func _layout_frame() -> void:
+	var rect := _card_rect()
+	_frame.size = rect.size
+	if phase == Phase.IDLE or phase == Phase.STUDIO:
+		_frame.position = Vector2(rect.position.x, size.y)
+	else:
+		_frame.position = rect.position
+
+
+## Пауза с пропуском любой клавишей; `Debug.skip_cards` сводит к одному кадру.
 func _wait(seconds: float) -> void:
 	_skip = false
 	if Debug.skip_cards:
@@ -148,22 +176,64 @@ func _wait(seconds: float) -> void:
 		left -= get_process_delta_time()
 
 
-func _show_card(card: Control) -> void:
-	_card = card
-	_stage.add_child(card)
+func _raise_card() -> void:
+	var rect := _card_rect()
+	_frame.size = rect.size
+	_frame.visible = true
 	if Debug.skip_cards:
+		_frame.position = rect.position
+		await get_tree().process_frame
 		return
-	card.modulate.a = 0.0
-	card.position.y = Style.SCREEN_SLIDE_PX
-	var tw := create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.tween_property(card, "modulate:a", 1.0, SLIDE_SECONDS)
-	tw.tween_property(card, "position:y", 0.0, SLIDE_SECONDS)
+	_frame.position = Vector2(rect.position.x, size.y)
+	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(_frame, "position:y", rect.position.y, Style.CARD_RISE_SECONDS)
+	await tw.finished
 
 
-func _clear_card() -> void:
-	if _card != null:
-		_card.queue_free()
-		_card = null
+func _drop_card() -> void:
+	if Debug.skip_cards:
+		_frame.visible = false
+		await get_tree().process_frame
+		return
+	var tw := create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(_frame, "position:y", size.y, Style.CARD_DROP_SECONDS)
+	await tw.finished
+	_frame.visible = false
+
+
+## Поставить содержимое карточки без анимации (первое интро) или убрать его (`null`).
+func _set_view(view: Control) -> void:
+	if _view != null:
+		_view.queue_free()
+	_view = view
+	if view != null:
+		_fit_view(view)
+		_content.add_child(view)
+
+
+## Сменить содержимое карточки сдвигом справа налево: старое уходит влево и гаснет.
+func _switch_view(view: Control) -> void:
+	var old := _view
+	_view = view
+	_fit_view(view)
+	_content.add_child(view)
+	if Debug.skip_cards or old == null:
+		if old != null:
+			old.queue_free()
+		await get_tree().process_frame
+		return
+	var w := _content.size.x
+	view.position.x = w
+	var tw := create_tween().set_parallel(true).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(view, "position:x", 0.0, Style.SWITCH_SECONDS)
+	tw.tween_property(old, "position:x", -w, Style.SWITCH_SECONDS)
+	tw.tween_property(old, "modulate:a", 0.0, Style.SWITCH_SECONDS)
+	await tw.finished
+	old.queue_free()
+
+
+func _fit_view(view: Control) -> void:
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
 # --- Карточки -------------------------------------------------------------------------------
@@ -173,8 +243,7 @@ func _make_intro_card(def: MinigameDef) -> Control:
 	var column := _center_column(card)
 	column.add_child(AspectIcon.for_def(def))
 	column.add_child(_spacer(40))
-	var verb := _label(def.verb, Style.FONT_VERB, Style.INK)
-	column.add_child(verb)
+	column.add_child(_label(def.verb, Style.FONT_VERB, Style.INK))
 	if first_release:
 		column.add_child(_spacer(8))
 		column.add_child(_label(def.hint, Style.FONT_H2, Style.INK_2))
@@ -190,8 +259,7 @@ func _make_result_card(def: MinigameDef, success: bool) -> Control:
 	column.add_child(AspectIcon.for_def(def))
 	column.add_child(_spacer(40))
 	if success:
-		var ok := _label("готово", Style.FONT_VERB, Style.SUCCESS)
-		column.add_child(ok)
+		column.add_child(_label("готово", Style.FONT_VERB, Style.SUCCESS))
 		column.add_child(_spacer(12))
 		column.add_child(_label("Спринт засчитан", Style.FONT_H2, Style.INK_2))
 	else:
@@ -207,12 +275,20 @@ func _make_result_card(def: MinigameDef, success: bool) -> Control:
 		column.add_child(holder)
 		column.add_child(_spacer(24))
 		column.add_child(_label("Баг: %s. Будет в демке" % def.owner_name(), Style.FONT_H2, Style.INK_2))
-		if not Debug.skip_cards:
-			stamp.scale = Vector2(1.4, 1.4)
-			var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-			tw.tween_property(stamp, "scale", Vector2.ONE, STAMP_SECONDS)
-			tw.tween_callback(_shake.bind(card))
+		card.set_meta(&"stamp", stamp)
 	return card
+
+
+## Штамп падает с увеличения 1.4 до 1.0 и трясёт карточку (STYLE), после того как карточка
+## въехала.
+func _animate_stamp(card: Control) -> void:
+	if Debug.skip_cards or not card.has_meta(&"stamp"):
+		return
+	var stamp: Control = card.get_meta(&"stamp")
+	stamp.scale = Vector2(1.4, 1.4)
+	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(stamp, "scale", Vector2.ONE, STAMP_SECONDS)
+	tw.tween_callback(_shake.bind(_frame))
 
 
 func _make_stamp(text: String) -> Control:
@@ -232,16 +308,16 @@ func _make_stamp(text: String) -> Control:
 	return stamp
 
 
-func _shake(card: Control) -> void:
+func _shake(node: Control) -> void:
+	var x0 := node.position.x
 	var tw := create_tween()
 	for i in range(4):
-		tw.tween_property(card, "position:x", Style.SHAKE_PX * (1 if i % 2 == 0 else -1), 0.04)
-	tw.tween_property(card, "position:x", 0.0, 0.04)
+		tw.tween_property(node, "position:x", x0 + Style.SHAKE_PX * (1 if i % 2 == 0 else -1), 0.04)
+	tw.tween_property(node, "position:x", x0, 0.04)
 
 
 func _card_base() -> Control:
 	var card := Control.new()
-	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return card
 

@@ -55,5 +55,6 @@ graphics = 2
 
 [resource]
 script = ExtResource("2_me6wq")
+intro_seconds = 3.0
 genre_weights = Array[ExtResource("1_prmd8")]([SubResource("Resource_bkvey"), SubResource("Resource_8jtmf"), SubResource("Resource_c3sqy"), SubResource("Resource_6lkp2"), SubResource("Resource_sqhkd")])
 tech_weights = Array[ExtResource("1_prmd8")]([SubResource("Resource_oekcv"), SubResource("Resource_g6146"), SubResource("Resource_0te01"), SubResource("Resource_7xiop"), SubResource("Resource_dqs8d")])
