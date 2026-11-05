@@ -1,6 +1,32 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_1jqlk"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/in_time.tscn" id="1_e1mjj"]
+
+[sub_resource type="Curve" id="Curve_j8pgh"]
+_limits = [0.75, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.75), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_e8e68"]
+_limits = [0.99, 1.6, 0.0, 1.0]
+_data = [Vector2(0, 1.6), 0.0, 0.0, 0, 0, Vector2(1, 1.2), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_7rr11"]
+_limits = [0.1, 0.14, 0.0, 1.0]
+_data = [Vector2(0, 0.14), 0.0, 0.0, 0, 0, Vector2(1, 0.1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_hqqee"]
+_limits = [0.0, 0.45, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_iobv8"]
+_limits = [0.0, 0.3, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_1jqlk")
@@ -8,4 +34,12 @@ id = &"in_time"
 aspect = 1
 verb = "В такт"
 hint = "Ноты бегут к метке: нужная стрелка в такт, длинные держи"
+scene = ExtResource("1_e1mjj")
 inputs = Array[StringName]([&"move_left", &"move_down", &"move_right"])
+params = Dictionary[StringName, Curve]({
+&"beat": SubResource("Curve_j8pgh"),
+&"chord_share": SubResource("Curve_iobv8"),
+&"long_share": SubResource("Curve_hqqee"),
+&"travel": SubResource("Curve_e8e68"),
+&"window": SubResource("Curve_7rr11")
+})
