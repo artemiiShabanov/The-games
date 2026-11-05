@@ -7,6 +7,9 @@ extends Control
 var runner: SprintRunner
 var pool: Array[MinigameDef] = []
 var tuning: SprintTuning
+var catalog: BugCatalog
+## Запись игры текущего плана: провалы кладут в неё баги из каталога.
+var record: GameRecord
 var ids: Array[String] = []
 
 var single := false
@@ -19,13 +22,21 @@ var _check_phase := 0
 func _ready() -> void:
 	pool = MinigamePool.load_all()
 	tuning = MinigamePool.load_tuning()
+	catalog = BugCatalog.load_default()
 	for d in pool:
 		ids.append(String(d.id))
 	runner = SprintRunner.new()
 	runner.tuning = tuning
 	add_child(runner)
 	runner.sprint_started.connect(func(_d: MinigameDef) -> void: _started += 1)
-	runner.sprint_finished.connect(func(_d: MinigameDef, _s: bool) -> void: _finished += 1)
+	runner.sprint_finished.connect(_on_sprint_finished)
+	runner.bug_label = func(d: MinigameDef) -> String:
+		var b := catalog.stamp_bug(d, record)
+		return b.stamp if b != null else d.owner_name()
+	runner.bug_caption = func(d: MinigameDef) -> String:
+		var b := catalog.stamp_bug(d, record)
+		return "Баг: %s. Будет в демке" % (b.manifestation.to_lower() if b != null else d.owner_name())
+	Debug.watch("баги", func() -> String: return str(record.bug_ids) if record else "")
 	runner.plan_finished.connect(_on_plan_finished)
 
 	Debug.watch("спринт", func() -> String:
@@ -53,8 +64,17 @@ func _ready() -> void:
 		_run_plan()
 
 
+func _on_sprint_finished(d: MinigameDef, success: bool) -> void:
+	_finished += 1
+	record.add_sprint(success)
+	if not success:
+		# Запись пополняется после карточки результата: штамп должен показать новый баг.
+		catalog.apply_fail.call_deferred(d, record)
+
+
 func _run_plan() -> void:
 	single = false
+	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.minigame_seed, "Тест раннера")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = Debug.minigame_seed
 	var plan := SprintPlanner.plan(8, Game.Genre.PLATFORMER, Game.Tech.BIT8, pool, tuning, rng)
@@ -63,6 +83,7 @@ func _run_plan() -> void:
 
 func _run_single() -> void:
 	single = true
+	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.minigame_seed, "Одна мини-игра")
 	var def := MinigamePool.find(pool, StringName(Debug.minigame_id))
 	if def == null:
 		_run_plan()
@@ -103,6 +124,14 @@ func _check(results: Array[bool]) -> void:
 			_expect(results.size() == n, "%s LOSE: %d результатов, не %d" % [what, results.size(), n])
 			_expect(not results.has(true), "%s LOSE: есть успех %s" % [what, results])
 			_expect(_started == 2 * n and _finished == 2 * n, "LOSE: сигналов %d/%d" % [_started, _finished])
+			if not single:
+				# План из 8 провалов платформера × 8-bit даёт ровно пять багов M0: по одному на
+				# четыре аспекта с багом и сквозь пол; баланс и 8-bit багов в M0 не имеют.
+				var want: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input", &"pink_placeholders", &"through_floor"]
+				for id in want:
+					_expect(record.has_bug(id), "LOSE: в записи нет бага %s: %s" % [id, record.bug_ids])
+				_expect(record.bug_ids.size() == want.size(), "LOSE: багов %d, не %d: %s" % [record.bug_ids.size(), want.size(), record.bug_ids])
+				_expect(is_equal_approx(record.quality(), 0.0), "LOSE: качество %.2f, не 0" % record.quality())
 			_check_phase = 2
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
 			AutoTest.fulfill("sprint runner checks")

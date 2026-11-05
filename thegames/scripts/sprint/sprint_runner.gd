@@ -24,8 +24,10 @@ var first_release := false
 var seed_base := 0
 var game_title := ""
 var results: Array[bool] = []
-## Текст штампа при провале. По умолчанию владелец мини-игры; каталог багов (#10) подменит.
+## Текст штампа и подпись при провале. По умолчанию владелец мини-игры; хозяин подменяет на
+## данные из `BugCatalog` (см. `sprint_runner_test`).
 var bug_label: Callable = func(def: MinigameDef) -> String: return def.owner_name()
+var bug_caption: Callable = func(def: MinigameDef) -> String: return "Баг: %s. Будет в демке" % def.owner_name()
 
 var phase := Phase.IDLE
 var index := -1
@@ -274,7 +276,7 @@ func _make_result_card(def: MinigameDef, success: bool) -> Control:
 		holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		column.add_child(holder)
 		column.add_child(_spacer(24))
-		column.add_child(_label("Баг: %s. Будет в демке" % def.owner_name(), Style.FONT_H2, Style.INK_2))
+		column.add_child(_label(str(bug_caption.call(def)), Style.FONT_H2, Style.INK_2))
 		card.set_meta(&"stamp", stamp)
 	return card
 

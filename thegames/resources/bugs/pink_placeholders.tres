@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_yfyqw"]
+
+[resource]
+script = ExtResource("1_yfyqw")
+id = &"pink_placeholders"
+aspect = 3
+stamp = "ЗАГЛУШКИ"
+manifestation = "Розовые квадраты вместо части спрайтов"
+tweet = "Враги розовые квадраты. Это стиль или дедлайн?"
+clip = "Розовый квадрат бежит на героя"
+params = Dictionary[StringName, float]({
+&"share": 0.35
+})

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_756ht"]
+
+[resource]
+script = ExtResource("1_756ht")
+id = &"audio_stutter"
+aspect = 1
+stamp = "ЗАИКАЕТСЯ"
+manifestation = "Музыка заикается, звуки с задержкой"
+tweet = "Саундтрек как с зажёванной кассеты"
+clip = "Прыжок есть, звук прыжка через секунду"
+params = Dictionary[StringName, float]({
+&"delay_ms": 350.0,
+&"stutter_period_s": 3.0
+})

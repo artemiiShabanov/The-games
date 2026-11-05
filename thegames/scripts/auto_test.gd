@@ -1,6 +1,6 @@
 extends Node
 ## Автотест. Запуск:
-##   Godot --path thegames -- --auto-test [--frames=N] [--screenshot=debug/playtest/x.png]
+##   Godot --path thegames -- --auto-test [--frames=N] [--screenshot=debug/playtest/x.png] [--time-scale=4]
 ## Прогоняет N кадров с ботом (`bot_mode = WIN`), пишет скриншот, печатает `END ok`
 ## или `END fail: причины` и выходит с кодом 0 или 1. Относительный путь скриншота
 ## считается от корня проекта (`res://`). Обёртка с проверкой вывода: `tools/autotest.sh`.
@@ -31,6 +31,8 @@ func _ready() -> void:
 	bot_mode = BotMode.WIN
 	frames_left = int(args.get("frames", str(DEFAULT_FRAMES)))
 	screenshot_path = str(args.get("screenshot", ""))
+	# `--time-scale=4`: игровое время быстрее, чтобы длинные прогоны ботом укладывались в кадры.
+	Engine.time_scale = float(args.get("time-scale", "1"))
 	print("AUTO-TEST start: frames=%d screenshot=%s" % [frames_left, screenshot_path])
 
 

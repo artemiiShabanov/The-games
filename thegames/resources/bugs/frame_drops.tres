@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_fgtuy"]
+
+[resource]
+script = ExtResource("1_fgtuy")
+id = &"frame_drops"
+stamp = "15 FPS"
+manifestation = "Кадры проседают: фризы по 200-400 мс в движении"
+tweet = "Играл бы, если бы не слайд-шоу. 15 FPS, серьёзно?"
+clip = "Герой замирает в прыжке, камера дёргается"
+params = Dictionary[StringName, float]({
+&"freeze_ms_max": 400.0,
+&"freeze_ms_min": 200.0,
+&"period_s": 2.5
+})

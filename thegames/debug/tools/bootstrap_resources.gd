@@ -1,6 +1,6 @@
 extends SceneTree
-## Разовое создание ресурсов из каталога мини-игр и таблицы весов. Существующие файлы не
-## трогает: тюнинг потом правится в редакторе, не здесь.
+## Разовое создание ресурсов из каталога мини-игр, таблицы весов и каталога багов M0.
+## Существующие файлы не трогает: тюнинг потом правится в редакторе, не здесь.
 ##   Godot --headless --path thegames -s debug/tools/bootstrap_resources.gd
 
 const K := MinigameDef.Kind
@@ -46,6 +46,26 @@ const GENRE_WEIGHTS := {
 	G.SPORT: [2, 1, 1, 1, 2],
 	G.FIGHTING: [1, 1, 2, 1, 2],
 }
+const BUGS_DIR := "res://resources/bugs/"
+# id, вид, владелец, штамп, проявление, твит, кадр клипа, зрелищный, параметры
+const BUGS := [
+	["frame_drops", BugDef.Kind.ASPECT, A.OPTIMIZATION, "15 FPS", "Кадры проседают: фризы по 200-400 мс в движении",
+		"Играл бы, если бы не слайд-шоу. 15 FPS, серьёзно?", "Герой замирает в прыжке, камера дёргается", false,
+		{&"freeze_ms_min": 200.0, &"freeze_ms_max": 400.0, &"period_s": 2.5}],
+	["audio_stutter", BugDef.Kind.ASPECT, A.SOUND, "ЗАИКАЕТСЯ", "Музыка заикается, звуки с задержкой",
+		"Саундтрек как с зажёванной кассеты", "Прыжок есть, звук прыжка через секунду", false,
+		{&"stutter_period_s": 3.0, &"delay_ms": 350.0}],
+	["sticky_input", BugDef.Kind.ASPECT, A.CONTROLS, "ЗАЛИПЛО", "Кнопка залипает, ввод с опозданием",
+		"Нажал прыжок один раз, герой прыгнул трижды", "Герой скачет сам после одного нажатия", false,
+		{&"stick_chance": 0.25, &"extra_presses": 2.0, &"delay_ms": 120.0}],
+	["pink_placeholders", BugDef.Kind.ASPECT, A.GRAPHICS, "ЗАГЛУШКИ", "Розовые квадраты вместо части спрайтов",
+		"Враги розовые квадраты. Это стиль или дедлайн?", "Розовый квадрат бежит на героя", false,
+		{&"share": 0.35}],
+	["through_floor", BugDef.Kind.GENRE, G.PLATFORMER, "СКВОЗЬ ПОЛ", "Герой проваливается сквозь часть платформ",
+		"Платформа есть, опоры нет. Упал в пустоту три раза подряд", "Герой проваливается сквозь платформу и летит вниз", true,
+		{&"platform_share": 0.3}],
+]
+
 const TECH_WEIGHTS := {
 	T.ASCII: [1, 1, 2, 1, 2],
 	T.BIT8: [1, 2, 1, 2, 1],
@@ -92,8 +112,48 @@ func _init() -> void:
 			tuning.tech_weights.append(AspectWeights.make(w[0], w[1], w[2], w[3], w[4]))
 		_save(tuning, MinigamePool.TUNING_PATH)
 		made += 1
+	made += _bootstrap_bugs()
 	print("bootstrap: создано %d ресурсов" % made)
 	quit()
+
+
+func _bootstrap_bugs() -> int:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(BUGS_DIR))
+	var made := 0
+	var defs: Array[BugDef] = []
+	for row: Array in BUGS:
+		var path: String = BUGS_DIR + str(row[0]) + ".tres"
+		if FileAccess.file_exists(path):
+			defs.append(load(path) as BugDef)
+			continue
+		var bug := BugDef.new()
+		bug.id = StringName(row[0])
+		bug.kind = row[1]
+		match bug.kind:
+			BugDef.Kind.ASPECT:
+				bug.aspect = row[2]
+			BugDef.Kind.GENRE:
+				bug.genre = row[2]
+			BugDef.Kind.TECH:
+				bug.tech = row[2]
+		bug.stamp = row[3]
+		bug.manifestation = row[4]
+		bug.tweet = row[5]
+		bug.clip = row[6]
+		bug.spectacular = row[7]
+		var params: Dictionary[StringName, float] = {}
+		for key in row[8]:
+			params[key] = row[8][key]
+		bug.params = params
+		_save(bug, path)
+		defs.append(bug)
+		made += 1
+	if not FileAccess.file_exists(BugCatalog.PATH):
+		var catalog := BugCatalog.new()
+		catalog.bugs = defs
+		_save(catalog, BugCatalog.PATH)
+		made += 1
+	return made
 
 
 func _save(res: Resource, path: String) -> void:
@@ -101,4 +161,6 @@ func _save(res: Resource, path: String) -> void:
 	if err != OK:
 		push_error("bootstrap: не сохранён %s: %s" % [path, error_string(err)])
 	else:
+		# Чтобы каталоги ссылались на файл, а не вкладывали копию.
+		res.take_over_path(path)
 		print("bootstrap: " + path)

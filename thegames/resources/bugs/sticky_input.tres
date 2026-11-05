@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_7pyba"]
+
+[resource]
+script = ExtResource("1_7pyba")
+id = &"sticky_input"
+aspect = 2
+stamp = "ЗАЛИПЛО"
+manifestation = "Кнопка залипает, ввод с опозданием"
+tweet = "Нажал прыжок один раз, герой прыгнул трижды"
+clip = "Герой скачет сам после одного нажатия"
+params = Dictionary[StringName, float]({
+&"delay_ms": 120.0,
+&"extra_presses": 2.0,
+&"stick_chance": 0.25
+})
