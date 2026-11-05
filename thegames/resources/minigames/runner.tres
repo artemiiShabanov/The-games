@@ -1,6 +1,22 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/runner.tscn" id="1_51fd4"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_n2phq"]
+
+[sub_resource type="Curve" id="Curve_cgjo5"]
+_limits = [0.99, 560.0, 0.0, 1.0]
+_data = [Vector2(0, 420), 0.0, 0.0, 0, 0, Vector2(1, 560), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_hliau"]
+_limits = [0.99, 480.0, 0.0, 1.0]
+_data = [Vector2(0, 480), 0.0, 0.0, 0, 0, Vector2(1, 340), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_qc282"]
+_limits = [0.0, 0.5, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_n2phq")
@@ -8,4 +24,10 @@ id = &"runner"
 kind = 2
 verb = "Прыгай"
 hint = "A прыжок через ямы и столбики"
+scene = ExtResource("1_51fd4")
 inputs = Array[StringName]([&"action_a"])
+params = Dictionary[StringName, Curve]({
+&"combo_share": SubResource("Curve_qc282"),
+&"gap": SubResource("Curve_hliau"),
+&"speed": SubResource("Curve_cgjo5")
+})
