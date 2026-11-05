@@ -95,6 +95,7 @@ func _on_tick(delta: float) -> void:
 				cur_age = 0.0
 		State.READY:
 			if cur_age >= hold_seconds:
+				ShellSounds.play(&"miss")
 				_miss(State.SINK)
 		State.HIT:
 			if cur_age >= HIT_SECONDS:
@@ -142,8 +143,10 @@ func _send(target: int) -> void:
 		flash[target] = FLASH_SECONDS
 		state = State.HIT
 		cur_age = 0.0
+		ShellSounds.play(&"hit")
 	else:
 		shake[target] = SHAKE_SECONDS
+		ShellSounds.play(&"miss")
 		_miss(State.MISS)
 
 

@@ -25,7 +25,8 @@
   `AutoTest.fail(reason)` из любой системы. Дебаг-меню F1, `--debug`, `--scene=<id>`.
 - Одна мини-игра ботом (WIN, затем LOSE): `sh tools/autotest.sh --scene=sprint_runner_test
   --minigame=<id> --frames=1500`. Весь план из 8 с проверкой багов: без `--minigame`,
-  `--time-scale=4 --frames=3000`. Кривые параметров и сцена в ресурс мини-игры:
+  `--time-scale=4 --frames=3000`. Петля M0 целиком: `sh tools/autotest.sh --loop
+  --time-scale=4 --frames=2600`. Кривые параметров и сцена в ресурс мини-игры:
   `Godot --headless --path thegames -s debug/tools/set_params.gd -- <id> tscn=res://... key=from:to`.
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.
 

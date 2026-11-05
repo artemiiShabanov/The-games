@@ -139,6 +139,7 @@ func _run_sprint(def: MinigameDef) -> void:
 	var result_card := _make_result_card(def, success)
 	await _switch_view(result_card)
 	_minigame = null
+	ShellSounds.play(&"done" if success else &"bug")
 	if not success:
 		_animate_stamp(result_card)
 	await _wait(tuning.result_seconds)
@@ -182,6 +183,7 @@ func _raise_card() -> void:
 	var rect := _card_rect()
 	_frame.size = rect.size
 	_frame.visible = true
+	ShellSounds.play(&"intro")
 	if Debug.skip_cards:
 		_frame.position = rect.position
 		await get_tree().process_frame
@@ -219,6 +221,8 @@ func _switch_view(view: Control) -> void:
 	_view = view
 	_fit_view(view)
 	_content.add_child(view)
+	if old != null and not Debug.skip_cards:
+		ShellSounds.play(&"switch")
 	if Debug.skip_cards or old == null:
 		if old != null:
 			old.queue_free()

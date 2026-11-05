@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RunTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/run_tuning.gd" id="1_run"]
+
+[resource]
+script = ExtResource("1_run")
+genre = 0
+tech = 1
+title = "Пираты на платформах"
+sprints = 5
+cap = 12
+replays = 0
