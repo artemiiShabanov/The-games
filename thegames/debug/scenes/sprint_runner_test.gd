@@ -106,4 +106,4 @@ func _check(results: Array[bool]) -> void:
 			_check_phase = 2
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
 			AutoTest.fulfill("sprint runner checks")
-			AutoTest.note("sprint runner checks done: %s, %d sprints, frames_left=%d" % [what, 2 * n, AutoTest.frames_left])
+			AutoTest.note("sprint runner checks done: %s, %d sprints, frames_left=%d, fps=%d" % [what, 2 * n, AutoTest.frames_left, Engine.get_frames_per_second()])
