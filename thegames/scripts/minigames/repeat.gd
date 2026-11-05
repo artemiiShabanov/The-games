@@ -2,8 +2,10 @@ extends Minigame
 ## «Повтори» (repeat, управление), каталог `docs/specs/minigames_catalog.md`.
 ## Шесть клавиш-площадок: крестовина слева, A и B справа. Последовательность из 4-7 клавиш
 ## показывается вспышками, у каждой клавиши свой тон, затем игрок повторяет. Четыре раунда до
-## конца таймера, провал при двух ошибках. С `t` последовательность длиннее, показ быстрее,
-## появляются ложные вспышки, которые надо пропустить мимо.
+## конца таймера; провал, если не успел. Неверная клавиша не ошибка, а потеря времени: ввод
+## блокируется на секунду, поле тускнеет вдвое, нужная клавиша подсвечивается (плейтест
+## 2026-11-05). С `t` последовательность длиннее, показ быстрее, появляются ложные вспышки,
+## которые надо пропустить мимо.
 ## Параметры от `t` в `resources/minigames/repeat.tres`: length, show, fake_share.
 
 enum Phase { SHOW, INPUT, PAUSE }
@@ -11,7 +13,7 @@ enum Phase { SHOW, INPUT, PAUSE }
 const KEYS: Array[StringName] = [GameInput.LEFT, GameInput.UP, GameInput.DOWN, GameInput.RIGHT, GameInput.A, GameInput.B]
 const TONES: Array[float] = [392.0, 440.0, 494.0, 523.0, 587.0, 659.0]
 const ROUNDS := 4
-const FAIL_AT := 2
+const LOCK_SECONDS := 1.0
 const PAD := 140.0
 const PAD_GAP := 20.0
 const GAP_SECONDS := 0.12
@@ -29,7 +31,7 @@ var fake_share := 0.0
 var phase := Phase.PAUSE
 var round_index := 0
 var rounds_done := 0
-var errors := 0
+var lock_left := 0.0
 var sequence: Array[int] = []
 var step := 0
 var phase_time := 0.0
@@ -73,6 +75,8 @@ func _on_tick(delta: float) -> void:
 		lit[i] = maxf(lit[i] - delta, 0.0)
 		shake[i] = maxf(shake[i] - delta, 0.0)
 	fake_left = maxf(fake_left - delta, 0.0)
+	lock_left = maxf(lock_left - delta, 0.0)
+	modulate.a = 0.5 if lock_left > 0.0 else 1.0
 	phase_time += delta
 	match phase:
 		Phase.PAUSE:
@@ -98,12 +102,12 @@ func _on_tick(delta: float) -> void:
 
 
 func _on_timeout() -> bool:
-	return rounds_done >= ROUNDS and errors < FAIL_AT
+	return rounds_done >= ROUNDS
 
 
 ## Бот: WIN жмёт нужную клавишу каждые `BOT_STEP`, LOSE жмёт не ту.
 func _bot_step(delta: float) -> bool:
-	if phase != Phase.INPUT:
+	if phase != Phase.INPUT or lock_left > 0.0:
 		return false
 	_bot_timer += delta
 	if _bot_timer < BOT_STEP:
@@ -151,7 +155,7 @@ func _maybe_fake() -> void:
 
 
 func _press(key: int) -> void:
-	if phase != Phase.INPUT or key < 0:
+	if phase != Phase.INPUT or key < 0 or lock_left > 0.0:
 		return
 	var want := sequence[step]
 	if key == want:
@@ -165,24 +169,14 @@ func _press(key: int) -> void:
 			phase = Phase.PAUSE
 			pause_left = ROUND_PAUSE
 	else:
-		errors += 1
+		# Не ошибка, а потеря времени: секунда блокировки, поле тускнеет, нужная клавиша видна.
+		lock_left = LOCK_SECONDS
 		shake[key] = SHAKE_SECONDS
-		lit[key] = PRESS_SECONDS
+		lit[key] = LOCK_SECONDS
 		lit_color[key] = Style.DANGER
-		lit[want] = PRESS_SECONDS
+		lit[want] = LOCK_SECONDS
 		lit_color[want] = Style.accent(0)
 		_miss_sound.play()
-		if errors >= FAIL_AT:
-			finish(false)
-			return
-		step += 1
-		if step >= sequence.size():
-			rounds_done += 1
-			if rounds_done >= ROUNDS:
-				finish(errors < FAIL_AT)
-				return
-			phase = Phase.PAUSE
-			pause_left = ROUND_PAUSE
 
 
 # --- Рисование ----------------------------------------------------------------------------
@@ -248,6 +242,3 @@ func _draw() -> void:
 		elif j == rounds_done and phase != Phase.PAUSE:
 			c = Style.INK
 		draw_circle(Vector2(rx + j * gap2, 60.0), r, c)
-	# Ошибки под раундами: красные точки.
-	for j in errors:
-		draw_circle(Vector2(rx + j * gap2, 60.0 + 24.0), r, Style.DANGER)
