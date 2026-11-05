@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_as8un"]
+
+[resource]
+script = ExtResource("1_as8un")
+id = &"patch_line"
+verb = "Поправь"
+hint = "Сдвинутый блок под курсором: стрелка ставит его на место"
+time_seconds = 25.0
+inputs = Array[StringName]([&"move_up", &"move_down"])

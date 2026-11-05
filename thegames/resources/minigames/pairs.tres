@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_fex18"]
+
+[resource]
+script = ExtResource("1_fex18")
+id = &"pairs"
+kind = 1
+tech = 1
+verb = "Запомни"
+hint = "Открывай карточки парами"
+time_seconds = 25.0
+inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_vbtmr"]
+
+[resource]
+script = ExtResource("1_vbtmr")
+id = &"mash"
+kind = 1
+verb = "Разгони"
+hint = "Влево-вправо как можно быстрее"
+time_seconds = 10.0
+inputs = Array[StringName]([&"move_left", &"move_right"])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_k2qcu"]
+
+[resource]
+script = ExtResource("1_k2qcu")
+id = &"beam"
+aspect = 3
+verb = "Наведи"
+hint = "Влево-вправо наклон, A передаёт луч следующему зеркалу"
+inputs = Array[StringName]([&"move_left", &"move_right", &"action_a"])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_n2phq"]
+
+[resource]
+script = ExtResource("1_n2phq")
+id = &"runner"
+kind = 2
+verb = "Прыгай"
+hint = "A прыжок через ямы и столбики"
+inputs = Array[StringName]([&"action_a"])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_ohabf"]
+
+[resource]
+script = ExtResource("1_ohabf")
+id = &"tune"
+aspect = 1
+verb = "Настрой волну"
+hint = "Влево-вправо частота, вверх-вниз амплитуда, A фиксирует"
+inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])

@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="SprintTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/aspect_weights.gd" id="1_prmd8"]
+[ext_resource type="Script" path="res://scripts/minigames/sprint_tuning.gd" id="2_me6wq"]
+
+[sub_resource type="Resource" id="Resource_bkvey"]
+script = ExtResource("1_prmd8")
+optimization = 2
+graphics = 2
+
+[sub_resource type="Resource" id="Resource_8jtmf"]
+script = ExtResource("1_prmd8")
+optimization = 2
+controls = 2
+
+[sub_resource type="Resource" id="Resource_c3sqy"]
+script = ExtResource("1_prmd8")
+controls = 2
+balance = 2
+
+[sub_resource type="Resource" id="Resource_6lkp2"]
+script = ExtResource("1_prmd8")
+optimization = 2
+balance = 2
+
+[sub_resource type="Resource" id="Resource_sqhkd"]
+script = ExtResource("1_prmd8")
+controls = 2
+balance = 2
+
+[sub_resource type="Resource" id="Resource_oekcv"]
+script = ExtResource("1_prmd8")
+controls = 2
+balance = 2
+
+[sub_resource type="Resource" id="Resource_g6146"]
+script = ExtResource("1_prmd8")
+sound = 2
+graphics = 2
+
+[sub_resource type="Resource" id="Resource_0te01"]
+script = ExtResource("1_prmd8")
+sound = 2
+graphics = 2
+
+[sub_resource type="Resource" id="Resource_7xiop"]
+script = ExtResource("1_prmd8")
+optimization = 2
+graphics = 2
+
+[sub_resource type="Resource" id="Resource_dqs8d"]
+script = ExtResource("1_prmd8")
+optimization = 2
+graphics = 2
+
+[resource]
+script = ExtResource("2_me6wq")
+genre_weights = Array[ExtResource("1_prmd8")]([SubResource("Resource_bkvey"), SubResource("Resource_8jtmf"), SubResource("Resource_c3sqy"), SubResource("Resource_6lkp2"), SubResource("Resource_sqhkd")])
+tech_weights = Array[ExtResource("1_prmd8")]([SubResource("Resource_oekcv"), SubResource("Resource_g6146"), SubResource("Resource_0te01"), SubResource("Resource_7xiop"), SubResource("Resource_dqs8d")])

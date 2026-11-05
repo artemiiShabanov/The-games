@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_o4nm7"]
+
+[resource]
+script = ExtResource("1_o4nm7")
+id = &"fishing"
+aspect = 4
+verb = "Удержи"
+hint = "Держи клавишу: столбик вверх, отпусти: вниз, держи шарик внутри"
+inputs = Array[StringName]([&"action_a"])

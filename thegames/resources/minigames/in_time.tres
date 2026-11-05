@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_1jqlk"]
+
+[resource]
+script = ExtResource("1_1jqlk")
+id = &"in_time"
+aspect = 1
+verb = "В такт"
+hint = "Ноты бегут к метке: нужная стрелка в такт, длинные держи"
+inputs = Array[StringName]([&"move_left", &"move_down", &"move_right"])

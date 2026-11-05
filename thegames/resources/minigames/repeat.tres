@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_axsey"]
+
+[resource]
+script = ExtResource("1_axsey")
+id = &"repeat"
+aspect = 2
+verb = "Повтори"
+hint = "Запомни последовательность и повтори её"
+inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a", &"action_b"])

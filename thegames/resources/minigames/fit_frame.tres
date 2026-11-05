@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_qrhuq"]
+
+[resource]
+script = ExtResource("1_qrhuq")
+id = &"fit_frame"
+verb = "Подгони"
+hint = "Влево-вправо число сторон, вверх или вниз отправить в трафарет"
+inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])

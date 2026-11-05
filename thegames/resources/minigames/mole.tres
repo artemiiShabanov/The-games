@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_i4prp"]
+
+[resource]
+script = ExtResource("1_i4prp")
+id = &"mole"
+kind = 2
+genre = 2
+verb = "Бей"
+hint = "Кружок выскочил: стрелка в его сторону"
+inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])

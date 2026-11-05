@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_7fe75"]
+
+[resource]
+script = ExtResource("1_7fe75")
+id = &"decide_cards"
+aspect = 4
+verb = "Реши"
+hint = "Карточка подходит под правило: A, не подходит: B"
+inputs = Array[StringName]([&"action_a", &"action_b"])
