@@ -73,10 +73,12 @@ func _process(_delta: float) -> void:
 
 
 func _finish() -> void:
+	print("AUTO-TEST finishing")
 	var headless := DisplayServer.get_name() == "headless"
-	if not headless:
-		# В headless кадры не рисуются и сигнал не приходит, ждать его нельзя.
-		await RenderingServer.frame_post_draw
+	# Не ждём frame_post_draw: под нагрузкой он иногда не приходит и прогон висит. Два кадра
+	# процесса дают отрисованный кадр для скриншота.
+	await get_tree().process_frame
+	await get_tree().process_frame
 	for tag in _required:
 		failures.append("не дождались: " + tag)
 	if screenshot_path != "" and not headless:

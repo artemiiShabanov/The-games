@@ -8,7 +8,8 @@ extends Demo
 ## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`):
 ## `frame_drops` фризы в движении с догоном времени; `audio_stutter` заикание музыки и
 ## задержка звуков; `sticky_input` ввод с опозданием и залипание прыжка; `pink_placeholders`
-## часть спрайтов розовыми квадратами. `through_floor` (#15) в `_surface_tops`.
+## часть спрайтов розовыми квадратами; `through_floor` часть платформ и отдельные колонки пола
+## теряют коллизию, выглядят как обычно (#15).
 
 class Cloud:
 	var x := 0.0
@@ -92,6 +93,8 @@ var _jump_queue: Array[float] = []
 var _sticky_extra := 0
 var _sticky_first := true
 var _pink: Dictionary = {}
+var _phantom_platforms: Dictionary = {}
+var _phantom_cols: Dictionary = {}
 
 
 func _on_start() -> void:
@@ -161,6 +164,22 @@ func _setup_bugs() -> void:
 		_freeze_timer = 1.0
 	if has_bug(&"audio_stutter"):
 		_stutter_timer = 1.5
+	if has_bug(&"through_floor"):
+		# Доля платформ без опоры, минимум одна; плюс одна фантомная колонка пола на каждые
+		# ~40 тайлов вне старта, чекпоинта и флага, чтобы баг был виден в первые секунды.
+		var share := _bug_param(&"through_floor", &"platform_share", 0.3)
+		for i in level.platforms.size():
+			if _bug_rng.randf() < share:
+				_phantom_platforms[i] = true
+		if _phantom_platforms.is_empty() and not level.platforms.is_empty():
+			_phantom_platforms[_bug_rng.randi_range(0, level.platforms.size() - 1)] = true
+		var x := 14
+		while x < level.width - 14:
+			var col := x + _bug_rng.randi_range(0, 24)
+			var safe := absi(col - level.checkpoint.x) > 2 and absi(col - level.flag.x) > 3
+			if safe and col < level.width - 14 and not level.is_pit(col) and not level.is_pit(col - 1) and not level.is_pit(col + 1):
+				_phantom_cols[col] = true
+			x += 40
 	if has_bug(&"pink_placeholders"):
 		var share := _bug_param(&"pink_placeholders", &"share", 0.35)
 		var slots := PLACEHOLDER_SLOTS.duplicate()
@@ -334,7 +353,7 @@ func _update_audio_bug(delta: float) -> void:
 # --- Движение и столкновения с тайлами ------------------------------------------------------
 
 func _solid(col: int, row: int) -> bool:
-	if col < 0 or col >= level.width or row < 0:
+	if col < 0 or col >= level.width or row < 0 or _phantom_cols.has(col):
 		return false
 	return row < level.ground_top(col)
 
@@ -380,9 +399,12 @@ func _surface_tops(col: int) -> Array[float]:
 	if col < 0 or col >= level.width:
 		return out
 	var h := level.ground_top(col)
-	if h > 0:
+	if h > 0 and not _phantom_cols.has(col):
 		out.append(VIEW.y - h * TILE)
-	for p in level.platforms:
+	for i in level.platforms.size():
+		var p := level.platforms[i]
+		if _phantom_platforms.has(i):
+			continue
 		if col >= p.position.x and col < p.position.x + p.size.x:
 			out.append(VIEW.y - (p.position.y + 1) * TILE)
 	return out
