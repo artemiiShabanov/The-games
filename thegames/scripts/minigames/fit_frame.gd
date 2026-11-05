@@ -213,9 +213,9 @@ func _draw() -> void:
 		draw_circle(Vector2(x0 + i * gap, 60.0), r, c)
 
 
-## Дрейф на волнах: медленное кружение около места всплытия.
+## Дрейф на волнах: мелкое частое покачивание около места всплытия (плейтест 2026-11-05).
 func _float_offset(age: float) -> Vector2:
-	return Vector2(sin(age * 1.1 + cur_phase) * 9.0, cos(age * 0.8 + cur_phase) * 12.0)
+	return Vector2(sin(age * 2.6 + cur_phase) * 3.0, cos(age * 2.1 + cur_phase) * 4.0)
 
 
 ## Тряска: затухающая синусоида, `left` сколько осталось.
@@ -244,10 +244,10 @@ func _draw_shape(pos: Vector2, scale_: float, col: Color, alpha: float, blur: fl
 	if alpha > 0.0 and blur < 1.0:
 		var pts := _polygon(Vector2.ZERO, radius, cur_sides, 0.0)
 		if wobble_age > 0.0:
-			var axis := wobble_age * 0.7 + cur_phase
-			var squash := 1.0 - 0.14 * (0.5 + 0.5 * sin(wobble_age * 1.6 + cur_phase))
+			var axis := wobble_age * 1.2 + cur_phase
+			var squash := 1.0 - 0.05 * (0.5 + 0.5 * sin(wobble_age * 3.5 + cur_phase))
 			var tilt := Transform2D(axis, Vector2.ZERO) * Transform2D(0.0, Vector2(squash, 1.0), 0.0, Vector2.ZERO) * Transform2D(-axis, Vector2.ZERO)
-			var rot := Transform2D(sin(wobble_age * 0.9 + cur_phase) * 0.08, Vector2.ZERO)
+			var rot := Transform2D(sin(wobble_age * 2.4 + cur_phase) * 0.03, Vector2.ZERO)
 			pts = (rot * tilt) * pts
 		for i in pts.size():
 			pts[i] += pos
