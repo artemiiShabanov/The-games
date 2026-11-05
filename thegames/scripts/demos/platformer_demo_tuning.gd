@@ -6,6 +6,8 @@ extends Resource
 
 const PATH := "res://resources/demos/platformer_bit8.tres"
 
+## Жизни вместо таймера: вторая смерть кончает демку.
+@export var lives := 2
 @export var run_speed := 96.0
 @export var jump_height := 72.0
 @export var jump_time := 0.95

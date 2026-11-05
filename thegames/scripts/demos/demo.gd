@@ -1,20 +1,20 @@
 class_name Demo
 extends Control
 ## Базовый класс демки, спека `docs/specs/demos.md`. Хозяин делает `setup(record, source)`,
-## добавляет в дерево и зовёт `start()`. Таймер 60 секунд виден всегда, по цели или по таймеру
-## короткий экран итога («добежал» / «не добежал») и сигнал `demo_finished`, хозяин
-## возвращает туда, откуда запустили. B пауза, Esc выход. Баги читаются флагами из записи:
-## `has_bug(&"through_floor")`.
+## добавляет в дерево и зовёт `start()`. Таймера нет (решение 2026-11-05): демка кончается по
+## своей цели или по своему условию провала (жизни, счёт), затем короткий экран итога
+## («добежал» / «не добежал») и сигнал `demo_finished`, хозяин возвращает туда, откуда
+## запустили. B пауза, Esc выход. Баги читаются флагами из записи: `has_bug(&"through_floor")`.
 
 signal demo_started(record: GameRecord, source: StringName)
 signal demo_finished(record: GameRecord, reached_goal: bool)
 
-const TIME_LIMIT := 60.0
 const RESULT_SECONDS := 1.8
 
 var record: GameRecord
 var source: StringName = &"debug"
-var time_left := TIME_LIMIT
+## Секунды с начала, для подписи итога.
+var elapsed := 0.0
 var running := false
 var paused := false
 var reached := false
@@ -42,7 +42,7 @@ func has_bug(id: StringName) -> bool:
 	return record != null and record.has_bug(id)
 
 
-## Итог: по цели (true) или по таймеру и выходу (false). Показывает экран итога, потом сигнал.
+## Итог: по цели (true) или по условию провала демки (false). Экран итога, потом сигнал.
 func end_demo(goal: bool) -> void:
 	if not running:
 		return
@@ -71,12 +71,10 @@ func _process(delta: float) -> void:
 		return
 	if not running or paused:
 		return
-	time_left = maxf(time_left - delta, 0.0)
+	elapsed += delta
 	if AutoTest.bot_active():
 		_bot_step(delta)
 	_on_tick(delta)
-	if running and time_left <= 0.0:
-		end_demo(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:

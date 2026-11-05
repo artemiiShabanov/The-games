@@ -1,9 +1,15 @@
 extends Demo
 ## Демка платформер × 8-bit, каталог `docs/specs/demos_catalog.md`: классика NES. Ямы,
 ## враг-ходок, монеты, чекпоинт, прыжок с переменной высотой по длине нажатия, цель флаг
-## справа. Влево, вправо, A прыжок. Уровень из `PlatformerLevelGen` по сиду записи игры.
+## справа, две жизни вместо таймера (решение 2026-11-05). Влево, вправо, A прыжок. Уровень из `PlatformerLevelGen` по сиду записи игры.
 ## Рисуется в виртуальном экране 480×270 с увеличением ×4, спрайты пиратов 16×16.
 ## Баги накладываются модификаторами по флагам записи (#14, #15).
+
+class Cloud:
+	var x := 0.0
+	var y := 0.0
+	var big := false
+
 
 class Walker:
 	var x := 0.0
@@ -45,6 +51,8 @@ var coins_left: Array[Vector2i] = []
 var coins_total := 0
 var coins_got := 0
 var deaths := 0
+var lives := 2
+var clouds: Array[Cloud] = []
 var invuln := 0.0
 var walkers: Array[Walker] = []
 var checkpoint_hit := false
@@ -56,7 +64,8 @@ var bot_dir := 0.0
 func _on_start() -> void:
 	tuning = PlatformerDemoTuning.load_default()
 	level = PlatformerLevelGen.generate(record.seed)
-	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "enemy_0", "enemy_1", "coin", "checkpoint", "flag", "ground", "ground_inner", "platform"]:
+	lives = tuning.lives
+	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "enemy_0", "enemy_1", "coin", "checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
 		tex[name] = load(SPRITES + name + ".png")
 	var container := SubViewportContainer.new()
 	container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -79,6 +88,15 @@ func _on_start() -> void:
 	respawn = hero
 	coins_left = level.coins.duplicate()
 	coins_total = coins_left.size()
+	# Облака из сида, с параллаксом вдвое медленнее уровня.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(record.seed, ":clouds"))
+	for i in 26:
+		var c := Cloud.new()
+		c.x = rng.randf_range(0.0, level.width * TILE * 0.55)
+		c.y = rng.randf_range(TILE * 1.0, TILE * 7.5)
+		c.big = rng.randf() < 0.5
+		clouds.append(c)
 	for e in level.enemies:
 		var w := Walker.new()
 		w.x = (e.x + 0.5) * TILE
@@ -239,6 +257,10 @@ func _collect() -> void:
 
 func _die() -> void:
 	deaths += 1
+	lives -= 1
+	if lives <= 0:
+		end_demo(false)
+		return
 	hero = respawn
 	vel = Vector2.ZERO
 	grounded = false
@@ -246,15 +268,15 @@ func _die() -> void:
 
 
 func _result_caption() -> String:
-	return "монеты %d из %d · падений %d · %d с" % [coins_got, coins_total, deaths, int(round(TIME_LIMIT - time_left))]
+	return "монеты %d из %d · падений %d · %d с" % [coins_got, coins_total, deaths, int(round(elapsed))]
 
 
-## Бот: WIN бежит вправо и прыгает перед ямой, стеной и врагом, LOSE стоит.
+## Бот: WIN бежит вправо и прыгает перед ямой, стеной и врагом, LOSE бежит не прыгая и
+## теряет обе жизни.
 func _bot_step(_delta: float) -> void:
-	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
-		bot_dir = 0.0
-		return
 	bot_dir = 1.0
+	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
+		return
 	if not grounded:
 		return
 	var half := tuning.hero_width / 2.0
@@ -274,6 +296,11 @@ func _bot_step(_delta: float) -> void:
 
 func _draw_world() -> void:
 	world.draw_rect(Rect2(cam_x, 0, VIEW.x, VIEW.y), BG_COLOR)
+	for c in clouds:
+		var sx := c.x + cam_x * 0.5
+		if sx + 32.0 < cam_x or sx > cam_x + VIEW.x:
+			continue
+		world.draw_texture(tex["cloud_big" if c.big else "cloud_small"], Vector2(roundf(sx), roundf(c.y)))
 	var first := maxi(int(floor(cam_x / TILE)) - 1, 0)
 	var last := mini(int(ceil((cam_x + VIEW.x) / TILE)) + 1, level.width - 1)
 	for col in range(first, last + 1):
@@ -322,8 +349,9 @@ func _draw_hud() -> void:
 	var x0 := cam_x + 8.0
 	world.draw_texture(tex["coin"], Vector2(x0 - 4.0, 2.0))
 	_draw_number(Vector2(x0 + 14.0, 7.0), coins_got)
-	var secs := int(ceil(time_left))
-	_draw_number(Vector2(cam_x + VIEW.x - 8.0 - _number_width(secs), 7.0), secs)
+	# Жизни: головы героя справа сверху.
+	for i in lives:
+		world.draw_texture_rect_region(tex["hero_run_1"], Rect2(cam_x + VIEW.x - 8.0 - (i + 1) * 12.0, 3.0, 10.0, 8.0), Rect2(3, 1, 10, 8))
 
 
 func _number_width(n: int) -> float:
