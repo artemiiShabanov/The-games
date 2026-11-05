@@ -28,4 +28,4 @@ enemy_chance = 0.5
 enemy_min_segment = 6
 coin_chance = 0.6
 jump_dx = 5
-jump_dy = 3
+jump_dy = 4

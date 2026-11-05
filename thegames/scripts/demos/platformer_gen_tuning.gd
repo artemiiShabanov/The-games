@@ -30,7 +30,7 @@ const PATH := "res://resources/demos/platformer_gen.tres"
 @export var enemy_min_segment := 6
 @export var coin_chance := 0.6
 @export var jump_dx := 5
-@export var jump_dy := 3
+@export var jump_dy := 4
 
 
 static func load_default() -> PlatformerGenTuning:

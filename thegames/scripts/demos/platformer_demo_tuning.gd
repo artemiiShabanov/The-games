@@ -7,7 +7,7 @@ extends Resource
 const PATH := "res://resources/demos/platformer_bit8.tres"
 
 @export var run_speed := 96.0
-@export var jump_height := 56.0
+@export var jump_height := 72.0
 @export var jump_time := 0.95
 ## Отпустил A в подъёме: вертикальная скорость умножается.
 @export var jump_cut := 0.4

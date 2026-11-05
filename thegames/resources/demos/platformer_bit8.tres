@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_demo")
 run_speed = 96.0
-jump_height = 56.0
+jump_height = 72.0
 jump_time = 0.95
 jump_cut = 0.4
 enemy_speed = 28.0

@@ -18,6 +18,7 @@ const SCALE := 4
 const TILE := 16
 const SPRITES := "res://assets/settings/pirates/8bit/"
 const MAX_FALL := 400.0
+const RUN_CYCLE: Array[int] = [0, 1, 2, 1]
 const DIGITS := {
 	"0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
 	"2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
@@ -301,7 +302,8 @@ func _draw_world() -> void:
 	if visible:
 		var frame := "hero_jump"
 		if grounded:
-			frame = "hero_run_%d" % (int(run_anim) % 3) if move_dir != 0.0 else "hero_run_1"
+			# Цикл шага: узкий, вместе, широкий, вместе.
+			frame = "hero_run_%d" % RUN_CYCLE[int(run_anim) % RUN_CYCLE.size()] if move_dir != 0.0 else "hero_run_1"
 		_draw_sprite(tex[frame], hero, facing)
 	_draw_hud()
 
@@ -312,7 +314,8 @@ func _draw_sprite(t: Texture2D, feet: Vector2, dir: int) -> void:
 	if dir >= 0:
 		world.draw_texture(t, pos)
 	else:
-		world.draw_texture_rect(t, Rect2(pos + Vector2(TILE, 0), Vector2(-TILE, TILE)), false)
+		# Отрицательная ширина отражает текстуру, позиция прямоугольника при этом не сдвигается.
+		world.draw_texture_rect(t, Rect2(pos, Vector2(-TILE, TILE)), false)
 
 
 func _draw_hud() -> void:
