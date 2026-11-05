@@ -23,6 +23,8 @@ const BOT_LABELS: Array[String] = ["как игрок", "всегда выигр
 const SECTION_SCENES: StringName = &"Сцены"
 const SECTION_TOGGLES: StringName = &"Переключатели"
 const SECTION_TOOLS: StringName = &"Инструменты"
+const SECTION_MINIGAMES: StringName = &"Мини-игры"
+const MINIGAME_SCENE := "sprint_runner_test"
 const INK := Style.STUDIO_INK
 const BG := Style.BG
 const FOCUS := Style.FOCUS
@@ -43,6 +45,13 @@ class Entry:
 
 ## Пропускать карточки интро, результата и анимации студии.
 var skip_cards := false
+## Раздел «Мини-игры»: что запускать в `sprint_runner_test`. Сцена читает это в `_ready`.
+var minigame_id := "fit_frame"
+var minigame_t := 0.0
+var minigame_seed := 1
+var minigame_loop := false
+## true: одна мини-игра `minigame_id`, false: весь план из 8.
+var minigame_single := false
 var active := false
 
 var _sections: Dictionary = {}
@@ -70,7 +79,7 @@ func _ready() -> void:
 	if args.has("scene"):
 		run_test_scene.call_deferred(str(args["scene"]))
 	if args.has("debug"):
-		open_menu.call_deferred()
+		_open_menu_when_scene_ready()
 
 
 # --- Реестр -------------------------------------------------------------------------------
@@ -187,6 +196,13 @@ func run_test_scene(id: String) -> void:
 	get_tree().change_scene_to_file(path)
 
 
+## Открыть меню, когда текущая сцена сменится и отработает `_ready` (для `--debug --scene`).
+func _open_menu_when_scene_ready() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	open_menu()
+
+
 func go_to_main() -> void:
 	close_menu()
 	get_tree().change_scene_to_file(str(ProjectSettings.get_setting("application/run/main_scene")))
@@ -263,6 +279,24 @@ func _register_builtin() -> void:
 	add_toggle(SECTION_TOGGLES, "Пропуск карточек и анимаций",
 			func() -> bool: return skip_cards,
 			func(v: bool) -> void: skip_cards = v)
+	var ids: Array[String] = []
+	for d in MinigamePool.load_all():
+		ids.append(String(d.id))
+	add_choice(SECTION_MINIGAMES, "Мини-игра", ids,
+			func() -> String: return minigame_id,
+			func(v: String) -> void: minigame_id = v, true)
+	add_number(SECTION_MINIGAMES, "t", func() -> float: return minigame_t,
+			func(v: float) -> void: minigame_t = v, 0.0, 1.0, 0.05, true)
+	add_number(SECTION_MINIGAMES, "Сид", func() -> int: return minigame_seed,
+			func(v: float) -> void: minigame_seed = int(v), 1, 999, 1, true)
+	add_toggle(SECTION_MINIGAMES, "Зациклить", func() -> bool: return minigame_loop,
+			func(v: bool) -> void: minigame_loop = v)
+	add_action(SECTION_MINIGAMES, "Запустить мини-игру", func() -> void:
+		minigame_single = true
+		run_test_scene(MINIGAME_SCENE))
+	add_action(SECTION_MINIGAMES, "Весь план из 8 спринтов", func() -> void:
+		minigame_single = false
+		run_test_scene(MINIGAME_SCENE))
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())

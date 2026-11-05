@@ -1,20 +1,14 @@
 extends Control
 ## Тестовая сцена раннера спринтов: план из 8 для платформера × 8-bit с заглушками мини-игр.
-## Раздел «Мини-игры» в дебаг-меню запускает любую мини-игру с нужными `t` и сидом, зациклить
-## повторяет её с новым сидом. Под ботом прогоняет план дважды, WIN и LOSE, и проверяет сигналы
+## Раздел «Мини-игры» дебаг-меню (глобальный, в `debug.gd`) открывает эту сцену с выбранной
+## мини-игрой, `t`, сидом и зацикливанием; параметры читаются из `Debug.minigame_*`. Под ботом прогоняет план дважды, WIN и LOSE, и проверяет сигналы
 ## и результаты.
-
-const SECTION: StringName = &"Мини-игры"
 
 var runner: SprintRunner
 var pool: Array[MinigameDef] = []
 var tuning: SprintTuning
 var ids: Array[String] = []
 
-var sel_id := "fit_frame"
-var t := 0.0
-var seed_value := 1
-var loop := false
 var single := false
 
 var _started := 0
@@ -34,12 +28,6 @@ func _ready() -> void:
 	runner.sprint_finished.connect(func(_d: MinigameDef, _s: bool) -> void: _finished += 1)
 	runner.plan_finished.connect(_on_plan_finished)
 
-	Debug.add_choice(SECTION, "Мини-игра", ids, func() -> String: return sel_id, _set_id, true)
-	Debug.add_number(SECTION, "t", func() -> float: return t, _set_t, 0.0, 1.0, 0.05, true)
-	Debug.add_number(SECTION, "Сид", func() -> int: return seed_value, _set_seed, 1, 999, 1, true)
-	Debug.add_toggle(SECTION, "Зациклить", func() -> bool: return loop, _set_loop)
-	Debug.add_action(SECTION, "Запустить мини-игру", _run_single)
-	Debug.add_action(SECTION, "Весь план из 8", _run_plan)
 	Debug.watch("спринт", func() -> String:
 		var d := runner.current_def()
 		return "%d/%d %s" % [runner.index + 1, runner.plan.size() if runner.plan else 0, d.id if d else ""])
@@ -50,52 +38,37 @@ func _ready() -> void:
 		Debug.skip_cards = not args.has("cards")
 		if args.has("lose"):
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
-	_run_plan()
-
-
-func _set_id(v: String) -> void:
-	sel_id = v
-
-
-func _set_t(v: float) -> void:
-	t = v
-
-
-func _set_seed(v: float) -> void:
-	seed_value = int(v)
-
-
-func _set_loop(v: bool) -> void:
-	loop = v
-
-
-func _exit_tree() -> void:
-	Debug.clear_section(SECTION)
+		_run_plan()
+	elif Debug.minigame_single:
+		_run_single()
+	else:
+		_run_plan()
 
 
 func _run_plan() -> void:
 	single = false
 	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value
+	rng.seed = Debug.minigame_seed
 	var plan := SprintPlanner.plan(8, Game.Genre.PLATFORMER, Game.Tech.BIT8, pool, tuning, rng)
-	runner.run(plan, t, true, seed_value * 1000, "Тест раннера")
+	runner.run(plan, Debug.minigame_t, true, Debug.minigame_seed * 1000, "Тест раннера")
 
 
 func _run_single() -> void:
 	single = true
-	Debug.close_menu()
-	var def := MinigamePool.find(pool, StringName(sel_id))
+	var def := MinigamePool.find(pool, StringName(Debug.minigame_id))
 	if def == null:
+		_run_plan()
 		return
 	var plan := SprintPlan.new()
 	plan.defs = [def]
-	runner.run(plan, t, false, seed_value * 1000 + randi_range(0, 999) if loop else seed_value * 1000, "Одна мини-игра")
+	var seed_ := Debug.minigame_seed * 1000 + (randi_range(0, 999) if Debug.minigame_loop else 0)
+	runner.run(plan, Debug.minigame_t, false, seed_, "Одна мини-игра")
 
 
 func _on_plan_finished(results: Array[bool]) -> void:
 	if AutoTest.enabled and Debug.skip_cards:
 		_check(results)
-	elif single and loop:
+	elif single and Debug.minigame_loop:
 		_run_single()
 
 
