@@ -3,8 +3,8 @@ extends Minigame
 ## Шесть клавиш-площадок: крестовина слева, A и B справа. Последовательность из 4-7 клавиш
 ## показывается вспышками, у каждой клавиши свой тон, затем игрок повторяет. Четыре раунда до
 ## конца таймера; провал, если не успел. Неверная клавиша не ошибка, а потеря времени: ввод
-## блокируется на секунду, поле тускнеет вдвое, нужная клавиша подсвечивается (плейтест
-## 2026-11-05). С `t` последовательность длиннее, показ быстрее, появляются ложные вспышки,
+## блокируется на секунду, поле тускнеет вдвое, нужная клавиша подсвечивается, после паузы та
+## же последовательность вводится заново с первой клавиши (плейтест 2026-11-05). С `t` последовательность длиннее, показ быстрее, появляются ложные вспышки,
 ## которые надо пропустить мимо.
 ## Параметры от `t` в `resources/minigames/repeat.tres`: length, show, fake_share.
 
@@ -32,6 +32,7 @@ var phase := Phase.PAUSE
 var round_index := 0
 var rounds_done := 0
 var lock_left := 0.0
+var _seq_snapshot: Array[int] = []
 var sequence: Array[int] = []
 var step := 0
 var phase_time := 0.0
@@ -75,7 +76,13 @@ func _on_tick(delta: float) -> void:
 		lit[i] = maxf(lit[i] - delta, 0.0)
 		shake[i] = maxf(shake[i] - delta, 0.0)
 	fake_left = maxf(fake_left - delta, 0.0)
-	lock_left = maxf(lock_left - delta, 0.0)
+	if lock_left > 0.0:
+		lock_left = maxf(lock_left - delta, 0.0)
+		if lock_left <= 0.0:
+			# Блокировка кончилась: та же последовательность с первой клавиши.
+			step = 0
+			if AutoTest.enabled and sequence != _seq_snapshot:
+				AutoTest.fail("repeat: последовательность изменилась после ошибки")
 	modulate.a = 0.5 if lock_left > 0.0 else 1.0
 	phase_time += delta
 	match phase:
@@ -171,6 +178,7 @@ func _press(key: int) -> void:
 	else:
 		# Не ошибка, а потеря времени: секунда блокировки, поле тускнеет, нужная клавиша видна.
 		lock_left = LOCK_SECONDS
+		_seq_snapshot = sequence.duplicate()
 		shake[key] = SHAKE_SECONDS
 		lit[key] = LOCK_SECONDS
 		lit_color[key] = Style.DANGER
