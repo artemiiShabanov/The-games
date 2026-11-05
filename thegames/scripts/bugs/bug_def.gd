@@ -11,7 +11,7 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var aspect: Game.Aspect = Game.Aspect.OPTIMIZATION
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
 @export var tech: Game.Tech = Game.Tech.ASCII
-## Крупно на штампе карточки результата: «15 FPS», «СКВОЗЬ ПОЛ».
+## Крупно на штампе карточки результата: «15 FPS», «ПРЫЖОК ×3».
 @export var stamp: String
 ## Проявление в демке, одной строкой: для карточки результата и ленты.
 @export var manifestation: String

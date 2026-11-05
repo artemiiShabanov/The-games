@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_7m43c"]
+
+[resource]
+script = ExtResource("1_7m43c")
+id = &"wild_physics"
+kind = 1
+stamp = "ПРЫЖОК ×3"
+manifestation = "Прыжок втрое выше, враги вдвое быстрее"
+tweet = "Герой улетает за верх экрана, скелеты носятся как спринтеры"
+clip = "Герой уходит за верх экрана, внизу мелькает скелет"
+spectacular = true
+params = Dictionary[StringName, float]({
+&"enemy_speed_mult": 2.0,
+&"jump_mult": 3.0
+})

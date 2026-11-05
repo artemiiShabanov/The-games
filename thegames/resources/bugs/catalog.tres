@@ -1,13 +1,14 @@
 [gd_resource type="Resource" script_class="BugCatalog" format=3]
 
-[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_cnti7"]
-[ext_resource type="Resource" path="res://resources/bugs/frame_drops.tres" id="2_6c8r8"]
-[ext_resource type="Resource" path="res://resources/bugs/audio_stutter.tres" id="3_oxwl7"]
-[ext_resource type="Resource" path="res://resources/bugs/sticky_input.tres" id="4_3qmr7"]
-[ext_resource type="Resource" path="res://resources/bugs/pink_placeholders.tres" id="5_uiqsc"]
-[ext_resource type="Resource" path="res://resources/bugs/through_floor.tres" id="6_sj1ih"]
-[ext_resource type="Script" path="res://scripts/bugs/bug_catalog.gd" id="7_8eahj"]
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_6c8r8"]
+[ext_resource type="Resource" path="res://resources/bugs/frame_drops.tres" id="2_oxwl7"]
+[ext_resource type="Resource" path="res://resources/bugs/audio_stutter.tres" id="3_3qmr7"]
+[ext_resource type="Resource" path="res://resources/bugs/sticky_input.tres" id="4_uiqsc"]
+[ext_resource type="Resource" path="res://resources/bugs/pink_placeholders.tres" id="5_sj1ih"]
+[ext_resource type="Resource" path="res://resources/bugs/unreachable_coins.tres" id="6_8eahj"]
+[ext_resource type="Resource" path="res://resources/bugs/wild_physics.tres" id="7_sl3yr"]
+[ext_resource type="Script" path="res://scripts/bugs/bug_catalog.gd" id="8_j06d8"]
 
 [resource]
-script = ExtResource("7_8eahj")
-bugs = Array[ExtResource("1_cnti7")]([ExtResource("2_6c8r8"), ExtResource("3_oxwl7"), ExtResource("4_3qmr7"), ExtResource("5_uiqsc"), ExtResource("6_sj1ih")])
+script = ExtResource("8_j06d8")
+bugs = Array[ExtResource("1_6c8r8")]([ExtResource("2_oxwl7"), ExtResource("3_3qmr7"), ExtResource("4_uiqsc"), ExtResource("5_sj1ih"), ExtResource("6_8eahj"), ExtResource("7_sl3yr")])

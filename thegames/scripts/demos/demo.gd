@@ -4,7 +4,7 @@ extends Control
 ## добавляет в дерево и зовёт `start()`. Таймера нет (решение 2026-11-05): демка кончается по
 ## своей цели или по своему условию провала (жизни, счёт), затем короткий экран итога
 ## («добежал» / «не добежал») и сигнал `demo_finished`, хозяин возвращает туда, откуда
-## запустили. B пауза, Esc выход. Баги читаются флагами из записи: `has_bug(&"through_floor")`.
+## запустили. B пауза, Esc выход. Баги читаются флагами из записи: `has_bug(&"wild_physics")`.
 
 signal demo_started(record: GameRecord, source: StringName)
 signal demo_finished(record: GameRecord, reached_goal: bool)

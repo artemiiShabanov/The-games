@@ -29,6 +29,8 @@ func _ready() -> void:
 		set_process(false)
 		return
 	bot_mode = BotMode.WIN
+	# Прогоны молчат: звук в автотесте только мешает за соседним столом.
+	AudioServer.set_bus_mute(0, true)
 	frames_left = int(args.get("frames", str(DEFAULT_FRAMES)))
 	screenshot_path = str(args.get("screenshot", ""))
 	# `--time-scale=4`: игровое время быстрее, чтобы длинные прогоны ботом укладывались в кадры.
