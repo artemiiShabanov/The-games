@@ -1,7 +1,8 @@
 extends Minigame
 ## «Прыгай» (runner, платформер), каталог `docs/specs/minigames_catalog.md`.
-## Точка бежит сама по линии, A прыжок, впереди ямы и столбики. Добежать до конца дорожки,
-## провал при двух падениях. С `t` препятствия плотнее, появляются двойные ямы и столбики
+## Точка бежит сама по линии, A прыжок, высота по длине нажатия (отпустил раньше: короче),
+## впереди ямы и столбики. Добежать до конца дорожки, провал при двух падениях. Хитбоксы
+## меньше картинки, чтобы прощать касания (плейтест 2026-11-05). С `t` препятствия плотнее, появляются двойные ямы и столбики
 ## подряд. Абстрактно, в стиле оболочки: линия, круг, прямоугольники.
 ## Параметры от `t` в `resources/minigames/runner.tres`: speed, gap, combo_share.
 
@@ -26,7 +27,12 @@ const PILLAR_ROW_GAP := 260.0
 const GROUND_FROM_BOTTOM := 230.0
 const FALL_SECONDS := 0.5
 const SAFE_SECONDS := 0.7
-const SQUASH_SECONDS := 0.12
+## Отпустил A в подъёме: вертикальная скорость режется, прыжок короче.
+const JUMP_CUT := 0.45
+const STRETCH_SECONDS := 0.25
+const SQUASH_SECONDS := 0.18
+## Доля радиуса, которая считается телом: меньше картинки, касания прощаются.
+const HIT_R := 0.55
 const BOT_LOOKAHEAD := 140.0
 
 var speed := 420.0
@@ -44,7 +50,8 @@ var fall_left := 0.0
 var fall_kind := Kind.PIT
 var fall_from := Vector2.ZERO
 var safe_left := 0.0
-var squash_left := 0.0
+var air_time := 0.0
+var land_time := 1.0
 var reached := false
 var _jump_sound: AudioStreamPlayer
 var _fall_sound: AudioStreamPlayer
@@ -104,6 +111,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if GameInput.is_a(event):
 		_jump()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_released(GameInput.A) and not grounded and vel_y < 0.0:
+		vel_y *= JUMP_CUT
 
 
 func _jump() -> void:
@@ -112,13 +121,13 @@ func _jump() -> void:
 	var airtime := JUMP_DISTANCE / speed
 	vel_y = -4.0 * JUMP_HEIGHT / airtime
 	grounded = false
-	squash_left = SQUASH_SECONDS
+	air_time = 0.0
 	_jump_sound.play()
 
 
 func _on_tick(delta: float) -> void:
-	squash_left = maxf(squash_left - delta, 0.0)
 	safe_left = maxf(safe_left - delta, 0.0)
+	land_time += delta
 	if reached:
 		queue_redraw()
 		return
@@ -134,11 +143,12 @@ func _on_tick(delta: float) -> void:
 		var g := 8.0 * JUMP_HEIGHT / (airtime * airtime)
 		vel_y += g * delta
 		dot_y += vel_y * delta
+		air_time += delta
 		if dot_y >= 0.0:
 			dot_y = 0.0
 			vel_y = 0.0
 			grounded = true
-			squash_left = SQUASH_SECONDS
+			land_time = 0.0
 	if safe_left <= 0.0:
 		_check_collisions()
 	if world_x >= track_length:
@@ -168,13 +178,14 @@ func _check_collisions() -> void:
 	for o in obstacles:
 		match o.kind:
 			Kind.PIT:
-				if grounded and world_x > o.x + DOT_R * 0.5 and world_x < o.x + o.w - DOT_R * 0.5:
+				# Падает, только когда почти вся точка над пустотой.
+				if grounded and world_x > o.x + DOT_R * (1.0 - HIT_R) and world_x < o.x + o.w - DOT_R * (1.0 - HIT_R):
 					_fall(o)
 					return
 			Kind.PILLAR:
-				var dot_top := -DOT_R * 0.8
-				var pillar_top := -PILLAR_H
-				if world_x + DOT_R * 0.8 > o.x and world_x - DOT_R * 0.8 < o.x + o.w and dot_y + DOT_R * 0.8 > pillar_top and dot_top < 0.0:
+				var hit := DOT_R * HIT_R
+				var pillar_top := -PILLAR_H + 8.0
+				if world_x + hit > o.x + 4.0 and world_x - hit < o.x + o.w - 4.0 and dot_y + hit > pillar_top:
 					_fall(o)
 					return
 
@@ -255,17 +266,16 @@ func _draw() -> void:
 		pos = Vector2(fall_from.x - cam + (20.0 if fall_kind == Kind.PIT else -40.0) * p, ground_y - DOT_R + fall_from.y + 120.0 * p * p)
 		col = Style.accent(0).lerp(Style.INK_3, p)
 		col.a = 1.0 - p
-	elif squash_left > 0.0:
-		var k := squash_left / SQUASH_SECONDS
-		if grounded:
-			sx_scale = 1.0 + 0.25 * k
-			sy_scale = 1.0 - 0.25 * k
-		else:
-			sx_scale = 1.0 - 0.15 * k
-			sy_scale = 1.0 + 0.15 * k
-	elif not grounded:
-		sy_scale = 1.0 + clampf(absf(vel_y) / 1500.0, 0.0, 0.15)
-		sx_scale = 2.0 - sy_scale
+	elif not grounded and air_time < STRETCH_SECONDS:
+		# Одно плавное вытягивание при отрыве, к вершине форма круглая.
+		var k := sin(air_time / STRETCH_SECONDS * PI)
+		sy_scale = 1.0 + 0.22 * k
+		sx_scale = 1.0 - 0.14 * k
+	elif grounded and land_time < SQUASH_SECONDS:
+		# Заметное сплющивание при касании, быстро возвращается.
+		var k := pow(1.0 - land_time / SQUASH_SECONDS, 1.5)
+		sx_scale = 1.0 + 0.45 * k
+		sy_scale = 1.0 - 0.4 * k
 	if safe_left > 0.0 and int(safe_left * 12.0) % 2 == 0:
 		col.a *= 0.4
 	draw_set_transform(pos, 0.0, Vector2(sx_scale, sy_scale))
