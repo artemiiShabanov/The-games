@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="PlatformerGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+width = 200
+height = 16
+base_height = 3
+min_height = 2
+max_height = 6
+start_flat = 10
+end_flat = 12
+segment_min = 5
+segment_max = 12
+pit_chance = 0.35
+pit_min = 2
+pit_max = 4
+landing_min = 4
+step_chance = 0.3
+step_max = 2
+platform_chance = 0.4
+platform_min = 3
+platform_max = 5
+platform_lift_min = 3
+platform_lift_max = 4
+enemy_chance = 0.5
+enemy_min_segment = 6
+coin_chance = 0.6
+jump_dx = 5
+jump_dy = 3
