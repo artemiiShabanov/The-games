@@ -38,6 +38,10 @@ func _launch() -> void:
 	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.demo_seed, "Тест демки")
 	for id in Debug.demo_bugs:
 		record.add_bug(id)
+	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("bugs"):
+		# `--bugs`: все баги каталога сразу, проверяется только что демка кончается без ошибок.
+		for b in BugCatalog.load_default().bugs:
+			record.add_bug(b.id)
 	demo = DEMO.instantiate() as Demo
 	demo.setup(record, &"debug")
 	demo.demo_started.connect(func(_r: GameRecord, _s: StringName) -> void: _started += 1)
@@ -68,7 +72,8 @@ func _expect(ok: bool, what: String) -> void:
 func _check(reached: bool) -> void:
 	match _phase:
 		0:
-			_expect(reached, "WIN: бот не добежал до флага на сиде %d" % record.seed)
+			if record.bug_ids.is_empty():
+				_expect(reached, "WIN: бот не добежал до флага на сиде %d" % record.seed)
 			_expect(_started == 1, "WIN: demo_started %d раз" % _started)
 			_phase = 1
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
