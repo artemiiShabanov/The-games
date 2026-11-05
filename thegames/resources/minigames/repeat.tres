@@ -1,6 +1,22 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_axsey"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/repeat.tscn" id="1_lskcg"]
+
+[sub_resource type="Curve" id="Curve_mnmo2"]
+_limits = [0.99, 7.0, 0.0, 1.0]
+_data = [Vector2(0, 4), 0.0, 0.0, 0, 0, Vector2(1, 7), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_atx4f"]
+_limits = [0.25, 0.35, 0.0, 1.0]
+_data = [Vector2(0, 0.35), 0.0, 0.0, 0, 0, Vector2(1, 0.25), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_8s51a"]
+_limits = [0.0, 0.4, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.4), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_axsey")
@@ -8,4 +24,10 @@ id = &"repeat"
 aspect = 2
 verb = "Повтори"
 hint = "Запомни последовательность и повтори её"
+scene = ExtResource("1_lskcg")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a", &"action_b"])
+params = Dictionary[StringName, Curve]({
+&"fake_share": SubResource("Curve_8s51a"),
+&"length": SubResource("Curve_mnmo2"),
+&"show": SubResource("Curve_atx4f")
+})
