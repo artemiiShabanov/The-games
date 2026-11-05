@@ -5,12 +5,12 @@ extends Control
 
 ## Что обязано быть в карте: действие → сколько событий минимум и какие клавиши.
 const EXPECTED := {
-	GameInput.LEFT: [KEY_LEFT],
-	GameInput.RIGHT: [KEY_RIGHT],
-	GameInput.UP: [KEY_UP],
-	GameInput.DOWN: [KEY_DOWN],
+	GameInput.LEFT: [KEY_LEFT, KEY_A],
+	GameInput.RIGHT: [KEY_RIGHT, KEY_D],
+	GameInput.UP: [KEY_UP, KEY_W],
+	GameInput.DOWN: [KEY_DOWN, KEY_S],
 	GameInput.A: [KEY_Z, KEY_SPACE, KEY_ENTER, KEY_KP_ENTER],
-	GameInput.B: [KEY_X, KEY_ESCAPE],
+	GameInput.B: [KEY_X, KEY_ESCAPE, KEY_CTRL],
 }
 const BOX := Vector2(200, 200)
 const GAP := 40.0
@@ -38,10 +38,10 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
-	var ink := Color("#1E2A4A")
-	var accent := Color("#2F5BFF")
-	draw_rect(Rect2(Vector2.ZERO, size), Color("#F4F1EC"))
-	draw_string(font, Vector2(48, 72), "Ввод: нажми стрелки, A (Z, пробел, Enter), B (X, Esc) или геймпад",
+	var ink := Style.STUDIO_INK
+	var accent := Style.FOCUS
+	draw_rect(Rect2(Vector2.ZERO, size), Style.BG)
+	draw_string(font, Vector2(48, 72), "Ввод: стрелки или WASD, A (Z, пробел, Enter), B (X, Esc, Ctrl) или геймпад",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 32, ink)
 	var total_w := GameInput.ALL.size() * BOX.x + (GameInput.ALL.size() - 1) * GAP
 	var x := (size.x - total_w) / 2.0
@@ -53,7 +53,7 @@ func _draw() -> void:
 		draw_rect(rect, ink, false, 4.0)
 		var label: String = GameInput.LABELS[action]
 		draw_string(font, Vector2(x, y + BOX.y / 2.0 + 28), label, HORIZONTAL_ALIGNMENT_CENTER,
-				BOX.x, 80, Color("#F4F1EC") if pressed else ink)
+				BOX.x, 80, Style.BG if pressed else ink)
 		draw_string(font, Vector2(x, y + BOX.y + 40), String(action), HORIZONTAL_ALIGNMENT_CENTER,
 				BOX.x, 20, Color(ink, 0.6))
 		x += BOX.x + GAP
