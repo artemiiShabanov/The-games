@@ -5,8 +5,8 @@ extends Control
 ## студии, как спринты (решение 2026-11-06): карточка всплывает, экран демки в `screen`,
 ## после итога карточка уезжает вниз и приходит `demo_finished`. Таймера нет (решение
 ## 2026-11-05): демка кончается по своей цели или по своему условию провала (жизни, счёт),
-## затем короткий экран итога («добежал» / «не добежал»). B и Esc открывают паузу с пунктами
-## «Вернуться» и «Пропустить» (решение 2026-11-06). Подклассы переопределяют `_game_input`,
+## затем короткий экран итога («добежал» / «не добежал»). Esc открывает паузу с пунктами
+## «Вернуться» и «Пропустить» (решение 2026-11-06); B остаётся демке, у платформера это дэш. Подклассы переопределяют `_game_input`,
 ## а не `_unhandled_input`. Баги читаются флагами из записи: `has_bug(&"wild_physics")`.
 
 signal demo_started(record: GameRecord, source: StringName)
@@ -118,7 +118,7 @@ func _shell_input(event: InputEvent) -> bool:
 	if not running or _closing:
 		return false
 	if not paused:
-		if GameInput.is_b(event):
+		if _is_escape(event):
 			_open_pause()
 			return true
 		return false
@@ -137,6 +137,11 @@ func _shell_input(event: InputEvent) -> bool:
 	else:
 		return false
 	return true
+
+
+static func _is_escape(event: InputEvent) -> bool:
+	var key := event as InputEventKey
+	return key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE
 
 
 func _open_pause() -> void:
