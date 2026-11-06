@@ -4,7 +4,9 @@ extends Demo
 ## справа, две жизни вместо таймера (решение 2026-11-05). Влево, вправо, A прыжок. Уровень из
 ## `PlatformerLevelGen` по сиду записи игры. Дэш на B (плейтест 2026-11-06): рывок в сторону
 ## взгляда без гравитации, в воздухе один раз до приземления; в дэше герой уязвим, врагов не
-## давит. Рисуется в виртуальном экране внутри карточки демки с увеличением ×4 (`view`
+## давит. Второй враг: попугай-летун над землёй, под ним проходят, сверху давят, снизу и сбоку
+## он бьёт (плейтест 2026-11-06). Ямы шире прыжка перелетаются прыжком с дэшем. Рисуется в
+## виртуальном экране внутри карточки демки с увеличением ×4 (`view`
 ## 416×208), три слоя: `backdrop` статичный фон (небо, солнце, море, острова, облака: на
 ## камеру не реагируют), `world` со сдвигом камеры, `hud` поверх. Камера целочисленная,
 ## привязана к округлённой позиции героя, чтобы его спрайт не дрожал; по вертикали мёртвая
@@ -24,15 +26,22 @@ class Cloud:
 
 class Walker:
 	var x := 0.0
+	## Низ спрайта; у летуна `base` это высота полёта, `y` качается вокруг неё.
 	var y := 0.0
+	var base := 0.0
 	var dir := -1
 	var from_px := 0.0
 	var to_px := 0.0
 	var alive := true
+	var flying := false
 
 
 const SCALE := 4
 const GHOST_LIFE := 0.22
+## Хитбокс попугая внутри спрайта 16×16: от низа до верха в пикселях.
+const FLYER_BOTTOM := 3.0
+const FLYER_TOP := 12.0
+const FLYER_BOB := 3.0
 const GHOST_EVERY := 0.03
 const DUST_LIFE := 0.3
 const TILE := 16
@@ -97,6 +106,7 @@ var dash_left := 0.0
 var dash_cooldown := 0.0
 var dash_air_used := false
 var _ghost_timer := 0.0
+var _bot_wait := 0.0
 ## Призраки дэша: x, y, направление, остаток жизни.
 var _ghosts: Array[Vector4] = []
 ## Пыль: позиция, скорость, остаток жизни.
@@ -132,7 +142,7 @@ func _on_start() -> void:
 	lives = tuning.lives
 	_bug_rng.seed = hash(str(record.seed, ":bugs"))
 	_setup_bugs()
-	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "hero_dash", "enemy_0", "enemy_1", "coin",
+	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "hero_dash", "enemy_0", "enemy_1", "parrot_0", "parrot_1", "coin",
 			"checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
 		tex[name] = load(SPRITES + name + ".png")
 	view = (CardFrame.inner_size() / SCALE).floor()
@@ -179,6 +189,8 @@ func _on_start() -> void:
 		var w := Walker.new()
 		w.x = (e.x + 0.5) * TILE
 		w.y = base_y - e.y * TILE
+		w.base = w.y
+		w.flying = e.flying
 		w.from_px = e.patrol_from * TILE + TILE * 0.5
 		w.to_px = (e.patrol_to + 1) * TILE - TILE * 0.5
 		walkers.append(w)
@@ -504,7 +516,9 @@ func _update_walkers(delta: float) -> void:
 	for w in walkers:
 		if not w.alive:
 			continue
-		w.x += w.dir * tuning.enemy_speed * _enemy_mult * delta
+		w.x += w.dir * tuning.enemy_speed * _enemy_mult * (tuning.flyer_speed_mult if w.flying else 1.0) * delta
+		if w.flying:
+			w.y = w.base + sin(anim_time * 4.0 + w.base) * FLYER_BOB
 		if w.x < w.from_px:
 			w.x = w.from_px
 			w.dir = 1
@@ -514,13 +528,16 @@ func _update_walkers(delta: float) -> void:
 		if invuln > 0.0 or not running:
 			continue
 		# Ходок односторонний, как платформа под ним: снизу в подъёме герой проходит сквозь.
-		if vel.y < 0.0 and hero.y > w.y:
+		# Попугай нет: в него можно впрыгнуть снизу.
+		if not w.flying and vel.y < 0.0 and hero.y > w.y:
 			continue
-		var hit := absf(w.x - hero.x) < half + 3.0 and hero.y > w.y - TILE and hero.y - tuning.hero_height < w.y
+		var top: float = w.y - (FLYER_TOP if w.flying else float(TILE))
+		var bottom: float = w.y - (FLYER_BOTTOM if w.flying else 0.0)
+		var hit := absf(w.x - hero.x) < half + 3.0 and hero.y > top and hero.y - tuning.hero_height < bottom
 		if hit:
 			# Ноги героя выше ног врага: добивание, и в подъёме тоже (прощающие хитбоксы). В дэше
 			# герой уязвим и не давит (плейтест 2026-11-06).
-			if hero.y <= w.y - TILE * 0.25 and dash_left <= 0.0:
+			if hero.y <= bottom - TILE * 0.25 and dash_left <= 0.0:
 				w.alive = false
 				vel.y = -tuning.stomp_bounce
 				grounded = false
@@ -553,9 +570,9 @@ func _die() -> void:
 		var near: Array[String] = []
 		for w in walkers:
 			if w.alive and absf(w.x - hero.x) < 48.0:
-				near.append("(%d,%d)" % [int(w.x / TILE), int((base_y - w.y) / TILE)])
-		AutoTest.note("platformer: смерть %d в колонке %d ряд %.1f, grounded=%s dash=%.2f, ходоки рядом %s" % [
-				deaths, int(hero.x / TILE), (base_y - hero.y) / TILE, grounded, dash_left, near])
+				near.append("(%.2f,%.2f%s)" % [w.x / TILE, (base_y - w.y) / TILE, "✈" if w.flying else ""])
+		AutoTest.note("platformer: смерть %d в колонке %.2f ряд %.2f, grounded=%s vel=%s dash=%.2f air_used=%s, враги рядом %s" % [
+				deaths, hero.x / TILE, (base_y - hero.y) / TILE, grounded, vel, dash_left, dash_air_used, near])
 	if lives <= 0:
 		end_demo(false)
 		return
@@ -575,7 +592,7 @@ func _result_caption() -> String:
 
 ## Бот: WIN бежит вправо, прыгает перед ямой, стеной и врагом, а падая над ямой делает дэш;
 ## LOSE бежит вправо, перепрыгивает только ступеньки и теряет обе жизни в ямах и врагах.
-func _bot_step(_delta: float) -> void:
+func _bot_step(delta: float) -> void:
 	bot_dir = 1.0
 	var half := tuning.hero_width / 2.0
 	var ahead := int(floor((hero.x + half + 6.0) / TILE))
@@ -596,13 +613,24 @@ func _bot_step(_delta: float) -> void:
 			if not landing:
 				_dash()
 		return
-	var need := level.is_pit(ahead) or level.ground_top(ahead) > feet_row
+	var step_up := not level.is_pit(ahead) and level.ground_top(ahead) > feet_row
+	var need := level.is_pit(ahead) or step_up
 	if not need:
 		for w in walkers:
-			if w.alive and w.x > hero.x and w.x - hero.x < 56.0 and absf(w.y - hero.y) < 20.0:
+			if w.alive and not w.flying and w.x > hero.x and w.x - hero.x < 56.0 and absf(w.y - hero.y) < 20.0:
 				need = true
 				break
+	if step_up and _bot_wait < 2.0:
+		# Перед ступенькой: если в месте приземления ходок, подождать, пока уйдёт (не дольше
+		# двух секунд). Выше по дуге прыжка ходок не страшен.
+		var land_y := base_y - level.ground_top(ahead) * TILE
+		for w in walkers:
+			if w.alive and not w.flying and w.x - hero.x > 70.0 and w.x - hero.x < 112.0 and absf(w.y - land_y) < 20.0:
+				bot_dir = 0.0
+				_bot_wait += delta
+				return
 	if need:
+		_bot_wait = 0.0
 		_jump()
 
 
@@ -676,13 +704,14 @@ func _draw_world() -> void:
 				Color(1, 1, 1, 1) if checkpoint_hit else Color(1, 1, 1, 0.6))
 	_tex_or_pink("flag", "flag", Vector2(level.flag.x * TILE, base_y - (level.flag.y + 1) * TILE))
 	var enemy_frame := "enemy_0" if fmod(anim_time * tuning.enemy_fps, 2.0) < 1.0 else "enemy_1"
+	var parrot_frame := "parrot_0" if fmod(anim_time * tuning.flyer_fps, 2.0) < 1.0 else "parrot_1"
 	for w in walkers:
 		if not w.alive or w.x < first * TILE or w.x > (last + 1) * TILE:
 			continue
 		if _pink.has("enemy"):
 			world.draw_rect(Rect2(roundf(w.x - TILE / 2.0), roundf(w.y - TILE), 16, 16), PINK)
 		else:
-			_draw_sprite(tex[enemy_frame], Vector2(w.x, w.y), w.dir)
+			_draw_sprite(tex[parrot_frame if w.flying else enemy_frame], Vector2(w.x, w.y), w.dir)
 	for d in _dust:
 		var k := d.z / DUST_LIFE
 		world.draw_rect(Rect2(roundf(d.x) - 1.0, roundf(d.y) - 1.0, 2.0 + roundf(2.0 * (1.0 - k)), 2.0), Color(HUD_INK, 0.8 * k))

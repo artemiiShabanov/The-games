@@ -6,9 +6,12 @@ extends RefCounted
 
 class Enemy:
 	var x := 0
+	## Ряд стояния; у летуна ряд его нижнего края.
 	var y := 0
 	var patrol_from := 0
 	var patrol_to := 0
+	## Летун (попугай): висит над землёй, под ним можно пройти, сверху можно напрыгнуть.
+	var flying := false
 
 var width := 0
 var height := 16
@@ -58,5 +61,5 @@ func pit_count() -> int:
 func signature() -> String:
 	var parts: PackedStringArray = [str(columns), str(platforms), str(coins), str(checkpoint), str(flag)]
 	for e in enemies:
-		parts.append("%d,%d,%d,%d" % [e.x, e.y, e.patrol_from, e.patrol_to])
+		parts.append("%d,%d,%d,%d,%s" % [e.x, e.y, e.patrol_from, e.patrol_to, e.flying])
 	return "|".join(parts)

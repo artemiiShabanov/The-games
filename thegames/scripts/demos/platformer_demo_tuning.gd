@@ -18,6 +18,9 @@ const PATH := "res://resources/demos/platformer_bit8.tres"
 @export var invulnerable_seconds := 1.2
 @export var run_fps := 10.0
 @export var enemy_fps := 4.0
+## Попугай: скорость относительно ходока и частота взмахов.
+@export var flyer_speed_mult := 1.3
+@export var flyer_fps := 8.0
 @export var hero_width := 12.0
 @export var hero_height := 15.0
 ## Дэш на B (плейтест 2026-11-06): рывок по горизонтали без гравитации, в воздухе один раз.
