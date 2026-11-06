@@ -1,8 +1,8 @@
 extends Control
 ## Тестовая сцена демки: запускает платформер × 8-bit с сидом и набором багов из раздела
 ## «Демки» дебаг-меню (`Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога показывает,
-## куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага, LOSE стоит и
-## проваливает по таймеру.
+## куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага, LOSE идёт вправо без
+## прыжков и теряет жизни. `--no-checks` без проверок, `--pause` открывает меню паузы.
 
 const DEMO := preload("res://scenes/demos/platformer_bit8.tscn")
 
@@ -28,9 +28,15 @@ func _ready() -> void:
 	add_child(_label)
 	Debug.watch("демка", func() -> String:
 		return "сид %d, баги %s" % [record.seed, record.bug_ids] if record else "")
-	if AutoTest.enabled and not AutoTest.parse_args(OS.get_cmdline_user_args()).has("no-checks"):
+	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
+	if AutoTest.enabled and not args.has("no-checks"):
 		AutoTest.require("demo checks")
 	_launch()
+	if args.has("pause"):
+		# `--pause`: через полторы секунды открыть меню паузы, для скриншота.
+		await get_tree().create_timer(1.5).timeout
+		if demo != null:
+			demo._open_pause()
 
 
 func _launch() -> void:

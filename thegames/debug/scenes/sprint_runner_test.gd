@@ -30,12 +30,6 @@ func _ready() -> void:
 	add_child(runner)
 	runner.sprint_started.connect(func(_d: MinigameDef) -> void: _started += 1)
 	runner.sprint_finished.connect(_on_sprint_finished)
-	runner.bug_label = func(d: MinigameDef) -> String:
-		var b := catalog.stamp_bug(d, record)
-		return b.stamp if b != null else d.owner_name()
-	runner.bug_caption = func(d: MinigameDef) -> String:
-		var b := catalog.stamp_bug(d, record)
-		return "Баг: %s. Будет в демке" % (b.manifestation.to_lower() if b != null else d.owner_name())
 	Debug.watch("баги", func() -> String: return str(record.bug_ids) if record else "")
 	runner.plan_finished.connect(_on_plan_finished)
 

@@ -2,8 +2,9 @@ extends Demo
 ## Демка платформер × 8-bit, каталог `docs/specs/demos_catalog.md`: классика NES. Ямы,
 ## враг-ходок, монеты, чекпоинт, прыжок с переменной высотой по длине нажатия, цель флаг
 ## справа, две жизни вместо таймера (решение 2026-11-05). Влево, вправо, A прыжок. Уровень из
-## `PlatformerLevelGen` по сиду записи игры. Рисуется в виртуальном экране 480×270 с
-## увеличением ×4, спрайты пиратов 16×16, статичные облака, чиптюн-петля.
+## `PlatformerLevelGen` по сиду записи игры. Рисуется в виртуальном экране, который занимает
+## внутренность карточки демки с увеличением ×3 (`view`, на базовом экране 554×277), спрайты
+## пиратов 16×16, статичные облака, чиптюн-петля.
 ##
 ## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`):
 ## `frame_drops` фризы в движении с догоном времени; `audio_stutter` заикание музыки и
@@ -26,8 +27,7 @@ class Walker:
 	var alive := true
 
 
-const VIEW := Vector2(480, 270)
-const SCALE := 4
+const SCALE := 3
 const TILE := 16
 const SPRITES := "res://assets/settings/pirates/8bit/"
 const MAX_FALL := 400.0
@@ -53,6 +53,8 @@ const STUTTER_CHUNK := 0.07
 
 var tuning: PlatformerDemoTuning
 var level: PlatformerLevel
+## Виртуальный экран в пикселях демки: внутренность карточки, делённая на `SCALE`.
+var view := Vector2(480, 270)
 var tex := {}
 var world: Node2D
 var hero := Vector2.ZERO
@@ -106,16 +108,19 @@ func _on_start() -> void:
 	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "enemy_0", "enemy_1", "coin",
 			"checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
 		tex[name] = load(SPRITES + name + ".png")
+	view = (CardFrame.inner_size() / SCALE).floor()
 	var container := SubViewportContainer.new()
-	container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	container.grow_vertical = Control.GROW_DIRECTION_BOTH
+	container.custom_minimum_size = view * SCALE
 	container.stretch = true
 	container.stretch_shrink = SCALE
 	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(container)
-	move_child(container, 0)
+	screen.add_child(container)
 	var viewport := SubViewport.new()
-	viewport.size = Vector2i(VIEW)
+	viewport.size = Vector2i(view)
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	viewport.snap_2d_transforms_to_pixel = true
 	container.add_child(viewport)
@@ -132,14 +137,14 @@ func _on_start() -> void:
 	rng.seed = hash(str(record.seed, ":clouds"))
 	for i in 9:
 		var c := Cloud.new()
-		c.x = rng.randf_range(0.0, VIEW.x - 32.0)
+		c.x = rng.randf_range(0.0, view.x - 32.0)
 		c.y = rng.randf_range(TILE * 1.0, TILE * 7.5)
 		c.big = rng.randf() < 0.5
 		clouds.append(c)
 	for e in level.enemies:
 		var w := Walker.new()
 		w.x = (e.x + 0.5) * TILE
-		w.y = VIEW.y - e.y * TILE
+		w.y = view.y - e.y * TILE
 		w.from_px = e.patrol_from * TILE + TILE * 0.5
 		w.to_px = (e.patrol_to + 1) * TILE - TILE * 0.5
 		walkers.append(w)
@@ -200,7 +205,7 @@ func _bug_param(bug_id: StringName, name: StringName, default: float) -> float:
 
 
 func _tile_feet(col: int, row: int) -> Vector2:
-	return Vector2((col + 0.5) * TILE, VIEW.y - row * TILE)
+	return Vector2((col + 0.5) * TILE, view.y - row * TILE)
 
 
 func _play(name: String) -> void:
@@ -219,10 +224,7 @@ func _on_end(goal: bool) -> void:
 
 # --- Ввод ------------------------------------------------------------------------------------
 
-func _unhandled_input(event: InputEvent) -> void:
-	super(event)
-	if not running or paused:
-		return
+func _game_input(event: InputEvent) -> void:
 	if GameInput.is_a(event):
 		_request_jump()
 		get_viewport().set_input_as_handled()
@@ -322,7 +324,7 @@ func _step(delta: float) -> void:
 		run_anim += delta * tuning.run_fps
 	_update_walkers(delta)
 	_collect()
-	if hero.y > VIEW.y + 40.0:
+	if hero.y > view.y + 40.0:
 		_die()
 	if not running:
 		return
@@ -331,7 +333,7 @@ func _step(delta: float) -> void:
 		respawn = _tile_feet(level.checkpoint.x, level.checkpoint.y)
 	if hero.x >= level.flag.x * TILE + TILE * 0.3:
 		end_demo(true)
-	cam_x = clampf(hero.x - VIEW.x * 0.38, 0.0, level.width * TILE - VIEW.x)
+	cam_x = clampf(hero.x - view.x * 0.38, 0.0, level.width * TILE - view.x)
 	world.position.x = -roundf(cam_x)
 
 
@@ -368,8 +370,8 @@ func _move_x(dx: float) -> void:
 	var new_x := hero.x + dx
 	var edge := new_x + half if dx > 0.0 else new_x - half
 	var col := int(floor(edge / TILE))
-	var feet_row := int(floor((VIEW.y - hero.y + 1.0) / TILE))
-	var head_row := int(floor((VIEW.y - hero.y + tuning.hero_height - 1.0) / TILE))
+	var feet_row := int(floor((view.y - hero.y + 1.0) / TILE))
+	var head_row := int(floor((view.y - hero.y + tuning.hero_height - 1.0) / TILE))
 	for row in range(feet_row, head_row + 1):
 		if _solid(col, row):
 			new_x = (col * TILE - half - 0.01) if dx > 0.0 else ((col + 1) * TILE + half + 0.01)
@@ -403,10 +405,10 @@ func _surface_tops(col: int) -> Array[float]:
 		return out
 	var h := level.ground_top(col)
 	if h > 0:
-		out.append(VIEW.y - h * TILE)
+		out.append(view.y - h * TILE)
 	for p in level.platforms:
 		if col >= p.position.x and col < p.position.x + p.size.x:
-			out.append(VIEW.y - (p.position.y + 1) * TILE)
+			out.append(view.y - (p.position.y + 1) * TILE)
 	return out
 
 
@@ -441,7 +443,7 @@ func _collect() -> void:
 	while i >= 0:
 		var c := coins_left[i]
 		var cx := (c.x + 0.5) * TILE
-		var cy := VIEW.y - (c.y + 0.5) * TILE
+		var cy := view.y - (c.y + 0.5) * TILE
 		if absf(cx - hero.x) < half + 5.0 and cy > hero.y - tuning.hero_height - 4.0 and cy < hero.y + 4.0:
 			coins_left.remove_at(i)
 			coins_got += 1
@@ -479,7 +481,7 @@ func _bot_step(_delta: float) -> void:
 		return
 	var half := tuning.hero_width / 2.0
 	var ahead := int(floor((hero.x + half + 6.0) / TILE))
-	var feet_row := int(round((VIEW.y - hero.y) / TILE))
+	var feet_row := int(round((view.y - hero.y) / TILE))
 	var need := level.is_pit(ahead) or level.ground_top(ahead) > feet_row
 	if not need:
 		for w in walkers:
@@ -500,32 +502,32 @@ func _tex_or_pink(slot: String, name: String, pos: Vector2, size_px := Vector2(1
 
 
 func _draw_world() -> void:
-	world.draw_rect(Rect2(cam_x, 0, VIEW.x, VIEW.y), BG_COLOR)
+	world.draw_rect(Rect2(cam_x, 0, view.x, view.y), BG_COLOR)
 	for c in clouds:
 		_tex_or_pink("cloud", "cloud_big" if c.big else "cloud_small", Vector2(roundf(cam_x + c.x), roundf(c.y)),
 				Vector2(32, 16) if c.big else Vector2(16, 16))
 	var first := maxi(int(floor(cam_x / TILE)) - 1, 0)
-	var last := mini(int(ceil((cam_x + VIEW.x) / TILE)) + 1, level.width - 1)
+	var last := mini(int(ceil((cam_x + view.x) / TILE)) + 1, level.width - 1)
 	for col in range(first, last + 1):
 		var h := level.ground_top(col)
 		for row in h:
-			world.draw_texture(tex["ground" if row == h - 1 else "ground_inner"], Vector2(col * TILE, VIEW.y - (row + 1) * TILE))
+			world.draw_texture(tex["ground" if row == h - 1 else "ground_inner"], Vector2(col * TILE, view.y - (row + 1) * TILE))
 	for p in level.platforms:
 		if p.position.x + p.size.x < first or p.position.x > last:
 			continue
 		for i in p.size.x:
-			_tex_or_pink("platform", "platform", Vector2((p.position.x + i) * TILE, VIEW.y - (p.position.y + 1) * TILE), Vector2(16, 5))
+			_tex_or_pink("platform", "platform", Vector2((p.position.x + i) * TILE, view.y - (p.position.y + 1) * TILE), Vector2(16, 5))
 	var bob := 1.0 if fmod(anim_time, 0.6) < 0.3 else 0.0
 	for c in coins_left:
 		if c.x < first or c.x > last:
 			continue
-		_tex_or_pink("coin", "coin", Vector2(c.x * TILE, VIEW.y - (c.y + 1) * TILE - bob))
+		_tex_or_pink("coin", "coin", Vector2(c.x * TILE, view.y - (c.y + 1) * TILE - bob))
 	if _pink.has("checkpoint"):
-		world.draw_rect(Rect2(level.checkpoint.x * TILE, VIEW.y - (level.checkpoint.y + 1) * TILE, 16, 16), PINK)
+		world.draw_rect(Rect2(level.checkpoint.x * TILE, view.y - (level.checkpoint.y + 1) * TILE, 16, 16), PINK)
 	else:
-		world.draw_texture(tex["checkpoint"], Vector2(level.checkpoint.x * TILE, VIEW.y - (level.checkpoint.y + 1) * TILE),
+		world.draw_texture(tex["checkpoint"], Vector2(level.checkpoint.x * TILE, view.y - (level.checkpoint.y + 1) * TILE),
 				Color(1, 1, 1, 1) if checkpoint_hit else Color(1, 1, 1, 0.6))
-	_tex_or_pink("flag", "flag", Vector2(level.flag.x * TILE, VIEW.y - (level.flag.y + 1) * TILE))
+	_tex_or_pink("flag", "flag", Vector2(level.flag.x * TILE, view.y - (level.flag.y + 1) * TILE))
 	var enemy_frame := "enemy_0" if fmod(anim_time * tuning.enemy_fps, 2.0) < 1.0 else "enemy_1"
 	for w in walkers:
 		if not w.alive or w.x < first * TILE or w.x > (last + 1) * TILE:
@@ -558,7 +560,7 @@ func _draw_hud() -> void:
 	world.draw_texture(tex["coin"], Vector2(x0 - 4.0, 2.0))
 	_draw_number(Vector2(x0 + 14.0, 7.0), coins_got)
 	for i in lives:
-		world.draw_texture_rect_region(tex["hero_run_1"], Rect2(cam_x + VIEW.x - 8.0 - (i + 1) * 12.0, 3.0, 10.0, 8.0), Rect2(3, 1, 10, 8))
+		world.draw_texture_rect_region(tex["hero_run_1"], Rect2(cam_x + view.x - 8.0 - (i + 1) * 12.0, 3.0, 10.0, 8.0), Rect2(3, 1, 10, 8))
 
 
 func _draw_number(pos: Vector2, n: int) -> void:

@@ -60,12 +60,6 @@ func _ready() -> void:
 	runner.visible = false
 	runner.sprint_finished.connect(_on_sprint_finished)
 	runner.plan_finished.connect(_on_plan_finished)
-	runner.bug_label = func(d: MinigameDef) -> String:
-		var b := catalog.stamp_bug(d, record)
-		return b.stamp if b != null else d.owner_name()
-	runner.bug_caption = func(d: MinigameDef) -> String:
-		var b := catalog.stamp_bug(d, record)
-		return "Баг: %s. Будет в демке" % (b.manifestation.to_lower() if b != null else d.owner_name())
 	add_child(runner)
 
 	Debug.add_number(SECTION, "Релиз (со следующего)", func() -> int: return release,
@@ -109,8 +103,7 @@ func _begin_sprints() -> void:
 func _on_sprint_finished(d: MinigameDef, success: bool) -> void:
 	record.add_sprint(success)
 	if not success:
-		# После карточки результата: штамп должен показать именно новый баг.
-		catalog.apply_fail.call_deferred(d, record)
+		catalog.apply_fail(d, record)
 
 
 func _on_plan_finished(_results: Array[bool]) -> void:

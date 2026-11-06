@@ -2,10 +2,11 @@ extends Minigame
 ## «Повтори» (repeat, управление), каталог `docs/specs/minigames_catalog.md`.
 ## Шесть клавиш-площадок: крестовина слева, A и B справа. Последовательность из 4-7 клавиш
 ## показывается вспышками, у каждой клавиши свой тон, затем игрок повторяет. Четыре раунда до
-## конца таймера; провал, если не успел. Неверная клавиша не ошибка, а потеря времени: ввод
-## блокируется на секунду, поле тускнеет вдвое, нужная клавиша подсвечивается, после паузы та
-## же последовательность вводится заново с первой клавиши (плейтест 2026-11-05). С `t` последовательность длиннее, показ быстрее, появляются ложные вспышки,
-## которые надо пропустить мимо.
+## конца таймера; провал, если не успел. Неверная клавиша не ошибка, а потеря времени: она
+## дрожит красным, после короткой паузы та же последовательность показывается заново, во время
+## показа ввод не принимается, затем ввод с первой клавиши (плейтесты 2026-11-05 и 2026-11-06).
+## С `t` последовательность длиннее, показ быстрее, появляются ложные вспышки, которые надо
+## пропустить мимо.
 ## Параметры от `t` в `resources/minigames/repeat.tres`: length, show, fake_share.
 
 enum Phase { SHOW, INPUT, PAUSE }
@@ -13,7 +14,6 @@ enum Phase { SHOW, INPUT, PAUSE }
 const KEYS: Array[StringName] = [GameInput.LEFT, GameInput.UP, GameInput.DOWN, GameInput.RIGHT, GameInput.A, GameInput.B]
 const TONES: Array[float] = [392.0, 440.0, 494.0, 523.0, 587.0, 659.0]
 const ROUNDS := 4
-const LOCK_SECONDS := 1.0
 const PAD := 140.0
 const PAD_GAP := 20.0
 const GAP_SECONDS := 0.12
@@ -31,7 +31,8 @@ var fake_share := 0.0
 var phase := Phase.PAUSE
 var round_index := 0
 var rounds_done := 0
-var lock_left := 0.0
+## После ошибки: по концу паузы не новый раунд, а повторный показ той же последовательности.
+var _replay := false
 var _seq_snapshot: Array[int] = []
 var sequence: Array[int] = []
 var step := 0
@@ -76,20 +77,18 @@ func _on_tick(delta: float) -> void:
 		lit[i] = maxf(lit[i] - delta, 0.0)
 		shake[i] = maxf(shake[i] - delta, 0.0)
 	fake_left = maxf(fake_left - delta, 0.0)
-	if lock_left > 0.0:
-		lock_left = maxf(lock_left - delta, 0.0)
-		if lock_left <= 0.0:
-			# Блокировка кончилась: та же последовательность с первой клавиши.
-			step = 0
-			if AutoTest.enabled and sequence != _seq_snapshot:
-				AutoTest.fail("repeat: последовательность изменилась после ошибки")
-	modulate.a = 0.5 if lock_left > 0.0 else 1.0
 	phase_time += delta
 	match phase:
 		Phase.PAUSE:
 			pause_left -= delta
 			if pause_left <= 0.0:
-				_start_round()
+				if _replay:
+					_replay = false
+					if AutoTest.enabled and sequence != _seq_snapshot:
+						AutoTest.fail("repeat: последовательность изменилась после ошибки")
+					_show_sequence()
+				else:
+					_start_round()
 		Phase.SHOW:
 			# Каждый шаг: вспышка `show_seconds`, пауза `GAP_SECONDS`; ложная вспышка между ними.
 			var slot := show_seconds + GAP_SECONDS
@@ -114,7 +113,7 @@ func _on_timeout() -> bool:
 
 ## Бот: WIN жмёт нужную клавишу каждые `BOT_STEP`, LOSE жмёт не ту.
 func _bot_step(delta: float) -> bool:
-	if phase != Phase.INPUT or lock_left > 0.0:
+	if phase != Phase.INPUT:
 		return false
 	_bot_timer += delta
 	if _bot_timer < BOT_STEP:
@@ -137,6 +136,11 @@ func _start_round() -> void:
 			k = (k + 1 + rng.randi_range(0, KEYS.size() - 2)) % KEYS.size()
 		sequence.append(k)
 		prev = k
+	_show_sequence()
+
+
+## Показ текущей последовательности с первой клавиши; ввод в фазе показа не принимается.
+func _show_sequence() -> void:
 	phase = Phase.SHOW
 	phase_time = 0.0
 	step = 0
@@ -162,7 +166,7 @@ func _maybe_fake() -> void:
 
 
 func _press(key: int) -> void:
-	if phase != Phase.INPUT or key < 0 or lock_left > 0.0:
+	if phase != Phase.INPUT or key < 0:
 		return
 	var want := sequence[step]
 	if key == want:
@@ -176,14 +180,14 @@ func _press(key: int) -> void:
 			phase = Phase.PAUSE
 			pause_left = ROUND_PAUSE
 	else:
-		# Не ошибка, а потеря времени: секунда блокировки, поле тускнеет, нужная клавиша видна.
-		lock_left = LOCK_SECONDS
+		# Не ошибка, а потеря времени: клавиша дрожит красным, после паузы показ заново.
+		_replay = true
 		_seq_snapshot = sequence.duplicate()
 		shake[key] = SHAKE_SECONDS
-		lit[key] = LOCK_SECONDS
+		lit[key] = PRESS_SECONDS
 		lit_color[key] = Style.DANGER
-		lit[want] = LOCK_SECONDS
-		lit_color[want] = Style.accent(0)
+		phase = Phase.PAUSE
+		pause_left = ROUND_PAUSE
 		_miss_sound.play()
 
 
