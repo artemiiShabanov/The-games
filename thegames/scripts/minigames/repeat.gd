@@ -2,9 +2,10 @@ extends Minigame
 ## «Повтори» (repeat, управление), каталог `docs/specs/minigames_catalog.md`.
 ## Шесть клавиш-площадок: крестовина слева, A и B справа. Последовательность из 4-7 клавиш
 ## показывается вспышками, у каждой клавиши свой тон, затем игрок повторяет. Четыре раунда до
-## конца таймера; провал, если не успел. Неверная клавиша не ошибка, а потеря времени: она
-## дрожит красным, после короткой паузы та же последовательность показывается заново, во время
-## показа ввод не принимается, затем ввод с первой клавиши (плейтесты 2026-11-05 и 2026-11-06).
+## конца таймера; провал, если не успел или набрал `MAX_ERRORS` ошибок (плейтест 2026-11-06).
+## Неверная клавиша: ошибка в счётчик слева сверху, она дрожит красным, после короткой паузы
+## та же последовательность показывается заново, во время показа ввод не принимается, затем
+## ввод с первой клавиши (плейтесты 2026-11-05 и 2026-11-06).
 ## С `t` последовательность длиннее, показ быстрее, появляются ложные вспышки, которые надо
 ## пропустить мимо.
 ## Параметры от `t` в `resources/minigames/repeat.tres`: length, show, fake_share.
@@ -14,6 +15,7 @@ enum Phase { SHOW, INPUT, PAUSE }
 const KEYS: Array[StringName] = [GameInput.LEFT, GameInput.UP, GameInput.DOWN, GameInput.RIGHT, GameInput.A, GameInput.B]
 const TONES: Array[float] = [392.0, 440.0, 494.0, 523.0, 587.0, 659.0]
 const ROUNDS := 4
+const MAX_ERRORS := 4
 const PAD := 140.0
 const PAD_GAP := 20.0
 const GAP_SECONDS := 0.12
@@ -31,6 +33,7 @@ var fake_share := 0.0
 var phase := Phase.PAUSE
 var round_index := 0
 var rounds_done := 0
+var errors := 0
 ## После ошибки: по концу паузы не новый раунд, а повторный показ той же последовательности.
 var _replay := false
 var _seq_snapshot: Array[int] = []
@@ -180,15 +183,19 @@ func _press(key: int) -> void:
 			phase = Phase.PAUSE
 			pause_left = ROUND_PAUSE
 	else:
-		# Не ошибка, а потеря времени: клавиша дрожит красным, после паузы показ заново.
-		_replay = true
-		_seq_snapshot = sequence.duplicate()
+		# Ошибка в счётчик, клавиша дрожит красным, после паузы показ заново.
+		errors += 1
 		shake[key] = SHAKE_SECONDS
 		lit[key] = PRESS_SECONDS
 		lit_color[key] = Style.DANGER
+		_miss_sound.play()
+		if errors >= MAX_ERRORS:
+			finish(false)
+			return
+		_replay = true
+		_seq_snapshot = sequence.duplicate()
 		phase = Phase.PAUSE
 		pause_left = ROUND_PAUSE
-		_miss_sound.play()
 
 
 # --- Рисование ----------------------------------------------------------------------------
@@ -243,7 +250,7 @@ func _draw() -> void:
 			elif phase == Phase.SHOW and j <= step:
 				c = Style.accent(0)
 			draw_circle(Vector2(x0 + j * gap, y), 8.0, c)
-	# Раунды справа сверху.
+	# Раунды справа сверху, под ними ошибки крестиками: пустые серые, набранные `danger`.
 	var r := 7.0
 	var gap2 := 28.0
 	var rx := size.x - 48.0 - (ROUNDS - 1) * gap2
@@ -254,3 +261,10 @@ func _draw() -> void:
 		elif j == rounds_done and phase != Phase.PAUSE:
 			c = Style.INK
 		draw_circle(Vector2(rx + j * gap2, 60.0), r, c)
+	var ex := size.x - 48.0 - (MAX_ERRORS - 1) * gap2
+	for j in MAX_ERRORS:
+		var c := Style.DANGER if j < errors else Style.SURFACE_2
+		var cx := ex + j * gap2
+		var cy := 60.0 + gap2
+		draw_line(Vector2(cx - r + 1, cy - r + 1), Vector2(cx + r - 1, cy + r - 1), c, 3.0, true)
+		draw_line(Vector2(cx - r + 1, cy + r - 1), Vector2(cx + r - 1, cy - r + 1), c, 3.0, true)

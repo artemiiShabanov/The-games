@@ -23,6 +23,27 @@ static func make(text: String) -> HintPill:
 	return pill
 
 
+## Пилюля-подложка под шапку над карточкой (плейтест 2026-11-06: на пиксельной студии текст
+## без подложки сольётся): `surface`, текст `ink-2` размером `body`.
+static func header(text: String) -> PanelContainer:
+	var pill := PanelContainer.new()
+	var sb := Style.flat(Style.SURFACE, Style.R_PILL, Color.TRANSPARENT, 0)
+	sb.content_margin_left = 20
+	sb.content_margin_right = 20
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	pill.add_theme_stylebox_override("panel", sb)
+	pill.custom_minimum_size = Vector2(0, Style.PILL_HEIGHT)
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", Style.FONT_BODY)
+	label.add_theme_color_override("font_color", Style.INK_2)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pill.add_child(label)
+	return pill
+
+
 ## Полоса внизу экрана с пилюлей по центру (STYLE: подсказки ввода внизу, отступ 40).
 static func bottom_bar(pill: Control, margin := 40) -> Control:
 	var bar := HBoxContainer.new()

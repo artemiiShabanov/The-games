@@ -27,6 +27,7 @@ var releases_done := 0
 
 var _bg: ColorRect
 var _card: Control
+var _demo_header: PanelContainer
 var _rng := RandomNumberGenerator.new()
 var _last_first: StringName = &""
 var _bot_timer := 0.0
@@ -120,6 +121,9 @@ func _begin_playtest() -> void:
 	if stage != Stage.PLAYTEST:
 		return
 	_clear_card()
+	_demo_header = HintPill.header("Плейтест · %s · релиз %d" % [tuning.title, release])
+	_demo_header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
+	add_child(_demo_header)
 	demo = DEMO.instantiate() as Demo
 	demo.setup(record, &"playtest")
 	demo.demo_finished.connect(_on_demo_finished)
@@ -132,6 +136,9 @@ func _on_demo_finished(_r: GameRecord, reached: bool) -> void:
 	if demo != null:
 		demo.queue_free()
 		demo = null
+	if _demo_header != null:
+		_demo_header.queue_free()
+		_demo_header = null
 	_show_summary()
 
 

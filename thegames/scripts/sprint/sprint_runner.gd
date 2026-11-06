@@ -35,6 +35,7 @@ var _skip := false
 var _frame: CardFrame
 var _content: Control
 var _header: Label
+var _header_pill: PanelContainer
 var _dots: Control
 
 
@@ -52,11 +53,11 @@ func _ready() -> void:
 	chrome.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(chrome)
-	_header = Label.new()
-	_header.position = Vector2(Style.EDGE, 48)
-	_header.add_theme_font_size_override("font_size", Style.FONT_BODY)
-	_header.add_theme_color_override("font_color", Style.INK_2)
-	chrome.add_child(_header)
+	_header_pill = HintPill.header("")
+	_header_pill.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
+	_header_pill.visible = false
+	chrome.add_child(_header_pill)
+	_header = _header_pill.get_child(0) as Label
 	_dots = Control.new()
 	_dots.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -95,10 +96,12 @@ func _next() -> void:
 	if plan == null or index >= plan.size():
 		phase = Phase.IDLE
 		_header.text = ""
+		_header_pill.visible = false
 		_dots.queue_redraw()
 		plan_finished.emit(results.duplicate())
 		return
 	_header.text = "Спринт %d из %d" % [index + 1, plan.size()] + (" · " + game_title if game_title != "" else "")
+	_header_pill.visible = true
 	_dots.queue_redraw()
 	_run_sprint(plan.defs[index])
 
@@ -254,15 +257,19 @@ func _spacer(h: int) -> Control:
 	return c
 
 
-## Точки спринтов справа сверху: зелёная успех, оранжевая баг, тёмная текущий, светлая впереди.
+## Точки спринтов справа сверху на подложке `surface`: зелёная успех, оранжевая баг, тёмная
+## текущий, светлая впереди.
 func _draw_dots() -> void:
-	if plan == null:
+	if plan == null or phase == Phase.IDLE:
 		return
 	var n := plan.size()
 	var r := 7.0
 	var gap := 28.0
-	var x0 := size.x - Style.EDGE - (n - 1) * gap
-	var y := 60.0
+	var x0 := size.x - Style.EDGE - (n - 1) * gap - 20.0
+	var y := float(Style.HEADER_Y)
+	var pad := 20.0
+	Style.flat(Style.SURFACE, Style.R_PILL, Color.TRANSPARENT, 0).draw(_dots.get_canvas_item(),
+			Rect2(x0 - pad, y - Style.PILL_HEIGHT / 2.0, (n - 1) * gap + 2 * pad, Style.PILL_HEIGHT))
 	for i in range(n):
 		var c := Style.SURFACE_2
 		if i < results.size():

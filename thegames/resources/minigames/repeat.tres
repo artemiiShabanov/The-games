@@ -24,6 +24,7 @@ id = &"repeat"
 aspect = 2
 verb = "Повтори"
 hint = "Запомни последовательность и повтори её"
+time_seconds = 28.0
 scene = ExtResource("1_lskcg")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a", &"action_b"])
 params = Dictionary[StringName, Curve]({

@@ -2,9 +2,13 @@ extends Demo
 ## Демка платформер × 8-bit, каталог `docs/specs/demos_catalog.md`: классика NES. Ямы,
 ## враг-ходок, монеты, чекпоинт, прыжок с переменной высотой по длине нажатия, цель флаг
 ## справа, две жизни вместо таймера (решение 2026-11-05). Влево, вправо, A прыжок. Уровень из
-## `PlatformerLevelGen` по сиду записи игры. Рисуется в виртуальном экране, который занимает
-## внутренность карточки демки с увеличением ×3 (`view`, на базовом экране 554×277), спрайты
-## пиратов 16×16, статичные облака, чиптюн-петля.
+## `PlatformerLevelGen` по сиду записи игры. Дэш на B (плейтест 2026-11-06): рывок в сторону
+## взгляда без гравитации, в воздухе один раз до приземления; в дэше герой уязвим, врагов не
+## давит. Рисуется в виртуальном экране внутри карточки демки с увеличением ×4 (`view`
+## 416×208), три слоя: `backdrop` статичный фон (небо, солнце, море, острова, облака: на
+## камеру не реагируют), `world` со сдвигом камеры, `hud` поверх. Камера целочисленная,
+## привязана к округлённой позиции героя, чтобы его спрайт не дрожал; по вертикали мёртвая
+## зона. Спрайты пиратов 16×16, чиптюн-петля.
 ##
 ## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`):
 ## `frame_drops` фризы в движении с догоном времени; `audio_stutter` заикание музыки и
@@ -27,7 +31,10 @@ class Walker:
 	var alive := true
 
 
-const SCALE := 3
+const SCALE := 4
+const GHOST_LIFE := 0.22
+const GHOST_EVERY := 0.03
+const DUST_LIFE := 0.3
 const TILE := 16
 const SPRITES := "res://assets/settings/pirates/8bit/"
 const MAX_FALL := 400.0
@@ -39,7 +46,13 @@ const DIGITS := {
 	"6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "001", "001", "001"],
 	"8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
 }
-const BG_COLOR := Color("#2F6FB5")
+const SKY_BANDS: Array[Color] = [Color("#1F4F9A"), Color("#2A61A9"), Color("#3273B8"), Color("#4486C7"),
+	Color("#5A9BD5"), Color("#78B3E0"), Color("#9CCBE8")]
+const SUN := Color("#F2C85A")
+const SEA := Color("#1E5C8F")
+const SEA_LIGHT := Color("#3B86C4")
+const ISLAND := Color("#2B6B4F")
+const ISLAND_DARK := Color("#1F4F3B")
 const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const PINK := Color("#FF2BD6")
@@ -54,9 +67,13 @@ const STUTTER_CHUNK := 0.07
 var tuning: PlatformerDemoTuning
 var level: PlatformerLevel
 ## Виртуальный экран в пикселях демки: внутренность карточки, делённая на `SCALE`.
-var view := Vector2(480, 270)
+var view := Vector2(416, 208)
+## Низ уровня в пикселях мира: ряд 0 стоит на `base_y`.
+var base_y := 256.0
 var tex := {}
+var backdrop: Node2D
 var world: Node2D
+var hud: Node2D
 var hero := Vector2.ZERO
 var vel := Vector2.ZERO
 var grounded := false
@@ -74,7 +91,16 @@ var invuln := 0.0
 var walkers: Array[Walker] = []
 var checkpoint_hit := false
 var cam_x := 0.0
+var cam_y := 0.0
 var move_dir := 0.0
+var dash_left := 0.0
+var dash_cooldown := 0.0
+var dash_air_used := false
+var _ghost_timer := 0.0
+## Призраки дэша: x, y, направление, остаток жизни.
+var _ghosts: Array[Vector4] = []
+## Пыль: позиция, скорость, остаток жизни.
+var _dust: Array[Vector3] = []
 var bot_dir := 0.0
 var _bug_rng := RandomNumberGenerator.new()
 
@@ -102,10 +128,11 @@ var _enemy_mult := 1.0
 func _on_start() -> void:
 	tuning = PlatformerDemoTuning.load_default()
 	level = PlatformerLevelGen.generate(record.seed)
+	base_y = level.height * TILE
 	lives = tuning.lives
 	_bug_rng.seed = hash(str(record.seed, ":bugs"))
 	_setup_bugs()
-	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "enemy_0", "enemy_1", "coin",
+	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "hero_dash", "enemy_0", "enemy_1", "coin",
 			"checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
 		tex[name] = load(SPRITES + name + ".png")
 	view = (CardFrame.inner_size() / SCALE).floor()
@@ -124,27 +151,34 @@ func _on_start() -> void:
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	viewport.snap_2d_transforms_to_pixel = true
 	container.add_child(viewport)
+	backdrop = Node2D.new()
+	backdrop.draw.connect(_draw_backdrop)
+	viewport.add_child(backdrop)
 	world = Node2D.new()
 	world.draw.connect(_draw_world)
 	viewport.add_child(world)
+	hud = Node2D.new()
+	hud.draw.connect(_draw_hud)
+	viewport.add_child(hud)
+	cam_y = base_y - view.y
 
 	hero = _tile_feet(level.spawn.x, level.spawn.y)
 	respawn = hero
 	coins_left = level.coins.duplicate()
 	coins_total = coins_left.size()
-	# Облака статичные, на экране, из сида.
+	# Облака статичные, в координатах экрана, из сида; на камеру не реагируют.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(record.seed, ":clouds"))
-	for i in 9:
+	for i in 8:
 		var c := Cloud.new()
-		c.x = rng.randf_range(0.0, view.x - 32.0)
-		c.y = rng.randf_range(TILE * 1.0, TILE * 7.5)
+		c.x = roundf(rng.randf_range(0.0, view.x - 32.0))
+		c.y = roundf(rng.randf_range(TILE * 0.75, TILE * 5.5))
 		c.big = rng.randf() < 0.5
 		clouds.append(c)
 	for e in level.enemies:
 		var w := Walker.new()
 		w.x = (e.x + 0.5) * TILE
-		w.y = view.y - e.y * TILE
+		w.y = base_y - e.y * TILE
 		w.from_px = e.patrol_from * TILE + TILE * 0.5
 		w.to_px = (e.patrol_to + 1) * TILE - TILE * 0.5
 		walkers.append(w)
@@ -152,7 +186,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS), -8.0)
+	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS), tuning.music_db)
 	add_child(_music)
 	_music.play()
 	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.09, 0.35, 26.0))
@@ -160,7 +194,9 @@ func _setup_audio() -> void:
 	_sfx["stomp"] = Sfx.player(Sfx.thud(0.14, 0.5))
 	_sfx["death"] = Sfx.player(Sfx.blip(196.0, 0.4, 0.45, 6.0))
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.45, 5.0))
+	_sfx["dash"] = Sfx.player(Sfx.blip(330.0, 0.12, 0.3, 20.0))
 	for p in _sfx.values():
+		(p as AudioStreamPlayer).volume_db = tuning.sfx_db
 		add_child(p)
 
 
@@ -205,7 +241,7 @@ func _bug_param(bug_id: StringName, name: StringName, default: float) -> float:
 
 
 func _tile_feet(col: int, row: int) -> Vector2:
-	return Vector2((col + 0.5) * TILE, view.y - row * TILE)
+	return Vector2((col + 0.5) * TILE, base_y - row * TILE)
 
 
 func _play(name: String) -> void:
@@ -227,6 +263,9 @@ func _on_end(goal: bool) -> void:
 func _game_input(event: InputEvent) -> void:
 	if GameInput.is_a(event):
 		_request_jump()
+		get_viewport().set_input_as_handled()
+	elif GameInput.is_b(event):
+		_dash()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_released(GameInput.A) and vel.y < 0.0 and not has_bug(&"sticky_input"):
 		vel.y *= tuning.jump_cut
@@ -251,6 +290,19 @@ func _jump() -> void:
 		if _sticky_first or _bug_rng.randf() < _bug_param(&"sticky_input", &"stick_chance", 0.25):
 			_sticky_extra = int(_bug_param(&"sticky_input", &"extra_presses", 2.0))
 		_sticky_first = false
+
+
+## Дэш: в сторону взгляда, без гравитации, в воздухе один раз до приземления.
+func _dash() -> void:
+	if dash_left > 0.0 or dash_cooldown > 0.0 or (not grounded and dash_air_used):
+		return
+	dash_left = tuning.dash_time
+	dash_cooldown = tuning.dash_cooldown
+	if not grounded:
+		dash_air_used = true
+	vel.y = 0.0
+	_ghost_timer = 0.0
+	_play("dash")
 
 
 func _gravity() -> float:
@@ -306,25 +358,47 @@ func _step(delta: float) -> void:
 	while not _jump_queue.is_empty() and _jump_queue[0] <= elapsed:
 		_jump_queue.remove_at(0)
 		_jump()
-	move_dir = _current_axis()
-	if absf(move_dir) < 0.3:
-		move_dir = 0.0
+	dash_cooldown = maxf(dash_cooldown - delta, 0.0)
+	if dash_left > 0.0:
+		dash_left -= delta
+		move_dir = float(facing)
+		vel.x = facing * tuning.dash_speed
+		vel.y = 0.0
+		_ghost_timer -= delta
+		if _ghost_timer <= 0.0:
+			_ghost_timer = GHOST_EVERY
+			_ghosts.append(Vector4(hero.x, hero.y, facing, GHOST_LIFE))
 	else:
-		move_dir = signf(move_dir)
-		facing = int(move_dir)
-	vel.x = move_dir * tuning.run_speed
-	vel.y = minf(vel.y + _gravity() * delta, MAX_FALL)
+		move_dir = _current_axis()
+		if absf(move_dir) < 0.3:
+			move_dir = 0.0
+		else:
+			move_dir = signf(move_dir)
+			facing = int(move_dir)
+		vel.x = move_dir * tuning.run_speed
+		vel.y = minf(vel.y + _gravity() * delta, MAX_FALL)
+	for i in range(_ghosts.size() - 1, -1, -1):
+		_ghosts[i].w -= delta
+		if _ghosts[i].w <= 0.0:
+			_ghosts.remove_at(i)
+	for i in range(_dust.size() - 1, -1, -1):
+		_dust[i].z -= delta
+		_dust[i].y -= delta * 10.0
+		if _dust[i].z <= 0.0:
+			_dust.remove_at(i)
 	_move_x(vel.x * delta)
 	var was_grounded := grounded
 	_move_y(vel.y * delta)
+	if grounded:
+		dash_air_used = false
 	if grounded and not was_grounded and _sticky_extra > 0:
 		_sticky_extra -= 1
 		_jump()
-	if move_dir != 0.0 and grounded:
+	if move_dir != 0.0 and grounded and dash_left <= 0.0:
 		run_anim += delta * tuning.run_fps
 	_update_walkers(delta)
 	_collect()
-	if hero.y > view.y + 40.0:
+	if hero.y > base_y + 40.0:
 		_die()
 	if not running:
 		return
@@ -333,8 +407,21 @@ func _step(delta: float) -> void:
 		respawn = _tile_feet(level.checkpoint.x, level.checkpoint.y)
 	if hero.x >= level.flag.x * TILE + TILE * 0.3:
 		end_demo(true)
-	cam_x = clampf(hero.x - view.x * 0.38, 0.0, level.width * TILE - view.x)
-	world.position.x = -roundf(cam_x)
+	_update_camera()
+
+
+## Камера целочисленная и привязана к округлённому герою: его экранная позиция не дрожит.
+## По вертикали мёртвая зона: камера едет, только когда ноги героя выходят за поля.
+func _update_camera() -> void:
+	cam_x = clampf(roundf(hero.x) - roundf(view.x * 0.38), 0.0, level.width * TILE - view.x)
+	var feet_screen := hero.y - cam_y
+	if feet_screen < tuning.cam_top_margin:
+		cam_y = hero.y - tuning.cam_top_margin
+	elif feet_screen > view.y - tuning.cam_bottom_margin:
+		cam_y = hero.y - (view.y - tuning.cam_bottom_margin)
+	cam_y = clampf(roundf(cam_y), 0.0, base_y - view.y)
+	world.position = Vector2(-cam_x, -cam_y)
+	hud.queue_redraw()
 
 
 func _update_audio_bug(delta: float) -> void:
@@ -370,8 +457,8 @@ func _move_x(dx: float) -> void:
 	var new_x := hero.x + dx
 	var edge := new_x + half if dx > 0.0 else new_x - half
 	var col := int(floor(edge / TILE))
-	var feet_row := int(floor((view.y - hero.y + 1.0) / TILE))
-	var head_row := int(floor((view.y - hero.y + tuning.hero_height - 1.0) / TILE))
+	var feet_row := int(floor((base_y - hero.y + 1.0) / TILE))
+	var head_row := int(floor((base_y - hero.y + tuning.hero_height - 1.0) / TILE))
 	for row in range(feet_row, head_row + 1):
 		if _solid(col, row):
 			new_x = (col * TILE - half - 0.01) if dx > 0.0 else ((col + 1) * TILE + half + 0.01)
@@ -405,10 +492,10 @@ func _surface_tops(col: int) -> Array[float]:
 		return out
 	var h := level.ground_top(col)
 	if h > 0:
-		out.append(view.y - h * TILE)
+		out.append(base_y - h * TILE)
 	for p in level.platforms:
 		if col >= p.position.x and col < p.position.x + p.size.x:
-			out.append(view.y - (p.position.y + 1) * TILE)
+			out.append(base_y - (p.position.y + 1) * TILE)
 	return out
 
 
@@ -426,9 +513,14 @@ func _update_walkers(delta: float) -> void:
 			w.dir = -1
 		if invuln > 0.0 or not running:
 			continue
-		var hit := absf(w.x - hero.x) < half + 6.0 and hero.y > w.y - TILE and hero.y - tuning.hero_height < w.y
+		# Ходок односторонний, как платформа под ним: снизу в подъёме герой проходит сквозь.
+		if vel.y < 0.0 and hero.y > w.y:
+			continue
+		var hit := absf(w.x - hero.x) < half + 3.0 and hero.y > w.y - TILE and hero.y - tuning.hero_height < w.y
 		if hit:
-			if vel.y > 0.0 and hero.y <= w.y - TILE * 0.5:
+			# Ноги героя выше ног врага: добивание, и в подъёме тоже (прощающие хитбоксы). В дэше
+			# герой уязвим и не давит (плейтест 2026-11-06).
+			if hero.y <= w.y - TILE * 0.25 and dash_left <= 0.0:
 				w.alive = false
 				vel.y = -tuning.stomp_bounce
 				grounded = false
@@ -443,7 +535,7 @@ func _collect() -> void:
 	while i >= 0:
 		var c := coins_left[i]
 		var cx := (c.x + 0.5) * TILE
-		var cy := view.y - (c.y + 0.5) * TILE
+		var cy := base_y - (c.y + 0.5) * TILE
 		if absf(cx - hero.x) < half + 5.0 and cy > hero.y - tuning.hero_height - 4.0 and cy < hero.y + 4.0:
 			coins_left.remove_at(i)
 			coins_got += 1
@@ -457,6 +549,13 @@ func _die() -> void:
 	deaths += 1
 	lives -= 1
 	_play("death")
+	if AutoTest.enabled:
+		var near: Array[String] = []
+		for w in walkers:
+			if w.alive and absf(w.x - hero.x) < 48.0:
+				near.append("(%d,%d)" % [int(w.x / TILE), int((base_y - w.y) / TILE)])
+		AutoTest.note("platformer: смерть %d в колонке %d ряд %.1f, grounded=%s dash=%.2f, ходоки рядом %s" % [
+				deaths, int(hero.x / TILE), (base_y - hero.y) / TILE, grounded, dash_left, near])
 	if lives <= 0:
 		end_demo(false)
 		return
@@ -465,27 +564,42 @@ func _die() -> void:
 	grounded = false
 	invuln = tuning.invulnerable_seconds
 	_sticky_extra = 0
+	dash_left = 0.0
+	_ghosts.clear()
+	_update_camera()
 
 
 func _result_caption() -> String:
 	return "монеты %d из %d · падений %d · %d с" % [coins_got, coins_total, deaths, int(round(elapsed))]
 
 
-## Бот: WIN бежит вправо и прыгает перед ямой, стеной и врагом, LOSE бежит не прыгая и
-## теряет обе жизни.
+## Бот: WIN бежит вправо, прыгает перед ямой, стеной и врагом, а падая над ямой делает дэш;
+## LOSE бежит вправо, перепрыгивает только ступеньки и теряет обе жизни в ямах и врагах.
 func _bot_step(_delta: float) -> void:
 	bot_dir = 1.0
-	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
-		return
-	if not grounded:
-		return
 	var half := tuning.hero_width / 2.0
 	var ahead := int(floor((hero.x + half + 6.0) / TILE))
-	var feet_row := int(round((view.y - hero.y) / TILE))
+	var feet_row := int(round((base_y - hero.y) / TILE))
+	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
+		if grounded and not level.is_pit(ahead) and level.ground_top(ahead) > feet_row:
+			_jump()
+		return
+	if not grounded:
+		if vel.y > 0.0 and dash_left <= 0.0 and not dash_air_used:
+			var below := int(floor(hero.x / TILE))
+			var feet := int(floor((base_y - hero.y) / TILE))
+			var landing := false
+			for sy in level.surfaces_at(below):
+				if sy <= feet:
+					landing = true
+			# Падение в яму это верная смерть, враг на той стороне только возможная.
+			if not landing:
+				_dash()
+		return
 	var need := level.is_pit(ahead) or level.ground_top(ahead) > feet_row
 	if not need:
 		for w in walkers:
-			if w.alive and w.x > hero.x and w.x - hero.x < 40.0 and absf(w.y - hero.y) < 20.0:
+			if w.alive and w.x > hero.x and w.x - hero.x < 56.0 and absf(w.y - hero.y) < 20.0:
 				need = true
 				break
 	if need:
@@ -494,40 +608,73 @@ func _bot_step(_delta: float) -> void:
 
 # --- Рисование виртуального экрана -----------------------------------------------------------
 
-func _tex_or_pink(slot: String, name: String, pos: Vector2, size_px := Vector2(16, 16)) -> void:
+func _tex_or_pink(slot: String, name: String, pos: Vector2, size_px := Vector2(16, 16), canvas: CanvasItem = null) -> void:
+	if canvas == null:
+		canvas = world
 	if _pink.has(slot):
-		world.draw_rect(Rect2(pos, size_px), PINK)
+		canvas.draw_rect(Rect2(pos, size_px), PINK)
 	else:
-		world.draw_texture(tex[name], pos)
+		canvas.draw_texture(tex[name], pos)
+
+
+## Статичный фон в координатах экрана: полосы неба, солнце, море с бликами, острова, облака.
+func _draw_backdrop() -> void:
+	var horizon := roundf(view.y * 0.72)
+	var band_h := horizon / SKY_BANDS.size()
+	for i in SKY_BANDS.size():
+		backdrop.draw_rect(Rect2(0, roundf(i * band_h), view.x, ceilf(band_h) + 1), SKY_BANDS[i])
+	# Солнце: круг из квадратов справа сверху.
+	var sun := Vector2(view.x - 56.0, 30.0)
+	for r in [[Vector2(-6, -12), Vector2(12, 24)], [Vector2(-12, -6), Vector2(24, 12)], [Vector2(-10, -10), Vector2(20, 20)]]:
+		backdrop.draw_rect(Rect2(sun + r[0], r[1]), SUN)
+	# Острова на горизонте.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(record.seed, ":islands"))
+	var x := -8.0
+	while x < view.x:
+		var w := rng.randf_range(28.0, 64.0)
+		var h := rng.randf_range(6.0, 18.0)
+		var steps := 4
+		for i in steps:
+			var k := float(i) / steps
+			var sw := w * (1.0 - k * 0.8)
+			backdrop.draw_rect(Rect2(roundf(x + (w - sw) / 2.0), roundf(horizon - h * (i + 1) / steps), roundf(sw), ceilf(h / steps) + 1),
+					ISLAND_DARK if i % 2 == 0 else ISLAND)
+		x += w + rng.randf_range(10.0, 50.0)
+	# Море до низа экрана с полосками бликов.
+	backdrop.draw_rect(Rect2(0, horizon, view.x, view.y - horizon), SEA)
+	for i in 14:
+		var y := horizon + 3 + i * 6
+		var bx := fmod(i * 37.0, view.x - 24.0)
+		backdrop.draw_rect(Rect2(bx, y, 8 + (i % 3) * 6, 1), SEA_LIGHT)
+	for c in clouds:
+		_tex_or_pink("cloud", "cloud_big" if c.big else "cloud_small", Vector2(c.x, c.y),
+				Vector2(32, 16) if c.big else Vector2(16, 16), backdrop)
 
 
 func _draw_world() -> void:
-	world.draw_rect(Rect2(cam_x, 0, view.x, view.y), BG_COLOR)
-	for c in clouds:
-		_tex_or_pink("cloud", "cloud_big" if c.big else "cloud_small", Vector2(roundf(cam_x + c.x), roundf(c.y)),
-				Vector2(32, 16) if c.big else Vector2(16, 16))
 	var first := maxi(int(floor(cam_x / TILE)) - 1, 0)
 	var last := mini(int(ceil((cam_x + view.x) / TILE)) + 1, level.width - 1)
 	for col in range(first, last + 1):
 		var h := level.ground_top(col)
 		for row in h:
-			world.draw_texture(tex["ground" if row == h - 1 else "ground_inner"], Vector2(col * TILE, view.y - (row + 1) * TILE))
+			world.draw_texture(tex["ground" if row == h - 1 else "ground_inner"], Vector2(col * TILE, base_y - (row + 1) * TILE))
 	for p in level.platforms:
 		if p.position.x + p.size.x < first or p.position.x > last:
 			continue
 		for i in p.size.x:
-			_tex_or_pink("platform", "platform", Vector2((p.position.x + i) * TILE, view.y - (p.position.y + 1) * TILE), Vector2(16, 5))
+			_tex_or_pink("platform", "platform", Vector2((p.position.x + i) * TILE, base_y - (p.position.y + 1) * TILE), Vector2(16, 5))
 	var bob := 1.0 if fmod(anim_time, 0.6) < 0.3 else 0.0
 	for c in coins_left:
 		if c.x < first or c.x > last:
 			continue
-		_tex_or_pink("coin", "coin", Vector2(c.x * TILE, view.y - (c.y + 1) * TILE - bob))
+		_tex_or_pink("coin", "coin", Vector2(c.x * TILE, base_y - (c.y + 1) * TILE - bob))
 	if _pink.has("checkpoint"):
-		world.draw_rect(Rect2(level.checkpoint.x * TILE, view.y - (level.checkpoint.y + 1) * TILE, 16, 16), PINK)
+		world.draw_rect(Rect2(level.checkpoint.x * TILE, base_y - (level.checkpoint.y + 1) * TILE, 16, 16), PINK)
 	else:
-		world.draw_texture(tex["checkpoint"], Vector2(level.checkpoint.x * TILE, view.y - (level.checkpoint.y + 1) * TILE),
+		world.draw_texture(tex["checkpoint"], Vector2(level.checkpoint.x * TILE, base_y - (level.checkpoint.y + 1) * TILE),
 				Color(1, 1, 1, 1) if checkpoint_hit else Color(1, 1, 1, 0.6))
-	_tex_or_pink("flag", "flag", Vector2(level.flag.x * TILE, view.y - (level.flag.y + 1) * TILE))
+	_tex_or_pink("flag", "flag", Vector2(level.flag.x * TILE, base_y - (level.flag.y + 1) * TILE))
 	var enemy_frame := "enemy_0" if fmod(anim_time * tuning.enemy_fps, 2.0) < 1.0 else "enemy_1"
 	for w in walkers:
 		if not w.alive or w.x < first * TILE or w.x > (last + 1) * TILE:
@@ -536,31 +683,37 @@ func _draw_world() -> void:
 			world.draw_rect(Rect2(roundf(w.x - TILE / 2.0), roundf(w.y - TILE), 16, 16), PINK)
 		else:
 			_draw_sprite(tex[enemy_frame], Vector2(w.x, w.y), w.dir)
+	for d in _dust:
+		var k := d.z / DUST_LIFE
+		world.draw_rect(Rect2(roundf(d.x) - 1.0, roundf(d.y) - 1.0, 2.0 + roundf(2.0 * (1.0 - k)), 2.0), Color(HUD_INK, 0.8 * k))
+	for g in _ghosts:
+		_draw_sprite(tex["hero_dash"], Vector2(g.x, g.y), int(g.z), Color(1, 1, 1, 0.45 * g.w / GHOST_LIFE))
 	var visible := invuln <= 0.0 or fmod(invuln, 0.2) < 0.1
 	if visible and running:
 		var frame := "hero_jump"
-		if grounded:
+		if dash_left > 0.0:
+			frame = "hero_dash"
+		elif grounded:
 			frame = "hero_run_%d" % RUN_CYCLE[int(run_anim) % RUN_CYCLE.size()] if move_dir != 0.0 else "hero_run_1"
 		_draw_sprite(tex[frame], hero, facing)
-	_draw_hud()
 
 
 ## Спрайт 16×16 ногами в `feet`, лицом по `dir`.
-func _draw_sprite(t: Texture2D, feet: Vector2, dir: int) -> void:
-	var pos := Vector2(roundf(feet.x - TILE / 2.0), roundf(feet.y - TILE))
+func _draw_sprite(t: Texture2D, feet: Vector2, dir: int, tint := Color.WHITE) -> void:
+	var pos := Vector2(roundf(feet.x) - TILE / 2.0, roundf(feet.y) - TILE)
 	if dir >= 0:
-		world.draw_texture(t, pos)
+		world.draw_texture(t, pos, tint)
 	else:
 		# Отрицательная ширина отражает текстуру, позиция прямоугольника при этом не сдвигается.
-		world.draw_texture_rect(t, Rect2(pos, Vector2(-TILE, TILE)), false)
+		world.draw_texture_rect(t, Rect2(pos, Vector2(-TILE, TILE)), false, tint)
 
 
+## HUD в координатах экрана: монеты слева, жизни справа.
 func _draw_hud() -> void:
-	var x0 := cam_x + 8.0
-	world.draw_texture(tex["coin"], Vector2(x0 - 4.0, 2.0))
-	_draw_number(Vector2(x0 + 14.0, 7.0), coins_got)
+	hud.draw_texture(tex["coin"], Vector2(4.0, 2.0))
+	_draw_number(Vector2(22.0, 7.0), coins_got)
 	for i in lives:
-		world.draw_texture_rect_region(tex["hero_run_1"], Rect2(cam_x + view.x - 8.0 - (i + 1) * 12.0, 3.0, 10.0, 8.0), Rect2(3, 1, 10, 8))
+		hud.draw_texture_rect_region(tex["hero_run_1"], Rect2(view.x - 8.0 - (i + 1) * 12.0, 3.0, 10.0, 8.0), Rect2(3, 1, 10, 8))
 
 
 func _draw_number(pos: Vector2, n: int) -> void:
@@ -571,5 +724,5 @@ func _draw_number(pos: Vector2, n: int) -> void:
 			for rx in 3:
 				if rows[ry][rx] == "1":
 					var r := Rect2(pos + Vector2(i * 8 + rx * 2, ry * 2), Vector2(2, 2))
-					world.draw_rect(Rect2(r.position + Vector2(1, 1), r.size), HUD_SHADOW)
-					world.draw_rect(r, HUD_INK)
+					hud.draw_rect(Rect2(r.position + Vector2(1, 1), r.size), HUD_SHADOW)
+					hud.draw_rect(r, HUD_INK)

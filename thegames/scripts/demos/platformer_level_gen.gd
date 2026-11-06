@@ -1,10 +1,11 @@
 class_name PlatformerLevelGen
 extends RefCounted
 ## Генератор уровня платформера из сида: детерминирован, проходим без багов. Раскладка по
-## правилам пары платформер × 8-bit (каталог демок): ямы, ступени, платформы, враги-ходоки,
-## монеты, чекпоинт посередине, флаг в конце. После генерации `passable()` проверяет уровень;
-## если не прошёл, генерация повторяется с производным сидом, так что результат всё равно
-## зависит только от сида.
+## правилам пары платформер × 8-bit (каталог демок): ямы, ступени, платформы в один-два яруса,
+## враги-ходоки на земле и на платформах, монеты, чекпоинт посередине, флаг в конце. Плотнее
+## после плейтеста 2026-11-06: короче отрезки, больше платформ и врагов. После генерации
+## `passable()` проверяет, что флаг и каждая платформа достижимы обычным прыжком; если нет,
+## генерация повторяется с производным сидом, так что результат всё равно зависит только от сида.
 
 const MAX_ATTEMPTS := 8
 
@@ -87,10 +88,14 @@ static func _segment(level: PlatformerLevel, rng: RandomNumberGenerator, t: Plat
 		var plen := rng.randi_range(t.platform_min, mini(t.platform_max, real_len - 2))
 		var px := rng.randi_range(x + 1, end - plen - 1)
 		var py := h + rng.randi_range(t.platform_lift_min, t.platform_lift_max)
-		level.platforms.append(Rect2i(px, py, plen, 1))
-		if rng.randf() < t.coin_chance:
-			for i in plen:
-				level.coins.append(Vector2i(px + i, py + 2))
+		_platform(level, rng, t, px, py, plen, false)
+		if rng.randf() < t.platform_second_chance and py + 1 + t.jump_dy - 1 + 1 < level.height - 2:
+			# Второй ярус: начинается над первым со сдвигом вправо, выше на jump_dy − 1 рядов
+			# стояния, так что с первого яруса на него есть прыжок.
+			var plen2 := rng.randi_range(t.platform_min, t.platform_max)
+			var px2 := px + rng.randi_range(1, plen)
+			var py2 := py + t.jump_dy - 1
+			_platform(level, rng, t, px2, py2, plen2, true)
 	elif not after_pit and real_len >= 4 and rng.randf() < t.coin_chance * 0.6:
 		var cx := rng.randi_range(x + 1, end - 3)
 		for i in 3:
@@ -98,18 +103,41 @@ static func _segment(level: PlatformerLevel, rng: RandomNumberGenerator, t: Plat
 	return end
 
 
+## Платформа с монетами над ней и, если длинная и `with_enemy`, ходоком по ней. Ходоки только на
+## втором ярусе: он выше прыжка с земли, иначе прыжок под платформой упирался бы головой во врага.
+static func _platform(level: PlatformerLevel, rng: RandomNumberGenerator, t: PlatformerGenTuning,
+		px: int, py: int, plen: int, with_enemy: bool) -> void:
+	plen = mini(plen, level.width - 1 - px)
+	if plen < 2:
+		return
+	level.platforms.append(Rect2i(px, py, plen, 1))
+	if rng.randf() < t.coin_chance:
+		for i in plen:
+			level.coins.append(Vector2i(px + i, py + 2))
+	if with_enemy and plen >= 3 and rng.randf() < t.platform_enemy_chance:
+		var e := PlatformerLevel.Enemy.new()
+		e.patrol_from = px
+		e.patrol_to = px + plen - 1
+		e.x = px + plen / 2
+		e.y = py + 1
+		level.enemies.append(e)
+
+
 ## Проходимость без багов: поиск по поверхностям. Ходьба на соседнюю колонку со ступенью до
 ## одного ряда вверх, прыжок до `jump_dx` колонок вперёд и `jump_dy` рядов вверх, падение на
-## любую глубину. Враги не учитываются: их можно перепрыгнуть.
+## любую глубину. Враги не учитываются: их можно перепрыгнуть. Кроме флага достижимой должна
+## быть каждая платформа (плейтест 2026-11-06: «не допрыгнуть» это баг только по флагу).
 static func passable(level: PlatformerLevel, t: PlatformerGenTuning) -> bool:
 	var start := Vector2i(level.spawn.x, level.ground_top(level.spawn.x))
 	var seen := {}
 	var queue: Array[Vector2i] = [start]
 	seen[start] = true
+	var flag_reached := false
 	while not queue.is_empty():
 		var s: Vector2i = queue.pop_front()
 		if s.x >= level.flag.x:
-			return true
+			flag_reached = true
+			continue
 		for d in range(1, t.jump_dx + 1):
 			var nx := s.x + d
 			if nx >= level.width:
@@ -125,4 +153,14 @@ static func passable(level: PlatformerLevel, t: PlatformerGenTuning) -> bool:
 					if not seen.has(n):
 						seen[n] = true
 						queue.append(n)
-	return false
+	if not flag_reached:
+		return false
+	for p in level.platforms:
+		var ok := false
+		for i in p.size.x:
+			if seen.has(Vector2i(p.position.x + i, p.position.y + 1)):
+				ok = true
+				break
+		if not ok:
+			return false
+	return true

@@ -24,11 +24,15 @@ const PATH := "res://resources/demos/platformer_gen.tres"
 @export var platform_chance := 0.4
 @export var platform_min := 3
 @export var platform_max := 5
-@export var platform_lift_min := 3
-@export var platform_lift_max := 4
-@export var enemy_chance := 0.5
-@export var enemy_min_segment := 6
-@export var coin_chance := 0.6
+@export var platform_lift_min := 2
+@export var platform_lift_max := 3
+## Второй ярус: платформа над первой, ряд стояния выше не больше чем на `jump_dy`.
+@export var platform_second_chance := 0.5
+## Ходок на платформе второго яруса длиной от трёх.
+@export var platform_enemy_chance := 0.4
+@export var enemy_chance := 0.75
+@export var enemy_min_segment := 5
+@export var coin_chance := 0.7
 @export var jump_dx := 5
 @export var jump_dy := 4
 
