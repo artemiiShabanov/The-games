@@ -3,8 +3,10 @@ extends Minigame
 ## точка в центре, выход в одном из углов. Лабиринты чередуются: в нечётном стрелки двигают
 ## точку, в чётном точка стоит в центре экрана, а стрелки двигают сам лабиринт под ней (нажал
 ## вправо: лабиринт уехал вправо, точка оказалась в клетке левее). Стены не пускают в обоих
-## режимах; какой режим сейчас, видно по тому, что движется. 2-3 лабиринта за 20 с; провал,
-## если не прошёл их до таймера. Параметры от `t` в `resources/minigames/inverted.tres`:
+## режимах, удар о стену блокирует движение на полсекунды. Какой режим сейчас, видно по тому,
+## что движется, и по цвету: управляемое синее (акцент), остальное чёрное; выход это кольцо в
+## цвете управляемого, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с;
+## провал, если не прошёл их до таймера. Параметры от `t` в `resources/minigames/inverted.tres`:
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
 ## сколько ходов режим меняется посреди лабиринта, 0 никогда).
 
@@ -16,6 +18,8 @@ const WALL := 8.0
 const DOT_R := 26.0
 const MOVE_SECONDS := 0.11
 const SHAKE_SECONDS := 0.25
+## После удара о стену движение заблокировано.
+const BUMP_LOCK_SECONDS := 0.5
 const FLASH_SECONDS := 0.4
 const BOT_STEP := 0.16
 ## Стены клетки битами: верх, право, низ, лево.
@@ -36,6 +40,7 @@ var anim_to := Vector2.ZERO
 var anim := 1.0
 var shake := 0.0
 var shake_dir := Vector2.ZERO
+var lock := 0.0
 var flash := 0.0
 var _bot_timer := 0.0
 var _step_sound: AudioStreamPlayer
@@ -139,12 +144,13 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Нажатие стрелки: в режиме точки точка идёт туда, в режиме лабиринта лабиринт едет туда,
 ## то есть точка попадает в клетку напротив.
 func _press(d: int) -> void:
-	if anim < 1.0:
+	if anim < 1.0 or lock > 0.0:
 		return
 	var move_dir := d if mode == Mode.DOT else (d + 2) % 4
 	if _has_wall(cell, move_dir):
 		shake = SHAKE_SECONDS
 		shake_dir = Vector2(DIRS[d])
+		lock = BUMP_LOCK_SECONDS
 		_bump.play()
 		return
 	anim_from = Vector2(cell)
@@ -157,6 +163,7 @@ func _press(d: int) -> void:
 func _on_tick(delta: float) -> void:
 	shake = maxf(shake - delta, 0.0)
 	flash = maxf(flash - delta, 0.0)
+	lock = maxf(lock - delta, 0.0)
 	if anim < 1.0:
 		anim = minf(anim + delta / MOVE_SECONDS, 1.0)
 		if anim >= 1.0:
@@ -184,7 +191,7 @@ func _on_timeout() -> bool:
 
 ## Бот: WIN идёт по кратчайшему пути с учётом режима, LOSE стоит.
 func _bot_step(delta: float) -> bool:
-	if AutoTest.bot_mode != AutoTest.BotMode.WIN or anim < 1.0:
+	if AutoTest.bot_mode != AutoTest.BotMode.WIN or anim < 1.0 or lock > 0.0:
 		return false
 	_bot_timer += delta
 	if _bot_timer < BOT_STEP:
@@ -242,12 +249,20 @@ func _draw() -> void:
 		# Точка стоит в центре экрана, лабиринт едет под ней.
 		dot_screen = center
 		origin = center - dot_local - jolt
-	# Подложка и клетка выхода.
+	# Управляемое синее, остальное чёрное; во время блокировки после удара всё тускнеет.
+	var active := Style.accent(0)
+	var passive := Style.INK
+	var wall_color := passive if mode == Mode.DOT else active
+	var dot_color := active if mode == Mode.DOT else passive
+	if lock > 0.0:
+		wall_color = wall_color.lerp(Style.INK_3, 0.5)
+		dot_color = dot_color.lerp(Style.INK_3, 0.5)
+	# Подложка и выход: кольцо в цвете управляемого, в которое садится точка.
 	Style.flat(Color(Style.INK, 0.04), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(origin - Vector2(WALL, WALL), grid + Vector2(WALL, WALL) * 2.0))
-	var exit_rect := Rect2(origin + Vector2(exit_cell) * CELL + Vector2(14, 14), Vector2(CELL - 28, CELL - 28))
-	Style.flat(Color(Style.accent(1), 0.9), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), exit_rect)
+	var exit_center := origin + (Vector2(exit_cell) + Vector2(0.5, 0.5)) * CELL
+	draw_arc(exit_center, DOT_R + 10.0, 0.0, TAU, 48, active, 6.0, true)
 	# Стены.
-	var ink := Style.INK if flash <= 0.0 else Style.INK.lerp(Style.FOCUS, flash / FLASH_SECONDS)
+	var ink := wall_color if flash <= 0.0 else wall_color.lerp(Style.FOCUS, flash / FLASH_SECONDS)
 	for y in N:
 		for x in N:
 			var c := Vector2i(x, y)
@@ -260,7 +275,7 @@ func _draw() -> void:
 				draw_line(p + Vector2(CELL, 0), p + Vector2(CELL, CELL), ink, WALL, true)
 			if _has_wall(c, 2):
 				draw_line(p + Vector2(0, CELL), p + Vector2(CELL, CELL), ink, WALL, true)
-	draw_circle(dot_screen, DOT_R, Style.accent(0))
+	draw_circle(dot_screen, DOT_R, dot_color)
 	# Подпись режима снизу: что сейчас двигается.
 	var font := ThemeDB.fallback_font
 	var caption := "двигается точка" if mode == Mode.DOT else "двигается лабиринт"
