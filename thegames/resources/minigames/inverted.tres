@@ -1,6 +1,22 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_4fcg7"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/inverted.tscn" id="1_evsus"]
+
+[sub_resource type="Curve" id="Curve_78wyq"]
+_limits = [0.99, 3.0, 0.0, 1.0]
+_data = [Vector2(0, 2), 0.0, 0.0, 0, 0, Vector2(1, 3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_j3ryg"]
+_limits = [0.2, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 0.2), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_qicq6"]
+_limits = [0.0, 4.0, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 4), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_4fcg7")
@@ -8,4 +24,10 @@ id = &"inverted"
 aspect = 2
 verb = "Выведи"
 hint = "Выведи точку к выходу: движется то точка, то лабиринт"
+scene = ExtResource("1_evsus")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
+params = Dictionary[StringName, Curve]({
+&"flip": SubResource("Curve_qicq6"),
+&"mazes": SubResource("Curve_78wyq"),
+&"twist": SubResource("Curve_j3ryg")
+})
