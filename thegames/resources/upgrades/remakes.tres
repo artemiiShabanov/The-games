@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_icdy4"]
+
+[resource]
+script = ExtResource("1_icdy4")
+id = &"remakes"
+title = "Ремейки"
+effect_line = "В конструкторе появляется переключатель «ремейк»"
+prop = "архивный шкаф"

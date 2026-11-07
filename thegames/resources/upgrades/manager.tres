@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_h0641"]
+
+[resource]
+script = ExtResource("1_h0641")
+id = &"manager"
+title = "Менеджер"
+effect_line = "Цена спринта на 10 % ниже"
+prop = "человечек с планшетом у входа"

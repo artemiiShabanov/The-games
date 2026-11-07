@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_22tou"]
+
+[resource]
+script = ExtResource("1_22tou")
+id = &"insider"
+title = "Инсайдер"
+effect_line = "В конструкторе видно, какие жанр и сеттинг в тренде"
+prop = "человечек с телефоном у окна"
