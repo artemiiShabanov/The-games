@@ -3,14 +3,14 @@
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_o4nm7"]
 [ext_resource type="PackedScene" path="res://scenes/minigames/fishing.tscn" id="1_ww226"]
 
-[sub_resource type="Curve" id="Curve_2swca"]
-_limits = [0.35, 1.0, 0.0, 1.0]
-_data = [Vector2(0, 0.35), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+[sub_resource type="Curve" id="Curve_ww226"]
+_limits = [0.27, 0.42, 0.0, 1.0]
+_data = [Vector2(0, 0.42), 0.0, 0.0, 0, 0, Vector2(1, 0.27), 0.0, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="Curve" id="Curve_7x3pu"]
-_limits = [0.16, 0.3, 0.0, 1.0]
-_data = [Vector2(0, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 0.16), 0.0, 0.0, 0, 0]
+[sub_resource type="Curve" id="Curve_2swca"]
+_limits = [0.1, 0.41, 0.0, 1.0]
+_data = [Vector2(0, 0.1), 0.0, 0.0, 0, 0, Vector2(1, 0.41), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [resource]
@@ -22,6 +22,6 @@ hint = "Держи клавишу: столбик вверх, отпусти: в
 scene = ExtResource("1_ww226")
 inputs = Array[StringName]([&"action_a"])
 params = Dictionary[StringName, Curve]({
-&"bar": SubResource("Curve_7x3pu"),
+&"bar": SubResource("Curve_ww226"),
 &"sharp": SubResource("Curve_2swca")
 })
