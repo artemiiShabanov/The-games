@@ -3,8 +3,10 @@ extends Minigame
 ## неё бьёт луч, дальше ряд зеркал, в конце мишень. Влево и вправо наклоняют текущий элемент
 ## (сначала платформу, потом зеркала), луч перерисовывается в реальном времени и отражается
 ## от зеркал. A передаёт управление тому зеркалу, в которое сейчас попадает луч от текущего
-## элемента, B возвращает расстановку к началу (плейтест 2026-11-07). Довести луч до мишени
-## через все зеркала. 20 с, провал, если луч не дошёл.
+## элемента (у призмы считаются все три луча, из зеркал под ними берётся случайное), B
+## возвращает расстановку к началу. Зеркало, получившее управление, становится зелёным;
+## мишень горит, когда зелёными стали все зеркала и луч дошёл до неё (плейтест 2026-11-07).
+## 20 с, провал, если не дошёл.
 ## С `t` зеркал больше, мишень меньше и движется, а последнее зеркало это призма: луч
 ## расщепляется на три, попасть должен любой. Параметры в `resources/minigames/beam.tres`:
 ## mirrors, target (радиус), move (размах мишени), prism (от 0.5 последнее зеркало призма).
@@ -44,12 +46,12 @@ var paths: Array[PackedVector2Array] = []
 ## Точные точки отражений основной ветви (для физики и бота); в `paths` они отступают до
 ## поверхности зеркала ради рисования.
 var exact: PackedVector2Array = PackedVector2Array()
-var reached := 0
-## Зеркало, в которое попадает луч от текущего элемента (−1 нет), и расстояние попадания от
-## его центра: бот передаёт управление, когда луч идёт через центр, иначе после поворота
-## зеркала луч с него соскользнёт.
-var hit_mirror := -1
-var hit_dist := INF
+## Зеркала, в которые попадает луч от текущего элемента, и расстояние попадания от центра
+## каждого (ключ индекс): бот передаёт управление, когда луч идёт через центр, иначе после
+## поворота зеркала луч с него соскользнёт. У призмы кандидатов может быть несколько.
+var hit_candidates: Dictionary[int, float] = {}
+## Зеркала, получившие управление по A: зелёные, для победы нужны все.
+var activated: Array[bool] = []
 var start_emitter := 0.0
 var _handoff: AudioStreamPlayer
 var _win: AudioStreamPlayer
@@ -76,6 +78,7 @@ func _on_start() -> void:
 		m.start_angle = m.angle
 		m.prism = use_prism and i == mirror_count - 1
 		mirrors.append(m)
+		activated.append(false)
 	target_base = Vector2(right, mid + rng.randf_range(-160.0, 160.0))
 	target = target_base
 	emitter_angle = rng.randf_range(-0.6, 0.6)
@@ -96,15 +99,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## A: управление зеркалу, в которое сейчас попадает луч от текущего элемента.
+## A: управление зеркалу, в которое сейчас попадает луч от текущего элемента; из нескольких
+## (лучи призмы) случайное.
 func _advance() -> void:
 	if hit_target:
 		return
-	if hit_mirror >= 0 and hit_mirror + 1 != current:
-		current = hit_mirror + 1
-		_handoff.play()
-	else:
+	var options: Array[int] = []
+	for i in hit_candidates:
+		if i + 1 != current:
+			options.append(i)
+	if options.is_empty():
 		_deny.play()
+		return
+	_advance_to(options[rng.randi_range(0, options.size() - 1)])
+
+
+func _advance_to(i: int) -> void:
+	current = i + 1
+	activated[i] = true
+	_handoff.play()
 
 
 ## B: платформа и зеркала как в начале, управление снова у платформы.
@@ -114,6 +127,8 @@ func _restart() -> void:
 	emitter_angle = start_emitter
 	for m in mirrors:
 		m.angle = m.start_angle
+	for i in activated.size():
+		activated[i] = false
 	current = 0
 	_deny.play()
 	_trace()
@@ -177,20 +192,20 @@ func _mirror_ends(m: Mirror) -> Array[Vector2]:
 	return [m.pos - h, m.pos + h]
 
 
-## Луч от платформы: отражается от зеркал в порядке, какой встретит; `reached` сколько разных
-## зеркал он прошёл, `hit_mirror` в какое зеркало попадает отрезок от текущего элемента.
+## Луч от платформы: отражается от зеркал в порядке, какой встретит; у призмы расходится на
+## три ветви, каждая трассируется дальше. `hit_candidates` зеркала, в которые попадает луч от
+## текущего элемента.
 func _trace() -> void:
 	paths.clear()
 	exact = PackedVector2Array()
-	reached = 0
-	hit_mirror = -1
-	hit_dist = INF
-	var seen: Array[int] = []
+	hit_candidates.clear()
 	var o := _emitter_pos()
 	exact.append(o)
-	var d := Vector2(cos(emitter_angle), sin(emitter_angle))
-	var branch := PackedVector2Array([o])
-	var from_element := 0
+	_trace_ray(o, Vector2(cos(emitter_angle), sin(emitter_angle)), 0, false, o)
+
+
+func _trace_ray(o: Vector2, d: Vector2, from_element: int, split: bool, first: Vector2) -> void:
+	var branch := PackedVector2Array([first])
 	for bounce in 8:
 		var best_t := INF
 		var best := -1
@@ -202,8 +217,7 @@ func _trace() -> void:
 				best = i
 		var target_t := _circle_hit(o, d)
 		if best < 0 or (target_t > 0.0 and target_t < best_t):
-			var end := o + d * (target_t if target_t > 0.0 else 3000.0)
-			branch.append(end)
+			branch.append(o + d * (target_t if target_t > 0.0 else 3000.0))
 			break
 		var m := mirrors[best]
 		var normal := Vector2(-sin(m.angle), cos(m.angle))
@@ -215,24 +229,21 @@ func _trace() -> void:
 		branch.append(hit)
 		exact.append(hit_exact)
 		if from_element == current:
-			hit_mirror = best
-			hit_dist = hit_exact.distance_to(m.pos)
-		if not seen.has(best):
-			seen.append(best)
-		reached = seen.size()
+			var dist := hit_exact.distance_to(m.pos)
+			if dist < hit_candidates.get(best, INF):
+				hit_candidates[best] = dist
 		from_element = best + 1
-		if m.prism and best == mirror_count - 1:
-			# Призма: три луча веером, каждый до мишени или в даль.
+		if m.prism and not split:
+			# Призма: три луча веером, каждый трассируется дальше сам.
+			paths.append(branch)
 			var base := d.bounce(normal)
 			for k in [-1, 0, 1]:
 				var dir := base.rotated(k * PRISM_SPREAD)
-				var tt := _circle_hit(hit_exact + dir * 0.01, dir)
-				var leg := PackedVector2Array([hit, hit_exact + dir * (tt if tt > 0.0 else 3000.0)])
-				paths.append(leg)
-			break
+				_trace_ray(hit_exact + dir * 0.01, dir, from_element, true, hit)
+			return
 		d = d.bounce(normal)
 		o = hit_exact + d * 0.01
-	paths.push_front(branch)
+	paths.append(branch)
 
 
 func _circle_hit(o: Vector2, d: Vector2) -> float:
@@ -246,10 +257,11 @@ func _circle_hit(o: Vector2, d: Vector2) -> float:
 	return tt if tt > 0.0 else -1.0
 
 
-## Мишень горит, когда луч прошёл все зеркала по порядку и дошёл до неё.
+## Мишень горит, когда все зеркала получили управление и луч дошёл до неё.
 func _target_lit() -> bool:
-	if reached < mirror_count:
-		return false
+	for a in activated:
+		if not a:
+			return false
 	for p in paths:
 		if p.size() >= 2 and p[p.size() - 1].distance_to(target) <= target_r + 0.5:
 			return true
@@ -265,8 +277,8 @@ func _bot_step(delta: float) -> bool:
 		return false
 	# Бот идёт по зеркалам по порядку: передаёт управление только следующему и только при
 	# попадании у центра.
-	if hit_mirror == current and hit_dist <= 6.0:
-		_advance()
+	if hit_candidates.has(current) and hit_candidates[current] <= 6.0:
+		_advance_to(current)
 		return false
 	# Текущий элемент целится в следующее зеркало, последнее зеркало в мишень.
 	var goal: Vector2 = mirrors[current].pos if current < mirror_count else target
@@ -331,7 +343,7 @@ func _draw() -> void:
 		var m := mirrors[i]
 		var ends := _mirror_ends(m)
 		var focused := current == i + 1
-		var col := Style.INK if focused else Style.INK_3
+		var col := Style.SUCCESS if activated[i] else (Style.INK if focused else Style.INK_3)
 		if m.prism:
 			var n := Vector2(-sin(m.angle), cos(m.angle)) * 34.0
 			draw_colored_polygon(PackedVector2Array([ends[0], ends[1], m.pos + n]), Color(col, 0.85))
