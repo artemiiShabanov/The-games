@@ -149,4 +149,4 @@ func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var caption := "держи" if _holding() else "отпусти"
 	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION).x
-	draw_string(font, Vector2(cx - w / 2.0, top + TRACK_H + 40.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION, Style.INK_3)
+	draw_string(font, Vector2(cx - w / 2.0, top - 24.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION, Style.INK_3)
