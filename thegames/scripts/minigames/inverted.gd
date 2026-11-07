@@ -14,7 +14,7 @@ extends Minigame
 enum Mode { DOT, MAZE }
 
 const N := 5
-const CELL := 92.0
+const CELL := 88.0
 ## Интервал смены режима от этого значения считается «никогда».
 const FLIP_NEVER := 10
 const WALL := 8.0
@@ -282,16 +282,16 @@ func _draw() -> void:
 			if _has_wall(c, 2):
 				draw_rect(Rect2(p + Vector2(-h, CELL - h), Vector2(CELL + WALL, WALL)), ink)
 	draw_circle(dot_screen, DOT_R, dot_color)
-	# Подпись режима снизу: что сейчас двигается.
-	var font := ThemeDB.fallback_font
-	var caption := "двигается точка" if mode == Mode.DOT else "двигается лабиринт"
-	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_H2).x
-	draw_string(font, Vector2(size.x / 2.0 - w / 2.0, size.y - 112.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_H2,
-			Style.INK if flash <= 0.0 else Style.FOCUS)
-	# Лабиринты справа сверху.
+	# Лабиринты справа сверху, левее подпись режима: что сейчас двигается (внизу её закрывал
+	# бы лабиринт в режиме, где он едет).
 	var r := 7.0
 	var gap := 28.0
 	var x0 := size.x - 48.0 - (mazes_total - 1) * gap
+	var font := ThemeDB.fallback_font
+	var caption := "двигается точка" if mode == Mode.DOT else "двигается лабиринт"
+	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY).x
+	draw_string(font, Vector2(x0 - r - 32.0 - w, 69.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY,
+			(Style.accent(0) if mode == Mode.MAZE else Style.INK) if flash <= 0.0 else Style.FOCUS)
 	for j in mazes_total:
 		var col := Style.SURFACE_2
 		if j < maze_index:
