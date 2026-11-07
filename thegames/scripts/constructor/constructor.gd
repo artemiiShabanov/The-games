@@ -1,13 +1,17 @@
 class_name Constructor
 extends Control
-## Экран конструктора, спека `docs/specs/constructor.md`, концепты `01`, `01b`: три карусели
-## (жанр, технология, сеттинг) слева шириной `CAROUSEL_WIDTH`, смета карточкой справа шириной
-## `ESTIMATE_WIDTH`, кнопка «В разработку». Влево и вправо листают, вверх и вниз переводят
-## фокус между каруселями и кнопкой, A на карусели переводит фокус на кнопку, A на кнопке
-## отдаёт `game_configured`, R другое название. Неоткрытые карточки затемнены с пилюлей «придёт
-## с прокачкой», остаются в карусели и получают фокус; с ними кнопка закрыта. Денег не хватает:
-## строка остатка `danger`, кнопка серая с суммой нехватки и трясётся. Деньги не списывает:
-## это делает хозяин по сигналу. Карточки каруселей пока с крупной буквой вместо иллюстрации.
+## Экран конструктора, спека `docs/specs/constructor.md`, концепты `01`, `01b`, плейтест
+## 2026-11-07. Весь экран идёт в большой карточке `CardFrame` поверх студии, как спринты;
+## над карточкой пилюли «Релиз N · Следующая игра» слева и денег справа. Внутри слева три
+## карусели (жанр, технология, сеттинг): выбранная карточка по центру ряда, соседние гаснут к
+## краям, под ними кнопка «В разработку»; справа карточка сметы с заголовком на две строки и
+## числами, которые прокручиваются за 240 мс. Влево и вправо листают, вверх и вниз переводят
+## фокус по рядам и на кнопку, A на карусели переводит фокус на кнопку, A на кнопке отдаёт
+## `game_configured`, R другое название. Рамка фокуса только на карточках; на кнопке она
+## пропадает, а кнопка становится тёмной. Неоткрытые карточки затемнены с пилюлей «придёт с
+## прокачкой», остаются в карусели и получают фокус; с ними кнопка закрыта. Денег не хватает:
+## остаток `danger`, кнопка серая с суммой нехватки и трясётся. Деньги не списывает: это
+## делает хозяин по сигналу. Карточки каруселей пока с крупной буквой вместо иллюстрации.
 
 signal game_configured(config: GameConfig)
 signal estimate_changed(estimate: Estimate)
@@ -15,12 +19,17 @@ signal estimate_changed(estimate: Estimate)
 const ROWS := 3
 const ROW_BUTTON := 3
 const ROW_LABELS: Array[String] = ["Жанр", "Технология", "Сеттинг"]
-const ROW_TOP := 232
-const ROW_STEP := 270
+const ROW_TOP := 40
+const ROW_STEP := 234
+const ROW_HEIGHT := 214
 const CARD_LABEL_SIZE := 30
+const TITLE_FONT := 44
 const TOTAL_FONT := 72
-const ESTIMATE_TOP := 200
-const ESTIMATE_BOTTOM := 120
+const BUTTON_WIDTH := 480
+const BUTTON_BOTTOM_GAP := 20
+## Карточка гаснет, пока её дальний край подходит к краю ряда: у края она уже прозрачна,
+## так что обрезки не видно.
+const EDGE_FADE := 200.0
 
 var economy: EconomyTuning
 var catalogs: Array[Catalog] = []
@@ -36,12 +45,16 @@ var index: Array[int] = [0, 0, 0]
 var title := ""
 var estimate: Estimate
 
+var card: CardFrame
+var _inner := Vector2.ZERO
+var _left_width := 0.0
 var _rows: Array[Control] = []
+var _clips: Array[Control] = []
 var _cards: Array[Array] = [[], [], []]
 var _focus_ring: Panel
 var _title_label: Label
 var _money_label: Label
-var _release_label: Label
+var _header_label: Label
 var _sprints_value: Label
 var _price_value: Label
 var _total_value: Label
@@ -49,11 +62,13 @@ var _remainder_label: Label
 var _remainder_value: Label
 var _button: PanelContainer
 var _button_label: Label
+var _shown: Dictionary[StringName, float] = {}
 var _ready_done := false
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if economy == null:
 		economy = EconomyTuning.load_default()
 	if catalogs.is_empty():
@@ -62,6 +77,7 @@ func _ready() -> void:
 	_build()
 	_ready_done = true
 	_refresh(false)
+	card.raise_card()
 
 
 ## Хозяин зовёт до добавления в дерево: открытые значения, деньги, скидка, номер релиза, сид.
@@ -175,7 +191,7 @@ func move(dir: int) -> void:
 	index[focus_row] = next
 	if focus_row != 1:
 		title = TitleGen.make(selected_entry(2), selected_entry(0), rng)
-	ShellSounds.play(&"switch")
+	ShellSounds.play(&"tick")
 	_refresh(true)
 
 
@@ -184,15 +200,17 @@ func focus(row: int) -> void:
 	if row == focus_row:
 		return
 	focus_row = row
+	ShellSounds.play(&"tick")
 	_refresh(true)
 
 
 func regenerate_title() -> void:
 	title = TitleGen.another(title, selected_entry(2), selected_entry(0), rng)
+	ShellSounds.play(&"tick")
 	_refresh(false)
 
 
-## Enter на кнопке: конфигурация зафиксирована, назад нельзя. Если нельзя, кнопка трясётся.
+## A на кнопке: конфигурация зафиксирована, назад нельзя. Если нельзя, кнопка трясётся.
 func confirm() -> void:
 	if estimate == null or not estimate.affordable or not selection_open():
 		_shake(_button)
@@ -205,19 +223,31 @@ func confirm() -> void:
 # --- Построение --------------------------------------------------------------------------------
 
 func _build() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_release_label = _label("", Style.FONT_BODY, Style.INK_2)
-	_release_label.position = Vector2(Style.EDGE, 48)
-	add_child(_release_label)
-	var h1 := _label("Следующая игра", Style.FONT_H1, Style.INK)
-	h1.position = Vector2(Style.EDGE, 88)
-	add_child(h1)
-	_money_label = _label("", Style.FONT_H2, Style.MONEY)
+	# Шапка над карточкой: релиз слева, деньги справа.
+	var header := HintPill.header("")
+	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
+	add_child(header)
+	_header_label = header.get_child(0) as Label
+	var right := HBoxContainer.new()
+	right.alignment = BoxContainer.ALIGNMENT_END
+	right.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	right.offset_left = Style.EDGE
+	right.offset_right = -Style.EDGE
+	right.offset_top = Style.HEADER_Y - Style.PILL_HEIGHT / 2.0
+	right.offset_bottom = right.offset_top + Style.PILL_HEIGHT
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(right)
+	var money_pill := HintPill.header("")
+	right.add_child(money_pill)
+	_money_label = money_pill.get_child(0) as Label
 	_money_label.add_theme_font_override("font", Style.mono_font())
-	_money_label.position = Vector2(Style.SCREEN.x - Style.EDGE - Style.ESTIMATE_WIDTH, 48)
-	_money_label.size = Vector2(Style.ESTIMATE_WIDTH, 48)
-	_money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(_money_label)
+	_money_label.add_theme_color_override("font_color", Style.MONEY)
+
+	card = CardFrame.new()
+	add_child(card)
+	_inner = CardFrame.inner_size()
+	_left_width = _inner.x - Style.ESTIMATE_WIDTH - Style.GAP_CARDS
+	var content := card.content
 
 	_focus_ring = Panel.new()
 	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(Style.R_CARD))
@@ -226,51 +256,64 @@ func _build() -> void:
 
 	for kind in ROWS:
 		var caption := _label(ROW_LABELS[kind], Style.FONT_CAPTION, Style.INK_2)
-		caption.position = Vector2(Style.EDGE, ROW_TOP + kind * ROW_STEP - 30)
-		add_child(caption)
+		caption.position = Vector2(0, ROW_TOP + kind * ROW_STEP - 30)
+		content.add_child(caption)
 		var clip := Control.new()
-		clip.position = Vector2(Style.EDGE, ROW_TOP + kind * ROW_STEP)
-		clip.size = Vector2(Style.CAROUSEL_WIDTH, Style.CARD_SIZE.y + 24)
+		clip.position = Vector2(0, ROW_TOP + kind * ROW_STEP)
+		clip.size = Vector2(_left_width, ROW_HEIGHT)
 		clip.clip_contents = true
 		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(clip)
+		content.add_child(clip)
+		_clips.append(clip)
 		var row := Control.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		clip.add_child(row)
 		_rows.append(row)
 		for i in catalogs[kind].entries.size():
-			var card := _make_card(catalogs[kind].entries[i], is_unlocked(kind, i))
-			card.position = Vector2(i * (Style.CARD_SIZE.x + Style.GAP_CARDS), 12)
-			row.add_child(card)
-			_cards[kind].append(card)
-	add_child(_focus_ring)
-	_build_estimate()
+			var c := _make_card(catalogs[kind].entries[i], is_unlocked(kind, i))
+			c.position = Vector2(i * (Style.CARD_SIZE.x + Style.GAP_CARDS), 12)
+			row.add_child(c)
+			_cards[kind].append(c)
+	content.add_child(_focus_ring)
+
+	_button = PanelContainer.new()
+	_button.custom_minimum_size = Vector2(BUTTON_WIDTH, Style.BUTTON_HEIGHT)
+	_button.size = Vector2(BUTTON_WIDTH, Style.BUTTON_HEIGHT)
+	_button.position = Vector2((_left_width - BUTTON_WIDTH) / 2.0, _inner.y - Style.BUTTON_HEIGHT - BUTTON_BOTTOM_GAP)
+	_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_button_label = _label("В разработку", Style.FONT_H2, Style.SURFACE_SOLID)
+	_button_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_button_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_button.add_child(_button_label)
+	content.add_child(_button)
+	_build_estimate(content)
+
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
 	hints.add_theme_constant_override("separation", 16)
 	hints.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hints.offset_top = -(Style.PILL_HEIGHT + 40)
-	hints.offset_bottom = -40
-	hints.offset_left = Style.EDGE
-	hints.offset_right = -(Style.EDGE + Style.ESTIMATE_WIDTH + Style.GAP_CARDS)
+	hints.offset_top = -(Style.PILL_HEIGHT + 16)
+	hints.offset_bottom = -16
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("← → листать"))
-	hints.add_child(HintPill.make("↑ ↓ карусель"))
-	hints.add_child(HintPill.make("A в разработку · R название"))
+	hints.add_child(HintPill.make("↑ ↓ ряд и кнопка"))
+	hints.add_child(HintPill.make("A в разработку"))
+	hints.add_child(HintPill.make("R название"))
 	add_child(hints)
 
 
 ## Карточка карусели 260×190: цветной фон, крупная буква вместо иллюстрации, название внизу.
 func _make_card(e: CatalogEntry, open: bool) -> Control:
-	var card := PanelContainer.new()
-	card.custom_minimum_size = Style.CARD_SIZE
-	card.size = Style.CARD_SIZE
-	card.pivot_offset = Style.CARD_SIZE / 2.0
-	card.add_theme_stylebox_override("panel", Style.flat(e.color, Style.R_CARD, Color.TRANSPARENT, 0))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var c := PanelContainer.new()
+	c.custom_minimum_size = Style.CARD_SIZE
+	c.size = Style.CARD_SIZE
+	c.pivot_offset = Style.CARD_SIZE / 2.0
+	c.add_theme_stylebox_override("panel", Style.flat(e.color, Style.R_CARD, Color.TRANSPARENT, 0))
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.set_meta(&"open", open)
 	var inner := Control.new()
 	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(inner)
+	c.add_child(inner)
 	var glyph := _label(e.title.substr(0, 1).to_upper(), 96, Color(1, 1, 1, 0.35))
 	glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -281,29 +324,33 @@ func _make_card(e: CatalogEntry, open: bool) -> Control:
 	caption.position = Vector2(24, Style.CARD_SIZE.y - 24 - 44)
 	inner.add_child(caption)
 	if not open:
-		card.modulate.a = Style.DIM_LOCKED
 		var pill := HintPill.make("придёт с прокачкой")
 		pill.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		pill.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		pill.grow_vertical = Control.GROW_DIRECTION_BOTH
 		inner.add_child(pill)
-	return card
+	return c
 
 
-func _build_estimate() -> void:
+func _build_estimate(content: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Style.card(true))
-	panel.position = Vector2(Style.SCREEN.x - Style.EDGE - Style.ESTIMATE_WIDTH, ESTIMATE_TOP)
-	panel.size = Vector2(Style.ESTIMATE_WIDTH, Style.SCREEN.y - ESTIMATE_TOP - ESTIMATE_BOTTOM)
+	panel.position = Vector2(_left_width + Style.GAP_CARDS, 0)
+	panel.size = Vector2(Style.ESTIMATE_WIDTH, _inner.y - Style.BUTTON_HEIGHT - BUTTON_BOTTOM_GAP)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(panel)
+	content.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
 	column.add_child(_label("Смета", Style.FONT_H2, Style.INK_2))
-	_title_label = _label("", 44, Style.INK)
+	_title_label = _label("", TITLE_FONT, Style.INK)
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_title_label.custom_minimum_size = Vector2(0, 120)
+	_title_label.max_lines_visible = 2
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	# Ровно две строки: заголовок не двигает смету при смене названия.
+	_title_label.custom_minimum_size = Vector2(0, int(TITLE_FONT * 1.3) * 2)
+	_title_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	column.add_child(_title_label)
 	column.add_child(_label("R другое название", Style.FONT_CAPTION, Style.INK_3))
 	column.add_child(_spacer(16))
@@ -330,18 +377,6 @@ func _build_estimate() -> void:
 	_remainder_value = _label("", Style.FONT_BODY, Style.MONEY)
 	_remainder_value.add_theme_font_override("font", Style.mono_font())
 	rem.add_child(_remainder_value)
-	var filler := Control.new()
-	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	filler.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(filler)
-	_button = PanelContainer.new()
-	_button.custom_minimum_size = Vector2(0, Style.BUTTON_HEIGHT)
-	_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_button_label = _label("В разработку", Style.FONT_H2, Style.SURFACE_SOLID)
-	_button_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_button_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_button.add_child(_button_label)
-	column.add_child(_button)
 
 
 func _row(column: VBoxContainer, caption: String) -> Label:
@@ -365,13 +400,13 @@ func _refresh(animate: bool) -> void:
 	var s := selected_entry(2).value as Game.Setting
 	estimate = Estimate.compute(g, t, s, economy, cash, discount)
 	estimate_changed.emit(estimate)
-	_release_label.text = "Релиз %d" % release
+	_header_label.text = "Релиз %d · Следующая игра" % release
 	_money_label.text = Style.format_money(cash)
 	_title_label.text = title
-	_sprints_value.text = str(estimate.sprints)
-	_price_value.text = Style.format_money(estimate.sprint_price)
-	_total_value.text = Style.format_money(estimate.total)
-	_remainder_value.text = Style.format_money(estimate.remainder)
+	_roll(&"sprints", _sprints_value, estimate.sprints, animate, func(v: float) -> String: return str(int(round(v))))
+	_roll(&"price", _price_value, estimate.sprint_price, animate, _money_text)
+	_roll(&"total", _total_value, estimate.total, animate, _money_text)
+	_roll(&"remainder", _remainder_value, estimate.remainder, animate, _money_text)
 	var danger := not estimate.affordable
 	_remainder_value.add_theme_color_override("font_color", Style.DANGER if danger else Style.MONEY)
 	_remainder_label.add_theme_color_override("font_color", Style.DANGER if danger else Style.INK_2)
@@ -383,48 +418,77 @@ func _refresh(animate: bool) -> void:
 	else:
 		_button_label.text = "В разработку"
 	var active := open and not danger
-	_button.add_theme_stylebox_override("panel", Style.flat(Style.INK if active else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
-	_button_label.add_theme_color_override("font_color", Style.SURFACE_SOLID if active else Style.INK_3)
-	# Карусели: выбранная карточка на втором месте, предыдущая выглядывает на PEEK.
+	var on_button := focus_row == ROW_BUTTON
+	# Активная: тёмная в фокусе, `surface-2` с чернилами без фокуса; закрытая: `surface-2` с `ink-3`.
+	var bg := Style.INK if active and on_button else Style.SURFACE_2
+	var ink := Style.INK_3
+	if active:
+		ink = Style.SURFACE_SOLID if on_button else Style.INK
+	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if on_button and not active else Color.TRANSPARENT, 0))
+	_button_label.add_theme_color_override("font_color", ink)
+	# Карусели: выбранная карточка по центру ряда.
+	var step := Style.CARD_SIZE.x + Style.GAP_CARDS
 	for kind in ROWS:
-		var step := Style.CARD_SIZE.x + Style.GAP_CARDS
-		var target_x := 0.0
-		if index[kind] > 0:
-			target_x = -(index[kind] * step) + Style.PEEK + Style.GAP_CARDS
+		var target_x := _left_width / 2.0 - Style.CARD_SIZE.x / 2.0 - index[kind] * step
 		_animate(_rows[kind], "position:x", target_x, animate)
 		for i in _cards[kind].size():
-			var card: Control = _cards[kind][i]
+			var c: Control = _cards[kind][i]
 			var focused := kind == focus_row and i == index[kind]
-			_animate(card, "scale", Vector2.ONE * (Style.FOCUS_SCALE if focused else 1.0), animate)
+			_animate(c, "scale", Vector2.ONE * (Style.FOCUS_SCALE if focused else 1.0), animate)
 	_place_focus_ring(animate)
+	_update_fade()
 
 
+## Рамка фокуса только на карточках; на кнопке пропадает (плейтест 2026-11-07).
 func _place_focus_ring(animate: bool) -> void:
-	var target: Control
-	var radius := Style.R_CARD
 	if focus_row == ROW_BUTTON:
-		target = _button
-		radius = Style.R_CTL
-	else:
-		target = _cards[focus_row][index[focus_row]]
-	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(radius))
-	# Позиция после сдвига ряда известна из цели анимации, поэтому считаем сами.
-	var rect: Rect2
-	if focus_row == ROW_BUTTON:
-		rect = Rect2(_button.global_position - global_position, _button.size)
-	else:
-		var row := _rows[focus_row]
-		var clip := row.get_parent() as Control
-		var step := Style.CARD_SIZE.x + Style.GAP_CARDS
-		var row_x := 0.0
-		if index[focus_row] > 0:
-			row_x = -(index[focus_row] * step) + Style.PEEK + Style.GAP_CARDS
-		var pos := clip.position + Vector2(row_x + target.position.x, target.position.y)
-		var grown := Style.CARD_SIZE * Style.FOCUS_SCALE
-		rect = Rect2(pos - (grown - Style.CARD_SIZE) / 2.0, grown)
+		_focus_ring.visible = false
+		return
+	var step := Style.CARD_SIZE.x + Style.GAP_CARDS
+	var target: Control = _cards[focus_row][index[focus_row]]
+	var row_x := _left_width / 2.0 - Style.CARD_SIZE.x / 2.0 - index[focus_row] * step
+	var pos := _clips[focus_row].position + Vector2(row_x + target.position.x, target.position.y)
+	var grown := Style.CARD_SIZE * Style.FOCUS_SCALE
+	var rect := Rect2(pos - (grown - Style.CARD_SIZE) / 2.0, grown)
+	var was_visible := _focus_ring.visible
 	_focus_ring.visible = true
-	_animate(_focus_ring, "position", rect.position, animate)
-	_animate(_focus_ring, "size", rect.size, animate)
+	_animate(_focus_ring, "position", rect.position, animate and was_visible)
+	_animate(_focus_ring, "size", rect.size, animate and was_visible)
+
+
+func _process(_delta: float) -> void:
+	_update_fade()
+
+
+## Карточки гаснут к краям ряда, закрытые тусклее (STYLE: затемнение до 40 %).
+func _update_fade() -> void:
+	for kind in ROWS:
+		var row := _rows[kind]
+		for c in _cards[kind]:
+			var x: float = row.position.x + c.position.x
+			var inside := minf(x, _left_width - (x + Style.CARD_SIZE.x))
+			var a := clampf(inside / EDGE_FADE + 1.0, 0.0, 1.0) if inside < 0.0 else 1.0
+			a = minf(a, clampf((inside + EDGE_FADE) / EDGE_FADE, 0.0, 1.0))
+			if not c.get_meta(&"open", true):
+				a *= Style.DIM_LOCKED
+			c.modulate.a = a
+
+
+## Число прокручивается к новому значению за SWITCH_SECONDS (STYLE: числа не скачут).
+func _roll(key: StringName, label: Label, to: int, animate: bool, fmt: Callable) -> void:
+	var from: float = _shown.get(key, float(to))
+	if not animate or Debug.skip_cards or is_equal_approx(from, float(to)):
+		_shown[key] = float(to)
+		label.text = fmt.call(float(to))
+		return
+	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_method(func(v: float) -> void:
+		_shown[key] = v
+		label.text = fmt.call(v), from, float(to), Style.SWITCH_SECONDS)
+
+
+func _money_text(v: float) -> String:
+	return Style.format_money(int(round(v)))
 
 
 func _animate(node: Object, prop: String, value: Variant, animate: bool) -> void:

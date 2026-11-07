@@ -133,7 +133,7 @@ func _shell_input(event: InputEvent) -> bool:
 			or event.is_action_pressed(GameInput.RIGHT) or event.is_action_pressed(GameInput.DOWN):
 		_menu_index = 1 - _menu_index
 		_refresh_menu()
-		ShellSounds.play(&"switch")
+		ShellSounds.play(&"tick")
 	else:
 		return false
 	return true
