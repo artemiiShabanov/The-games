@@ -3,8 +3,9 @@ extends Control
 ## Экран конструктора, спека `docs/specs/constructor.md`, концепты `01`, `01b`, плейтест
 ## 2026-11-07. Весь экран идёт в большой карточке `CardFrame` поверх студии, как спринты;
 ## над карточкой пилюли «Релиз N · Следующая игра» слева и денег справа. Внутри слева три
-## вертикальные карусели (жанр, технология, сеттинг): выбранная карточка по центру колонки,
-## соседние растворяются к верху и низу; справа карточка сметы с заголовком на две строки,
+## вертикальные карусели (жанр, технология, сеттинг): выбранная карточка по центру колонки и
+## увеличена так, что три выбранные с полями `GAP_CARDS` заполняют ширину до сметы, соседние
+## обычного размера раздвинуты на её рост и растворяются к верху и низу; справа карточка сметы с заголовком на две строки,
 ## числами, которые прокручиваются за 240 мс, и кнопкой «В разработку» внизу. Вверх и вниз
 ## листают колонку, влево и вправо переводят фокус по колонкам и дальше на кнопку, A на
 ## колонке переводит фокус на кнопку, A на кнопке отдаёт `game_configured`, R другое
@@ -64,6 +65,9 @@ var _rows: Array[Control] = []
 var _clips: Array[Control] = []
 var _mask: ShaderMaterial
 var _column_height := 0.0
+## Ширина слота колонки и масштаб выбранной карточки, чтобы три слота с полями заполнили ширину.
+var _slot := 0.0
+var _select_scale := 1.0
 var _cards: Array[Array] = [[], [], []]
 var _focus_ring: Panel
 var _title_label: Label
@@ -268,8 +272,12 @@ func _build() -> void:
 	_mask.shader = shader
 	_mask.set_shader_parameter("fade_px", EDGE_FADE)
 	_column_height = _inner.y - COLUMN_TOP
-	var step_x := Style.CARD_SIZE.x + Style.GAP_CARDS
-	var x0 := (_left_width - (ROWS * Style.CARD_SIZE.x + (ROWS - 1) * Style.GAP_CARDS)) / 2.0
+	# Слева поле GAP, между слотами GAP, справа до сметы сам GAP между областями.
+	_slot = (_left_width - ROWS * Style.GAP_CARDS) / ROWS
+	_select_scale = _slot / Style.CARD_SIZE.x
+	var step_x := _slot + Style.GAP_CARDS
+	var x0 := float(Style.GAP_CARDS)
+	var card_x := 12.0 + (_slot - Style.CARD_SIZE.x) / 2.0
 
 	_focus_ring = Panel.new()
 	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(Style.R_CARD))
@@ -282,7 +290,7 @@ func _build() -> void:
 		content.add_child(caption)
 		var clip := Control.new()
 		clip.position = Vector2(x0 + kind * step_x - 12, COLUMN_TOP)
-		clip.size = Vector2(Style.CARD_SIZE.x + 24, _column_height)
+		clip.size = Vector2(_slot + 24, _column_height)
 		clip.clip_contents = true
 		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(clip)
@@ -294,7 +302,7 @@ func _build() -> void:
 		_rows.append(column)
 		for i in catalogs[kind].entries.size():
 			var c := _make_card(catalogs[kind].entries[i], is_unlocked(kind, i))
-			c.position = Vector2(12, i * (Style.CARD_SIZE.y + Style.GAP_CARDS))
+			c.position = Vector2(card_x, _card_y(kind, i))
 			column.add_child(c)
 			_cards[kind].append(c)
 			_inherit_material(c)
@@ -453,13 +461,13 @@ func _refresh(animate: bool) -> void:
 		ink = Style.SURFACE_SOLID if on_button else Style.INK
 	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if on_button and not active else Color.TRANSPARENT, 0))
 	_button_label.add_theme_color_override("font_color", ink)
-	# Колонки: выбранная карточка по центру колонки.
+	# Колонки: выбранная карточка по центру колонки и крупнее, соседи раздвинуты на её рост.
 	for kind in ROWS:
 		_animate(_rows[kind], "position:y", _column_offset(kind), animate)
 		for i in _cards[kind].size():
 			var c: Control = _cards[kind][i]
-			var focused := kind == focus_row and i == index[kind]
-			_animate(c, "scale", Vector2.ONE * (Style.FOCUS_SCALE if focused else 1.0), animate)
+			_animate(c, "scale", Vector2.ONE * (_select_scale if i == index[kind] else 1.0), animate)
+			_animate(c, "position:y", _card_y(kind, i), animate)
 	_place_focus_ring(animate)
 
 
@@ -469,9 +477,9 @@ func _place_focus_ring(animate: bool) -> void:
 		_focus_ring.visible = false
 		return
 	var target: Control = _cards[focus_row][index[focus_row]]
-	var pos := _clips[focus_row].position + Vector2(target.position.x, _column_offset(focus_row) + target.position.y)
-	var grown := Style.CARD_SIZE * Style.FOCUS_SCALE
-	var rect := Rect2(pos - (grown - Style.CARD_SIZE) / 2.0, grown)
+	var base := _clips[focus_row].position + Vector2(target.position.x, _column_offset(focus_row) + index[focus_row] * (Style.CARD_SIZE.y + Style.GAP_CARDS))
+	var grown := Style.CARD_SIZE * _select_scale
+	var rect := Rect2(base - (grown - Style.CARD_SIZE) / 2.0, grown)
 	var was_visible := _focus_ring.visible
 	_focus_ring.visible = true
 	_animate(_focus_ring, "position", rect.position, animate and was_visible)
@@ -481,6 +489,18 @@ func _place_focus_ring(animate: bool) -> void:
 ## Сдвиг колонки, при котором выбранная карточка стоит по центру.
 func _column_offset(kind: int) -> float:
 	return _column_height / 2.0 - Style.CARD_SIZE.y / 2.0 - index[kind] * (Style.CARD_SIZE.y + Style.GAP_CARDS)
+
+
+## Y карточки в колонке: базовый шаг, соседи выбранной сдвинуты на половину её роста, чтобы
+## зазор остался `GAP_CARDS`.
+func _card_y(kind: int, i: int) -> float:
+	var y := i * (Style.CARD_SIZE.y + Style.GAP_CARDS)
+	var grow := Style.CARD_SIZE.y * (_select_scale - 1.0) / 2.0
+	if i < index[kind]:
+		y -= grow
+	elif i > index[kind]:
+		y += grow
+	return y
 
 
 func _process(_delta: float) -> void:
