@@ -121,9 +121,9 @@ func _check(results: Array[bool]) -> void:
 			_expect(not results.has(true), "%s LOSE: есть успех %s" % [what, results])
 			_expect(_started == 2 * n and _finished == 2 * n, "LOSE: сигналов %d/%d" % [_started, _finished])
 			if not single:
-				# План из 8 провалов платформера × 8-bit даёт ровно шесть багов M0: по одному на
-				# пять аспектов и баг жанра; у 8-bit бага в M0 нет.
-				var want: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input", &"pink_placeholders", &"unreachable_coins", &"wild_physics"]
+				# План из 8 провалов платформера × 8-bit даёт ровно семь багов: по одному на пять
+				# аспектов, баг жанра и баг технологии 8-bit (#37).
+				var want: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input", &"pink_placeholders", &"unreachable_coins", &"wild_physics", &"sprite_flicker"]
 				for id in want:
 					_expect(record.has_bug(id), "LOSE: в записи нет бага %s: %s" % [id, record.bug_ids])
 				_expect(record.bug_ids.size() == want.size(), "LOSE: багов %d, не %d: %s" % [record.bug_ids.size(), want.size(), record.bug_ids])
