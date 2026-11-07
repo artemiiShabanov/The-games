@@ -1,6 +1,20 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_ohabf"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/tune.tscn" id="1_xbiec"]
+
+[sub_resource type="Curve" id="Curve_jpbfp"]
+_limits = [0.99, 6.0, 0.0, 1.0]
+_data = [Vector2(0, 2), 0.0, 0.0, 0, 0, Vector2(1, 6), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_s2fsc"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_1e8e7"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_ohabf")
@@ -8,4 +22,10 @@ id = &"tune"
 aspect = 1
 verb = "Настрой волну"
 hint = "Влево-вправо частота, вверх-вниз амплитуда, A фиксирует"
+scene = ExtResource("1_xbiec")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])
+params = Dictionary[StringName, Curve]({
+&"offset": SubResource("Curve_jpbfp"),
+&"tolerance": SubResource("Curve_1e8e7"),
+&"two_axes": SubResource("Curve_s2fsc")
+})
