@@ -5,7 +5,7 @@ extends Minigame
 ## вправо: лабиринт уехал вправо, точка оказалась в клетке левее). Стены не пускают в обоих
 ## режимах, удар о стену блокирует движение на полсекунды. Какой режим сейчас, видно по тому,
 ## что движется, и по цвету: управляемое синее (акцент), остальное чёрное; выход это кольцо в
-## цвете управляемого, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с;
+## цвете стен, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с;
 ## провал, если не прошёл их до таймера. Параметры от `t` в `resources/minigames/inverted.tres`:
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
 ## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется, с `t`
@@ -265,21 +265,22 @@ func _draw() -> void:
 	# Подложка и выход: кольцо в цвете управляемого, в которое садится точка.
 	Style.flat(Color(Style.INK, 0.04), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(origin - Vector2(WALL, WALL), grid + Vector2(WALL, WALL) * 2.0))
 	var exit_center := origin + (Vector2(exit_cell) + Vector2(0.5, 0.5)) * CELL
-	draw_arc(exit_center, DOT_R + 10.0, 0.0, TAU, 48, active, 6.0, true)
-	# Стены.
 	var ink := wall_color if flash <= 0.0 else wall_color.lerp(Style.FOCUS, flash / FLASH_SECONDS)
+	draw_arc(exit_center, DOT_R + 10.0, 0.0, TAU, 48, ink, 6.0, true)
+	# Стены прямоугольниками с нахлёстом на полтолщины, чтобы углы сходились без зазоров.
+	var h := WALL / 2.0
 	for y in N:
 		for x in N:
 			var c := Vector2i(x, y)
 			var p := origin + Vector2(c) * CELL
 			if _has_wall(c, 0):
-				draw_line(p, p + Vector2(CELL, 0), ink, WALL, true)
+				draw_rect(Rect2(p + Vector2(-h, -h), Vector2(CELL + WALL, WALL)), ink)
 			if _has_wall(c, 3):
-				draw_line(p, p + Vector2(0, CELL), ink, WALL, true)
+				draw_rect(Rect2(p + Vector2(-h, -h), Vector2(WALL, CELL + WALL)), ink)
 			if _has_wall(c, 1):
-				draw_line(p + Vector2(CELL, 0), p + Vector2(CELL, CELL), ink, WALL, true)
+				draw_rect(Rect2(p + Vector2(CELL - h, -h), Vector2(WALL, CELL + WALL)), ink)
 			if _has_wall(c, 2):
-				draw_line(p + Vector2(0, CELL), p + Vector2(CELL, CELL), ink, WALL, true)
+				draw_rect(Rect2(p + Vector2(-h, CELL - h), Vector2(CELL + WALL, WALL)), ink)
 	draw_circle(dot_screen, DOT_R, dot_color)
 	# Подпись режима снизу: что сейчас двигается.
 	var font := ThemeDB.fallback_font
