@@ -1,6 +1,26 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/beam.tscn" id="1_fqjrw"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_k2qcu"]
+
+[sub_resource type="Curve" id="Curve_e7ptf"]
+_limits = [0.99, 4.0, 0.0, 1.0]
+_data = [Vector2(0, 2), 0.0, 0.0, 0, 0, Vector2(1, 4), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_5ae5w"]
+_limits = [0.99, 64.0, 0.0, 1.0]
+_data = [Vector2(0, 64), 0.0, 0.0, 0, 0, Vector2(1, 36), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_g2hdx"]
+_limits = [0.0, 120.0, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 120), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_6cmam"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_k2qcu")
@@ -8,4 +28,11 @@ id = &"beam"
 aspect = 3
 verb = "Наведи"
 hint = "Влево-вправо наклон, A передаёт луч следующему зеркалу"
+scene = ExtResource("1_fqjrw")
 inputs = Array[StringName]([&"move_left", &"move_right", &"action_a"])
+params = Dictionary[StringName, Curve]({
+&"mirrors": SubResource("Curve_e7ptf"),
+&"move": SubResource("Curve_g2hdx"),
+&"prism": SubResource("Curve_6cmam"),
+&"target": SubResource("Curve_5ae5w")
+})
