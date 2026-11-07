@@ -26,10 +26,10 @@ script = ExtResource("1_7fe75")
 id = &"decide_cards"
 aspect = 4
 verb = "Реши"
-hint = "Карточка подходит под правило: A, не подходит: B"
+hint = "Подходит под правило: ↑, не подходит: любая другая стрелка"
 time_seconds = 24.0
 scene = ExtResource("1_8f6v3")
-inputs = Array[StringName]([&"action_a", &"action_b"])
+inputs = Array[StringName]([&"move_up", &"move_down", &"move_left", &"move_right"])
 params = Dictionary[StringName, Curve]({
 &"card_seconds": SubResource("Curve_8f6v3"),
 &"cards": SubResource("Curve_7hy1l"),

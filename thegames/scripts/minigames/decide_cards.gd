@@ -1,14 +1,16 @@
 extends Minigame
 ## «Реши» (decide_cards, баланс), каталог `docs/specs/minigames_catalog.md`. Карточки едут
-## слева направо по одной, на каждой число, цвет и многоугольник. Правило вверху крупно и
-## без слов, пиктограммой: «≤ 30», только такой цвет, «≤ 5 сторон». Карточка въезжает в зону
-## решения по центру и ждёт там `card_seconds`: A принимает, B отклоняет; не дождалась, уезжает
-## вправо, это ошибка. Две ошибки: провал.
-## С `t` темп выше, карточек больше, правило из двух условий («красные и ≤ 30»), затем правило
-## меняется посреди раунда. Параметры в `resources/minigames/decide_cards.tres`: cards,
-## card_seconds, two (от 0.5 два условия), change (от 0.5 смена правила на середине).
+## слева направо по одной, на каждой цветная фигура с числом внутри. Правило вверху крупно
+## и без слов: «≤ 30», «≥ 40», «2n» чётное, «2n+1» нечётное, цветной круг; фигуры («≤ 5
+## сторон») только при `t` выше 0.8 (плейтест 2026-11-07). Карточка въезжает в зону решения
+## по центру и ждёт там `card_seconds`: ↑ принимает, любая другая стрелка отклоняет; не
+## дождалась, уезжает вправо, это ошибка. Две ошибки: провал. Подходящих и неподходящих
+## карточек поровну. С `t` темп выше, карточек больше, правило из двух условий («красные и
+## ≤ 30»), затем правило меняется посреди раунда. Параметры в
+## `resources/minigames/decide_cards.tres`: cards, card_seconds, two (от 0.5 два условия),
+## change (от 0.5 смена правила на середине).
 
-enum Kind { NUMBER_LE, NUMBER_GE, COLOR, SIDES_LE, SIDES_GE }
+enum Kind { NUMBER_LE, NUMBER_GE, EVEN, ODD, COLOR, SIDES_LE, SIDES_GE }
 
 
 class Cond:
@@ -40,6 +42,8 @@ const ENTER_SECONDS := 0.35
 const GAP_SECONDS := 0.2
 const RULE_FLASH := 0.5
 const BOT_REACTION := 0.25
+## Условия на число сторон появляются только при `t` выше этого.
+const SHAPES_FROM_T := 0.8
 
 var cards_total := 8
 var card_seconds := 2.4
@@ -48,6 +52,8 @@ var change_rule := false
 
 var rule: Array[Cond] = []
 var cards: Array[Card] = []
+## План: какая по счёту карточка подходит под правило, поровну да и нет вперемешку.
+var fit_plan: Array[bool] = []
 var spawned := 0
 var decided := 0
 var errors := 0
@@ -71,19 +77,30 @@ func _on_start() -> void:
 	for p in [_ok, _bad, _swap]:
 		add_child(p)
 	rule = _make_rule(-1)
+	for i in cards_total:
+		fit_plan.append(i % 2 == 0)
+	fit_plan.shuffle()
 	spawn_timer = 0.3
 	queue_redraw()
 
 
 # --- Правило и карточки ------------------------------------------------------------------------
 
-## Случайное условие; `avoid` вид, которого не надо (второе условие другого вида).
+## Семейство условия: 0 число, 1 цвет, 2 стороны; второе условие берётся из другого семейства.
+static func _family(k: int) -> int:
+	if k <= Kind.ODD:
+		return 0
+	return 1 if k == Kind.COLOR else 2
+
+
+## Случайное условие; `avoid` вид, семейства которого не надо.
 func _make_cond(avoid: int) -> Cond:
 	var c := Cond.new()
-	var kinds: Array[int] = [Kind.NUMBER_LE, Kind.NUMBER_GE, Kind.COLOR, Kind.SIDES_LE, Kind.SIDES_GE]
-	var family := func(k: int) -> int: return 0 if k <= Kind.NUMBER_GE else (1 if k == Kind.COLOR else 2)
+	var kinds: Array[int] = [Kind.NUMBER_LE, Kind.NUMBER_GE, Kind.EVEN, Kind.ODD, Kind.COLOR]
+	if t > SHAPES_FROM_T:
+		kinds.append_array([Kind.SIDES_LE, Kind.SIDES_GE])
 	if avoid >= 0:
-		kinds = kinds.filter(func(k: int) -> bool: return family.call(k) != family.call(avoid))
+		kinds = kinds.filter(func(k: int) -> bool: return _family(k) != _family(avoid))
 	c.kind = kinds[rng.randi_range(0, kinds.size() - 1)] as Kind
 	match c.kind:
 		Kind.NUMBER_LE, Kind.NUMBER_GE:
@@ -112,6 +129,10 @@ static func _passes(card: Card, cond: Cond) -> bool:
 			return card.number <= cond.value
 		Kind.NUMBER_GE:
 			return card.number >= cond.value
+		Kind.EVEN:
+			return card.number % 2 == 0
+		Kind.ODD:
+			return card.number % 2 == 1
 		Kind.COLOR:
 			return card.color == cond.value
 		Kind.SIDES_LE:
@@ -128,11 +149,11 @@ func _fits(card: Card) -> bool:
 	return true
 
 
-## Новая карточка: примерно половина подходит под правило, чтобы ответ не был очевиден.
+## Новая карточка по плану: подходит или нет решено заранее, поровну и вперемешку.
 func _spawn() -> void:
 	var c := Card.new()
-	var want_fit := rng.randf() < 0.5
-	for attempt in 12:
+	var want_fit: bool = fit_plan[spawned] if spawned < fit_plan.size() else rng.randf() < 0.5
+	for attempt in 40:
 		c.number = rng.randi_range(1, 60)
 		c.color = rng.randi_range(0, COLORS.size() - 1)
 		c.sides = rng.randi_range(3, 8)
@@ -149,9 +170,9 @@ func _spawn() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not running or event.is_echo():
 		return
-	if GameInput.is_a(event):
+	if event.is_action_pressed(GameInput.UP):
 		_decide(true)
-	elif GameInput.is_b(event):
+	elif event.is_action_pressed(GameInput.DOWN) or event.is_action_pressed(GameInput.LEFT) or event.is_action_pressed(GameInput.RIGHT):
 		_decide(false)
 	else:
 		return
@@ -294,11 +315,14 @@ func _draw() -> void:
 		sb.shadow_color = Color(0, 0, 0, 0.08 * alpha)
 		sb.shadow_size = 10
 		sb.draw(get_canvas_item(), Rect2(pos, Vector2(CARD_W, CARD_H)))
-		var center := pos + Vector2(CARD_W / 2.0, CARD_H / 2.0 - 20.0)
-		_draw_polygon(center, 72.0, c.sides, Color(COLORS[c.color], alpha))
+		# Фигура по центру карточки, число внутри фигуры.
+		var center := pos + Vector2(CARD_W / 2.0, CARD_H / 2.0)
+		_draw_polygon(center, 92.0, c.sides, Color(COLORS[c.color], alpha))
 		var txt := str(c.number)
-		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 44).x
-		draw_string(font, Vector2(center.x - w / 2.0, pos.y + CARD_H - 28.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 44, Color(Style.INK, alpha))
+		var fs := 40
+		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string(font, Vector2(center.x - w / 2.0, center.y + fs * 0.36 + (10.0 if c.sides == 3 else 0.0)), txt,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(Style.SURFACE_SOLID, alpha))
 	# Правило сверху пиктограммами.
 	_draw_rule(font)
 	# Ошибки крестиками справа сверху, карточки точками.
@@ -344,19 +368,32 @@ func _draw_rule(font: Font) -> void:
 			x += 64.0
 
 
+func _cond_text(c: Cond) -> String:
+	match c.kind:
+		Kind.NUMBER_LE:
+			return "≤ " + str(c.value)
+		Kind.NUMBER_GE:
+			return "≥ " + str(c.value)
+		Kind.EVEN:
+			return "2n"
+		Kind.ODD:
+			return "2n+1"
+	return ""
+
+
 func _cond_width(font: Font, c: Cond) -> float:
 	match c.kind:
 		Kind.COLOR:
 			return 88.0
 		Kind.SIDES_LE, Kind.SIDES_GE:
 			return 88.0 + 16.0 + font.get_string_size(("≤ " if c.kind == Kind.SIDES_LE else "≥ ") + str(c.value), HORIZONTAL_ALIGNMENT_LEFT, -1, 56).x
-	return font.get_string_size(("≤ " if c.kind == Kind.NUMBER_LE else "≥ ") + str(c.value), HORIZONTAL_ALIGNMENT_LEFT, -1, 72).x
+	return font.get_string_size(_cond_text(c), HORIZONTAL_ALIGNMENT_LEFT, -1, 72).x
 
 
 func _draw_cond(font: Font, c: Cond, pos: Vector2, w: float, ink: Color) -> void:
 	match c.kind:
-		Kind.NUMBER_LE, Kind.NUMBER_GE:
-			draw_string(font, pos + Vector2(0, 26.0), ("≤ " if c.kind == Kind.NUMBER_LE else "≥ ") + str(c.value), HORIZONTAL_ALIGNMENT_LEFT, -1, 72, ink)
+		Kind.NUMBER_LE, Kind.NUMBER_GE, Kind.EVEN, Kind.ODD:
+			draw_string(font, pos + Vector2(0, 26.0), _cond_text(c), HORIZONTAL_ALIGNMENT_LEFT, -1, 72, ink)
 		Kind.COLOR:
 			draw_circle(pos + Vector2(44.0, 0.0), 40.0, COLORS[c.value])
 		Kind.SIDES_LE, Kind.SIDES_GE:
