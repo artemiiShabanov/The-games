@@ -3,24 +3,24 @@
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_as8un"]
 [ext_resource type="PackedScene" path="res://scenes/minigames/patch_line.tscn" id="1_m2iuy"]
 
+[sub_resource type="Curve" id="Curve_hmct7"]
+_limits = [0.0, 0.45, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="Curve" id="Curve_m2iuy"]
-_limits = [0.4, 0.65, 0.0, 1.0]
-_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 0.65), 0.0, 0.0, 0, 0]
+_limits = [0.3, 0.65, 0.0, 1.0]
+_data = [Vector2(0, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 0.65), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_8c7i3"]
-_limits = [0.8, 1.0, 0.0, 1.0]
-_data = [Vector2(0, 0.8), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+_limits = [0.6, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_ewcte"]
 _limits = [0.99, 460.0, 0.0, 1.0]
 _data = [Vector2(0, 300), 0.0, 0.0, 0, 0, Vector2(1, 460), 0.0, 0.0, 0, 0]
-point_count = 2
-
-[sub_resource type="Curve" id="Curve_hmct7"]
-_limits = [0.0, 0.45, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [resource]

@@ -4,7 +4,8 @@ extends Minigame
 ## подходит к курсору ровно к концу таймера (плейтест 2026-11-07). Часть блоков сдвинута
 ## вверх или вниз; когда сдвинутый блок под курсором, стрелка в сторону ленты (сдвинут вверх:
 ## ↓, вниз: ↑) ставит его на место со щелчком и пружинкой. С ростом `t` появляются блоки с
-## двойным сдвигом: дальше от ленты, с двойной стрелкой, нужны два нажатия. Неверная стрелка
+## двойным сдвигом: дальше от ленты, с двойной стрелкой, нужны два нажатия, соседи у него
+## всегда на месте. Неверная стрелка
 ## только дёргает блок. Три блока проехали непоправленными: провал. Доля сдвинутых растёт по
 ## ходу раунда и с `t`, темп ленты с `t`. Параметры в `resources/minigames/patch_line.tres`:
 ## speed, shift, shift_end, double.
@@ -59,14 +60,19 @@ func _on_start() -> void:
 	# Вся лента сразу: столько блоков, чтобы последний подошёл к курсору к концу таймера.
 	var step := BLOCK + GAP
 	var count := maxi(int(floor((speed * time_limit - LEAD) / step)) + 1, 1)
+	var after_double := false
 	for i in count:
 		var b := Block.new()
 		b.x = _cursor_x() - BLOCK / 2.0 + LEAD + i * step
 		# Первые два блока на месте, чтобы игрок увидел ритм; дальше доля растёт по ленте.
+		# Рядом с двойным блоком сдвинутых нет: сосед за ним на месте, а двойной выпадает
+		# только после блока на месте (плейтест 2026-11-07).
 		var share := lerpf(shift_share, shift_end, float(i) / maxi(count - 1, 1))
-		if i >= 2 and rng.randf() < share:
+		if i >= 2 and not after_double and rng.randf() < share:
 			var sign := 1 if rng.randf() < 0.5 else -1
-			b.shift = sign * (2 if rng.randf() < double_share else 1)
+			var prev_clear := blocks[i - 1].shift == 0
+			b.shift = sign * (2 if prev_clear and rng.randf() < double_share else 1)
+		after_double = absi(b.shift) == 2
 		b.offset = _offset_for(b.shift)
 		blocks.append(b)
 	queue_redraw()
