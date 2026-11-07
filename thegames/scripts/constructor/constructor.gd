@@ -27,9 +27,23 @@ const TITLE_FONT := 44
 const TOTAL_FONT := 72
 const BUTTON_WIDTH := 480
 const BUTTON_BOTTOM_GAP := 20
-## Карточка гаснет, пока её дальний край подходит к краю ряда: у края она уже прозрачна,
-## так что обрезки не видно.
-const EDGE_FADE := 200.0
+## Ширина градиента по краям ряда: карточки растворяются, а не режутся.
+const EDGE_FADE := 140.0
+## Маска краёв ряда: альфа по мировой X между `left` и `right` с плавными краями `fade`.
+const FADE_SHADER := """
+shader_type canvas_item;
+uniform float left_px = 0.0;
+uniform float right_px = 1000.0;
+uniform float fade_px = 140.0;
+varying vec2 world_pos;
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+void fragment() {
+	float a = smoothstep(0.0, fade_px, world_pos.x - left_px) * smoothstep(0.0, fade_px, right_px - world_pos.x);
+	COLOR.a *= a;
+}
+"""
 
 var economy: EconomyTuning
 var catalogs: Array[Catalog] = []
@@ -248,6 +262,15 @@ func _build() -> void:
 	_inner = CardFrame.inner_size()
 	_left_width = _inner.x - Style.ESTIMATE_WIDTH - Style.GAP_CARDS
 	var content := card.content
+	# Маска краёв рядов: границы ряда в мировых координатах известны из геометрии карточки.
+	var shader := Shader.new()
+	shader.code = FADE_SHADER
+	var mask := ShaderMaterial.new()
+	mask.shader = shader
+	var row_left := CardFrame.rect_in(Vector2(Style.SCREEN)).position.x + Style.PAD_CARD
+	mask.set_shader_parameter("left_px", row_left)
+	mask.set_shader_parameter("right_px", row_left + _left_width)
+	mask.set_shader_parameter("fade_px", EDGE_FADE)
 
 	_focus_ring = Panel.new()
 	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(Style.R_CARD))
@@ -267,6 +290,7 @@ func _build() -> void:
 		_clips.append(clip)
 		var row := Control.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.material = mask
 		clip.add_child(row)
 		_rows.append(row)
 		for i in catalogs[kind].entries.size():
@@ -274,6 +298,7 @@ func _build() -> void:
 			c.position = Vector2(i * (Style.CARD_SIZE.x + Style.GAP_CARDS), 12)
 			row.add_child(c)
 			_cards[kind].append(c)
+			_inherit_material(c)
 	content.add_child(_focus_ring)
 
 	_button = PanelContainer.new()
@@ -311,6 +336,8 @@ func _make_card(e: CatalogEntry, open: bool) -> Control:
 	c.add_theme_stylebox_override("panel", Style.flat(e.color, Style.R_CARD, Color.TRANSPARENT, 0))
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.set_meta(&"open", open)
+	if not open:
+		c.modulate.a = Style.DIM_LOCKED
 	var inner := Control.new()
 	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(inner)
@@ -436,7 +463,6 @@ func _refresh(animate: bool) -> void:
 			var focused := kind == focus_row and i == index[kind]
 			_animate(c, "scale", Vector2.ONE * (Style.FOCUS_SCALE if focused else 1.0), animate)
 	_place_focus_ring(animate)
-	_update_fade()
 
 
 ## Рамка фокуса только на карточках; на кнопке пропадает (плейтест 2026-11-07).
@@ -456,22 +482,12 @@ func _place_focus_ring(animate: bool) -> void:
 	_animate(_focus_ring, "size", rect.size, animate and was_visible)
 
 
-func _process(_delta: float) -> void:
-	_update_fade()
-
-
-## Карточки гаснут к краям ряда, закрытые тусклее (STYLE: затемнение до 40 %).
-func _update_fade() -> void:
-	for kind in ROWS:
-		var row := _rows[kind]
-		for c in _cards[kind]:
-			var x: float = row.position.x + c.position.x
-			var inside := minf(x, _left_width - (x + Style.CARD_SIZE.x))
-			var a := clampf(inside / EDGE_FADE + 1.0, 0.0, 1.0) if inside < 0.0 else 1.0
-			a = minf(a, clampf((inside + EDGE_FADE) / EDGE_FADE, 0.0, 1.0))
-			if not c.get_meta(&"open", true):
-				a *= Style.DIM_LOCKED
-			c.modulate.a = a
+## Все потомки карточки рисуются материалом ряда, иначе маска краёв на них не действует.
+func _inherit_material(node: CanvasItem) -> void:
+	node.use_parent_material = true
+	for child in node.get_children():
+		if child is CanvasItem:
+			_inherit_material(child)
 
 
 ## Число прокручивается к новому значению за SWITCH_SECONDS (STYLE: числа не скачут).
