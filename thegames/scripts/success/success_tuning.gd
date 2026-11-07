@@ -86,6 +86,18 @@ const PATH := "res://resources/success.tres"
 @export var fatigue_from_part := 4
 @export var remake_boost := 0.3
 
+@export_group("Критики и стримеры с характером")
+@export var critic_retro_bonus := 0.6
+@export var critic_retro_penalty := 0.3
+@export var critic_bug_hater_per_bug := 0.5
+@export var critic_bug_hater_clean := 0.4
+@export var critic_novelty_weight := 1.5
+@export var streamer_trait_bonus := 10.0
+## Пороги тона в ленте: твиты хвалят от этой `C`, критик тёплый от своей оценки, язвит ниже.
+@export var feed_good_critics := 6.5
+@export var feed_warm_critics := 7.0
+@export var feed_sour_critics := 4.0
+
 @export_group("Оценка студии")
 @export var valuation_tail := 4.0
 @export var valuation_reputation := 1500.0
