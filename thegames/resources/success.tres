@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="SuccessTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/success/success_tuning.gd" id="1_success"]
+
+[resource]
+script = ExtResource("1_success")
+p_base = 6000.0
+tech_sales = Array[float]([0.5, 0.7, 0.85, 1.0, 1.2])
+tech_critics = Array[float]([0.6, 0.3, 0.1, 0.0, -0.3])
+tech_spectacle = Array[float]([0.5, 0.6, 0.75, 0.9, 1.0])
+setting_hype = Array[float]([0.5, 0.7, 0.6])
+syn_tech_genre = Array[float]([1.00, 0.90, 1.10, 0.85, 0.85, 1.20, 1.00, 1.05, 1.00, 0.95, 1.10, 1.15, 1.10, 1.05, 1.20, 1.00, 1.05, 1.00, 0.95, 0.90, 1.00, 1.15, 1.20, 1.10, 1.05])
+syn_genre_setting = Array[float]([1.03, 1.05, 1.00, 0.97, 1.00, 1.00, 1.00, 1.05, 0.95, 0.97, 1.00, 0.95, 0.97, 1.00, 1.05])
+syn_jitter = 0.05
+critics_base = 2.0
+critics_quality = 6.0
+critics_novelty = 1.5
+critics_synergy = 5.0
+critics_bug = 0.4
+critics_fatigue = 1.0
+critics_noise = 0.5
+novelty_new = 1.0
+novelty_new_setting = 0.6
+novelty_repeat = 0.2
+novelty_remake = 0.3
+sales_critics_base = 0.6
+sales_critics = 0.08
+sales_reputation = 0.05
+sales_saturation = 0.5
+sales_trend = 0.1
+sales_noise = 0.15
+mood_min = 0.85
+mood_max = 1.15
+demand_spread = 0.15
+streamers_base = 0.3
+streamers_hype = 0.4
+streamers_quality = 0.3
+streamers_spectacular_bug = 15.0
+streamers_noise = 0.15
+noticed_threshold = 35.0
+viral_threshold = 70.0
+viral_mult = 1.5
+tail_base = 0.45
+tail_quality = 0.25
+tail_bug = 0.05
+tail_bug_cap = 3
+tail_max_ticks = 8
+tail_min_share = 0.02
+tail_alive_share = 0.05
+reputation_viral_bonus = 1.0
+saturation_keep = 0.6
+saturation_add = 0.35
+saturation_add_bad = 0.15
+saturation_noise = 0.05
+saturation_recent = 0.3
+saturation_bored = 0.6
+sequel_boost = Array[float]([1.0, 1.3, 1.15])
+fatigue_from_part = 4
+remake_boost = 0.3
+valuation_tail = 4.0
+valuation_reputation = 1500.0
+valuation_franchise = 3000.0
+valuation_round = 500

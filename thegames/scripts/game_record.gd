@@ -11,6 +11,12 @@ extends Resource
 @export var seed: int = 0
 @export var bug_ids: Array[StringName] = []
 @export var sprint_results: Array[bool] = []
+## Франшиза: номер части (1 новая игра), ремейк и родитель для сиквела и ремейка (#24).
+@export var part := 1
+@export var remake := false
+@export var parent: GameRecord
+## Отклик на релиз (спека успеха); хвост тикает между релизами.
+@export var score: ReleaseScore
 
 
 static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "", setting_ := Game.Setting.PIRATES) -> GameRecord:
@@ -34,6 +40,14 @@ func has_bug(id: StringName) -> bool:
 
 func add_sprint(success: bool) -> void:
 	sprint_results.append(success)
+
+
+## Имя франшизы: название первой части.
+func franchise_title() -> String:
+	var r := self
+	while r.parent != null and not r.remake:
+		r = r.parent
+	return r.title
 
 
 ## Качество игры: успехи / спринты (спека мини-игр).
