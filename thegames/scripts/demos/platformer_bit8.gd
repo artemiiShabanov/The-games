@@ -37,6 +37,8 @@ class Walker:
 
 
 const SCALE := 4
+## Увеличение во встроенном режиме (запись стрима в ленте).
+const EMBED_SCALE := 2
 const GHOST_LIFE := 0.22
 ## Хитбокс попугая внутри спрайта 16×16: от низа до верха в пикселях.
 const FLYER_BOTTOM := 3.0
@@ -145,14 +147,16 @@ func _on_start() -> void:
 	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "hero_dash", "enemy_0", "enemy_1", "parrot_0", "parrot_1", "coin",
 			"checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
 		tex[name] = load(SPRITES + name + ".png")
-	view = (CardFrame.inner_size() / SCALE).floor()
+	var scale_px := EMBED_SCALE if embedded else SCALE
+	view = ((embed_size if embedded else CardFrame.inner_size()) / scale_px).floor()
 	var container := SubViewportContainer.new()
-	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	container.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	container.grow_vertical = Control.GROW_DIRECTION_BOTH
-	container.custom_minimum_size = view * SCALE
+	# Кадр по центру области явной позицией: якоря по центру во встроенном режиме уводили его в угол.
+	var area := embed_size if embedded else CardFrame.inner_size()
+	container.position = ((area - view * scale_px) / 2.0).floor()
+	container.size = view * scale_px
+	container.custom_minimum_size = view * scale_px
 	container.stretch = true
-	container.stretch_shrink = SCALE
+	container.stretch_shrink = scale_px
 	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screen.add_child(container)
@@ -198,9 +202,10 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS), tuning.music_db)
+	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS), tuning.music_db if not embedded else -80.0)
 	add_child(_music)
-	_music.play()
+	if not embedded:
+		_music.play()
 	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.09, 0.35, 26.0))
 	_sfx["coin"] = Sfx.player(Sfx.blip(1318.0, 0.1, 0.35, 22.0))
 	_sfx["stomp"] = Sfx.player(Sfx.thud(0.14, 0.5))
@@ -208,7 +213,7 @@ func _setup_audio() -> void:
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.45, 5.0))
 	_sfx["dash"] = Sfx.player(Sfx.blip(330.0, 0.12, 0.3, 20.0))
 	for p in _sfx.values():
-		(p as AudioStreamPlayer).volume_db = tuning.sfx_db
+		(p as AudioStreamPlayer).volume_db = tuning.sfx_db if not embedded else -80.0
 		add_child(p)
 
 
@@ -323,7 +328,7 @@ func _gravity() -> float:
 
 ## Ось движения: с багом управления берётся из прошлого на delay_ms.
 func _current_axis() -> float:
-	var raw := bot_dir if AutoTest.bot_active() else GameInput.axis().x
+	var raw := bot_dir if bot_driven() else GameInput.axis().x
 	if not has_bug(&"sticky_input"):
 		return raw
 	_axis_log.append(Vector2(elapsed, raw))
@@ -566,7 +571,7 @@ func _die() -> void:
 	deaths += 1
 	lives -= 1
 	_play("death")
-	if AutoTest.enabled:
+	if AutoTest.enabled and not embedded:
 		var near: Array[String] = []
 		for w in walkers:
 			if w.alive and absf(w.x - hero.x) < 48.0:
@@ -597,7 +602,7 @@ func _bot_step(delta: float) -> void:
 	var half := tuning.hero_width / 2.0
 	var ahead := int(floor((hero.x + half + 6.0) / TILE))
 	var feet_row := int(round((base_y - hero.y) / TILE))
-	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
+	if active_bot_mode() != AutoTest.BotMode.WIN:
 		if grounded and not level.is_pit(ahead) and level.ground_top(ahead) > feet_row:
 			_jump()
 		return

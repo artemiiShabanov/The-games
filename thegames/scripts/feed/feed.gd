@@ -79,7 +79,14 @@ static func clip_bug(record: GameRecord, catalog: BugCatalog) -> BugDef:
 	return first
 
 
-## Лента целиком: два твита, три критика, клип, два твита, цифры. `rep_delta` сдвигает тон.
+## Просмотры клипов из охвата с разбросом, чтобы цифры не повторялись (плейтест 2026-11-07).
+static func views_for(reach: int, t: SuccessTuning, rng: RandomNumberGenerator) -> int:
+	var base := float(reach * reach) * t.views_per_reach_sq
+	return int(round(base * rng.randf_range(1.0 - t.views_spread, 1.0 + t.views_spread) / 100.0)) * 100
+
+
+## Лента целиком: четыре твита, три критика и клип вперемешку, в конце цифры (плейтест
+## 2026-11-07: порядок перемешан). `rep_delta` сдвигает тон.
 static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, streamers: PeopleSet,
 		texts: FeedTexts, t: SuccessTuning, catalog: BugCatalog, rng: RandomNumberGenerator, rep_delta := 0.0) -> FeedContent:
 	var c := FeedContent.new()
@@ -91,6 +98,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var vars := {
 		"title": record.title, "genre": Game.genre_name(record.genre), "setting": Game.setting_name(record.setting),
 		"tech": Game.tech_name(record.tech), "bug": bug.manifestation.to_lower() if bug != null else "", "tag": c.tag}
+	seed(rng.seed + rng.state)  # Array.shuffle использует глобальный генератор: сидим его от rng.
 	var handles := texts.handles.duplicate()
 	handles.shuffle()
 	var handle_i := 0
@@ -109,8 +117,9 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		tweets.append(_fill(s, vars))
 	while tweets.size() < 4:
 		tweets.append(_fill(texts.tweets_quiet[0] if not texts.tweets_quiet.is_empty() else "{tag}", vars))
-	for i in 2:
-		c.items.append(_tweet(tweets[i], handles, handle_i))
+	var mixed: Array[FeedContent.Item] = []
+	for i in 4:
+		mixed.append(_tweet(tweets[i], handles, handle_i))
 		handle_i += 1
 
 	# Критики: тон от своей оценки, репутация сдвигает тон на ступень; реплики без повторов.
@@ -141,7 +150,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		item.text = _fill(line, vars)
 		if critic_nature_fired(p, score, record, t) and p.nature < texts.critic_nature_remarks.size():
 			item.text += " " + _fill(texts.critic_nature_remarks[p.nature], vars)
-		c.items.append(item)
+		mixed.append(item)
 	c.critics_avg = snappedf(sum / maxi(critics.people.size(), 1), 0.1) if not critics.people.is_empty() else score.critics
 
 	# Клип стримера с самым зрелищным багом или лучшим моментом.
@@ -153,22 +162,33 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		clip.reach = streamer_reach(streamer, score, record, t)
 		clip.stamp = bug.stamp if bug != null else ""
 		clip.text = _fill(_pick(texts.clip_bug if bug != null else texts.clip_clean, rng), vars)
-		var viewers: Array[String] = texts.viewers_viral if score.viral else (texts.viewers_noticed if clip.reach >= t.noticed_threshold else texts.viewers_quiet)
-		clip.caption = "клип · " + _pick(viewers, rng)
-		c.items.append(clip)
+		c.views = views_for(score.streamers, t, rng)
+		c.online = int(round(c.views / t.online_divisor / 100.0)) * 100
+		clip.caption = FeedContent.format_count(c.online) + " онлайн"
+		mixed.append(clip)
 		c.clip_person = streamer
 
-	for i in range(2, 4):
-		c.items.append(_tweet(tweets[i], handles, handle_i))
-		handle_i += 1
+	# Перемешать так, чтобы лента не начиналась с клипа и критики не шли подряд, если можно.
+	for attempt in 12:
+		mixed.shuffle()
+		if mixed[0].kind != FeedContent.Kind.CLIP and not _adjacent_critics(mixed):
+			break
+	c.items.append_array(mixed)
 
 	var numbers := FeedContent.Item.new()
 	numbers.kind = FeedContent.Kind.NUMBERS
 	numbers.score = c.critics_avg
-	numbers.reach = score.sales_first
-	numbers.text = c.streamers_word
+	numbers.reach = c.views
+	numbers.text = FeedContent.format_count(c.views)
 	c.items.append(numbers)
 	return c
+
+
+static func _adjacent_critics(items: Array[FeedContent.Item]) -> bool:
+	for i in range(1, items.size()):
+		if items[i].kind == FeedContent.Kind.CRITIC and items[i - 1].kind == FeedContent.Kind.CRITIC:
+			return true
+	return false
 
 
 static func _tweet(text: String, handles: Array[String], i: int) -> FeedContent.Item:

@@ -97,6 +97,10 @@ const PATH := "res://resources/success.tres"
 @export var feed_good_critics := 6.5
 @export var feed_warm_critics := 7.0
 @export var feed_sour_critics := 4.0
+## Просмотры клипов: охват² × это, разброс ±доля; онлайн стримера это просмотры / делитель.
+@export var views_per_reach_sq := 120.0
+@export var views_spread := 0.25
+@export var online_divisor := 40.0
 
 @export_group("Оценка студии")
 @export var valuation_tail := 4.0

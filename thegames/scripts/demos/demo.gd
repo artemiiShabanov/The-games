@@ -6,8 +6,11 @@ extends Control
 ## после итога карточка уезжает вниз и приходит `demo_finished`. Таймера нет (решение
 ## 2026-11-05): демка кончается по своей цели или по своему условию провала (жизни, счёт),
 ## затем короткий экран итога («добежал» / «не добежал»). Esc открывает паузу с пунктами
-## «Вернуться» и «Пропустить» (решение 2026-11-06); B остаётся демке, у платформера это дэш. Подклассы переопределяют `_game_input`,
-## а не `_unhandled_input`. Баги читаются флагами из записи: `has_bug(&"wild_physics")`.
+## «Вернуться» и «Пропустить» (решение 2026-11-06); B остаётся демке, у платформера это дэш.
+## Подклассы переопределяют `_game_input`, а не `_unhandled_input`. Баги читаются флагами из
+## записи: `has_bug(&"wild_physics")`. Встроенный режим (`embed(size)`, #26): без карточки и
+## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
+## в ленте.
 
 signal demo_started(record: GameRecord, source: StringName)
 signal demo_finished(record: GameRecord, reached_goal: bool)
@@ -26,6 +29,10 @@ var finished := false
 ## Область под экран демки внутри карточки; размер `CardFrame.inner_size()`.
 var screen: Control
 var card: CardFrame
+## Встроенный режим: размер экрана, бот вместо игрока, без звука и карточки.
+var embedded := false
+var embed_size := Vector2.ZERO
+var bot_mode := AutoTest.BotMode.WIN
 var _result_left := 0.0
 var _closing := false
 var _menu_index := 0
@@ -43,9 +50,23 @@ func setup(record_: GameRecord, source_: StringName) -> void:
 	source = source_
 
 
+## Встроить демку в чужой экран: размер в пикселях, бот играет, без звука.
+func embed(size_: Vector2, mode := AutoTest.BotMode.WIN) -> void:
+	embedded = true
+	embed_size = size_
+	bot_mode = mode
+
+
 func start() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if embedded:
+		size = embed_size
+		screen = self
+		_on_start()
+		running = true
+		demo_started.emit(record, source)
+		return
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	card = CardFrame.new()
 	add_child(card)
 	screen = Control.new()
@@ -57,6 +78,16 @@ func start() -> void:
 	await card.raise_card()
 	running = true
 	demo_started.emit(record, source)
+
+
+## Бот ведёт демку: под автотестом или во встроенном режиме.
+func bot_driven() -> bool:
+	return embedded or AutoTest.bot_active()
+
+
+## Режим бота: свой во встроенном режиме, иначе автотеста.
+func active_bot_mode() -> AutoTest.BotMode:
+	return bot_mode if embedded else AutoTest.bot_mode
 
 
 func has_bug(id: StringName) -> bool:
@@ -71,7 +102,8 @@ func end_demo(goal: bool) -> void:
 	paused = false
 	reached = goal
 	_on_end(goal)
-	_show_overlay("добежал" if goal else "не добежал", _result_caption(), Style.SUCCESS if goal else Style.INK)
+	if not embedded:
+		_show_overlay("добежал" if goal else "не добежал", _result_caption(), Style.SUCCESS if goal else Style.INK)
 	_result_left = RESULT_SECONDS
 
 
@@ -101,12 +133,14 @@ func _process(delta: float) -> void:
 	if not running or paused:
 		return
 	elapsed += delta
-	if AutoTest.bot_active():
+	if bot_driven():
 		_bot_step(delta)
 	_on_tick(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if embedded:
+		return
 	if _shell_input(event):
 		get_viewport().set_input_as_handled()
 	elif running and not paused:

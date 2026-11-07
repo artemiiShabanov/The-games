@@ -70,3 +70,6 @@ streamer_trait_bonus = 10.0
 feed_good_critics = 6.5
 feed_warm_critics = 7.0
 feed_sour_critics = 4.0
+views_per_reach_sq = 120.0
+views_spread = 0.25
+online_divisor = 40.0

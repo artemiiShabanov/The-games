@@ -1,25 +1,32 @@
 class_name FeedScreen
 extends Control
-## Экран ленты отклика, спека `docs/specs/success.md`, концепт `04`: в большой карточке
-## `CardFrame` поверх студии колонка 880 по центру: два твита, карточки трёх критиков с
-## оценками, клип стримера с кадром бага (кадр пока рисованная заглушка), ещё два твита, три
-## карточки цифр и кнопки «В демо» и «Дальше». Элементы появляются по очереди, колонка
-## листается вверх-вниз, влево-вправо переводят фокус между кнопками, A подтверждает, B это
-## «Дальше». Над карточкой пилюли «Релиз N · Отклик · #Тег» и денег. Лица пока буква в круге.
+## Экран ленты отклика, спека `docs/specs/success.md`, концепт `04`, плейтест 2026-11-07: в
+## большой карточке `CardFrame` поверх студии колонка 880 по центру, карточки одного размера:
+## твиты, карточки критиков с цветной полосой акцента и оценкой справа, стрим как живая запись
+## геймплея (встроенная демка с багами записи, бот играет, без звука) с пиксельным лицом
+## стримера и онлайном; порядок перемешан, в конце две карточки цифр (критики, просмотры) и
+## кнопки «В демо» и «Дальше». Вверх и вниз листают по карточке с центрированием, A до низа
+## листает вниз, внизу ставит фокус на «Дальше» и подтверждает, влево-вправо меняют кнопку, B
+## это «Дальше». Продажи на этом экране не показываются: они приходят в фазе студии.
 
 signal demo_requested
 signal finished
 
 const COLUMN_WIDTH := 880
-const TWEET_INSET := 40
-const ITEM_GAP := 16
-const CLIP_HEIGHT := 300
+## Запас по бокам колонки, чтобы тени карточек не резались.
+const SHADOW_PAD := 32
+const ITEM_GAP := 32
+const STREAM_HEIGHT := 408
+const ACCENT_BAR := 6
 const STAGGER_SECONDS := 0.08
-const SCROLL_STEP := 240.0
+const DEMO_SCENE_PATH := "res://scenes/demos/platformer_bit8.tscn"
 
 var content: FeedContent
+var record: GameRecord
 var release := 1
 var cash := 0
+## Индекс карточки по центру; последняя это ряд кнопок.
+var index := 0
 var focus_demo := false
 
 var card: CardFrame
@@ -28,11 +35,14 @@ var _column: VBoxContainer
 var _buttons: Array[PanelContainer] = []
 var _button_labels: Array[Label] = []
 var _items: Array[Control] = []
+var _stream_holder: Control
+var _demo: Demo
 var _revealed := false
 
 
-func setup(content_: FeedContent, release_: int, cash_: int) -> void:
+func setup(content_: FeedContent, record_: GameRecord, release_: int, cash_: int) -> void:
 	content = content_
+	record = record_
 	release = release_
 	cash = cash_
 
@@ -45,19 +55,32 @@ func _ready() -> void:
 	_reveal()
 
 
+func _exit_tree() -> void:
+	_demo = null
+
+
+func at_end() -> bool:
+	return index >= _items.size() - 1
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
 	if event.is_action_pressed(GameInput.DOWN):
-		_scroll_by(SCROLL_STEP)
+		move(1)
 	elif event.is_action_pressed(GameInput.UP):
-		_scroll_by(-SCROLL_STEP)
+		move(-1)
 	elif event.is_action_pressed(GameInput.LEFT):
-		set_focus_demo(true)
+		if at_end():
+			set_focus_demo(true)
 	elif event.is_action_pressed(GameInput.RIGHT):
-		set_focus_demo(false)
+		if at_end():
+			set_focus_demo(false)
 	elif GameInput.is_a(event):
-		confirm()
+		if at_end():
+			confirm()
+		else:
+			scroll_to_end()
 	elif GameInput.is_b(event):
 		ShellSounds.play(&"done")
 		finished.emit()
@@ -66,13 +89,32 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func set_focus_demo(v: bool) -> void:
-	if focus_demo == v:
+## Листание по карточке: выбранная встаёт по центру области.
+func move(dir: int) -> void:
+	var next := clampi(index + dir, 0, _items.size() - 1)
+	if next == index:
 		return
-	focus_demo = v
+	index = next
 	ShellSounds.play(&"tick")
+	_center_on(index, true)
 	_refresh_buttons()
-	scroll_to_end()
+
+
+func scroll_to_end() -> void:
+	index = _items.size() - 1
+	focus_demo = false
+	ShellSounds.play(&"tick")
+	_center_on(index, true)
+	_refresh_buttons()
+
+
+func set_focus_demo(v: bool) -> void:
+	index = _items.size() - 1
+	if focus_demo != v:
+		focus_demo = v
+		ShellSounds.play(&"tick")
+	_center_on(index, true)
+	_refresh_buttons()
 
 
 func confirm() -> void:
@@ -108,17 +150,24 @@ func _build() -> void:
 	add_child(card)
 	var inner := CardFrame.inner_size()
 	_scroll = ScrollContainer.new()
-	_scroll.position = Vector2((inner.x - COLUMN_WIDTH) / 2.0, 0)
-	_scroll.size = Vector2(COLUMN_WIDTH, inner.y)
+	_scroll.position = Vector2((inner.x - COLUMN_WIDTH) / 2.0 - SHADOW_PAD, 0)
+	_scroll.size = Vector2(COLUMN_WIDTH + 2 * SHADOW_PAD, inner.y)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.content.add_child(_scroll)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", SHADOW_PAD)
+	margin.add_theme_constant_override("margin_right", SHADOW_PAD)
+	margin.add_theme_constant_override("margin_top", SHADOW_PAD)
+	margin.add_theme_constant_override("margin_bottom", SHADOW_PAD)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scroll.add_child(margin)
 	_column = VBoxContainer.new()
 	_column.custom_minimum_size = Vector2(COLUMN_WIDTH, 0)
 	_column.add_theme_constant_override("separation", ITEM_GAP)
 	_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_scroll.add_child(_column)
+	margin.add_child(_column)
 
 	for item in content.items:
 		var node: Control
@@ -128,7 +177,7 @@ func _build() -> void:
 			FeedContent.Kind.CRITIC:
 				node = _make_critic(item)
 			FeedContent.Kind.CLIP:
-				node = _make_clip(item)
+				node = _make_stream(item)
 			FeedContent.Kind.NUMBERS:
 				node = _make_numbers(item)
 		_column.add_child(node)
@@ -136,7 +185,6 @@ func _build() -> void:
 	var buttons := _make_buttons()
 	_column.add_child(buttons)
 	_items.append(buttons)
-	_column.add_child(_spacer(8))
 	for n in _items:
 		n.modulate.a = 0.0 if not Debug.skip_cards else 1.0
 	_refresh_buttons()
@@ -149,12 +197,11 @@ func _build() -> void:
 	hints.offset_bottom = -16
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("↑ ↓ листать"))
-	hints.add_child(HintPill.make("← → кнопка"))
-	hints.add_child(HintPill.make("A выбрать · B дальше"))
+	hints.add_child(HintPill.make("A вниз, внизу выбрать"))
+	hints.add_child(HintPill.make("B дальше"))
 	add_child(hints)
 
 
-## Элементы проявляются по очереди сверху вниз.
 func _reveal() -> void:
 	if _revealed:
 		return
@@ -163,39 +210,45 @@ func _reveal() -> void:
 		return
 	for i in _items.size():
 		var n := _items[i]
-		n.position.y += Style.SCREEN_SLIDE_PX
-		var tw := create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tw.tween_property(n, "modulate:a", 1.0, Style.SWITCH_SECONDS).set_delay(i * STAGGER_SECONDS)
-		tw.tween_property(n, "position:y", n.position.y - Style.SCREEN_SLIDE_PX, Style.SWITCH_SECONDS).set_delay(i * STAGGER_SECONDS)
 
 
-func _scroll_by(dy: float) -> void:
-	var target := clampf(_scroll.scroll_vertical + dy, 0.0, maxf(_column.size.y - _scroll.size.y, 0.0))
-	if Debug.skip_cards:
+## Прокрутка так, чтобы карточка `i` встала по центру области; крайние упираются в края.
+func _center_on(i: int, animate: bool) -> void:
+	var n := _items[i]
+	var center := n.position.y + SHADOW_PAD + n.size.y / 2.0
+	var target := clampf(center - _scroll.size.y / 2.0, 0.0, maxf(_column.size.y + 2 * SHADOW_PAD - _scroll.size.y, 0.0))
+	if not animate or Debug.skip_cards:
 		_scroll.scroll_vertical = int(target)
 		return
-	create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC).tween_property(_scroll, "scroll_vertical", int(target), Style.FOCUS_MOVE_SECONDS)
+	create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC).tween_property(_scroll, "scroll_vertical", int(target), Style.SWITCH_SECONDS)
 
 
-func scroll_to_end() -> void:
-	_scroll_by(_column.size.y)
-
-
-## Твит: ник, текст, хэштег в цвете фокуса; уже карточек критиков на TWEET_INSET с каждой
-## стороны.
-func _make_tweet(item: FeedContent.Item) -> Control:
-	var wrap := MarginContainer.new()
-	wrap.add_theme_constant_override("margin_left", TWEET_INSET)
-	wrap.add_theme_constant_override("margin_right", TWEET_INSET)
-	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+## Карточка-основа одного размера для твитов и критиков: сплошная подложка, слева полоса
+## акцента у критиков.
+func _post(accent: Color) -> Array:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Style.card())
+	var sb := Style.card(true)
+	if accent.a > 0.0:
+		# Полоса акцента слева: левая рамка стайлбокса, остальные стороны без рамки.
+		sb.border_width_left = ACCENT_BAR
+		sb.border_color = accent
+		sb.content_margin_left = Style.PAD_CARD - ACCENT_BAR
+	panel.add_theme_stylebox_override("panel", sb)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrap.add_child(panel)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", 24)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(row)
-	row.add_child(_face(Style.INK_3, "", 48))
+	return [panel, row]
+
+
+func _make_tweet(item: FeedContent.Item) -> Control:
+	var parts := _post(Color.TRANSPARENT)
+	var panel: PanelContainer = parts[0]
+	var row: HBoxContainer = parts[1]
+	row.add_child(_face(Style.INK_3, "", 64))
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 4)
@@ -217,88 +270,122 @@ func _make_tweet(item: FeedContent.Item) -> Control:
 		t = t.substr(0, tag_at) + "[color=%s]%s[/color]" % [Style.FOCUS.to_html(false), t.substr(tag_at, tag_end - tag_at)] + t.substr(tag_end)
 	text.text = t
 	col.add_child(text)
-	return wrap
+	return panel
 
 
 func _make_critic(item: FeedContent.Item) -> Control:
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Style.card(true))
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	panel.add_child(row)
-	row.add_child(_face(item.person.accent, item.person.name.substr(0, 1), 96))
+	var parts := _post(item.person.accent)
+	var panel: PanelContainer = parts[0]
+	var row: HBoxContainer = parts[1]
+	row.add_child(_face(item.person.accent, item.person.name.substr(0, 1), 64))
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 4)
 	row.add_child(col)
 	col.add_child(_label("Критик · " + item.person.subtitle, Style.FONT_CAPTION, Style.INK_3))
-	col.add_child(_label(item.person.name, Style.FONT_H2, Style.INK))
+	col.add_child(_label(item.person.name, Style.FONT_BODY, item.person.accent))
 	var quote := _label(item.text, Style.FONT_BODY, Style.INK)
 	quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(quote)
 	var score_box := HBoxContainer.new()
-	score_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	score_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	score_box.add_theme_constant_override("separation", 2)
 	row.add_child(score_box)
-	var big := _label(_score_text(item.score), 64, Style.INK)
+	var big := _label(_score_text(item.score), 56, Style.INK)
 	big.add_theme_font_override("font", Style.mono_font())
 	score_box.add_child(big)
-	var denom := _label("/10", Style.FONT_BODY, Style.INK_3)
+	var denom := _label("/10", Style.FONT_CAPTION, Style.INK_3)
 	denom.size_flags_vertical = Control.SIZE_SHRINK_END
 	score_box.add_child(denom)
 	return panel
 
 
-## Клип: шапка стримера, реплика, кадр 16:9 со штампом бага, кнопкой воспроизведения и подписью.
-func _make_clip(item: FeedContent.Item) -> Control:
+## Стрим: живая запись геймплея (встроенная демка с багами записи), сверху имя стримера и
+## онлайн, слева снизу говорящее пиксельное лицо, под кадром реплика.
+func _make_stream(item: FeedContent.Item) -> Control:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Style.card(true))
+	var sb := Style.card(true)
+	sb.set_content_margin_all(0)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.clip_contents = true
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 16)
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(col)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 24)
-	col.add_child(head)
-	head.add_child(_face(item.person.accent, item.person.name.substr(0, 1), 96))
-	var info := VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_theme_constant_override("separation", 4)
-	head.add_child(info)
-	info.add_child(_label("Стример · " + item.person.subtitle, Style.FONT_CAPTION, Style.INK_3))
-	info.add_child(_label(item.person.name, Style.FONT_H2, Style.INK))
+	_stream_holder = Control.new()
+	_stream_holder.custom_minimum_size = Vector2(COLUMN_WIDTH, STREAM_HEIGHT)
+	_stream_holder.clip_contents = true
+	_stream_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(_stream_holder)
+	var backdrop := ColorRect.new()
+	backdrop.color = Style.STUDIO_INK
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stream_holder.add_child(backdrop)
+	_start_stream()
+	# Шапка стрима поверх кадра: точка «в эфире», имя, онлайн.
+	var top := HBoxContainer.new()
+	top.position = Vector2(20, 16)
+	top.add_theme_constant_override("separation", 12)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stream_holder.add_child(top)
+	var live := HintPill.make("● " + item.person.name)
+	(live.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID)
+	var live_sb := Style.flat(Style.DANGER, Style.R_PILL, Color.TRANSPARENT, 0)
+	live_sb.content_margin_left = 16
+	live_sb.content_margin_right = 16
+	live_sb.content_margin_top = 6
+	live_sb.content_margin_bottom = 6
+	live.add_theme_stylebox_override("panel", live_sb)
+	top.add_child(live)
+	var online := HintPill.make(item.caption)
+	var online_sb := Style.flat(Color(Style.INK, 0.7), Style.R_PILL, Color.TRANSPARENT, 0)
+	online_sb.content_margin_left = 16
+	online_sb.content_margin_right = 16
+	online_sb.content_margin_top = 6
+	online_sb.content_margin_bottom = 6
+	online.add_theme_stylebox_override("panel", online_sb)
+	(online.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID)
+	top.add_child(online)
+	# Лицо стримера в левом нижнем углу, на плашке.
+	var cam := PanelContainer.new()
+	cam.add_theme_stylebox_override("panel", Style.flat(Color(Style.INK, 0.75), Style.R_CTL, Color.TRANSPARENT, 8))
+	cam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cam.add_child(PixelFace.new(item.person.accent, 6))
+	_stream_holder.add_child(cam)
+	cam.position = Vector2(20, STREAM_HEIGHT - 16 - 96 - 16)
 	var quote := _label(item.text, Style.FONT_BODY, Style.INK)
 	quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.add_child(quote)
-	var frame := Control.new()
-	frame.custom_minimum_size = Vector2(0, CLIP_HEIGHT)
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.draw.connect(_draw_clip_frame.bind(frame, item))
-	col.add_child(frame)
+	var quote_margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		quote_margin.add_theme_constant_override("margin_" + side, 24 if side != "left" and side != "right" else Style.PAD_CARD)
+	quote_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	quote_margin.add_child(quote)
+	col.add_child(quote_margin)
 	return panel
 
 
-## Кадр клипа: заглушка в духе 8-bit (небо, земля), кнопка воспроизведения, штамп бага,
-## подпись просмотров. Настоящий кадр демки приходит с галереей.
-func _draw_clip_frame(frame: Control, item: FeedContent.Item) -> void:
-	var r := Rect2(Vector2.ZERO, frame.size)
-	Style.flat(Color("#2F6FB5"), Style.R_CTL, Color.TRANSPARENT, 0).draw(frame.get_canvas_item(), r)
-	frame.draw_rect(Rect2(0, r.size.y - 36, r.size.x, 36), Color("#A85A2A"))
-	frame.draw_rect(Rect2(0, r.size.y - 40, r.size.x, 4), Color("#2BB37A"))
-	var c := r.size / 2.0
-	frame.draw_circle(c, 36, Color(1, 1, 1, 0.9))
-	frame.draw_colored_polygon(PackedVector2Array([c + Vector2(-10, -16), c + Vector2(18, 0), c + Vector2(-10, 16)]), Style.INK)
-	var font := ThemeDB.fallback_font
-	frame.draw_string(font, Vector2(20, r.size.y - 12), item.caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION, Color(1, 1, 1, 0.85))
-	if item.stamp != "":
-		var w := font.get_string_size(item.stamp, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_H2).x + 48
-		var pos := Vector2(r.size.x - w - 28, 28)
-		frame.draw_set_transform(pos + Vector2(w / 2.0, 24), deg_to_rad(-6.0))
-		Style.flat(Style.BUG, Style.R_PILL, Color.TRANSPARENT, 0).draw(frame.get_canvas_item(), Rect2(-w / 2.0, -24, w, 48))
-		frame.draw_string(font, Vector2(-w / 2.0 + 24, 11), item.stamp, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_H2, Style.SURFACE_SOLID)
-		frame.draw_set_transform(Vector2.ZERO)
+## Запустить встроенную демку записи; по концу перезапускается, как запись по кругу.
+func _start_stream() -> void:
+	if record == null or _stream_holder == null:
+		return
+	var scene := load(DEMO_SCENE_PATH) as PackedScene
+	_demo = scene.instantiate() as Demo
+	_demo.setup(record, &"clip")
+	_demo.embed(Vector2(COLUMN_WIDTH, STREAM_HEIGHT))
+	_demo.demo_finished.connect(_on_stream_finished)
+	_stream_holder.add_child(_demo)
+	_stream_holder.move_child(_demo, 1)
+	_demo.start()
+
+
+func _on_stream_finished(_r: GameRecord, _reached: bool) -> void:
+	if _demo != null:
+		_demo.queue_free()
+		_demo = null
+	if is_inside_tree() and _stream_holder != null:
+		_start_stream()
 
 
 func _make_numbers(item: FeedContent.Item) -> Control:
@@ -306,8 +393,7 @@ func _make_numbers(item: FeedContent.Item) -> Control:
 	row.add_theme_constant_override("separation", Style.GAP_CARDS)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_number_card("Критики", _score_text(item.score), Style.INK))
-	row.add_child(_number_card("Продажи, первый тик", Style.format_money(item.reach), Style.MONEY))
-	row.add_child(_number_card("Стримеры", item.text, Style.INK))
+	row.add_child(_number_card("Просмотры клипов", item.text, Style.INK))
 	return row
 
 
@@ -344,10 +430,10 @@ func _make_buttons() -> Control:
 	return row
 
 
-## Кнопка в фокусе тёмная, вторая `surface-2` с чернилами (как в конструкторе).
+## Фокус на кнопках только внизу ленты: тёмная в фокусе, остальные `surface-2`.
 func _refresh_buttons() -> void:
 	for i in _buttons.size():
-		var on := (i == 0) == focus_demo
+		var on := at_end() and ((i == 0) == focus_demo)
 		_buttons[i].add_theme_stylebox_override("panel", Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
 		_button_labels[i].add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
 
@@ -356,7 +442,6 @@ func _score_text(v: float) -> String:
 	return "%d" % int(v) if is_equal_approx(v, roundf(v)) else "%.1f" % v
 
 
-## Лицо-заглушка: круг цвета акцента с буквой.
 func _face(color: Color, letter: String, size_px: int) -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(size_px, size_px)
@@ -384,8 +469,8 @@ func _label(text: String, font_size: int, color: Color) -> Label:
 	return l
 
 
-func _spacer(h: int) -> Control:
+func _spacer_w(w: int) -> Control:
 	var c := Control.new()
-	c.custom_minimum_size = Vector2(0, h)
+	c.custom_minimum_size = Vector2(w, 0)
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return c

@@ -24,3 +24,15 @@ var sales_first := 0
 var streamers_word := ""
 var viral := false
 var clip_person: PersonDef
+## Просмотры клипов всего и онлайн на стриме клипа: из охвата с разбросом (плейтест 2026-11-07).
+var views := 0
+var online := 0
+
+
+## «1,2 млн», «140 тыс.», «640».
+static func format_count(n: int) -> String:
+	if n >= 1000000:
+		return ("%.1f" % (n / 1000000.0)).replace(".", ",") + " млн"
+	if n >= 1000:
+		return "%d тыс." % int(round(n / 1000.0))
+	return str(n)

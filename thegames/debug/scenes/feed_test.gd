@@ -100,7 +100,7 @@ func _launch() -> void:
 	record.score = Success.score_release(record, [], market, tuning, catalog, rng, false)
 	content = Feed.build(record, record.score, critics, streamers, texts, tuning, catalog, rng, rep_delta)
 	feed = (load(SCENE_PATH) as PackedScene).instantiate() as FeedScreen
-	feed.setup(content, 2, 29000)
+	feed.setup(content, record, 2, 29000)
 	feed.demo_requested.connect(_done.bind("В демо"))
 	feed.finished.connect(_done.bind("Дальше"))
 	add_child(feed)
@@ -131,12 +131,15 @@ func _expect(ok: bool, what: String) -> void:
 
 
 func _run_checks() -> void:
-	var kinds: Array[int] = []
-	for item in content.items:
-		kinds.append(item.kind)
 	var K := FeedContent.Kind
-	_expect(kinds == [K.TWEET, K.TWEET, K.CRITIC, K.CRITIC, K.CRITIC, K.CLIP, K.TWEET, K.TWEET, K.NUMBERS],
-			"состав ленты %s" % [kinds])
+	var counts := {K.TWEET: 0, K.CRITIC: 0, K.CLIP: 0, K.NUMBERS: 0}
+	for item in content.items:
+		counts[item.kind] += 1
+	_expect(counts[K.TWEET] == 4 and counts[K.CRITIC] == 3 and counts[K.CLIP] == 1 and counts[K.NUMBERS] == 1
+			and content.items[-1].kind == K.NUMBERS and content.items[0].kind != K.CLIP, "состав ленты %s" % [counts])
+	_expect(content.views > 0 and content.views % 100 == 0 and content.online > 0, "просмотры %d, онлайн %d" % [content.views, content.online])
+	_expect(FeedContent.format_count(1234567) == "1,2 млн" and FeedContent.format_count(140400) == "140 тыс." and FeedContent.format_count(640) == "640",
+			"формат просмотров")
 	_expect(content.tag == "#ПиратыНаПлатформах", "хэштег %s" % content.tag)
 	# Сдвиги: ненавистник багов ниже общей C при двух багах, любитель ретро выше на 8-bit.
 	var by_id := {}
@@ -151,7 +154,9 @@ func _run_checks() -> void:
 		if item.kind == K.CLIP:
 			clip = item
 	_expect(clip != null and clip.stamp == "ПРЫЖОК ×3", "штамп клипа %s" % (clip.stamp if clip else ""))
-	_expect(content.items[0].text.find("#") >= 0 and content.items[0].text != "", "первый твит с тегом: %s" % content.items[0].text)
+	for item in content.items:
+		if item.kind == K.TWEET:
+			_expect(item.text.find(content.tag) >= 0, "твит без тега: %s" % item.text)
 	# Без багов: клип чистый, стример не любитель багов, у ненавистника бонус.
 	bugs = 0
 	var rng := RandomNumberGenerator.new()
@@ -167,10 +172,14 @@ func _run_checks() -> void:
 	var f := feed  # после первого сигнала сцена убирает экран, но нода жива до конца кадра
 	f.demo_requested.connect(func() -> void: got.append("demo"))
 	f.finished.connect(func() -> void: got.append("next"))
+	_expect(not f.at_end() and f.index == 0, "фокус в начале не на кнопках")
+	f.scroll_to_end()
+	_expect(f.at_end() and not f.focus_demo, "A вниз ставит фокус на «Дальше»")
 	f.set_focus_demo(true)
 	f.confirm()
 	f.set_focus_demo(false)
 	f.confirm()
 	_expect(got == ["demo", "next"], "сигналы кнопок %s" % [got])
+	_expect(f._demo != null and f._demo.embedded and f._demo.running, "встроенная демка стрима не запущена")
 	AutoTest.fulfill("feed checks")
 	AutoTest.note("feed checks done")
