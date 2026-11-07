@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="EconomyTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/economy/economy_tuning.gd" id="1_economy"]
+
+[resource]
+script = ExtResource("1_economy")
+start_cash = 36000
+upkeep_base = 800
+sprints_by_tech = Array[int]([4, 5, 6, 7, 8])
+sprint_base_by_tech = Array[int]([1000, 1400, 1900, 2500, 3200])
+genre_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.15])
+setting_cost_mult = Array[float]([1.0, 1.1, 1.05])
+unlock_price_by_tech = Array[int]([3000, 5000, 8000, 12000, 18000])
+unlock_upkeep_by_tech = Array[int]([300, 400, 500, 700, 900])
+genre_unlock_price = 7000
+genre_unlock_upkeep = 250
+capability_prices = Dictionary[StringName, int]({
+&"insider": 4000,
+&"manager": 8000,
+&"new_setting": 3000,
+&"qa": 6000,
+&"remakes": 5000,
+&"replay": 6000,
+&"replay2": 6000,
+&"sequels": 5000
+})
+capability_upkeeps = Dictionary[StringName, int]({
+&"insider": 150,
+&"manager": 150,
+&"new_setting": 150,
+&"qa": 150,
+&"remakes": 150,
+&"replay": 150,
+&"replay2": 150,
+&"sequels": 150
+})
+rescue_amount = 12000
+bugfix_price_mult = 1.0
+manager_discount = 0.1
