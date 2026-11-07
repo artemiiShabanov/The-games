@@ -16,7 +16,9 @@ extends Demo
 ## `frame_drops` фризы в движении с догоном времени; `audio_stutter` заикание музыки и
 ## задержка звуков; `sticky_input` ввод с опозданием и залипание прыжка; `pink_placeholders`
 ## часть спрайтов розовыми квадратами; `unreachable_coins` платформы с монетами подняты выше
-## прыжка; `wild_physics` (баг жанра) прыжок втрое выше и враги вдвое быстрее (#15).
+## прыжка; `wild_physics` (баг жанра) прыжок втрое выше и враги вдвое быстрее (#15);
+## `sprite_flicker` (баг технологии 8-bit, #37) спрайты сверх `max_per_line` на одной строке
+## тайлов показываются через кадр, как на приставке.
 
 class Cloud:
 	var x := 0.0
@@ -135,6 +137,8 @@ var _sticky_first := true
 var _pink: Dictionary = {}
 var _jump_mult := 1.0
 var _enemy_mult := 1.0
+var _flicker_limit := 0
+var _line_counts: Dictionary[int, int] = {}
 
 
 func _on_start() -> void:
@@ -222,6 +226,8 @@ func _setup_bugs() -> void:
 		_freeze_timer = 1.0
 	if has_bug(&"audio_stutter"):
 		_stutter_timer = 1.5
+	if has_bug(&"sprite_flicker"):
+		_flicker_limit = int(_bug_param(&"sprite_flicker", &"max_per_line", 3.0))
 	if has_bug(&"wild_physics"):
 		_jump_mult = _bug_param(&"wild_physics", &"jump_mult", 3.0)
 		_enemy_mult = _bug_param(&"wild_physics", &"enemy_speed_mult", 2.0)
@@ -685,7 +691,18 @@ func _draw_backdrop() -> void:
 				Vector2(32, 16) if c.big else Vector2(16, 16), backdrop)
 
 
+## Баг мерцания: спрайт на строке тайлов сверх лимита виден только через кадр.
+func _flicker_hidden(y_px: float) -> bool:
+	if _flicker_limit <= 0:
+		return false
+	var line := int(floor(y_px / TILE))
+	var n: int = _line_counts.get(line, 0) + 1
+	_line_counts[line] = n
+	return n > _flicker_limit and (Engine.get_process_frames() + n) % 2 == 1
+
+
 func _draw_world() -> void:
+	_line_counts.clear()
 	var first := maxi(int(floor(cam_x / TILE)) - 1, 0)
 	var last := mini(int(ceil((cam_x + view.x) / TILE)) + 1, level.width - 1)
 	for col in range(first, last + 1):
@@ -701,6 +718,8 @@ func _draw_world() -> void:
 	for c in coins_left:
 		if c.x < first or c.x > last:
 			continue
+		if _flicker_hidden(base_y - (c.y + 0.5) * TILE):
+			continue
 		_tex_or_pink("coin", "coin", Vector2(c.x * TILE, base_y - (c.y + 1) * TILE - bob))
 	if _pink.has("checkpoint"):
 		world.draw_rect(Rect2(level.checkpoint.x * TILE, base_y - (level.checkpoint.y + 1) * TILE, 16, 16), PINK)
@@ -713,6 +732,8 @@ func _draw_world() -> void:
 	for w in walkers:
 		if not w.alive or w.x < first * TILE or w.x > (last + 1) * TILE:
 			continue
+		if _flicker_hidden(w.y - TILE / 2.0):
+			continue
 		if _pink.has("enemy"):
 			world.draw_rect(Rect2(roundf(w.x - TILE / 2.0), roundf(w.y - TILE), 16, 16), PINK)
 		else:
@@ -723,6 +744,8 @@ func _draw_world() -> void:
 	for g in _ghosts:
 		_draw_sprite(tex["hero_dash"], Vector2(g.x, g.y), int(g.z), Color(1, 1, 1, 0.45 * g.w / GHOST_LIFE))
 	var visible := invuln <= 0.0 or fmod(invuln, 0.2) < 0.1
+	if visible and running and _flicker_hidden(hero.y - TILE / 2.0):
+		visible = false
 	if visible and running:
 		var frame := "hero_jump"
 		if dash_left > 0.0:

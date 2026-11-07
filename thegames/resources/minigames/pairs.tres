@@ -1,6 +1,17 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/pairs.tscn" id="1_4elti"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_fex18"]
+
+[sub_resource type="Curve" id="Curve_rsppi"]
+_limits = [0.99, 4.0, 0.0, 1.0]
+_data = [Vector2(0, 3), 0.0, 0.0, 0, 0, Vector2(1, 4), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_3euhy"]
+_limits = [0.5, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_fex18")
@@ -10,4 +21,9 @@ tech = 1
 verb = "Запомни"
 hint = "Открывай карточки парами"
 time_seconds = 25.0
+scene = ExtResource("1_4elti")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])
+params = Dictionary[StringName, Curve]({
+&"close": SubResource("Curve_3euhy"),
+&"cols": SubResource("Curve_rsppi")
+})

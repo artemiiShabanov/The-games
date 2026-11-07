@@ -72,6 +72,8 @@ func _run_plan() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = Debug.minigame_seed
 	var plan := SprintPlanner.plan(8, Game.Genre.PLATFORMER, Game.Tech.BIT8, pool, tuning, rng)
+	if AutoTest.enabled:
+		AutoTest.note("plan: %s" % [plan.ids()])
 	runner.run(plan, Debug.minigame_t, true, Debug.minigame_seed * 1000, "Тест раннера")
 
 

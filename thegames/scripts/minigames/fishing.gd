@@ -107,13 +107,14 @@ func _on_timeout() -> bool:
 var _bot_hold := false
 
 
-## Бот: WIN держит, когда столбик ниже шарика с поправкой на скорость, LOSE не держит.
+## Бот: WIN держит, когда столбик ниже шарика с поправкой на скорость; LOSE уводит столбик от
+## шарика (лежащий внизу столбик шарик иногда навещал сам, и шкала могла дорасти).
 func _bot_step(_delta: float) -> bool:
-	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
-		_bot_hold = false
-		return false
 	var predicted := bar + bar_vel * BOT_LEAD
-	_bot_hold = predicted < ball
+	if AutoTest.bot_mode == AutoTest.BotMode.WIN:
+		_bot_hold = predicted < ball
+	else:
+		_bot_hold = predicted < ball - 0.15 if ball < 0.5 else false
 	return false
 
 

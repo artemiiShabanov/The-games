@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_bugdef"]
+
+[resource]
+script = ExtResource("1_bugdef")
+id = &"sprite_flicker"
+kind = 2
+tech = 1
+stamp = "МЕРЦАЕТ"
+manifestation = "Спрайты мерцают и пропадают, когда их четыре на строке"
+tweet = "Монетки мигают, враги исчезают, как на приставке из детства, только это не ностальгия"
+clip = "Ряд монет мерцает, скелет пропадает и появляется"
+params = Dictionary[StringName, float]({
+&"max_per_line": 3.0
+})
