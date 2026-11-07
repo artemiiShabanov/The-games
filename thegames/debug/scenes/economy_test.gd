@@ -50,6 +50,9 @@ func _ready() -> void:
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label.add_theme_font_size_override("font_size", 24)
 	_label.add_theme_color_override("font_color", INK)
+	var mono := SystemFont.new()
+	mono.font_names = PackedStringArray(["Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace"])
+	_label.add_theme_font_override("font", mono)
 	add_child(_label)
 	Debug.add_choice(SECTION, "Жанр", Game.GENRE_NAMES,
 			func() -> String: return Game.genre_name(genre),
