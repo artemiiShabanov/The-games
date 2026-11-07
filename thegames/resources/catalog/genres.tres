@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="Catalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/constructor/catalog_entry.gd" id="1_fe5q1"]
+[ext_resource type="Script" path="res://scripts/constructor/catalog.gd" id="2_w0ufs"]
+
+[sub_resource type="Resource" id="Resource_q254t"]
+script = ExtResource("1_fe5q1")
+id = &"platformer"
+title = "Платформер"
+color = Color(0.9098039, 0.7254902, 0.22745098, 1)
+title_tags = Array[String](["на платформах", "в прыжке", "над пропастью", "по крышам"])
+
+[sub_resource type="Resource" id="Resource_rap55"]
+script = ExtResource("1_fe5q1")
+value = 1
+id = &"racing"
+title = "Гонки"
+color = Color(0.8784314, 0.27058825, 0.48235294, 1)
+title_tags = Array[String](["на трассе", "на полной скорости", "в большой гонке", "до финиша"])
+
+[sub_resource type="Resource" id="Resource_hedkf"]
+script = ExtResource("1_fe5q1")
+value = 2
+id = &"shooter"
+title = "Шутер"
+color = Color(0.16862746, 0.7019608, 0.47843137, 1)
+title_tags = Array[String](["в прицеле", "под огнём", "и пушки", "на передовой"])
+
+[sub_resource type="Resource" id="Resource_o4ceo"]
+script = ExtResource("1_fe5q1")
+value = 3
+id = &"sport"
+title = "Спорт"
+color = Color(0.9411765, 0.47843137, 0.10980392, 1)
+title_tags = Array[String](["на арене", "в финале", "и мяч", "на чемпионате"])
+
+[sub_resource type="Resource" id="Resource_w5g5p"]
+script = ExtResource("1_fe5q1")
+value = 4
+id = &"fighting"
+title = "Файтинг"
+color = Color(0.5568628, 0.26666668, 0.6784314, 1)
+title_tags = Array[String](["на ринге", "против всех", "в драке", "один на один"])
+
+[resource]
+script = ExtResource("2_w0ufs")
+entries = Array[ExtResource("1_fe5q1")]([SubResource("Resource_q254t"), SubResource("Resource_rap55"), SubResource("Resource_hedkf"), SubResource("Resource_o4ceo"), SubResource("Resource_w5g5p")])

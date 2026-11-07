@@ -75,6 +75,33 @@ const SHAKE_PX := 4
 const DIM_LOCKED := 0.4
 
 
+# --- Шрифт чисел и формат денег ---------------------------------------------------------------
+
+static var _mono: Font
+
+
+## Моноширинный системный шрифт для смет и чисел (STYLE: до выбора своего шрифта).
+static func mono_font() -> Font:
+	if _mono == null:
+		var f := SystemFont.new()
+		f.font_names = PackedStringArray(["Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace"])
+		_mono = f
+	return _mono
+
+
+## «$ 12 000»: группы по три через тонкий пробел, минус перед знаком доллара.
+static func format_money(n: int) -> String:
+	var digits := str(absi(n))
+	var out := ""
+	var count := 0
+	for i in range(digits.length() - 1, -1, -1):
+		out = digits[i] + out
+		count += 1
+		if count % 3 == 0 and i > 0:
+			out = " " + out
+	return ("− $ " if n < 0 else "$ ") + out
+
+
 # --- Фабрики стилей ------------------------------------------------------------------------
 
 ## Плоская заливка с радиусом и, если задан цвет рамки, рамкой толщины `FOCUS_WIDTH` снаружи.

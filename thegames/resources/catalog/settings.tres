@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="Catalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/constructor/catalog_entry.gd" id="1_2sc6m"]
+[ext_resource type="Script" path="res://scripts/constructor/catalog.gd" id="2_m7y5l"]
+
+[sub_resource type="Resource" id="Resource_53nfg"]
+script = ExtResource("1_2sc6m")
+kind = 2
+id = &"pirates"
+title = "Пираты"
+color = Color(0.12156863, 0.47843137, 0.54901963, 1)
+title_tags = Array[String](["Пираты", "Корсары", "Флибустьеры", "Абордаж", "Чёрная метка"])
+
+[sub_resource type="Resource" id="Resource_fatpa"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 1
+id = &"space"
+title = "Космос"
+color = Color(0.16862746, 0.16470589, 0.41960785, 1)
+title_tags = Array[String](["Звёзды", "Астронавты", "Орбита", "Пустота", "Созвездие"])
+
+[sub_resource type="Resource" id="Resource_18krt"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 2
+id = &"castles"
+title = "Замки"
+color = Color(0.5411765, 0.3529412, 0.16470589, 1)
+title_tags = Array[String](["Рыцари", "Замки", "Осада", "Драконы", "Турнир"])
+
+[resource]
+script = ExtResource("2_m7y5l")
+entries = Array[ExtResource("1_2sc6m")]([SubResource("Resource_53nfg"), SubResource("Resource_fatpa"), SubResource("Resource_18krt")])

@@ -6,17 +6,18 @@ extends Resource
 @export var title := ""
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
 @export var tech: Game.Tech = Game.Tech.BIT8
-@export var setting: StringName = &"pirates"
+@export var setting: Game.Setting = Game.Setting.PIRATES
 ## Сид уровня демки: плейтест, лента и галерея показывают один уровень.
 @export var seed: int = 0
 @export var bug_ids: Array[StringName] = []
 @export var sprint_results: Array[bool] = []
 
 
-static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "") -> GameRecord:
+static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "", setting_ := Game.Setting.PIRATES) -> GameRecord:
 	var r := GameRecord.new()
 	r.genre = genre_
 	r.tech = tech_
+	r.setting = setting_
 	r.seed = seed_
 	r.title = title_
 	return r
