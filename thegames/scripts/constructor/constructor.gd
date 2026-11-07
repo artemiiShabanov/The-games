@@ -286,7 +286,9 @@ func _build() -> void:
 
 	for kind in ROWS:
 		var caption := _label(ROW_LABELS[kind], Style.FONT_CAPTION, Style.INK_2)
-		caption.position = Vector2(x0 + kind * step_x + 8, 0)
+		caption.position = Vector2(x0 + kind * step_x, 0)
+		caption.size = Vector2(_slot, 24)
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		content.add_child(caption)
 		var clip := Control.new()
 		clip.position = Vector2(x0 + kind * step_x - 12, COLUMN_TOP)
