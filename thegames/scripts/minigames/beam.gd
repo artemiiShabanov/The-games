@@ -1,9 +1,10 @@
 extends Minigame
 ## «Наведи» (beam, графика), каталог `docs/specs/minigames_catalog.md`. Слева платформа, из
 ## неё бьёт луч, дальше ряд зеркал, в конце мишень. Влево и вправо наклоняют текущий элемент
-## (сначала платформу, потом зеркала по очереди), луч перерисовывается в реальном времени и
-## отражается от зеркал. Когда луч попал в следующее зеркало, A передаёт управление ему.
-## Довести луч до мишени через все зеркала по порядку. 20 с, провал, если луч не дошёл.
+## (сначала платформу, потом зеркала), луч перерисовывается в реальном времени и отражается
+## от зеркал. A передаёт управление тому зеркалу, в которое сейчас попадает луч от текущего
+## элемента, B возвращает расстановку к началу (плейтест 2026-11-07). Довести луч до мишени
+## через все зеркала. 20 с, провал, если луч не дошёл.
 ## С `t` зеркал больше, мишень меньше и движется, а последнее зеркало это призма: луч
 ## расщепляется на три, попасть должен любой. Параметры в `resources/minigames/beam.tres`:
 ## mirrors, target (радиус), move (размах мишени), prism (от 0.5 последнее зеркало призма).
@@ -11,6 +12,7 @@ extends Minigame
 class Mirror:
 	var pos := Vector2.ZERO
 	var angle := 0.0
+	var start_angle := 0.0
 	var prism := false
 
 const EMITTER_X := 200.0
@@ -21,6 +23,8 @@ const EMITTER_LIMIT := 1.1
 const PRISM_SPREAD := 0.26
 const HOLD_SECONDS := 0.5
 const BEAM_WIDTH := 6.0
+## Луч упирается в поверхность зеркала, а не в его ось: отступ на половину толщины.
+const MIRROR_HALF := 5.0
 const BOT_TURN := 3.2
 
 var mirror_count := 2
@@ -37,11 +41,16 @@ var hit_target := false
 var hold := 0.0
 ## Путь луча: список точек каждой ветви (одна ветвь, у призмы три), и сколько зеркал пройдено.
 var paths: Array[PackedVector2Array] = []
+## Точные точки отражений основной ветви (для физики и бота); в `paths` они отступают до
+## поверхности зеркала ради рисования.
+var exact: PackedVector2Array = PackedVector2Array()
 var reached := 0
-var next_hit := false
-## Расстояние попадания в следующее зеркало от его центра: бот передаёт управление, когда
-## луч идёт через центр, иначе после поворота зеркала луч с него соскользнёт.
-var next_hit_dist := INF
+## Зеркало, в которое попадает луч от текущего элемента (−1 нет), и расстояние попадания от
+## его центра: бот передаёт управление, когда луч идёт через центр, иначе после поворота
+## зеркала луч с него соскользнёт.
+var hit_mirror := -1
+var hit_dist := INF
+var start_emitter := 0.0
 var _handoff: AudioStreamPlayer
 var _win: AudioStreamPlayer
 var _deny: AudioStreamPlayer
@@ -64,11 +73,13 @@ func _on_start() -> void:
 		var fx := float(i + 1) / (mirror_count + 1)
 		m.pos = Vector2(lerpf(EMITTER_X, right, fx), mid + rng.randf_range(-220.0, 220.0))
 		m.angle = rng.randf_range(0.0, PI)
+		m.start_angle = m.angle
 		m.prism = use_prism and i == mirror_count - 1
 		mirrors.append(m)
 	target_base = Vector2(right, mid + rng.randf_range(-160.0, 160.0))
 	target = target_base
 	emitter_angle = rng.randf_range(-0.6, 0.6)
+	start_emitter = emitter_angle
 	_trace()
 	queue_redraw()
 
@@ -78,17 +89,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if GameInput.is_a(event):
 		_advance()
-		get_viewport().set_input_as_handled()
-
-
-func _advance() -> void:
-	if hit_target or current >= mirror_count:
+	elif GameInput.is_b(event):
+		_restart()
+	else:
 		return
-	if next_hit:
-		current += 1
+	get_viewport().set_input_as_handled()
+
+
+## A: управление зеркалу, в которое сейчас попадает луч от текущего элемента.
+func _advance() -> void:
+	if hit_target:
+		return
+	if hit_mirror >= 0 and hit_mirror + 1 != current:
+		current = hit_mirror + 1
 		_handoff.play()
 	else:
 		_deny.play()
+
+
+## B: платформа и зеркала как в начале, управление снова у платформы.
+func _restart() -> void:
+	if hit_target:
+		return
+	emitter_angle = start_emitter
+	for m in mirrors:
+		m.angle = m.start_angle
+	current = 0
+	_deny.play()
+	_trace()
 
 
 func _on_tick(delta: float) -> void:
@@ -149,17 +177,20 @@ func _mirror_ends(m: Mirror) -> Array[Vector2]:
 	return [m.pos - h, m.pos + h]
 
 
-## Луч от платформы: отражается от зеркал в порядке, какой встретит; `reached` сколько зеркал
-## пройдено подряд по порядку, `next_hit` попал ли луч текущего элемента в следующее зеркало.
+## Луч от платформы: отражается от зеркал в порядке, какой встретит; `reached` сколько разных
+## зеркал он прошёл, `hit_mirror` в какое зеркало попадает отрезок от текущего элемента.
 func _trace() -> void:
 	paths.clear()
+	exact = PackedVector2Array()
 	reached = 0
-	next_hit = false
-	next_hit_dist = INF
+	hit_mirror = -1
+	hit_dist = INF
+	var seen: Array[int] = []
 	var o := _emitter_pos()
+	exact.append(o)
 	var d := Vector2(cos(emitter_angle), sin(emitter_angle))
 	var branch := PackedVector2Array([o])
-	var expect := 0
+	var from_element := 0
 	for bounce in 8:
 		var best_t := INF
 		var best := -1
@@ -174,27 +205,33 @@ func _trace() -> void:
 			var end := o + d * (target_t if target_t > 0.0 else 3000.0)
 			branch.append(end)
 			break
-		var hit := o + d * best_t
-		branch.append(hit)
-		if best == expect:
-			if expect == current:
-				next_hit = true
-				next_hit_dist = hit.distance_to(mirrors[best].pos)
-			expect += 1
-			reached = expect
 		var m := mirrors[best]
 		var normal := Vector2(-sin(m.angle), cos(m.angle))
+		# Отступ до поверхности зеркала вдоль луча: луч не проходит сквозь его толщину.
+		var cos_in := absf(d.dot(normal))
+		var back := MIRROR_HALF / maxf(cos_in, 0.2)
+		var hit_exact := o + d * best_t
+		var hit := o + d * maxf(best_t - back, 0.0)
+		branch.append(hit)
+		exact.append(hit_exact)
+		if from_element == current:
+			hit_mirror = best
+			hit_dist = hit_exact.distance_to(m.pos)
+		if not seen.has(best):
+			seen.append(best)
+		reached = seen.size()
+		from_element = best + 1
 		if m.prism and best == mirror_count - 1:
 			# Призма: три луча веером, каждый до мишени или в даль.
 			var base := d.bounce(normal)
 			for k in [-1, 0, 1]:
 				var dir := base.rotated(k * PRISM_SPREAD)
-				var tt := _circle_hit(hit + dir * 0.01, dir)
-				var leg := PackedVector2Array([hit, hit + dir * (tt if tt > 0.0 else 3000.0)])
+				var tt := _circle_hit(hit_exact + dir * 0.01, dir)
+				var leg := PackedVector2Array([hit, hit_exact + dir * (tt if tt > 0.0 else 3000.0)])
 				paths.append(leg)
 			break
 		d = d.bounce(normal)
-		o = hit + d * 0.01
+		o = hit_exact + d * 0.01
 	paths.push_front(branch)
 
 
@@ -226,7 +263,9 @@ func _target_lit() -> bool:
 func _bot_step(delta: float) -> bool:
 	if AutoTest.bot_mode != AutoTest.BotMode.WIN or hit_target:
 		return false
-	if next_hit and next_hit_dist <= 6.0 and current < mirror_count:
+	# Бот идёт по зеркалам по порядку: передаёт управление только следующему и только при
+	# попадании у центра.
+	if hit_mirror == current and hit_dist <= 6.0:
 		_advance()
 		return false
 	# Текущий элемент целится в следующее зеркало, последнее зеркало в мишень.
@@ -247,12 +286,19 @@ func _bot_step(delta: float) -> bool:
 	return false
 
 
-## Направление луча, приходящего в зеркало `i`, из последней трассы.
+## Направление луча, приходящего в зеркало `i`: точный отрезок трассы, который кончается у него.
 func _incoming_dir(i: int) -> Vector2:
-	var main := paths[0] if not paths.is_empty() else PackedVector2Array()
-	if main.size() < i + 2:
+	var main := exact
+	var best := -1
+	var best_d := 40.0
+	for j in range(1, main.size()):
+		var d := main[j].distance_to(mirrors[i].pos)
+		if d < best_d:
+			best_d = d
+			best = j
+	if best < 1:
 		return Vector2.ZERO
-	return (main[i + 1] - main[i]).normalized()
+	return (main[best] - main[best - 1]).normalized()
 
 
 static func _toward_angle(a: float, b: float, step: float) -> float:
@@ -266,11 +312,15 @@ func _draw() -> void:
 	if def == null or mirrors.is_empty():
 		return
 	var lit := _target_lit()
-	# Луч: свечение и ядро.
+	# Луч: свечение и ядро отдельными отрезками, чтобы на изломах толщина не менялась.
 	for p in paths:
-		if p.size() >= 2:
-			draw_polyline(p, Color(Style.accent(0), 0.25), BEAM_WIDTH * 3.0, true)
-			draw_polyline(p, Style.accent(0), BEAM_WIDTH, true)
+		for i in range(1, p.size()):
+			draw_line(p[i - 1], p[i], Color(Style.accent(0), 0.25), BEAM_WIDTH * 3.0, true)
+	for p in paths:
+		for i in range(1, p.size()):
+			draw_line(p[i - 1], p[i], Style.accent(0), BEAM_WIDTH, true)
+			if i < p.size() - 1:
+				draw_circle(p[i], BEAM_WIDTH / 2.0, Style.accent(0))
 	# Платформа.
 	var e := _emitter_pos()
 	var focus_e := current == 0
@@ -281,7 +331,7 @@ func _draw() -> void:
 		var m := mirrors[i]
 		var ends := _mirror_ends(m)
 		var focused := current == i + 1
-		var col := Style.INK if focused or i < reached else Style.INK_3
+		var col := Style.INK if focused else Style.INK_3
 		if m.prism:
 			var n := Vector2(-sin(m.angle), cos(m.angle)) * 34.0
 			draw_colored_polygon(PackedVector2Array([ends[0], ends[1], m.pos + n]), Color(col, 0.85))
