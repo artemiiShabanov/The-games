@@ -1,6 +1,25 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_7fe75"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/decide_cards.tscn" id="1_8f6v3"]
+
+[sub_resource type="Curve" id="Curve_8f6v3"]
+_limits = [0.99, 1.9, 0.0, 1.0]
+_data = [Vector2(0, 1.9), 0.0, 0.0, 0, 0, Vector2(1, 1.2), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_7hy1l"]
+_limits = [0.99, 10.0, 0.0, 1.0]
+_data = [Vector2(0, 8), 0.0, 0.0, 0, 0, Vector2(1, 10), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_x2csx"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_jptvt"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_7fe75")
@@ -8,4 +27,12 @@ id = &"decide_cards"
 aspect = 4
 verb = "Реши"
 hint = "Карточка подходит под правило: A, не подходит: B"
+time_seconds = 24.0
+scene = ExtResource("1_8f6v3")
 inputs = Array[StringName]([&"action_a", &"action_b"])
+params = Dictionary[StringName, Curve]({
+&"card_seconds": SubResource("Curve_8f6v3"),
+&"cards": SubResource("Curve_7hy1l"),
+&"change": SubResource("Curve_x2csx"),
+&"two": SubResource("Curve_jptvt")
+})
