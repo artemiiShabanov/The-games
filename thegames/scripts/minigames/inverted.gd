@@ -8,12 +8,15 @@ extends Minigame
 ## цвете управляемого, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с;
 ## провал, если не прошёл их до таймера. Параметры от `t` в `resources/minigames/inverted.tres`:
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
-## сколько ходов режим меняется посреди лабиринта, 0 никогда).
+## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется, с `t`
+## интервал короче).
 
 enum Mode { DOT, MAZE }
 
 const N := 5
-const CELL := 112.0
+const CELL := 92.0
+## Интервал смены режима от этого значения считается «никогда».
+const FLIP_NEVER := 10
 const WALL := 8.0
 const DOT_R := 26.0
 const MOVE_SECONDS := 0.11
@@ -52,7 +55,9 @@ var _flip_sound: AudioStreamPlayer
 func _on_start() -> void:
 	mazes_total = maxi(int(round(def.param(&"mazes", t, 2.0))), 1)
 	twist = clampf(def.param(&"twist", t, 0.0), 0.0, 1.0)
-	flip_moves = maxi(int(round(def.param(&"flip", t, 0.0))), 0)
+	flip_moves = int(round(def.param(&"flip", t, 12.0)))
+	if flip_moves >= FLIP_NEVER:
+		flip_moves = 0
 	_step_sound = Sfx.player(Sfx.blip(700.0, 0.04, 0.2, 50.0))
 	_bump = Sfx.player(Sfx.thud(0.08, 0.35))
 	_done_sound = Sfx.player(Sfx.blip(880.0, 0.18, 0.45, 12.0))
