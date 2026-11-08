@@ -83,7 +83,7 @@ func _draw() -> void:
 	if zoom:
 		var lv := PlatformerLevelGen.generate(zoom_seed, tuning)
 		var ok := PlatformerLevelGen.passable(lv, tuning)
-		draw_string(font, Vector2(48, 60), "Уровень из сида %d: %s   (← → сид, A все сто)" % [
+		draw_string(font, Vector2(48, 60), "Уровень из сида %d: %s   (← → сид, ␣ все сто)" % [
 			zoom_seed, "проходим" if ok else "НЕ ПРОХОДИМ"], HORIZONTAL_ALIGNMENT_LEFT, -1, 28, ink)
 		_draw_level(lv, Rect2(48, 100, size.x - 96, 240), ok, true)
 		draw_string(font, Vector2(48, 380), "ямы %d · платформы %d · враги %d · монеты %d · чекпоинт x=%d · флаг x=%d" % [

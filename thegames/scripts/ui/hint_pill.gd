@@ -60,5 +60,5 @@ static func bottom_bar(pill: Control, margin := 40) -> Control:
 static func for_inputs(inputs: Array[StringName]) -> HintPill:
 	var parts: PackedStringArray = []
 	for action in inputs:
-		parts.append(str(GameInput.LABELS.get(action, String(action))))
+		parts.append(GameInput.key(action))
 	return make(" ".join(parts) if not parts.is_empty() else "любая клавиша")

@@ -264,14 +264,14 @@ func _show_offer() -> void:
 		_offer_caption.text = "Денег на самый дешёвый релиз нет, и издатель уже помогал. Забег окончен."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
-		_hints.add_child(HintPill.make("A дальше"))
+		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	if report.offer.is_empty():
 		_offer_title.text = "Студия укомплектована"
 		_offer_caption.text = "Всё, что можно было купить, уже куплено."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
-		_hints.add_child(HintPill.make("A дальше"))
+		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	_offer_title.text = "Что улучшим?"
 	_fade_in(_offer_title)
@@ -285,8 +285,8 @@ func _show_offer() -> void:
 	_refresh_prices()
 	_refresh_focus(false)
 	_hints.add_child(HintPill.make("← → выбрать"))
-	_hints.add_child(HintPill.make("A купить"))
-	_hints.add_child(HintPill.make("B пропустить"))
+	_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "купить")))
+	_hints.add_child(HintPill.make(GameInput.hint(GameInput.B, "пропустить")))
 
 
 # --- Построение ---------------------------------------------------------------------------------

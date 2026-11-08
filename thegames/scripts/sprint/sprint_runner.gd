@@ -286,7 +286,7 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 16)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(HintPill.make("%s переиграть" % GameInput.LABELS[GameInput.B]))
+		row.add_child(HintPill.make(GameInput.hint(GameInput.B, "переиграть")))
 		row.add_child(HintPill.make("любая другая клавиша дальше"))
 		card.add_child(HintPill.bottom_bar(row))
 		# Полоса таймера по верхнему краю, как у мини-игр: убывает, пока карточка ждёт ответа.

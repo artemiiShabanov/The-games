@@ -1,9 +1,11 @@
 class_name GameInput
 extends RefCounted
 ## Единый набор ввода игры, спека `docs/specs/minigames.md`: стрелки, A, B.
-## Клавиатура основная: стрелки или WASD; A = Z, пробел, Enter; B = X, Esc, Ctrl.
-## Геймпад: крестовина и левый стик, кнопка юга A, кнопка востока B.
-## Действия заданы в `project.godot` ([input]); код обращается к ним только через эти имена.
+## Клавиатура основная: стрелки или WASD; A = Z, пробел, Enter; B = X, C, Ctrl (Esc с B снят
+## плейтестом 2026-11-08: Esc только паузы и отказы оболочки). Геймпад: крестовина и левый
+## стик, кнопка юга A, кнопка востока B. Действия заданы в `project.godot` ([input]); код
+## обращается к ним только через эти имена. Подписи в интерфейсе реальными клавишами через
+## `key(action)`: «␣» и «Ctrl» на клавиатуре, кнопки геймпада, когда он станет устройством.
 
 const LEFT: StringName = &"move_left"
 const RIGHT: StringName = &"move_right"
@@ -13,10 +15,31 @@ const A: StringName = &"action_a"
 const B: StringName = &"action_b"
 
 const ALL: Array[StringName] = [LEFT, RIGHT, UP, DOWN, A, B]
-## Подписи для интро мини-игр и тестовых сцен.
+
+enum Device { KEYBOARD, GAMEPAD }
+
+## Подписи клавиатуры: стрелки глифами, A пробел, B Ctrl.
 const LABELS := {
-	LEFT: "←", RIGHT: "→", UP: "↑", DOWN: "↓", A: "A", B: "B",
+	LEFT: "←", RIGHT: "→", UP: "↑", DOWN: "↓", A: "␣", B: "Ctrl",
 }
+## Подписи геймпада (кнопки юга и востока), для будущего переключения устройства.
+const GAMEPAD_LABELS := {
+	LEFT: "←", RIGHT: "→", UP: "↑", DOWN: "↓", A: "Ⓐ", B: "Ⓑ",
+}
+
+## Текущее устройство подписей; геймпад переключит, когда появится его поддержка в оболочке.
+static var device := Device.KEYBOARD
+
+
+## Подпись действия реальной клавишей текущего устройства.
+static func key(action: StringName) -> String:
+	var table: Dictionary = GAMEPAD_LABELS if device == Device.GAMEPAD else LABELS
+	return str(table.get(action, String(action)))
+
+
+## «␣ дальше»: подпись с глаголом.
+static func hint(action: StringName, text: String) -> String:
+	return key(action) + " " + text
 
 
 ## Направление стрелок или стика, длина до 1.

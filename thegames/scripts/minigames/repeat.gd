@@ -235,7 +235,7 @@ func _draw() -> void:
 		var half := PAD * scale_ / 2.0
 		var rect := Rect2(center - Vector2(half, half), Vector2(half * 2.0, half * 2.0))
 		Style.flat(fill, Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), rect)
-		var glyph: String = GameInput.LABELS[KEYS[i]]
+		var glyph: String = GameInput.key(KEYS[i])
 		var w := font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, 56).x
 		draw_string(font, Vector2(center.x - w / 2.0, center.y + 20.0), glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, 56, ink)
 	# Прогресс последовательности под площадками: заполняется при повторе.

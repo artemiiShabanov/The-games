@@ -94,7 +94,7 @@ func _start_release() -> void:
 		_show_card("Новая студия", ["Релиз 1 · %s" % config.title,
 				"%s × %s × %s" % [Game.genre_name(config.genre), Game.tech_name(config.tech), Game.setting_name(config.setting)],
 				"%d спринтов по %s, итого %s" % [config.sprints, Style.format_money(config.sprint_cost), Style.format_money(config.total_cost())]],
-				"A начать разработку")
+				GameInput.hint(GameInput.A, "начать разработку"))
 		set_meta(&"first_config", config)
 		_bot_timer = 0.0
 	elif run.studio.sequels_unlocked() or run.studio.remakes_unlocked():
@@ -298,7 +298,7 @@ func _show_end() -> void:
 		lines.append("Денег на дешёвый релиз нет, издатель уже помогал.")
 	else:
 		lines.append("Оценка студии %s" % Style.format_money(st.valuation))
-	_show_card("Банкротство" if run.finish_reason == "банкротство" else "Итоги года", lines, "A новый забег")
+	_show_card("Банкротство" if run.finish_reason == "банкротство" else "Итоги года", lines, GameInput.hint(GameInput.A, "новый забег"))
 	ShellSounds.play(&"bug" if run.finish_reason == "банкротство" else &"done")
 	_bot_timer = 0.0
 

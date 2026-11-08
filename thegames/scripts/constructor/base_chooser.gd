@@ -158,7 +158,7 @@ func _build() -> void:
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("↑ ↓ листать"))
 	hints.add_child(HintPill.make("← → колонка"))
-	hints.add_child(HintPill.make("A выбрать"))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "выбрать")))
 	add_child(hints)
 
 

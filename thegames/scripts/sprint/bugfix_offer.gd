@@ -141,7 +141,7 @@ func _build() -> void:
 		_labels.append(l)
 	var pill_row := HBoxContainer.new()
 	pill_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	pill_row.add_child(HintPill.make("← → выбрать · A подтвердить · B отказаться"))
+	pill_row.add_child(HintPill.make("← → выбрать · %s подтвердить · %s отказаться" % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	column.add_child(pill_row)
 	_refresh()
 

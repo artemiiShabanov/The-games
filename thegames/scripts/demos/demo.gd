@@ -271,8 +271,8 @@ func _build_overlay() -> void:
 	_menu_hint = HBoxContainer.new()
 	(_menu_hint as HBoxContainer).alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu_hint.add_child(HintPill.make("%s %s выбрать · %s подтвердить · %s вернуться" % [
-			GameInput.LABELS[GameInput.LEFT], GameInput.LABELS[GameInput.RIGHT],
-			GameInput.LABELS[GameInput.A], GameInput.LABELS[GameInput.B]]))
+			GameInput.key(GameInput.LEFT), GameInput.key(GameInput.RIGHT),
+			GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	_menu_hint.visible = false
 	column.add_child(_menu_hint)
 
