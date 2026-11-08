@@ -1,0 +1,171 @@
+class_name RunState
+extends RefCounted
+## Состояние забега в памяти, спека `docs/specs/run.md` (#30; слоты и сохранения в M2):
+## номер релиза, кап, записи игр, рынок, кошелёк, содержание, студия, открытые жанры,
+## технологии и сеттинги. Здесь же порядок одного релиза как функции без экранов, в том
+## порядке, в каком их зовёт главная сцена:
+##   prepare_release → (конструктор) start_development → (спринты, плейтест, багфикс) →
+##   score_release → (лента) → settle → close_release.
+## M1: стартовая пара из `RunTuning`, один сеттинг, кап из тюнинга, конец только по
+## банкротству (`StudioPhase.Report.game_over`) и по капу коротким экраном.
+
+var tuning: RunTuning
+var economy: EconomyTuning
+var success: SuccessTuning
+var sprint_tuning: SprintTuning
+var catalog: BugCatalog
+var minigames: Array[MinigameDef] = []
+var upgrades: Array[UpgradeDef] = []
+var critics: PeopleSet
+var streamers: PeopleSet
+var texts: FeedTexts
+
+var release := 1
+var cap := 12
+var records: Array[GameRecord] = []
+var market: MarketState
+var wallet: Wallet
+var upkeep: Upkeep
+var studio: StudioState
+var rng := RandomNumberGenerator.new()
+## Первая мини-игра прошлого плана: не ставится первой дважды подряд.
+var last_first: StringName = &""
+## План спринтов текущего релиза.
+var last_plan: SprintPlan
+## Репутация до текущего релиза: лента читает сдвиг тона.
+var reputation_before := 0.0
+var finished := false
+var finish_reason := ""
+
+
+static func start(seed_: int, deterministic_market := false) -> RunState:
+	var r := RunState.new()
+	r.tuning = RunTuning.load_default()
+	r.economy = EconomyTuning.load_default()
+	r.success = SuccessTuning.load_default()
+	r.sprint_tuning = MinigamePool.load_tuning()
+	r.catalog = BugCatalog.load_default()
+	for d in MinigamePool.load_all():
+		if d.scene != null:
+			r.minigames.append(d)
+	r.upgrades = UpgradePool.load_all()
+	r.critics = PeopleSet.load_critics()
+	r.streamers = PeopleSet.load_streamers()
+	r.texts = FeedTexts.load_default()
+	r.rng.seed = seed_
+	r.cap = r.tuning.cap
+	r.market = MarketState.create(r.success, r.rng, deterministic_market)
+	r.wallet = Wallet.new(r.economy.start_cash)
+	r.upkeep = Upkeep.new(r.economy.upkeep_base)
+	r.studio = StudioState.new()
+	return r
+
+
+## Сложность релиза по спеке мини-игр.
+func t_value() -> float:
+	return clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
+
+
+# --- Открытое ---------------------------------------------------------------------------------
+
+func unlocked_genres() -> Array[Game.Genre]:
+	var out: Array[Game.Genre] = [tuning.genre]
+	for d in _bought():
+		if d.kind == UpgradeDef.Kind.GENRE and not out.has(d.genre):
+			out.append(d.genre)
+	return out
+
+
+func unlocked_techs() -> Array[Game.Tech]:
+	var out: Array[Game.Tech] = [tuning.tech]
+	for d in _bought():
+		if d.kind == UpgradeDef.Kind.TECH and not out.has(d.tech):
+			out.append(d.tech)
+	return out
+
+
+## M1: один сеттинг (решение 2026-11-06), три сеттинга и «новый сеттинг» в M2.
+func unlocked_settings() -> Array[Game.Setting]:
+	return [Game.Setting.PIRATES]
+
+
+func _bought() -> Array[UpgradeDef]:
+	var out: Array[UpgradeDef] = []
+	for id in studio.upgrade_ids:
+		var d := UpgradePool.find(upgrades, id)
+		if d != null:
+			out.append(d)
+	return out
+
+
+func discount() -> float:
+	return studio.discount(economy)
+
+
+# --- Порядок релиза -----------------------------------------------------------------------------
+
+## Перед конструктором: настрой рынка и тренд этого релиза.
+func prepare_release() -> void:
+	market.roll_release(success, rng)
+	reputation_before = market.reputation
+
+
+## Первый релиз без конструктора: стартовая пара, единственный сеттинг.
+func first_config() -> GameConfig:
+	return Constructor.quick_config(tuning.genre, tuning.tech, unlocked_settings()[0], economy, rng.randi(), discount())
+
+
+## Старт разработки: стоимость релиза списана целиком, запись и план спринтов.
+func start_development(config: GameConfig) -> GameRecord:
+	wallet.spend(config.total_cost(), &"release")
+	var record := config.to_record(rng.randi())
+	last_plan = SprintPlanner.plan(economy.sprints(record.tech), record.genre, record.tech, minigames,
+			sprint_tuning, rng, last_first, studio.replays())
+	if last_plan.size() > 0:
+		last_first = last_plan.defs[0].id
+	return record
+
+
+## Отклик на релиз после плейтеста и багфикса; репутация и насыщение применяются сразу,
+## чтобы лента и оценка студии видели их.
+func score_release(record: GameRecord) -> ReleaseScore:
+	var score := Success.score_release(record, records, market, success, catalog, rng, true)
+	record.score = score
+	Success.apply_release(record, score, market, success, rng, true)
+	return score
+
+
+func build_feed(record: GameRecord) -> FeedContent:
+	return Feed.build(record, record.score, critics, streamers, texts, success, catalog, rng,
+			market.reputation - reputation_before)
+
+
+func bugfix_price(record: GameRecord) -> int:
+	return Bugfix.price(record, economy, discount())
+
+
+## Фаза студии: деньги, банкротство, оценка, предложение.
+func settle(record: GameRecord) -> StudioPhase.Report:
+	return StudioPhase.settle(release, records, record, market, wallet, upkeep, studio, economy, success,
+			upgrades, unlocked_genres(), unlocked_techs(), unlocked_settings(), rng)
+
+
+## Релиз закрыт: запись в историю, следующий номер; конец забега по капу.
+func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
+	records.append(record)
+	if report != null and report.game_over:
+		finished = true
+		finish_reason = "банкротство"
+		return
+	release += 1
+	if release > cap:
+		finished = true
+		finish_reason = "год закончился"
+
+
+func stats() -> RunStats:
+	return Success.run_stats(records, market, wallet.cash, success)
+
+
+func _to_string() -> String:
+	return "релиз %d/%d, %s, R %.1f, игр %d, %s" % [release, cap, Style.format_money(wallet.cash), market.reputation, records.size(), studio]

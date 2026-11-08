@@ -1,54 +1,57 @@
 class_name Main
 extends Control
-## Петля M0 (#18), без экономики: карточка релиза → пять спринтов (`SprintRunner`) → плейтест
-## демки с набранными багами → карточка итога со штампами → следующий релиз с `t` на шаг
-## больше. Фон пока цвет студии, сама студия в M5. Раздел «Состояние» в дебаг-меню.
-## Под ботом с `--loop` проходит релиз целиком и проверяет, что всё сошлось.
+## Петля M1 (#30), спека `docs/specs/run.md`: релиз 1 на стартовой паре без конструктора,
+## дальше основа (если открыты сиквелы или ремейки) → конструктор → спринты → плейтест →
+## багфикс (одно или два предложения) → лента (из неё можно в демо и обратно) → фаза студии →
+## следующий релиз. Конец забега: банкротство из фазы студии или кап, короткий экран, A
+## начинает новый забег. Состояние в `RunState`, экраны грузятся по месту. Фон пока цвет
+## студии, сама студия в M5. Раздел «Состояние» в дебаг-меню: деньги, релиз, репутация,
+## покупка прокачки, пропуск этапа. Под ботом с `--loop` проходит `--releases=N` релизов
+## (по умолчанию три) и сверяет деньги с ведомостью.
 
-enum Stage { START, SPRINTS, PLAYTEST, SUMMARY }
+enum Stage { START, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, END }
 
-const DEMO := preload("res://scenes/demos/platformer_bit8.tscn")
 const SECTION: StringName = &"Состояние"
+const DEMO_PATH := "res://scenes/demos/platformer_bit8.tscn"
+const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
+const BASE_PATH := "res://scenes/base_chooser.tscn"
+const BUGFIX_PATH := "res://scenes/bugfix_offer.tscn"
+const FEED_PATH := "res://scenes/feed.tscn"
+const STUDIO_PATH := "res://scenes/studio_screen.tscn"
 const BOT_PAUSE := 0.5
-const PLAYTEST_CARD_SECONDS := 1.2
+const CARD_SECONDS := 1.2
 
-var tuning: RunTuning
-var sprint_tuning: SprintTuning
-var catalog: BugCatalog
-var pool: Array[MinigameDef] = []
-var release := 1
-var record: GameRecord
-var plan: SprintPlan
-var demo_reached := false
+var run: RunState
 var stage := Stage.START
-var runner: SprintRunner
-var demo: Demo
-var releases_done := 0
+var record: GameRecord
+var base: BaseOption
+var report: StudioPhase.Report
+var bugfix_offers := 0
 
 var _bg: ColorRect
 var _card: Control
 var _demo_header: PanelContainer
-var _rng := RandomNumberGenerator.new()
-var _last_first: StringName = &""
+var _screen: Node
+var _runner: SprintRunner
+var _demo: Demo
 var _bot_timer := 0.0
 var _loop_check := false
+var _loop_releases := 3
+var _expected_cash := 0
+var _debug_upgrade := ""
 
 
 func _ready() -> void:
-	tuning = RunTuning.load_default()
-	sprint_tuning = MinigamePool.load_tuning()
-	catalog = BugCatalog.load_default()
-	# M0: подбор без технологической, только мини-игры со сценами.
-	for d in MinigamePool.load_all():
-		if d.scene != null:
-			pool.append(d)
+	var seed_ := 1 if AutoTest.enabled else randi()
+	run = RunState.start(seed_, AutoTest.enabled)
 	if AutoTest.enabled:
-		_rng.seed = 1
-		_loop_check = AutoTest.parse_args(OS.get_cmdline_user_args()).has("loop")
+		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
+		_loop_check = args.has("loop")
+		if args.has("releases"):
+			_loop_releases = int(str(args["releases"]))
 		if _loop_check:
-			AutoTest.require("loop release")
-	else:
-		_rng.randomize()
+			AutoTest.require("loop releases")
+	_expected_cash = run.wallet.cash
 
 	_bg = ColorRect.new()
 	_bg.color = Style.BG
@@ -56,17 +59,22 @@ func _ready() -> void:
 	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bg)
 
-	runner = SprintRunner.new()
-	runner.tuning = sprint_tuning
-	runner.visible = false
-	runner.sprint_finished.connect(_on_sprint_finished)
-	runner.plan_finished.connect(_on_plan_finished)
-	add_child(runner)
-
-	Debug.add_number(SECTION, "Релиз (со следующего)", func() -> int: return release,
-			func(v: float) -> void: release = int(v), 1, 13, 1)
+	Debug.add_number(SECTION, "Деньги", func() -> int: return run.wallet.cash,
+			func(v: float) -> void: run.wallet.cash = int(v), -20000, 200000, 1000)
+	Debug.add_number(SECTION, "Релиз (со следующего)", func() -> int: return run.release,
+			func(v: float) -> void: run.release = int(v), 1, 13, 1)
+	Debug.add_number(SECTION, "Репутация", func() -> float: return run.market.reputation,
+			func(v: float) -> void: run.market.reputation = v, -10.0, 30.0, 0.5)
+	var ids: Array[String] = []
+	for d in run.upgrades:
+		ids.append(String(d.id))
+	if not ids.is_empty():
+		_debug_upgrade = ids[0]
+	Debug.add_choice(SECTION, "Прокачка", ids, func() -> String: return _debug_upgrade,
+			func(v: String) -> void: _debug_upgrade = v)
+	Debug.add_action(SECTION, "Купить прокачку бесплатно", _debug_buy)
 	Debug.add_action(SECTION, "Пропустить этап", _skip_stage)
-	Debug.watch("релиз", func() -> String: return "%d, t=%.2f, этап %s" % [release, t_value(), Stage.keys()[stage]])
+	Debug.watch("забег", func() -> String: return "%s, этап %s" % [run, Stage.keys()[stage]])
 	Debug.watch("запись", func() -> String: return str(record) if record else "")
 
 	if AutoTest.enabled:
@@ -74,37 +82,74 @@ func _ready() -> void:
 	_start_release()
 
 
-## Сложность релиза по спеке мини-игр.
-func t_value() -> float:
-	return clampf(float(release - 1) / float(maxi(tuning.cap - 1, 1)), 0.0, 1.0)
-
-
 # --- Этапы ----------------------------------------------------------------------------------
 
 func _start_release() -> void:
-	stage = Stage.START
-	record = GameRecord.create(tuning.genre, tuning.tech, _rng.randi(), tuning.title)
-	var plan_rng := RandomNumberGenerator.new()
-	plan_rng.seed = record.seed
-	plan = SprintPlanner.plan(tuning.sprints, tuning.genre, tuning.tech, pool, sprint_tuning, plan_rng, _last_first, tuning.replays)
-	if plan.size() > 0:
-		_last_first = plan.defs[0].id
-	_show_card("Релиз %d" % release, ["%s · %s × %s" % [tuning.title, Game.genre_name(tuning.genre), Game.tech_name(tuning.tech)],
-			"%d спринтов, сложность %d %%" % [plan.size(), int(round(t_value() * 100))]], "A начать разработку")
+	_clear_all()
+	run.prepare_release()
+	base = null
+	if run.release == 1:
+		stage = Stage.START
+		var config := run.first_config()
+		_show_card("Новая студия", ["Релиз 1 · %s" % config.title,
+				"%s × %s × %s" % [Game.genre_name(config.genre), Game.tech_name(config.tech), Game.setting_name(config.setting)],
+				"%d спринтов по %s, итого %s" % [config.sprints, Style.format_money(config.sprint_cost), Style.format_money(config.total_cost())]],
+				"A начать разработку")
+		set_meta(&"first_config", config)
+		_bot_timer = 0.0
+	elif run.studio.sequels_unlocked() or run.studio.remakes_unlocked():
+		_open_base()
+	else:
+		_open_constructor()
+
+
+func _open_base() -> void:
+	stage = Stage.BASE
+	var chooser := (load(BASE_PATH) as PackedScene).instantiate() as BaseChooser
+	chooser.setup(run.records, run.unlocked_techs(), run.studio.sequels_unlocked(), run.studio.remakes_unlocked(),
+			run.wallet.cash, run.release)
+	chooser.base_chosen.connect(_on_base_chosen)
+	_set_screen(chooser)
 	_bot_timer = 0.0
 
 
-func _begin_sprints() -> void:
+func _on_base_chosen(o: BaseOption) -> void:
+	base = o
+	_open_constructor()
+
+
+func _open_constructor() -> void:
+	stage = Stage.CONSTRUCTOR
+	var c := (load(CONSTRUCTOR_PATH) as PackedScene).instantiate() as Constructor
+	c.setup(run.unlocked_genres(), run.unlocked_techs(), run.unlocked_settings(), run.wallet.cash, run.release,
+			run.rng.randi(), run.discount(), base)
+	c.set_market(run.market, run.success, run.studio.insider())
+	c.game_configured.connect(_on_configured)
+	_set_screen(c)
+	_bot_timer = 0.0
+
+
+func _on_configured(config: GameConfig) -> void:
+	_clear_all()
+	_begin_development(config)
+
+
+func _begin_development(config: GameConfig) -> void:
 	stage = Stage.SPRINTS
-	_clear_card()
-	runner.visible = true
-	runner.run(plan, t_value(), release == 1, record.seed, "%s · релиз %d" % [tuning.title, release])
+	record = run.start_development(config)
+	_expected_cash -= config.total_cost()
+	_runner = SprintRunner.new()
+	_runner.tuning = run.sprint_tuning
+	_runner.sprint_finished.connect(_on_sprint_finished)
+	_runner.plan_finished.connect(_on_plan_finished)
+	add_child(_runner)
+	_runner.run(run.last_plan, run.t_value(), run.release == 1, record.seed, "%s · релиз %d" % [record.title, run.release])
 
 
 func _on_sprint_finished(d: MinigameDef, success: bool) -> void:
 	record.add_sprint(success)
 	if not success:
-		catalog.apply_fail(d, record)
+		run.catalog.apply_fail(d, record)
 
 
 func _on_plan_finished(_results: Array[bool]) -> void:
@@ -113,97 +158,303 @@ func _on_plan_finished(_results: Array[bool]) -> void:
 
 func _begin_playtest() -> void:
 	stage = Stage.PLAYTEST
-	runner.visible = false
-	_show_card("Плейтест", ["%s готова к пробе" % tuning.title,
-			"багов: %d" % record.bug_ids.size()], "")
+	if _runner != null:
+		_runner.queue_free()
+		_runner = null
+	_show_card("Плейтест", ["%s готова к пробе" % record.title, "багов: %d" % record.bug_ids.size()], "")
 	ShellSounds.play(&"intro")
-	await get_tree().create_timer(PLAYTEST_CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
+	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	if stage != Stage.PLAYTEST:
 		return
 	_clear_card()
-	_demo_header = HintPill.header("Плейтест · %s · релиз %d" % [tuning.title, release])
+	_run_demo(&"playtest", "Плейтест")
+
+
+func _run_demo(source: StringName, caption: String) -> void:
+	_demo_header = HintPill.header("Релиз %d · %s · %s" % [run.release, caption, record.title])
 	_demo_header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(_demo_header)
-	demo = DEMO.instantiate() as Demo
-	demo.setup(record, &"playtest")
-	demo.demo_finished.connect(_on_demo_finished)
-	add_child(demo)
-	demo.start()
+	_demo = (load(DEMO_PATH) as PackedScene).instantiate() as Demo
+	_demo.setup(record, source)
+	_demo.demo_finished.connect(_on_demo_finished)
+	add_child(_demo)
+	_demo.start()
 
 
-func _on_demo_finished(_r: GameRecord, reached: bool) -> void:
-	demo_reached = reached
-	if demo != null:
-		demo.queue_free()
-		demo = null
+func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
+	if _demo != null:
+		_demo.queue_free()
+		_demo = null
 	if _demo_header != null:
 		_demo_header.queue_free()
 		_demo_header = null
-	_show_summary()
+	if stage == Stage.FEED_DEMO:
+		_open_feed()
+	else:
+		bugfix_offers = 0
+		_offer_bugfix()
 
 
-func _show_summary() -> void:
-	stage = Stage.SUMMARY
-	releases_done += 1
-	var lines: Array[String] = [
-		"качество %d %% · плейтест: %s" % [int(round(record.quality() * 100)), "добежал" if demo_reached else "не добежал"]]
-	_show_card("Релиз %d готов" % release, lines, "A следующий релиз", _bug_pills())
-	ShellSounds.play(&"done" if record.bug_ids.is_empty() else &"bug")
+## Предложение багфикса: пока есть баги и предложения (с «Отделом QA» два).
+func _offer_bugfix() -> void:
+	if record.bug_ids.is_empty() or bugfix_offers >= Bugfix.offers(run.studio):
+		_finish_release()
+		return
+	stage = Stage.BUGFIX
+	bugfix_offers += 1
+	var offer := (load(BUGFIX_PATH) as PackedScene).instantiate() as BugfixOffer
+	offer.setup(record, run.catalog, run.bugfix_price(record), run.wallet.cash)
+	offer.accepted.connect(_on_bugfix_accepted)
+	offer.declined.connect(_finish_release)
+	_set_screen(offer)
 	_bot_timer = 0.0
-	if _loop_check and releases_done == 1:
-		if record.sprint_results.size() != plan.size():
-			AutoTest.fail("loop: спринтов %d, в плане %d" % [record.sprint_results.size(), plan.size()])
-		if plan.size() != tuning.sprints:
-			AutoTest.fail("loop: план из %d, ждали %d" % [plan.size(), tuning.sprints])
-		AutoTest.fulfill("loop release")
-		AutoTest.note("loop release done: seed %d, bugs %s, reached %s, frames_left=%d" % [record.seed, record.bug_ids, demo_reached, AutoTest.frames_left])
 
 
-func _next_release() -> void:
-	release += 1
+func _on_bugfix_accepted() -> void:
+	_clear_all()
+	stage = Stage.FIXING
+	var price := run.bugfix_price(record)
+	run.wallet.spend(price, &"bugfix")
+	_expected_cash -= price
+	var def := Bugfix.pick_minigame(run.minigames, run.rng)
+	_runner = SprintRunner.new()
+	_runner.tuning = run.sprint_tuning
+	_runner.sprint_finished.connect(_on_bugfix_sprint)
+	add_child(_runner)
+	_runner.run(Bugfix.plan_for(def), run.t_value(), false, run.rng.randi(), "Багфикс · %s" % record.title)
+
+
+func _on_bugfix_sprint(_def: MinigameDef, success: bool) -> void:
+	var fixed: Array[StringName] = []
+	if success:
+		fixed = Bugfix.apply_fix(record, run.rng)
+	await get_tree().process_frame
+	if _runner != null:
+		_runner.queue_free()
+		_runner = null
+	var names: PackedStringArray = []
+	for id in fixed:
+		var b := run.catalog.by_id(id)
+		names.append(b.stamp if b != null else String(id))
+	_show_card("Багфикс", ["Починено: %s" % ", ".join(names) if success else "Провал: ничего не починено",
+			"осталось багов: %d" % record.bug_ids.size()], "")
+	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	_clear_card()
-	_start_release()
+	_offer_bugfix()
 
 
-func _skip_stage() -> void:
-	Debug.close_menu()
-	match stage:
-		Stage.START:
-			_begin_sprints()
-		Stage.PLAYTEST:
-			if demo != null:
-				demo.quit_demo()
-		Stage.SUMMARY:
-			_next_release()
+## Релиз выпущен: отклик посчитан, лента.
+func _finish_release() -> void:
+	_clear_all()
+	if record.score == null:
+		run.score_release(record)
+	_open_feed()
 
+
+func _open_feed() -> void:
+	stage = Stage.FEED
+	var feed := (load(FEED_PATH) as PackedScene).instantiate() as FeedScreen
+	feed.setup(run.build_feed(record), record, run.release, run.wallet.cash)
+	feed.demo_requested.connect(_on_feed_demo)
+	feed.finished.connect(_open_studio)
+	_set_screen(feed)
+	_bot_timer = 0.0
+
+
+func _on_feed_demo() -> void:
+	_clear_all()
+	stage = Stage.FEED_DEMO
+	_run_demo(&"feed", "Демо")
+
+
+func _open_studio() -> void:
+	_clear_all()
+	stage = Stage.STUDIO
+	report = run.settle(record)
+	_expected_cash += report.first_week + report.tails_total - report.upkeep + report.rescue
+	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
+	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
+	screen.upgrade_bought.connect(func(u: UpgradeDef) -> void: _expected_cash -= u.price(run.economy))
+	screen.finished.connect(_on_studio_finished)
+	_set_screen(screen)
+
+
+func _on_studio_finished() -> void:
+	_clear_all()
+	run.close_release(record, report)
+	if _loop_check:
+		_check_release()
+	if run.finished:
+		_show_end()
+	else:
+		_start_release()
+
+
+func _show_end() -> void:
+	stage = Stage.END
+	var st := run.stats()
+	var lines: Array[String] = ["%d релизов" % run.records.size()]
+	if run.finish_reason == "банкротство":
+		lines.append("Денег на дешёвый релиз нет, издатель уже помогал.")
+	else:
+		lines.append("Оценка студии %s" % Style.format_money(st.valuation))
+	_show_card("Банкротство" if run.finish_reason == "банкротство" else "Итоги года", lines, "A новый забег")
+	ShellSounds.play(&"bug" if run.finish_reason == "банкротство" else &"done")
+	_bot_timer = 0.0
+
+
+func _restart() -> void:
+	Debug.clear_section(SECTION)
+	get_tree().reload_current_scene()
+
+
+# --- Ввод, бот, дебаг -------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not GameInput.is_a(event):
 		return
 	if stage == Stage.START:
-		_begin_sprints()
+		_begin_development(get_meta(&"first_config"))
+		_clear_card()
 		get_viewport().set_input_as_handled()
-	elif stage == Stage.SUMMARY:
-		_next_release()
+	elif stage == Stage.END:
+		_restart()
 		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
 	if not AutoTest.bot_active():
 		return
-	if stage == Stage.START or stage == Stage.SUMMARY:
-		_bot_timer += delta
-		if _bot_timer >= BOT_PAUSE:
+	_bot_timer += delta
+	if _bot_timer < BOT_PAUSE:
+		return
+	match stage:
+		Stage.START:
 			_bot_timer = -INF
-			if stage == Stage.START:
-				_begin_sprints()
+			_clear_card()
+			_begin_development(get_meta(&"first_config"))
+		Stage.BASE:
+			_bot_timer = -INF
+			var chooser := _screen as BaseChooser
+			if chooser != null:
+				chooser.confirm(chooser.options[0][0])
+		Stage.CONSTRUCTOR:
+			_bot_timer = -INF
+			var c := _screen as Constructor
+			if c != null:
+				c.focus(Constructor.ROW_BUTTON)
+				c.confirm()
+		Stage.BUGFIX:
+			_bot_timer = -INF
+			var offer := _screen as BugfixOffer
+			if offer != null:
+				offer.decline()
+		Stage.FEED:
+			_bot_timer = -INF
+			var feed := _screen as FeedScreen
+			if feed != null:
+				feed.scroll_to_end()
+				feed.set_focus_demo(false)
+				feed.confirm()
+		Stage.END:
+			_bot_timer = -INF
+			if _loop_check:
+				AutoTest.note("loop: run finished early: %s" % run.finish_reason)
+				AutoTest.fulfill("loop releases")
 			else:
-				_next_release()
+				_restart()
 
 
-# --- Карточки оболочки -----------------------------------------------------------------------
+## Сверка после фазы студии: деньги сходятся с ведомостью, хвосты с записями.
+func _check_release() -> void:
+	var n := run.records.size()
+	if run.wallet.cash != _expected_cash:
+		AutoTest.fail("loop: деньги %d, по ведомости %d" % [run.wallet.cash, _expected_cash])
+	if record.sprint_results.size() != run.last_plan.size():
+		AutoTest.fail("loop: спринтов %d, в плане %d" % [record.sprint_results.size(), run.last_plan.size()])
+	var tails := 0
+	for i in n - 1:
+		if run.records[i].score != null:
+			tails += run.records[i].score.last_tick
+	if tails != report.tails_total:
+		AutoTest.fail("loop: хвосты %d, в записях %d" % [report.tails_total, tails])
+	if record.score == null or report.first_week != record.score.sales_first:
+		AutoTest.fail("loop: первая неделя %d" % report.first_week)
+	AutoTest.note("loop release %d done: %s, bugs %s, %s" % [n, record.score, record.bug_ids, run])
+	if n >= _loop_releases and not run.finished:
+		AutoTest.fulfill("loop releases")
+		AutoTest.note("loop releases done: frames_left=%d" % AutoTest.frames_left)
 
-func _show_card(title: String, lines: Array[String], hint: String, extra: Control = null) -> void:
+
+func _debug_buy() -> void:
+	var d := UpgradePool.find(run.upgrades, StringName(_debug_upgrade))
+	if d == null or run.studio.has(d.id):
+		return
+	run.upkeep.add(d.id, d.upkeep(run.economy))
+	run.studio.buy(d)
+	Debug.close_menu()
+
+
+func _skip_stage() -> void:
+	Debug.close_menu()
+	match stage:
+		Stage.START:
+			_clear_card()
+			_begin_development(get_meta(&"first_config"))
+		Stage.BASE:
+			var chooser := _screen as BaseChooser
+			if chooser != null:
+				chooser.confirm(chooser.options[0][0])
+		Stage.CONSTRUCTOR:
+			var c := _screen as Constructor
+			if c != null:
+				c.focus(Constructor.ROW_BUTTON)
+				c.confirm()
+		Stage.PLAYTEST, Stage.FEED_DEMO:
+			if _demo != null:
+				_demo.quit_demo()
+		Stage.BUGFIX:
+			_finish_release()
+		Stage.FEED:
+			_open_studio()
+		Stage.STUDIO:
+			var s := _screen as StudioScreen
+			if s != null:
+				s.skip()
+				s.proceed()
+		Stage.END:
+			_restart()
+
+
+# --- Экраны и карточки ------------------------------------------------------------------------
+
+func _set_screen(node: Node) -> void:
+	_clear_screen()
+	_screen = node
+	add_child(node)
+
+
+func _clear_screen() -> void:
+	if _screen != null:
+		_screen.queue_free()
+		_screen = null
+
+
+func _clear_all() -> void:
+	_clear_card()
+	_clear_screen()
+	if _runner != null:
+		_runner.queue_free()
+		_runner = null
+	if _demo != null:
+		_demo.queue_free()
+		_demo = null
+	if _demo_header != null:
+		_demo_header.queue_free()
+		_demo_header = null
+
+
+func _show_card(title: String, lines: Array[String], hint: String) -> void:
 	_clear_card()
 	_card = Control.new()
 	_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -231,8 +482,6 @@ func _show_card(title: String, lines: Array[String], hint: String, extra: Contro
 		l.add_theme_font_size_override("font_size", Style.FONT_BODY)
 		l.add_theme_color_override("font_color", Style.INK_2)
 		column.add_child(l)
-	if extra != null:
-		column.add_child(extra)
 	if hint != "":
 		var pill_row := HBoxContainer.new()
 		pill_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -244,49 +493,6 @@ func _show_card(title: String, lines: Array[String], hint: String, extra: Contro
 		var tw := create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tw.tween_property(_card, "modulate:a", 1.0, Style.SWITCH_SECONDS)
 		tw.tween_property(_card, "position:y", 0.0, Style.SWITCH_SECONDS)
-
-
-## Штампы багов релиза пилюлями цвета `bug`, под ними проявления.
-func _bug_pills() -> Control:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	if record.bug_ids.is_empty():
-		var l := Label.new()
-		l.text = "Багов нет: чистая сборка"
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_color_override("font_color", Style.SUCCESS)
-		box.add_child(l)
-		return box
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	box.add_child(row)
-	for id in record.bug_ids:
-		var bug := catalog.by_id(id)
-		var pill := PanelContainer.new()
-		var sb := Style.flat(Style.BUG, Style.R_PILL, Color.TRANSPARENT, 0)
-		sb.content_margin_left = 18
-		sb.content_margin_right = 18
-		sb.content_margin_top = 6
-		sb.content_margin_bottom = 6
-		pill.add_theme_stylebox_override("panel", sb)
-		var l := Label.new()
-		l.text = bug.stamp if bug != null else String(id)
-		l.add_theme_font_size_override("font_size", Style.FONT_CAPTION + 2)
-		l.add_theme_color_override("font_color", Style.SURFACE_SOLID)
-		pill.add_child(l)
-		row.add_child(pill)
-	for id in record.bug_ids:
-		var bug := catalog.by_id(id)
-		if bug == null:
-			continue
-		var m := Label.new()
-		m.text = bug.manifestation
-		m.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		m.add_theme_font_size_override("font_size", Style.FONT_CAPTION)
-		m.add_theme_color_override("font_color", Style.INK_2)
-		box.add_child(m)
-	return box
 
 
 func _clear_card() -> void:
