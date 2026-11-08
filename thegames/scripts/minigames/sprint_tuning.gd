@@ -6,6 +6,8 @@ extends Resource
 @export var intro_seconds := 1.0
 @export var result_seconds := 1.0
 @export var studio_seconds := 2.5
+## Сколько карточка результата ждёт ответа на переигровку; по истечении дальше без неё (#29).
+@export var replay_offer_seconds := 3.0
 ## Время мини-игр в первом релизе × это.
 @export var first_release_time_multiplier := 1.5
 ## Индекс = `Game.Genre`.

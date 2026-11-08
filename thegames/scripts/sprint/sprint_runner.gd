@@ -7,10 +7,11 @@ extends Control
 ## Результат только «успех» или «провал», без названия бага: баг игрок встречает в демке, а
 ## штампы видит на итоге релиза (решение 2026-11-06). Интро, результат и пауза пропускаются
 ## любой клавишей, `Debug.skip_cards` убирает ожидания и анимации. Содержимое карточек по
-## концептам `02a`, `03a`, `03b`. Переигровка (#29, возможность студии): пока
-## `plan.replay_left > 0`, после провала карточка результата ждёт ответа: A переиграть ту же
-## мини-игру с новым сидом, любая другая клавиша дальше; результат переигровки окончательный,
-## `sprint_finished` приходит один раз на спринт, `sprint_replayed` на каждую переигровку.
+## концептам `02a`, `03a`, `03b`. Переигровка (#29, возможность студии, плейтест 2026-11-08):
+## пока `plan.replay_left > 0`, после провала карточка результата ждёт `replay_offer_seconds`
+## с тонкой полосой таймера сверху: B переиграть ту же мини-игру с новым сидом, любая другая
+## клавиша или конец таймера дальше; результат переигровки окончательный, `sprint_finished`
+## приходит один раз на спринт, `sprint_replayed` на каждую переигровку.
 ## Хозяин (петля релиза или тестовая сцена) зовёт `run()` и слушает сигналы.
 
 signal sprint_started(def: MinigameDef)
@@ -97,7 +98,7 @@ func current_def() -> MinigameDef:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if phase == Phase.OFFER and GameInput.is_any_press(event):
-		answer_offer(GameInput.is_a(event))
+		answer_offer(GameInput.is_b(event))
 		get_viewport().set_input_as_handled()
 	elif phase in [Phase.INTRO, Phase.RESULT, Phase.STUDIO] and GameInput.is_any_press(event):
 		_skip = true
@@ -156,9 +157,9 @@ func _run_sprint(def: MinigameDef) -> void:
 			_frame.shake_card()
 		if not offer:
 			break
-		# Предложение переигровки: карточка ждёт ответа.
+		# Предложение переигровки: карточка ждёт ответа, полоса таймера убывает.
 		phase = Phase.OFFER
-		if not await _await_offer():
+		if not await _await_offer(result_card.get_node("OfferBar") as Control):
 			break
 		plan.replay_left -= 1
 		attempt += 1
@@ -177,16 +178,26 @@ func _run_sprint(def: MinigameDef) -> void:
 	_next()
 
 
-## Ждать ответа на предложение переигровки; бот отвечает «переиграть» после короткой паузы.
-func _await_offer() -> bool:
+## Ждать ответа на предложение переигровки до `replay_offer_seconds`; полоса `bar` убывает,
+## конец таймера это отказ. Бот отвечает «переиграть» после короткой паузы.
+func _await_offer(bar: Control) -> bool:
 	_offer_answer = -1
+	var total := tuning.replay_offer_seconds
+	var left := total
+	var full_width := bar.size.x if bar != null else 0.0
 	var bot_left := BOT_OFFER_SECONDS if not Debug.skip_cards else 0.0
 	while _offer_answer < 0:
 		await get_tree().process_frame
+		var dt := get_process_delta_time()
+		left -= dt
+		if bar != null:
+			bar.size.x = full_width * clampf(left / total, 0.0, 1.0)
 		if AutoTest.bot_active():
-			bot_left -= get_process_delta_time()
+			bot_left -= dt
 			if bot_left <= 0.0:
 				_offer_answer = 1
+		if left <= 0.0 and _offer_answer < 0:
+			_offer_answer = 0
 	return _offer_answer == 1
 
 
@@ -275,9 +286,17 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 16)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(HintPill.make("%s переиграть" % GameInput.LABELS[GameInput.A]))
+		row.add_child(HintPill.make("%s переиграть" % GameInput.LABELS[GameInput.B]))
 		row.add_child(HintPill.make("любая другая клавиша дальше"))
 		card.add_child(HintPill.bottom_bar(row))
+		# Полоса таймера по верхнему краю, как у мини-игр: убывает, пока карточка ждёт ответа.
+		var bar := ColorRect.new()
+		bar.name = "OfferBar"
+		bar.color = Style.INK_2
+		bar.position = Vector2.ZERO
+		bar.size = Vector2(_content.size.x, 6)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(bar)
 	return card
 
 
