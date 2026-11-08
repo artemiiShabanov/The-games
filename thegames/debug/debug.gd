@@ -52,6 +52,8 @@ var minigame_id := "fit_frame"
 var minigame_t := 0.0
 var minigame_seed := 1
 var minigame_loop := false
+## Переигровок в плане тестовой сцены раннера (#29).
+var minigame_replays := 0
 ## true: одна мини-игра `minigame_id`, false: весь план из 8.
 var minigame_single := false
 ## Раздел «Демки»: сид и набор багов для `demo_test`.
@@ -296,6 +298,8 @@ func _register_builtin() -> void:
 			func(v: float) -> void: minigame_seed = int(v), 1, 999, 1, true)
 	add_toggle(SECTION_MINIGAMES, "Зациклить", func() -> bool: return minigame_loop,
 			func(v: bool) -> void: minigame_loop = v)
+	add_number(SECTION_MINIGAMES, "Переигровок", func() -> int: return minigame_replays,
+			func(v: float) -> void: minigame_replays = int(v), 0, 2, 1)
 	add_action(SECTION_MINIGAMES, "Запустить мини-игру", func() -> void:
 		minigame_single = true
 		run_test_scene(MINIGAME_SCENE))

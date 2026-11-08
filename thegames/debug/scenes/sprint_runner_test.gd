@@ -18,8 +18,9 @@ var _started := 0
 var _finished := 0
 var _replayed := 0
 var _check_phase := 0
-## Переигровок на план (`--replays=N`, #29): бот переигрывает провалы, пока они есть.
-var replays := 0
+## Переигровок на план (`--replays=N` или «Переигровок» в меню, #29): бот переигрывает
+## провалы, пока они есть.
+var replays := Debug.minigame_replays
 
 
 func _ready() -> void:
