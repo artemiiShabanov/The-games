@@ -228,6 +228,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		regenerate_title()
 		get_viewport().set_input_as_handled()
 		return
+	if MouseUi.is_mouse(event):
+		if _mouse(event):
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_echo():
 		return
 	if event.is_action_pressed(GameInput.UP):
@@ -246,6 +250,44 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Мышь: колесо листает колонку под курсором, клик по карточке выбирает её, клик по кнопке
+## нажимает. true, если событие разобрано.
+func _mouse(event: InputEvent) -> bool:
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		var col := _columns.column_at(event)
+		if col < 0:
+			return false
+		focus(col)
+		move(w)
+		return true
+	if not MouseUi.is_click(event):
+		return false
+	if MouseUi.hit(_button, event):
+		focus(ROW_BUTTON)
+		confirm()
+		return true
+	var at := _columns.card_at(event)
+	if at.x < 0:
+		return false
+	focus(at.x)
+	if at.y >= 0 and at.y != index[at.x]:
+		select(at.x, at.y)
+	return true
+
+
+## Выбрать карточку колонки напрямую (клик); залоченная колонка отвечает промахом.
+func select(kind: int, i: int) -> void:
+	if is_locked_column(kind):
+		ShellSounds.play(&"miss")
+		return
+	index[kind] = clampi(i, 0, _columns.count(kind) - 1)
+	if kind != 1 and franchise_parent() == null:
+		title = TitleGen.make(selected_entry(2), selected_entry(0), rng)
+	ShellSounds.play(&"tick")
+	_refresh(true)
 
 
 ## Листание текущей колонки; на кнопке ничего, залоченная колонка отвечает промахом.
@@ -344,6 +386,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
 	hints.add_child(HintPill.make("R название"))
 	add_child(hints)
+	MouseUi.pass_through(self)
 
 
 ## Карточка карусели 260×190: цветной фон, крупная буква вместо иллюстрации, название внизу.

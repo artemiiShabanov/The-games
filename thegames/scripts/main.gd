@@ -311,7 +311,7 @@ func _restart() -> void:
 # --- Ввод, бот, дебаг -------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not GameInput.is_a(event):
+	if not GameInput.is_a(event) and not MouseUi.is_click(event):
 		return
 	if stage == Stage.START:
 		_begin_development(get_meta(&"first_config"))

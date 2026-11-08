@@ -102,6 +102,25 @@ func count(col: int) -> int:
 	return cards[col].size()
 
 
+## Колонка под точкой экрана или −1.
+func column_at(event: InputEvent) -> int:
+	for col in _clips.size():
+		if MouseUi.hit(_clips[col], event):
+			return col
+	return -1
+
+
+## Карточка под точкой экрана: (колонка, индекс) или (−1, −1). Только внутри своей колонки.
+func card_at(event: InputEvent) -> Vector2i:
+	var col := column_at(event)
+	if col < 0:
+		return Vector2i(-1, -1)
+	for i in cards[col].size():
+		if MouseUi.hit(cards[col][i], event):
+			return Vector2i(col, i)
+	return Vector2i(col, -1)
+
+
 func set_caption(col: int, text: String) -> void:
 	_captions[col].text = text
 

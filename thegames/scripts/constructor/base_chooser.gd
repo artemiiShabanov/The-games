@@ -65,6 +65,10 @@ func selected() -> BaseOption:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo() or _closing:
 		return
+	if MouseUi.is_mouse(event):
+		if _mouse(event):
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(GameInput.UP):
 		move(-1)
 	elif event.is_action_pressed(GameInput.DOWN):
@@ -78,6 +82,34 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Мышь: колесо листает колонку под курсором, клик по карточке выбирает её, по выбранной
+## подтверждает.
+func _mouse(event: InputEvent) -> bool:
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		var col := _columns.column_at(event)
+		if col < 0:
+			return false
+		focus(col)
+		move(w)
+		return true
+	if not MouseUi.is_click(event):
+		return false
+	var at := _columns.card_at(event)
+	if at.x < 0:
+		return false
+	focus(at.x)
+	if at.y < 0:
+		return true
+	if at.y == _columns.index[at.x]:
+		confirm()
+	else:
+		_columns.index[at.x] = at.y
+		ShellSounds.play(&"tick")
+		_refresh(true)
+	return true
 
 
 func move(dir: int) -> void:
@@ -160,6 +192,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make("← → колонка"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "выбрать")))
 	add_child(hints)
+	MouseUi.pass_through(self)
 
 
 ## Карточка основы: новая игра тёмная с плюсом; сиквел и ремейк в цвете жанра оригинала с его

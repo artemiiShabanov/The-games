@@ -81,6 +81,10 @@ func affordable(i: int) -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo() or not ready_for_input or _closing:
 		return
+	if MouseUi.is_mouse(event):
+		if _mouse(event):
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(GameInput.LEFT):
 		move(-1)
 	elif event.is_action_pressed(GameInput.RIGHT):
@@ -97,6 +101,32 @@ func _unhandled_input(event: InputEvent) -> void:
 static func _is_escape(event: InputEvent) -> bool:
 	var key := event as InputEventKey
 	return key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE
+
+
+## Мышь: колесо и клик по карточке выбирают, клик по выбранной покупает; без предложения
+## любой клик ведёт дальше.
+func _mouse(event: InputEvent) -> bool:
+	if report.game_over or report.offer.is_empty():
+		if MouseUi.is_click(event):
+			proceed()
+			return true
+		return false
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		move(w)
+		return true
+	if not MouseUi.is_click(event):
+		return false
+	for i in _cards.size():
+		if MouseUi.hit(_cards[i], event):
+			if i == index:
+				confirm()
+			else:
+				index = i
+				ShellSounds.play(&"tick")
+				_refresh_focus(true)
+			return true
+	return false
 
 
 func move(dir: int) -> void:
@@ -377,6 +407,7 @@ func _build() -> void:
 	_hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hints.modulate.a = 0.0
 	add_child(_hints)
+	MouseUi.pass_through(self)
 
 
 ## Карточка прокачки: вид пилюлей, название, строка эффекта, цена и надбавка к содержанию.

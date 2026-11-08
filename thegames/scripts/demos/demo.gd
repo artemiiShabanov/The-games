@@ -156,6 +156,19 @@ func _shell_input(event: InputEvent) -> bool:
 			_open_pause()
 			return true
 		return false
+	if MouseUi.is_click(event):
+		for i in _menu_pills.size():
+			if MouseUi.hit(_menu_pills[i], event):
+				_menu_index = i
+				_refresh_menu()
+				if i == 0:
+					_resume()
+				else:
+					quit_demo()
+				return true
+		return false
+	if MouseUi.is_mouse(event):
+		return false
 	if GameInput.is_b(event):
 		_resume()
 	elif GameInput.is_a(event):
@@ -275,6 +288,7 @@ func _build_overlay() -> void:
 			GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	_menu_hint.visible = false
 	column.add_child(_menu_hint)
+	MouseUi.pass_through(_overlay)
 
 
 ## Выбранный пункт: заливка `ink` и рамка фокуса; остальные `surface-2`.

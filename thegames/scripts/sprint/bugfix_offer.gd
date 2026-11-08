@@ -47,6 +47,16 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
+	if MouseUi.is_click(event):
+		for i in _buttons.size():
+			if MouseUi.hit(_buttons[i], event):
+				set_focus_buy(i == 0)
+				confirm()
+				get_viewport().set_input_as_handled()
+				return
+		return
+	if MouseUi.is_mouse(event):
+		return
 	if event.is_action_pressed(GameInput.LEFT):
 		set_focus_buy(true)
 	elif event.is_action_pressed(GameInput.RIGHT):
@@ -143,6 +153,7 @@ func _build() -> void:
 	pill_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	pill_row.add_child(HintPill.make("← → выбрать · %s подтвердить · %s отказаться" % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	column.add_child(pill_row)
+	MouseUi.pass_through(self)
 	_refresh()
 
 

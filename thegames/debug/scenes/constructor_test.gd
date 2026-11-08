@@ -238,6 +238,7 @@ func _run_checks() -> void:
 			"формат денег: %s / %s" % [Style.format_money(12000), Style.format_money(-2600)])
 	await _check_franchise()
 	_check_effects()
+	_check_mouse()
 	AutoTest.fulfill("constructor checks")
 	AutoTest.note("constructor checks done")
 
@@ -330,3 +331,33 @@ func _check_effects() -> void:
 			and constructor.market_tag(2, Game.Setting.SPACE) == "в тренде", "метки с инсайдером: %s" % [constructor.market_tags])
 	manager = false
 	insider = false
+
+
+## Мышь (#43): клик по карточке выбирает её и колонку, колесо листает колонку под курсором,
+## клик по кнопке отдаёт конфигурацию. События синтетические, координаты из прямоугольников.
+func _check_mouse() -> void:
+	all_open = true
+	_launch()
+	var c := constructor
+	var card: Control = c._cards[2][1]
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = MouseUi.rect_of(card).get_center()
+	c._unhandled_input(ev)
+	_expect(c.focus_row == 2 and c.index[2] == 1, "клик по карточке: колонка %d, индекс %d" % [c.focus_row, c.index[2]])
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	wheel.position = MouseUi.rect_of(c._cards[1][0]).get_center()
+	c._unhandled_input(wheel)
+	_expect(c.focus_row == 1 and c.index[1] == 1, "колесо над технологией: индекс %d" % c.index[1])
+	var got: Array = []
+	c.game_configured.connect(func(cfg: GameConfig) -> void: got.append(cfg))
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = MouseUi.rect_of(c._button).get_center()
+	c._unhandled_input(click)
+	_expect(got.size() == 1, "клик по кнопке не отдал конфигурацию")
+	all_open = false

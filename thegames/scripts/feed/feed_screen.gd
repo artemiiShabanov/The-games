@@ -66,6 +66,10 @@ func at_end() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
+	if MouseUi.is_mouse(event):
+		if _mouse(event):
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(GameInput.DOWN):
 		move(1)
 	elif event.is_action_pressed(GameInput.UP):
@@ -87,6 +91,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Мышь: колесо листает по карточке, клик по кнопке нажимает её.
+func _mouse(event: InputEvent) -> bool:
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		move(w)
+		return true
+	if not MouseUi.is_click(event):
+		return false
+	for i in _buttons.size():
+		if MouseUi.hit(_buttons[i], event):
+			set_focus_demo(i == 0)
+			confirm()
+			return true
+	return false
 
 
 ## Листание по карточке: выбранная встаёт по центру области.
@@ -199,6 +219,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make("↑ ↓ листать"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "вниз, внизу выбрать")))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.B, "дальше")))
+	MouseUi.pass_through(self)
 	add_child(hints)
 
 

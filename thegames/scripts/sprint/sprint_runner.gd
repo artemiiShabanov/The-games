@@ -43,6 +43,8 @@ var _view: Control
 var _skip := false
 ## Ответ на предложение переигровки: -1 ждём, 0 дальше, 1 переиграть.
 var _offer_answer := -1
+## Пилюля «переиграть» на карточке результата: клик по ней равен B.
+var _offer_pill: Control
 var _frame: CardFrame
 var _content: Control
 var _header: Label
@@ -97,10 +99,11 @@ func current_def() -> MinigameDef:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if phase == Phase.OFFER and GameInput.is_any_press(event):
-		answer_offer(GameInput.is_b(event))
+	var click := MouseUi.is_click(event)
+	if phase == Phase.OFFER and (GameInput.is_any_press(event) or click):
+		answer_offer(GameInput.is_b(event) or (click and MouseUi.hit(_offer_pill, event)))
 		get_viewport().set_input_as_handled()
-	elif phase in [Phase.INTRO, Phase.RESULT, Phase.STUDIO] and GameInput.is_any_press(event):
+	elif phase in [Phase.INTRO, Phase.RESULT, Phase.STUDIO] and (GameInput.is_any_press(event) or click):
 		_skip = true
 		get_viewport().set_input_as_handled()
 
@@ -286,8 +289,9 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 16)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(HintPill.make(GameInput.hint(GameInput.B, "переиграть")))
-		row.add_child(HintPill.make("любая другая клавиша дальше"))
+		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, "переиграть"))
+		row.add_child(_offer_pill)
+		row.add_child(HintPill.make("любая другая клавиша или клик дальше"))
 		card.add_child(HintPill.bottom_bar(row))
 		# Полоса таймера по верхнему краю, как у мини-игр: убывает, пока карточка ждёт ответа.
 		var bar := ColorRect.new()
