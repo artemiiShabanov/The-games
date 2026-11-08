@@ -3,13 +3,16 @@ extends Control
 ## «Конструктор» дебаг-меню (деньги, релиз, всё открыто, сид). После «В разработку» показывает
 ## конфигурацию и списание из кошелька, A запускает снова. Под ботом: смета стартовой тройки,
 ## закрытая карточка держит кнопку, нехватка денег держит кнопку, подтверждение даёт
-## конфигурацию с названием и ценой, R меняет название; с сиквелами и ремейками (#24): состав
-## колонки «Основа», локи жанра и сеттинга, название по франшизе, технология оригинала у
-## ремейка, запись с частью и родителем. Флаги: `--no-checks`, `--all-open`, `--cash=N`,
-## `--franchise` (сиквелы и ремейки с двумя прошлыми играми).
+## конфигурацию с названием и ценой, R меняет название; с сиквелами и ремейками (#24) сначала
+## экран основы `BaseChooser`: состав колонок, закрытые ремейки, затем конструктор с локами
+## жанра и сеттинга, названием по франшизе, технологией оригинала у ремейка, запись с частью
+## и родителем. Флаги: `--no-checks`, `--all-open`, `--cash=N`, `--franchise` (сиквелы и
+## ремейки с двумя прошлыми играми), `--base=K,I` (под скриншот: колонка и карточка основы;
+## без него экран основы стоит).
 
 const SECTION: StringName = &"Конструктор"
 const SCENE := preload("res://scenes/constructor.tscn")
+const CHOOSER_PATH := "res://scenes/base_chooser.tscn"
 
 var economy: EconomyTuning
 var cash := 36000
@@ -20,7 +23,9 @@ var sequels := false
 var remakes := false
 var past_count := 2
 var constructor: Constructor
+var chooser: BaseChooser
 var wallet: Wallet
+var past: Array[GameRecord] = []
 var _label: Label
 var _checked := false
 
@@ -64,6 +69,7 @@ func _ready() -> void:
 		if args.has("no-checks"):
 			_checked = true
 		else:
+			Debug.skip_cards = true
 			AutoTest.require("constructor checks")
 	_launch()
 
@@ -72,12 +78,7 @@ func _exit_tree() -> void:
 	Debug.clear_section(SECTION)
 
 
-func _launch() -> void:
-	_label.visible = false
-	if constructor != null:
-		constructor.queue_free()
-	wallet = Wallet.new(cash)
-	constructor = SCENE.instantiate() as Constructor
+func _unlocked() -> Array:
 	var genres: Array[Game.Genre] = [Game.Genre.PLATFORMER]
 	var techs: Array[Game.Tech] = [Game.Tech.BIT8]
 	var settings: Array[Game.Setting] = [Game.Setting.PIRATES]
@@ -85,15 +86,53 @@ func _launch() -> void:
 		genres.assign(Game.Genre.values())
 		techs.assign(Game.Tech.values())
 		settings.assign(Game.Setting.values())
-	constructor.setup(genres, techs, settings, wallet.cash, release, seed_value, 0.0, _make_past(), sequels, remakes)
+	return [genres, techs, settings]
+
+
+## С открытыми сиквелами или ремейками сначала экран основы, иначе сразу конструктор.
+func _launch() -> void:
+	_clear()
+	wallet = Wallet.new(cash)
+	past = _make_past()
+	if sequels or remakes:
+		chooser = (load(CHOOSER_PATH) as PackedScene).instantiate() as BaseChooser
+		chooser.setup(past, _unlocked()[1], sequels, remakes, wallet.cash, release)
+		chooser.base_chosen.connect(_on_base_chosen)
+		add_child(chooser)
+		if AutoTest.enabled:
+			var args := AutoTest.parse_args(OS.get_cmdline_user_args())
+			if args.has("base"):
+				var parts := str(args["base"]).split(",")
+				chooser.focus(int(parts[0]))
+				chooser.move(int(parts[1]) if parts.size() > 1 else 0)
+				chooser.confirm()
+	else:
+		_open_constructor(null)
+
+
+func _on_base_chosen(o: BaseOption) -> void:
+	if chooser != null:
+		chooser.queue_free()
+		chooser = null
+	_open_constructor(o)
+
+
+func _open_constructor(o: BaseOption) -> void:
+	constructor = SCENE.instantiate() as Constructor
+	var u := _unlocked()
+	constructor.setup(u[0], u[1], u[2], wallet.cash, release, seed_value, 0.0, o)
 	constructor.game_configured.connect(_on_configured)
 	add_child(constructor)
-	if AutoTest.enabled:
-		# `--base=N` под скриншот: выбрать N-ю основу (сиквел или ремейк).
-		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
-		if args.has("base") and constructor.has_base():
-			constructor.focus(Constructor.ROW_BASE)
-			constructor.move(int(str(args["base"])))
+
+
+func _clear() -> void:
+	_label.visible = false
+	if constructor != null:
+		constructor.queue_free()
+		constructor = null
+	if chooser != null:
+		chooser.queue_free()
+		chooser = null
 
 
 ## Прошлые игры забега: платформер 8-bit пираты и его сиквел, затем шутер, с оценками критиков.
@@ -125,7 +164,7 @@ func _show(text: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if constructor == null and GameInput.is_a(event):
+	if constructor == null and chooser == null and GameInput.is_a(event):
 		_launch()
 
 
@@ -180,30 +219,37 @@ func _run_checks() -> void:
 	_expect(q.sprints == 4 and q.sprint_cost == 1160 and q.title != "", "quick_config: %s" % q)
 	_expect(Style.format_money(12000) == "$ 12 000" and Style.format_money(-2600) == "− $ 2 600" and Style.format_money(900) == "$ 900",
 			"формат денег: %s / %s" % [Style.format_money(12000), Style.format_money(-2600)])
-	_check_franchise()
+	await _check_franchise()
 	AutoTest.fulfill("constructor checks")
 	AutoTest.note("constructor checks done")
 
 
 ## Сиквелы и ремейки: одна технология, две прошлые игры (вторая сиквел первой), затем все
-## технологии.
+## технологии. Экран основы ведётся методами, выбор сразу через `confirm(option)`.
 func _check_franchise() -> void:
 	sequels = true
 	remakes = true
 	past_count = 2
 	_launch()
+	_expect(chooser != null and constructor == null, "экран основы не открылся")
+	_expect(chooser.kinds.size() == 3 and chooser.options[0].size() == 1 and chooser.options[1].size() == 2
+			and chooser.options[2].size() == 2, "колонки основы: %s" % [chooser.options])
+	_expect((chooser.options[1][0] as BaseOption).parent == past[1], "порядок основ: последняя игра первой")
+	for o in chooser.options[2]:
+		_expect(not (o as BaseOption).open and (o as BaseOption).lock_reason == "нужна вторая технология", "ремейк при одной технологии открыт")
+	# Закрытый ремейк не выбирается, сиквел сиквела выбирается.
+	chooser.focus(2)
+	chooser.confirm()
+	_expect(constructor == null, "закрытый ремейк прошёл")
+	chooser.focus(1)
+	chooser.confirm()
+	await get_tree().process_frame
+	await get_tree().process_frame
 	var c := constructor
-	_expect(c.has_base() and c.base_options.size() == 5, "основ %d" % c.base_options.size())
-	_expect(c.base_options[0].kind == GameConfig.Kind.NEW and c.base_options[1].kind == GameConfig.Kind.SEQUEL
-			and c.base_options[1].parent == c.past[1], "порядок основ: последняя игра первой")
-	for o in c.base_options:
-		if o.kind == GameConfig.Kind.REMAKE:
-			_expect(not o.open and o.lock_reason == "нужна вторая технология", "ремейк при одной технологии открыт")
-	# Сиквел сиквела: номер растёт, жанр и сеттинг залочены, R не работает.
-	c.focus(Constructor.ROW_BASE)
-	c.move(1)
+	_expect(c != null and chooser == null, "конструктор после выбора сиквела не открылся")
 	_expect(c.title == "Пираты на платформах 3", "название сиквела «%s»" % c.title)
 	_expect(c.is_locked_column(0) and c.is_locked_column(2) and not c.is_locked_column(1), "локи сиквела")
+	_expect(c.index[0] == 0 and c.index[2] == 0 and c.selection_open(), "жанр и сеттинг оригинала не выбраны")
 	var t0 := c.title
 	c.regenerate_title()
 	_expect(c.title == t0, "R поменял название сиквела")
@@ -218,16 +264,17 @@ func _check_franchise() -> void:
 	if got.size() == 1:
 		var cfg: GameConfig = got[0]
 		var rec := cfg.to_record(5)
-		_expect(cfg.kind == GameConfig.Kind.SEQUEL and cfg.parent == c.past[1] and rec.part == 3 and rec.parent == c.past[1]
+		_expect(cfg.kind == GameConfig.Kind.SEQUEL and cfg.parent == past[1] and rec.part == 3 and rec.parent == past[1]
 				and not rec.remake and rec.franchise_title() == "Пираты на платформах", "запись сиквела: %s, часть %d" % [rec, rec.part])
 	# Ремейк со всеми технологиями: технология оригинала закрыта, выбор уходит на другую.
 	all_open = true
 	_launch()
+	_expect((chooser.options[2][0] as BaseOption).open, "ремейк закрыт при всех технологиях")
+	chooser.confirm(chooser.options[2][0])
+	await get_tree().process_frame
+	await get_tree().process_frame
 	c = constructor
-	c.focus(Constructor.ROW_BASE)
-	c.move(2)
-	_expect(c.base().kind == GameConfig.Kind.REMAKE and c.base().open, "ремейк закрыт при всех технологиях")
-	_expect(c.title == "Пираты на платформах 2: ремейк", "название ремейка «%s»" % c.title)
+	_expect(c != null and c.title == "Пираты на платформах 2: ремейк", "название ремейка «%s»" % (c.title if c else ""))
 	_expect(c.selected_entry(1).value != int(Game.Tech.BIT8) and c.selection_open(), "технология ремейка %s" % c.selected_entry(1).title)
 	_expect(not c.is_unlocked(1, c.catalogs[1].index_of(int(Game.Tech.BIT8))), "технология оригинала открыта у ремейка")
 	got.clear()
@@ -237,12 +284,15 @@ func _check_franchise() -> void:
 	_expect(got.size() == 1, "ремейк не ушёл в разработку")
 	if got.size() == 1:
 		var rec: GameRecord = (got[0] as GameConfig).to_record(6)
-		_expect(rec.remake and rec.parent == c.past[1] and rec.part == 2 and rec.genre == Game.Genre.PLATFORMER, "запись ремейка: %s" % rec)
-	# Новая игра после ремейка: технология оригинала снова открыта, название своё.
-	c.focus(Constructor.ROW_BASE)
-	c.move(-2)
-	_expect(c.base().kind == GameConfig.Kind.NEW and c.is_unlocked(1, c.catalogs[1].index_of(int(Game.Tech.BIT8)))
-			and not c.is_locked_column(0), "возврат к новой игре")
+		_expect(rec.remake and rec.parent == past[1] and rec.part == 2 and rec.genre == Game.Genre.PLATFORMER, "запись ремейка: %s" % rec)
+	# Новая игра через экран основы: ничего не залочено, название своё.
+	_launch()
+	chooser.confirm(chooser.options[0][0])
+	await get_tree().process_frame
+	await get_tree().process_frame
+	c = constructor
+	_expect(c != null and c.base != null and c.base.kind == GameConfig.Kind.NEW and not c.is_locked_column(0)
+			and c.is_unlocked(1, c.catalogs[1].index_of(int(Game.Tech.BIT8))), "новая игра после основы")
 	all_open = false
 	sequels = false
 	remakes = false
