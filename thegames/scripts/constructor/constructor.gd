@@ -15,8 +15,10 @@ extends Control
 ## передаётся в `setup`: сиквел и ремейк держат жанр и сеттинг оригинала выбранными, остальные
 ## карточки этих колонок серые с пилюлей «недоступно», листание отвечает промахом, название
 ## задано основой и R не работает; у ремейка карточка технологии оригинала закрыта с пилюлей
-## «как у оригинала», выбор сам уходит на другую. Карточки каруселей пока с крупной буквой
-## вместо иллюстрации.
+## «как у оригинала», выбор сам уходит на другую. Подсказки рынка (#29, `set_market`): метка
+## насыщения на карточках жанра и сеттинга («недавно было», «надоело») и, только с
+## «Инсайдером», метка «в тренде»; конструктор их не считает, а читает из `MarketState`.
+## Карточки каруселей пока с крупной буквой вместо иллюстрации.
 
 signal game_configured(config: GameConfig)
 signal estimate_changed(estimate: Estimate)
@@ -40,6 +42,8 @@ var release := 1
 var rng := RandomNumberGenerator.new()
 ## Основа следующей игры (#24); null и новая игра равнозначны.
 var base: BaseOption
+## Подсказки рынка: метки по значениям жанра и сеттинга (#29).
+var market_tags: Array[Dictionary] = [{}, {}, {}]
 
 var focus_row := 0
 var index: Array[int] = [0, 0, 0]
@@ -116,6 +120,35 @@ func setup(unlocked_genres: Array[Game.Genre], unlocked_techs: Array[Game.Tech],
 	if _ready_done:
 		_columns.index = index
 		_refresh(false)
+
+
+## Подсказки рынка на карточках: насыщение всегда, тренд только с «Инсайдером». Зовётся до
+## или после `setup`, до добавления в дерево или в любой момент.
+func set_market(market: MarketState, success: SuccessTuning, insider: bool) -> void:
+	market_tags = [{}, {}, {}]
+	if market == null:
+		if _ready_done:
+			_refresh(false)
+		return
+	for g in market.saturation_genre.size():
+		var tag := market.saturation_label(market.saturation_genre[g], success)
+		if insider and g == market.trend_genre:
+			tag = "в тренде" if tag == "" else "в тренде · " + tag
+		if tag != "":
+			market_tags[0][g] = tag
+	for st in market.saturation_setting.size():
+		var tag := market.saturation_label(market.saturation_setting[st], success)
+		if insider and st == market.trend_setting:
+			tag = "в тренде" if tag == "" else "в тренде · " + tag
+		if tag != "":
+			market_tags[2][st] = tag
+	if _ready_done:
+		_refresh(false)
+
+
+## Метка рынка карточки: пусто, если нет.
+func market_tag(kind: int, value: int) -> String:
+	return str(market_tags[kind].get(value, ""))
 
 
 ## Конфигурация без экрана: для дебага и бота.
@@ -332,6 +365,12 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	inner.add_child(CardColumns.center_pill("недоступно", &"franchise"))
 	if with_origin_pill:
 		inner.add_child(CardColumns.center_pill("как у оригинала", &"origin"))
+	# Метка рынка сверху слева (STYLE: метка насыщения без чисел), текст ставит `_refresh`.
+	var tag := HintPill.make("")
+	tag.position = Vector2(16, 16)
+	tag.visible = false
+	tag.set_meta(&"market", true)
+	inner.add_child(tag)
 	return c
 
 
@@ -450,8 +489,17 @@ func _refresh(animate: bool) -> void:
 		_columns.set_caption(kind, ROW_LABELS[kind] + (" · как у оригинала" if is_locked_column(kind) else ""))
 		for i in _cards[kind].size():
 			_refresh_card_lock(kind, i, _cards[kind][i])
+			_refresh_market_tag(kind, i, _cards[kind][i])
 	_columns.focus_col = focus_row if focus_row < ROWS else -1
 	_columns.refresh(animate)
+
+
+func _refresh_market_tag(kind: int, i: int, c: Control) -> void:
+	var text := market_tag(kind, catalogs[kind].entries[i].value)
+	for child in CardColumns.inner_of(c).get_children():
+		if child.has_meta(&"market"):
+			child.visible = text != ""
+			(child.get_child(0) as Label).text = text
 
 
 ## Закрытая карточка затемнена, пилюля говорит почему: прокачка, франшиза или технология

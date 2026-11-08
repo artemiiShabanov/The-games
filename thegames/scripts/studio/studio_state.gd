@@ -26,5 +26,29 @@ func discount(economy: EconomyTuning) -> float:
 	return economy.manager_discount if has(&"manager") else 0.0
 
 
+## Эффекты возможностей (#29), читаются хозяевами систем.
+## Переигровок за релиз: «Переигровка» одна, «Вторая переигровка» ещё одна.
+func replays() -> int:
+	return int(has(&"replay")) + int(has(&"replay2"))
+
+
+## Предложений багфикса за релиз: с «Отделом QA» два.
+func bugfix_offers() -> int:
+	return 2 if has(&"qa") else 1
+
+
+## «Инсайдер»: в конструкторе видно тренд.
+func insider() -> bool:
+	return has(&"insider")
+
+
+func sequels_unlocked() -> bool:
+	return has(&"sequels")
+
+
+func remakes_unlocked() -> bool:
+	return has(&"remakes")
+
+
 func _to_string() -> String:
 	return "прокачки %s, людей %d%s" % [upgrade_ids, people, ", спасены" if rescued else ""]

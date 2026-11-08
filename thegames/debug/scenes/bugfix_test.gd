@@ -2,7 +2,8 @@ extends Control
 ## Тестовая сцена спринта багфикса (#27): запись с багами из раздела «Багфикс» дебаг-меню
 ## (число багов, деньги, сид), предложение, при согласии списание и случайная аспектная
 ## мини-игра через раннер, затем карточка «починено». Под ботом: отказ, покупка с WIN чинит
-## половину багов, покупка с LOSE не чинит и не добавляет, нехватка денег держит кнопку.
+## половину багов, покупка с LOSE не чинит и не добавляет, нехватка денег держит кнопку, с
+## «Отделом QA» (#29) второе предложение после первого спринта, пока баги остались.
 
 const SECTION: StringName = &"Багфикс"
 const OFFER_PATH := "res://scenes/bugfix_offer.tscn"
@@ -10,6 +11,9 @@ const OFFER_PATH := "res://scenes/bugfix_offer.tscn"
 var bugs := 3
 var cash := 20000
 var seed_value := 1
+var qa := false
+var state: StudioState
+var offers_shown := 0
 var economy: EconomyTuning
 var catalog: BugCatalog
 var pool: Array[MinigameDef] = []
@@ -45,6 +49,7 @@ func _ready() -> void:
 	Debug.add_number(SECTION, "Багов", func() -> int: return bugs, func(v: float) -> void: bugs = int(v), 0, 6, 1)
 	Debug.add_number(SECTION, "Деньги", func() -> int: return cash, func(v: float) -> void: cash = int(v), 0, 100000, 1000)
 	Debug.add_number(SECTION, "Сид", func() -> int: return seed_value, func(v: float) -> void: seed_value = int(v), 1, 999, 1)
+	Debug.add_toggle(SECTION, "Отдел QA", func() -> bool: return qa, func(v: bool) -> void: qa = v)
 	Debug.add_action(SECTION, "Новое предложение", _launch)
 	Debug.watch("багфикс", func() -> String: return "%s, деньги %s" % [record.bug_ids, wallet] if record else "")
 	if AutoTest.enabled:
@@ -73,10 +78,15 @@ func _launch() -> void:
 	rng.seed = seed_value
 	record = _make_record()
 	wallet = Wallet.new(cash)
+	state = StudioState.new()
+	if qa:
+		state.buy(UpgradePool.find(UpgradePool.load_all(), &"qa"))
+	offers_shown = 0
 	_show_offer()
 
 
 func _show_offer() -> void:
+	offers_shown += 1
 	offer = (load(OFFER_PATH) as PackedScene).instantiate() as BugfixOffer
 	offer.setup(record, catalog, Bugfix.price(record, economy), wallet.cash)
 	offer.accepted.connect(_on_accepted)
@@ -114,8 +124,11 @@ func _on_sprint_finished(_def: MinigameDef, success: bool) -> void:
 		names.append(b.stamp if b != null else String(id))
 	_show(("Починено: %s" % ", ".join(names) if success else "Провал: ничего не починено") +
 			"\nОсталось багов: %d · деньги %s\n\nA снова, F1 меню" % [record.bug_ids.size(), wallet])
+	# «Отдел QA»: второе предложение, пока баги остались.
+	if offers_shown < Bugfix.offers(state) and not record.bug_ids.is_empty() and offer == null:
+		_show_offer()
 	if AutoTest.enabled and _phase > 0:
-		_check(success)
+		await _check(success)
 
 
 func _clear() -> void:
@@ -197,6 +210,23 @@ func _check(success: bool) -> void:
 		3:
 			_expect(not success, "LOSE: мини-игра выиграна")
 			_expect(_fixed.is_empty() and record.bug_ids.size() == 3, "LOSE: починено %d, осталось %d" % [_fixed.size(), record.bug_ids.size()])
+			# QA: два предложения, второе чинит оставшийся баг.
+			_phase = 4
+			qa = true
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
+			_launch()
+			offer.confirm()
+		4:
+			_expect(success and record.bug_ids.size() == 1, "QA первый: осталось %d" % record.bug_ids.size())
+			_phase = 5
+			_expect(offer != null and offers_shown == 2, "QA: второго предложения нет")
+			if offer != null:
+				offer.confirm()
+		5:
+			_expect(success and record.bug_ids.is_empty() and wallet.cash == cash - 2 * 1400, "QA второй: осталось %d, деньги %s" % [record.bug_ids.size(), wallet])
+			_phase = 6
+			await get_tree().process_frame
+			_expect(offer == null, "QA: третье предложение")
+			qa = false
 			AutoTest.fulfill("bugfix checks")
 			AutoTest.note("bugfix checks done")

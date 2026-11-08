@@ -16,7 +16,10 @@ var single := false
 
 var _started := 0
 var _finished := 0
+var _replayed := 0
 var _check_phase := 0
+## Переигровок на план (`--replays=N`, #29): бот переигрывает провалы, пока они есть.
+var replays := 0
 
 
 func _ready() -> void:
@@ -30,6 +33,7 @@ func _ready() -> void:
 	add_child(runner)
 	runner.sprint_started.connect(func(_d: MinigameDef) -> void: _started += 1)
 	runner.sprint_finished.connect(_on_sprint_finished)
+	runner.sprint_replayed.connect(func(_d: MinigameDef) -> void: _replayed += 1)
 	Debug.watch("баги", func() -> String: return str(record.bug_ids) if record else "")
 	runner.plan_finished.connect(_on_plan_finished)
 
@@ -43,6 +47,8 @@ func _ready() -> void:
 		Debug.skip_cards = not args.has("cards")
 		if args.has("lose"):
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
+		if args.has("replays"):
+			replays = int(str(args["replays"]))
 		# `--minigame=<id>` гоняет одну мини-игру ботом вместо плана: WIN, потом LOSE.
 		if Debug.skip_cards:
 			AutoTest.require("sprint runner checks")
@@ -71,9 +77,9 @@ func _run_plan() -> void:
 	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.minigame_seed, "Тест раннера")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = Debug.minigame_seed
-	var plan := SprintPlanner.plan(8, Game.Genre.PLATFORMER, Game.Tech.BIT8, pool, tuning, rng)
+	var plan := SprintPlanner.plan(8, Game.Genre.PLATFORMER, Game.Tech.BIT8, pool, tuning, rng, &"", replays)
 	if AutoTest.enabled:
-		AutoTest.note("plan: %s" % [plan.ids()])
+		AutoTest.note("plan: %s, replays %d" % [plan.ids(), replays])
 	runner.run(plan, Debug.minigame_t, true, Debug.minigame_seed * 1000, "Тест раннера")
 
 
@@ -86,6 +92,7 @@ func _run_single() -> void:
 		return
 	var plan := SprintPlan.new()
 	plan.defs = [def]
+	plan.replay_left = replays
 	var seed_ := Debug.minigame_seed * 1000 + (randi_range(0, 999) if Debug.minigame_loop else 0)
 	runner.run(plan, Debug.minigame_t, false, seed_, "Одна мини-игра")
 
@@ -121,6 +128,9 @@ func _check(results: Array[bool]) -> void:
 			_expect(not results.has(true), "%s LOSE: есть успех %s" % [what, results])
 			_expect(_started == 2 * n and _finished == 2 * n, "LOSE: сигналов %d/%d" % [_started, _finished])
 			if not single:
+				# Переигровки: бот тратит все на первые провалы, результат всё равно провал.
+				_expect(_replayed == replays and runner.plan.replay_left == 0,
+						"LOSE: переигровок %d из %d, осталось %d" % [_replayed, replays, runner.plan.replay_left])
 				# План из 8 провалов платформера × 8-bit даёт ровно семь багов: по одному на пять
 				# аспектов, баг жанра и баг технологии 8-bit (#37).
 				var want: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input", &"pink_placeholders", &"unreachable_coins", &"wild_physics", &"sprite_flicker"]

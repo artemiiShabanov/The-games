@@ -27,7 +27,8 @@
   --minigame=<id> --frames=1500` (для `repeat` 2200, для `patch_line` 2600). Демка: `--scene=demo_test --frames=3000`,
   скриншот паузы `--scene=demo_test --no-checks --pause --frames=240`. Уровень платформера по
   сиду текстом: `Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to]`. Весь план из 8 с проверкой багов: без `--minigame`,
-  `--time-scale=4 --frames=3000`. Петля M0 целиком: `sh tools/autotest.sh --loop
+  `--time-scale=4 --frames=3000` (с переигровками `--replays=2 --frames=4500`). Багфикс:
+  `--scene=bugfix_test --time-scale=4 --frames=3000`. Петля M0 целиком: `sh tools/autotest.sh --loop
   --time-scale=4 --frames=2600`. Фаза студии: `--scene=studio_test --frames=600`; скриншот
   состояния: `--scene=studio_test --no-checks --past=4 [--cash=-16000] [--rescued]
   [--all-bought] --frames=240` (под `--fixed-fps` снимок отстаёт от сцены, поэтому экран

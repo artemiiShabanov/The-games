@@ -45,6 +45,12 @@ static func apply_fix(record: GameRecord, rng: RandomNumberGenerator) -> Array[S
 	return fixed
 
 
+## Сколько предложений багфикса за релиз: одно, с «Отделом QA» два (#29). Второе приходит,
+## только если после первого спринта баги остались.
+static func offers(state: StudioState) -> int:
+	return state.bugfix_offers() if state != null else 1
+
+
 ## Цена спринта багфикса для записи.
 static func price(record: GameRecord, economy: EconomyTuning, discount := 0.0) -> int:
 	return economy.bugfix_price(record.genre, record.tech, record.setting, discount)

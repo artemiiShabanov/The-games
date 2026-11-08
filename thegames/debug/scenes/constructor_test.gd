@@ -22,6 +22,8 @@ var seed_value := 1
 var sequels := false
 var remakes := false
 var past_count := 2
+var manager := false
+var insider := false
 var constructor: Constructor
 var chooser: BaseChooser
 var wallet: Wallet
@@ -51,6 +53,8 @@ func _ready() -> void:
 	Debug.add_toggle(SECTION, "Сиквелы открыты", func() -> bool: return sequels, func(v: bool) -> void: sequels = v)
 	Debug.add_toggle(SECTION, "Ремейки открыты", func() -> bool: return remakes, func(v: bool) -> void: remakes = v)
 	Debug.add_number(SECTION, "Прошлых игр", func() -> int: return past_count, func(v: float) -> void: past_count = int(v), 0, 6, 1)
+	Debug.add_toggle(SECTION, "Менеджер (−10 %)", func() -> bool: return manager, func(v: bool) -> void: manager = v)
+	Debug.add_toggle(SECTION, "Инсайдер (тренд)", func() -> bool: return insider, func(v: bool) -> void: insider = v)
 	Debug.add_action(SECTION, "Открыть конструктор", _launch)
 	Debug.add_action(SECTION, "Собрать без экрана", func() -> void:
 		var c := Constructor.quick_config(Game.Genre.PLATFORMER, Game.Tech.BIT8, Game.Setting.PIRATES, economy, seed_value)
@@ -117,10 +121,23 @@ func _on_base_chosen(o: BaseOption) -> void:
 	_open_constructor(o)
 
 
+## Рынок для подсказок: тренд платформер и космос, платформер недавно был, пираты надоели.
+func _make_market() -> MarketState:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var m := MarketState.create(SuccessTuning.load_default(), rng, true)
+	m.trend_genre = Game.Genre.PLATFORMER
+	m.trend_setting = Game.Setting.SPACE
+	m.saturation_genre[Game.Genre.PLATFORMER] = 0.4
+	m.saturation_setting[Game.Setting.PIRATES] = 0.7
+	return m
+
+
 func _open_constructor(o: BaseOption) -> void:
 	constructor = SCENE.instantiate() as Constructor
 	var u := _unlocked()
-	constructor.setup(u[0], u[1], u[2], wallet.cash, release, seed_value, 0.0, o)
+	constructor.setup(u[0], u[1], u[2], wallet.cash, release, seed_value, economy.manager_discount if manager else 0.0, o)
+	constructor.set_market(_make_market(), SuccessTuning.load_default(), insider)
 	constructor.game_configured.connect(_on_configured)
 	add_child(constructor)
 
@@ -220,6 +237,7 @@ func _run_checks() -> void:
 	_expect(Style.format_money(12000) == "$ 12 000" and Style.format_money(-2600) == "− $ 2 600" and Style.format_money(900) == "$ 900",
 			"формат денег: %s / %s" % [Style.format_money(12000), Style.format_money(-2600)])
 	await _check_franchise()
+	_check_effects()
 	AutoTest.fulfill("constructor checks")
 	AutoTest.note("constructor checks done")
 
@@ -296,3 +314,19 @@ func _check_franchise() -> void:
 	all_open = false
 	sequels = false
 	remakes = false
+
+
+## Менеджер и инсайдер (#29): скидка в смете, метки рынка на карточках.
+func _check_effects() -> void:
+	_expect(constructor.market_tag(0, Game.Genre.PLATFORMER) == "недавно было"
+			and constructor.market_tag(2, Game.Setting.PIRATES) == "надоело"
+			and constructor.market_tag(2, Game.Setting.SPACE) == "", "метки без инсайдера: %s" % [constructor.market_tags])
+	manager = true
+	insider = true
+	_launch()
+	var e := constructor.estimate
+	_expect(e.sprint_price == 1260 and e.total == 6300, "смета с менеджером: %s" % e)
+	_expect(constructor.market_tag(0, Game.Genre.PLATFORMER) == "в тренде · недавно было"
+			and constructor.market_tag(2, Game.Setting.SPACE) == "в тренде", "метки с инсайдером: %s" % [constructor.market_tags])
+	manager = false
+	insider = false
