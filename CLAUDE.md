@@ -34,6 +34,8 @@
   [--all-bought] --frames=240` (под `--fixed-fps` снимок отстаёт от сцены, поэтому экран
   без `--animate` стоит с первого кадра). Кривые параметров и сцена в ресурс мини-игры:
   `Godot --headless --path thegames -s debug/tools/set_params.gd -- <id> tscn=res://... key=from:to`.
+- Всё разом: `sh tools/ci.sh` (модель экономики `python3 tools/model_run.py --check` и
+  автотесты систем без окна, пара минут).
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.
 
 ## Process
