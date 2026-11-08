@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_alien"]
+
+[resource]
+script = ExtResource("1_alien")
+id = &"alien_palette"
+aspect = 3
+stamp = "ЧУЖАЯ ПАЛИТРА"
+manifestation = "Спрайты в палитре другого сеттинга"
+tweet = "Пираты почему-то синие, а песок зелёный. Это уже космос?"
+clip = "Синий герой бежит по зелёному песку под обычным небом"
+params = Dictionary[StringName, float]({
+&"hue_shift": 0.45
+})

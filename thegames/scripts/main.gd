@@ -149,7 +149,7 @@ func _begin_development(config: GameConfig) -> void:
 func _on_sprint_finished(d: MinigameDef, success: bool) -> void:
 	record.add_sprint(success)
 	if not success:
-		run.catalog.apply_fail(d, record)
+		run.catalog.apply_fail(d, record, run.rng)
 
 
 func _on_plan_finished(_results: Array[bool]) -> void:

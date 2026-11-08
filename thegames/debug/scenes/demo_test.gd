@@ -2,7 +2,8 @@ extends Control
 ## Тестовая сцена демки: запускает платформер × 8-bit с сидом и набором багов из раздела
 ## «Демки» дебаг-меню (`Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога показывает,
 ## куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага, LOSE идёт вправо без
-## прыжков и теряет жизни. `--no-checks` без проверок, `--pause` открывает меню паузы.
+## прыжков и теряет жизни. `--no-checks` без проверок, `--pause` открывает меню паузы,
+## `--bugs` все баги каталога, `--bug=<id>` один баг.
 
 const DEMO := preload("res://scenes/demos/platformer_bit8.tscn")
 
@@ -48,6 +49,9 @@ func _launch() -> void:
 		# `--bugs`: все баги каталога сразу, проверяется только что демка кончается без ошибок.
 		for b in BugCatalog.load_default().bugs:
 			record.add_bug(b.id)
+	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("bug"):
+		# `--bug=<id>`: один баг под скриншот.
+		record.add_bug(StringName(str(AutoTest.parse_args(OS.get_cmdline_user_args())["bug"])))
 	demo = DEMO.instantiate() as Demo
 	demo.setup(record, &"debug")
 	demo.demo_started.connect(func(_r: GameRecord, _s: StringName) -> void: _started += 1)

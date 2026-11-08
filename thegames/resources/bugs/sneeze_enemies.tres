@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_sneeze"]
+
+[resource]
+script = ExtResource("1_sneeze")
+id = &"sneeze_enemies"
+aspect = 4
+stamp = "ЧИХ"
+manifestation = "Враги гибнут от любого касания"
+tweet = "Скелеты рассыпаются, если на них дыхнуть. Сложность: ноль"
+clip = "Герой задевает скелета боком, тот исчезает"
+spectacular = true

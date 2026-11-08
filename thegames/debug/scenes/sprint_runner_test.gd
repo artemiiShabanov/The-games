@@ -133,9 +133,10 @@ func _check(results: Array[bool]) -> void:
 				_expect(_replayed == replays and runner.plan.replay_left == 0,
 						"LOSE: переигровок %d из %d, осталось %d" % [_replayed, replays, runner.plan.replay_left])
 				_expect(tuning.replay_offer_seconds > 0.0, "таймер предложения не задан")
-				# План из 8 провалов платформера × 8-bit даёт ровно семь багов: по одному на пять
-				# аспектов, баг жанра и баг технологии 8-bit (#37).
-				var want: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input", &"pink_placeholders", &"unreachable_coins", &"wild_physics", &"sprite_flicker"]
+				# План из 8 провалов платформера × 8-bit даёт ровно восемь багов: по одному на пять
+				# аспектов, второй баг графики за её второй спринт (#38), баг жанра и баг
+				# технологии 8-bit (#37).
+				var want: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input", &"pink_placeholders", &"unreachable_coins", &"wild_physics", &"sprite_flicker", &"alien_palette"]
 				for id in want:
 					_expect(record.has_bug(id), "LOSE: в записи нет бага %s: %s" % [id, record.bug_ids])
 				_expect(record.bug_ids.size() == want.size(), "LOSE: багов %d, не %d: %s" % [record.bug_ids.size(), want.size(), record.bug_ids])

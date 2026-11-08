@@ -18,7 +18,9 @@ extends Demo
 ## часть спрайтов розовыми квадратами; `unreachable_coins` платформы с монетами подняты выше
 ## прыжка; `wild_physics` (баг жанра) прыжок втрое выше и враги вдвое быстрее (#15);
 ## `sprite_flicker` (баг технологии 8-bit, #37) спрайты сверх `max_per_line` на одной строке
-## тайлов показываются через кадр, как на приставке.
+## тайлов показываются через кадр, как на приставке; `alien_palette` (#38) весь слой мира в
+## сдвинутых на `hue_shift` цветах при обычном небе; `sneeze_enemies` (#38) враги гибнут от
+## любого касания, без добивания.
 
 class Cloud:
 	var x := 0.0
@@ -69,6 +71,30 @@ const ISLAND_DARK := Color("#1F4F3B")
 const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const PINK := Color("#FF2BD6")
+## Чужая палитра: сдвиг оттенка всего слоя мира (баг `alien_palette`).
+const HUE_SHADER := """
+shader_type canvas_item;
+uniform float hue_shift = 0.45;
+vec3 rgb2hsv(vec3 c) {
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+vec3 hsv2rgb(vec3 c) {
+	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+void fragment() {
+	vec4 c = texture(TEXTURE, UV) * COLOR;
+	vec3 hsv = rgb2hsv(c.rgb);
+	hsv.x = fract(hsv.x + hue_shift);
+	COLOR = vec4(hsv2rgb(hsv), c.a);
+}
+"""
 ## Что может стать розовой заглушкой; герой и земля никогда.
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "coin", "platform", "checkpoint", "flag", "cloud"]
 const MELODY := [0, null, 3, null, 7, 7, 5, 3, 2, null, 5, null, 3, 2, 0, null,
@@ -138,6 +164,8 @@ var _pink: Dictionary = {}
 var _jump_mult := 1.0
 var _enemy_mult := 1.0
 var _flicker_limit := 0
+## Материал чужой палитры для слоя мира, ставится после создания слоя.
+var _palette: ShaderMaterial
 var _line_counts: Dictionary[int, int] = {}
 
 
@@ -173,6 +201,8 @@ func _on_start() -> void:
 	backdrop.draw.connect(_draw_backdrop)
 	viewport.add_child(backdrop)
 	world = Node2D.new()
+	if _palette != null:
+		world.material = _palette
 	world.draw.connect(_draw_world)
 	viewport.add_child(world)
 	hud = Node2D.new()
@@ -247,6 +277,13 @@ func _setup_bugs() -> void:
 			if moved:
 				p.position.y = new_y
 				level.platforms[i] = p
+	if has_bug(&"alien_palette"):
+		var shader := Shader.new()
+		shader.code = HUE_SHADER
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("hue_shift", _bug_param(&"alien_palette", &"hue_shift", 0.45))
+		_palette = mat
 	if has_bug(&"pink_placeholders"):
 		var share := _bug_param(&"pink_placeholders", &"share", 0.35)
 		var slots := PLACEHOLDER_SLOTS.duplicate()
@@ -547,8 +584,11 @@ func _update_walkers(delta: float) -> void:
 		var hit := absf(w.x - hero.x) < half + 3.0 and hero.y > top and hero.y - tuning.hero_height < bottom
 		if hit:
 			# Ноги героя выше ног врага: добивание, и в подъёме тоже (прощающие хитбоксы). В дэше
-			# герой уязвим и не давит (плейтест 2026-11-06).
-			if hero.y <= bottom - TILE * 0.25 and dash_left <= 0.0:
+			# герой уязвим и не давит (плейтест 2026-11-06). Баг «чих»: гибнет от любого касания.
+			if has_bug(&"sneeze_enemies"):
+				w.alive = false
+				_play("stomp")
+			elif hero.y <= bottom - TILE * 0.25 and dash_left <= 0.0:
 				w.alive = false
 				vel.y = -tuning.stomp_bounce
 				grounded = false

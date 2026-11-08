@@ -21,6 +21,8 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var clip: String
 ## Зрелищный баг: чаще попадает в клипы и даёт вирусность.
 @export var spectacular := false
+## Вес при выборе среди подходящих багов, которых ещё нет в записи (#38).
+@export var weight := 1.0
 ## Параметры проявления: демка читает `param(&"freeze_ms_max", 400.0)`.
 @export var params: Dictionary[StringName, float] = {}
 

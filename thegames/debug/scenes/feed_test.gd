@@ -78,12 +78,14 @@ func _make_record() -> GameRecord:
 	var ok := int(round(quality * sprints))
 	for k in sprints:
 		rec.add_sprint(k < ok)
+	# Зрелищные первыми в порядке каталога (с #38 их два), затем обычные.
 	var ids: Array[StringName] = []
 	for b in catalog.bugs:
 		if b.spectacular:
-			ids.push_front(b.id)
-		else:
-			ids.push_back(b.id)
+			ids.append(b.id)
+	for b in catalog.bugs:
+		if not b.spectacular:
+			ids.append(b.id)
 	for k in mini(bugs, ids.size()):
 		rec.add_bug(ids[k])
 	return rec
