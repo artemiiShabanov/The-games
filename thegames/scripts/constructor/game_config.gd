@@ -2,7 +2,7 @@ class_name GameConfig
 extends Resource
 ## Конфигурация следующей игры из конструктора, спека `docs/specs/constructor.md`: тройка,
 ## вид (новая, сиквел, ремейк), родитель для сиквела и ремейка, название, число спринтов и
-## цена спринта на момент старта. Сиквелы и ремейки приходят в #24.
+## цена спринта на момент старта. Сиквелы и ремейки с #24.
 
 enum Kind { NEW, SEQUEL, REMAKE }
 
@@ -20,9 +20,19 @@ func total_cost() -> int:
 	return sprints * sprint_cost
 
 
-## Запись игры для разработки: сид демки задаёт хозяин.
+## Запись игры для разработки: сид демки задаёт хозяин. Сиквел получает номер части и
+## родителя, ремейк флаг и родителя (входы формул успеха).
 func to_record(seed_: int) -> GameRecord:
-	return GameRecord.create(genre, tech, seed_, title, setting)
+	var r := GameRecord.create(genre, tech, seed_, title, setting)
+	match kind:
+		Kind.SEQUEL:
+			r.parent = parent
+			r.part = parent.part + 1 if parent != null else 2
+		Kind.REMAKE:
+			r.parent = parent
+			r.remake = true
+			r.part = parent.part if parent != null else 1
+	return r
 
 
 func _to_string() -> String:

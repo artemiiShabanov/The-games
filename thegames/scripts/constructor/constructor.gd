@@ -2,29 +2,41 @@ class_name Constructor
 extends Control
 ## Экран конструктора, спека `docs/specs/constructor.md`, концепты `01`, `01b`, плейтест
 ## 2026-11-07. Весь экран идёт в большой карточке `CardFrame` поверх студии, как спринты;
-## над карточкой пилюли «Релиз N · Следующая игра» слева и денег справа. Внутри слева три
-## вертикальные карусели (жанр, технология, сеттинг): выбранная карточка по центру колонки и
-## увеличена так, что три выбранные с полями `GAP_CARDS` заполняют ширину до сметы, соседние
-## обычного размера раздвинуты на её рост и растворяются к верху и низу; справа карточка сметы с заголовком на две строки,
-## числами, которые прокручиваются за 240 мс, и кнопкой «В разработку» внизу. Вверх и вниз
-## листают колонку, влево и вправо переводят фокус по колонкам и дальше на кнопку, A на
-## колонке переводит фокус на кнопку, A на кнопке отдаёт `game_configured`, R другое
-## название. Рамка фокуса только на карточках; на кнопке она пропадает, а кнопка становится
-## тёмной. Неоткрытые карточки затемнены с пилюлей «придёт с
-## прокачкой», остаются в карусели и получают фокус; с ними кнопка закрыта. Денег не хватает:
-## остаток `danger`, кнопка серая с суммой нехватки и трясётся. Деньги не списывает: это
-## делает хозяин по сигналу. Карточки каруселей пока с крупной буквой вместо иллюстрации.
+## над карточкой пилюли «Релиз N · Следующая игра» слева и денег справа. Внутри слева
+## вертикальные карусели: жанр, технология, сеттинг, а когда открыты сиквелы или ремейки (#24),
+## перед ними четвёртая, «Основа»: новая игра, сиквел каждой прошлой игры, ремейк каждой
+## прошлой игры. Сиквел и ремейк лочат жанр и сеттинг под оригинал и задают название
+## («Пираты на платформах 2», «Пираты на платформах: ремейк»); ремейку нужна другая
+## технология, карточка технологии оригинала закрыта с пилюлей «как у оригинала», при одной
+## открытой технологии ремейки закрыты с пилюлей «нужна вторая технология», ремейк ремейка
+## закрыт. Выбранная карточка по центру колонки и увеличена так, что выбранные с полями
+## `GAP_CARDS` заполняют ширину до сметы, соседние обычного размера раздвинуты на её рост и
+## растворяются к верху и низу; справа карточка сметы с заголовком на две строки, числами,
+## которые прокручиваются за 240 мс, и кнопкой «В разработку» внизу. Вверх и вниз листают
+## колонку, влево и вправо переводят фокус по колонкам и дальше на кнопку, A на колонке
+## переводит фокус на кнопку, A на кнопке отдаёт `game_configured`, R другое название (только у
+## новой игры). Рамка фокуса только на карточках; на кнопке она пропадает, а кнопка становится
+## тёмной. Неоткрытые карточки затемнены с пилюлей «придёт с прокачкой», остаются в карусели и
+## получают фокус; с ними кнопка закрыта. Денег не хватает: остаток `danger`, кнопка серая с
+## суммой нехватки и трясётся. Деньги не списывает: это делает хозяин по сигналу. Карточки
+## каруселей пока с крупной буквой вместо иллюстрации.
 
 signal game_configured(config: GameConfig)
 signal estimate_changed(estimate: Estimate)
 
+## Колонки каталогов 0..2 (как `CatalogEntry.Kind`), основа 3, кнопка 4.
 const ROWS := 3
-const ROW_BUTTON := 3
-const ROW_LABELS: Array[String] = ["Жанр", "Технология", "Сеттинг"]
+const ROW_BASE := 3
+const ROW_BUTTON := 4
+const ROW_LABELS: Array[String] = ["Жанр", "Технология", "Сеттинг", "Основа"]
 const COLUMN_TOP := 36
 const CARD_LABEL_SIZE := 30
+const BASE_TITLE_SIZE := 26
 const TITLE_FONT := 44
+const TITLE_FONT_LONG := 34
+const TITLE_LONG := 24
 const TOTAL_FONT := 72
+const BASE_COLOR := Color("#1E2A4A")
 ## Ширина градиента по верху и низу колонки: карточки растворяются, а не режутся.
 const EDGE_FADE := 120.0
 ## Маска краёв колонки: альфа по мировой Y между `top` и `bottom` с плавными краями `fade`.
@@ -44,6 +56,24 @@ void fragment() {
 }
 """
 
+
+## Карточка колонки «Основа»: новая игра или сиквел / ремейк прошлой игры.
+class BaseOption:
+	var kind: GameConfig.Kind = GameConfig.Kind.NEW
+	var parent: GameRecord
+	var open := true
+	## Почему закрыта: пилюля на карточке.
+	var lock_reason := ""
+
+	func title() -> String:
+		match kind:
+			GameConfig.Kind.SEQUEL:
+				return "%s %d" % [parent.franchise_title(), parent.part + 1]
+			GameConfig.Kind.REMAKE:
+				return "%s: ремейк" % parent.title
+		return ""
+
+
 var economy: EconomyTuning
 var catalogs: Array[Catalog] = []
 ## Открытые значения по видам: индексы перечислений.
@@ -52,25 +82,34 @@ var cash := 0
 var discount := 0.0
 var release := 1
 var rng := RandomNumberGenerator.new()
+## Прошлые игры забега и флаги возможностей (#24).
+var past: Array[GameRecord] = []
+var sequels_unlocked := false
+var remakes_unlocked := false
+var base_options: Array[BaseOption] = []
 
 var focus_row := 0
-var index: Array[int] = [0, 0, 0]
+var index: Array[int] = [0, 0, 0, 0]
 var title := ""
 var estimate: Estimate
 
 var card: CardFrame
 var _inner := Vector2.ZERO
 var _left_width := 0.0
-var _rows: Array[Control] = []
-var _clips: Array[Control] = []
+## Порядок колонок слева направо: [3, 0, 1, 2] с основой, [0, 1, 2] без.
+var _order: Array[int] = [0, 1, 2]
+var _rows: Array[Control] = [null, null, null, null]
+var _clips: Array[Control] = [null, null, null, null]
+var _captions: Array[Label] = [null, null, null, null]
 var _mask: ShaderMaterial
 var _column_height := 0.0
-## Ширина слота колонки и масштаб выбранной карточки, чтобы три слота с полями заполнили ширину.
+## Ширина слота колонки и масштаб выбранной карточки, чтобы слоты с полями заполнили ширину.
 var _slot := 0.0
 var _select_scale := 1.0
-var _cards: Array[Array] = [[], [], []]
+var _cards: Array[Array] = [[], [], [], []]
 var _focus_ring: Panel
 var _title_label: Label
+var _title_hint: Label
 var _money_label: Label
 var _header_label: Label
 var _sprints_value: Label
@@ -92,15 +131,19 @@ func _ready() -> void:
 	if catalogs.is_empty():
 		for k in CatalogEntry.Kind.values():
 			catalogs.append(Catalog.load_kind(k))
+	if base_options.is_empty():
+		_build_base_options()
 	_build()
 	_ready_done = true
 	_refresh(false)
 	card.raise_card()
 
 
-## Хозяин зовёт до добавления в дерево: открытые значения, деньги, скидка, номер релиза, сид.
+## Хозяин зовёт до добавления в дерево: открытые значения, деньги, скидка, номер релиза, сид,
+## прошлые игры забега и флаги сиквелов и ремейков из студии.
 func setup(unlocked_genres: Array[Game.Genre], unlocked_techs: Array[Game.Tech], unlocked_settings: Array[Game.Setting],
-		cash_: int, release_: int, seed_: int, discount_ := 0.0) -> void:
+		cash_: int, release_: int, seed_: int, discount_ := 0.0, past_: Array[GameRecord] = [],
+		sequels_ := false, remakes_ := false) -> void:
 	unlocked = [[], [], []]
 	for g in unlocked_genres:
 		unlocked[0].append(int(g))
@@ -112,16 +155,21 @@ func setup(unlocked_genres: Array[Game.Genre], unlocked_techs: Array[Game.Tech],
 	release = release_
 	discount = discount_
 	rng.seed = seed_
+	past = past_
+	sequels_unlocked = sequels_
+	remakes_unlocked = remakes_
 	if catalogs.is_empty():
 		for k in CatalogEntry.Kind.values():
 			catalogs.append(Catalog.load_kind(k))
-	# Стартовый выбор: первая открытая карточка каждого вида.
+	_build_base_options()
+	# Стартовый выбор: новая игра, первая открытая карточка каждого вида.
 	for kind in ROWS:
 		index[kind] = 0
 		for i in catalogs[kind].entries.size():
 			if is_unlocked(kind, i):
 				index[kind] = i
 				break
+	index[ROW_BASE] = 0
 	title = TitleGen.make(selected_entry(2), selected_entry(0), rng)
 	if _ready_done:
 		_refresh(false)
@@ -143,9 +191,82 @@ static func quick_config(genre: Game.Genre, tech: Game.Tech, setting: Game.Setti
 	return c
 
 
+## Колонка «Основа» есть, когда открыты сиквелы или ремейки.
+func has_base() -> bool:
+	return sequels_unlocked or remakes_unlocked
+
+
+func base() -> BaseOption:
+	return base_options[index[ROW_BASE]] if not base_options.is_empty() else null
+
+
+## Основа это сиквел или ремейк: жанр и сеттинг под оригинал.
+func franchise_parent() -> GameRecord:
+	var b := base()
+	return b.parent if b != null and b.kind != GameConfig.Kind.NEW else null
+
+
+## Список основ: новая игра, затем по прошлым играм от последней сиквел и ремейк. Ремейк
+## закрыт для ремейка и когда нет другой открытой технологии.
+func _build_base_options() -> void:
+	base_options.clear()
+	var fresh := BaseOption.new()
+	base_options.append(fresh)
+	if not has_base():
+		return
+	for k in range(past.size() - 1, -1, -1):
+		var p := past[k]
+		if sequels_unlocked:
+			var s := BaseOption.new()
+			s.kind = GameConfig.Kind.SEQUEL
+			s.parent = p
+			base_options.append(s)
+		if remakes_unlocked:
+			var r := BaseOption.new()
+			r.kind = GameConfig.Kind.REMAKE
+			r.parent = p
+			if p.remake:
+				r.open = false
+				r.lock_reason = "ремейк ремейка нельзя"
+			elif not _other_tech_open(p.tech):
+				r.open = false
+				r.lock_reason = "нужна вторая технология"
+			base_options.append(r)
+
+
+func _other_tech_open(tech: Game.Tech) -> bool:
+	for t in unlocked[1]:
+		if t != int(tech):
+			return true
+	return false
+
+
+func _count(kind: int) -> int:
+	return base_options.size() if kind == ROW_BASE else catalogs[kind].entries.size()
+
+
+## Открыта ли карточка: каталожная по прокачке, у ремейка технология оригинала закрыта,
+## основа по своему флагу.
 func is_unlocked(kind: int, i: int) -> bool:
+	if kind == ROW_BASE:
+		return base_options[i].open
 	var e := catalogs[kind].entries[i]
-	return unlocked[kind].has(e.value)
+	if not unlocked[kind].has(e.value):
+		return false
+	if kind == 1 and _tech_blocked(e.value):
+		return false
+	return true
+
+
+## Технология оригинала закрыта для ремейка.
+func _tech_blocked(value: int) -> bool:
+	var b := base()
+	return b != null and b.kind == GameConfig.Kind.REMAKE and int(b.parent.tech) == value
+
+
+## Колонка залочена основой: жанр и сеттинг у сиквела и ремейка.
+func is_locked_column(kind: int) -> bool:
+	return (kind == 0 or kind == 2) and franchise_parent() != null
 
 
 func selected_entry(kind: int) -> CatalogEntry:
@@ -156,7 +277,8 @@ func selection_open() -> bool:
 	for kind in ROWS:
 		if not is_unlocked(kind, index[kind]):
 			return false
-	return true
+	var b := base()
+	return b == null or b.open
 
 
 func current_config() -> GameConfig:
@@ -164,6 +286,10 @@ func current_config() -> GameConfig:
 	c.genre = selected_entry(0).value as Game.Genre
 	c.tech = selected_entry(1).value as Game.Tech
 	c.setting = selected_entry(2).value as Game.Setting
+	var b := base()
+	if b != null:
+		c.kind = b.kind
+		c.parent = b.parent
 	c.title = title
 	c.sprints = estimate.sprints
 	c.sprint_cost = estimate.sprint_price
@@ -185,9 +311,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(GameInput.DOWN):
 		move(1)
 	elif event.is_action_pressed(GameInput.LEFT):
-		focus(focus_row - 1)
+		focus_step(-1)
 	elif event.is_action_pressed(GameInput.RIGHT):
-		focus(focus_row + 1)
+		focus_step(1)
 	elif GameInput.is_a(event):
 		if focus_row == ROW_BUTTON:
 			confirm()
@@ -198,24 +324,54 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## Листание текущей колонки; на кнопке ничего.
+## Листание текущей колонки; на кнопке ничего, залоченная колонка отвечает промахом.
 func move(dir: int) -> void:
-	if focus_row >= ROWS:
+	if focus_row == ROW_BUTTON:
 		return
-	var n := catalogs[focus_row].entries.size()
+	if is_locked_column(focus_row):
+		ShellSounds.play(&"miss")
+		return
+	var n := _count(focus_row)
 	var next := clampi(index[focus_row] + dir, 0, n - 1)
 	if next == index[focus_row]:
 		return
 	index[focus_row] = next
-	if focus_row != 1:
+	if focus_row == ROW_BASE:
+		_apply_base()
+	elif focus_row != 1:
 		title = TitleGen.make(selected_entry(2), selected_entry(0), rng)
 	ShellSounds.play(&"tick")
 	_refresh(true)
 
 
+## Выбор основы: сиквел и ремейк ставят жанр и сеттинг оригинала, ремейк уводит технологию с
+## технологии оригинала, название задано; новая игра получает название заново.
+func _apply_base() -> void:
+	var b := base()
+	var p := franchise_parent()
+	if p != null:
+		index[0] = maxi(catalogs[0].index_of(int(p.genre)), 0)
+		index[2] = maxi(catalogs[2].index_of(int(p.setting)), 0)
+		if b.kind == GameConfig.Kind.REMAKE and _tech_blocked(selected_entry(1).value):
+			for i in catalogs[1].entries.size():
+				if is_unlocked(1, i):
+					index[1] = i
+					break
+		title = b.title()
+	else:
+		title = TitleGen.make(selected_entry(2), selected_entry(0), rng)
+
+
+## Фокус по порядку колонок и дальше на кнопку.
+func focus_step(dir: int) -> void:
+	var chain: Array[int] = _order.duplicate()
+	chain.append(ROW_BUTTON)
+	var pos := chain.find(focus_row)
+	focus(chain[clampi(pos + dir, 0, chain.size() - 1)])
+
+
 func focus(row: int) -> void:
-	row = clampi(row, 0, ROW_BUTTON)
-	if row == focus_row:
+	if row == focus_row or (row == ROW_BASE and not has_base()):
 		return
 	focus_row = row
 	ShellSounds.play(&"tick")
@@ -223,6 +379,9 @@ func focus(row: int) -> void:
 
 
 func regenerate_title() -> void:
+	if franchise_parent() != null:
+		ShellSounds.play(&"miss")
+		return
 	title = TitleGen.another(title, selected_entry(2), selected_entry(0), rng)
 	ShellSounds.play(&"tick")
 	_refresh(false)
@@ -272,8 +431,13 @@ func _build() -> void:
 	_mask.shader = shader
 	_mask.set_shader_parameter("fade_px", EDGE_FADE)
 	_column_height = _inner.y - COLUMN_TOP
+	if has_base():
+		_order.assign([ROW_BASE, 0, 1, 2])
+	else:
+		_order.assign([0, 1, 2])
+	var columns := _order.size()
 	# Слева поле GAP, между слотами GAP, справа до сметы сам GAP между областями.
-	_slot = (_left_width - ROWS * Style.GAP_CARDS) / ROWS
+	_slot = (_left_width - columns * Style.GAP_CARDS) / columns
 	_select_scale = _slot / Style.CARD_SIZE.x
 	var step_x := _slot + Style.GAP_CARDS
 	var x0 := float(Style.GAP_CARDS)
@@ -284,26 +448,32 @@ func _build() -> void:
 	_focus_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_focus_ring.visible = false
 
-	for kind in ROWS:
+	for pos in columns:
+		var kind: int = _order[pos]
 		var caption := _label(ROW_LABELS[kind], Style.FONT_CAPTION, Style.INK_2)
-		caption.position = Vector2(x0 + kind * step_x, 0)
+		caption.position = Vector2(x0 + pos * step_x, 0)
 		caption.size = Vector2(_slot, 24)
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		content.add_child(caption)
+		_captions[kind] = caption
 		var clip := Control.new()
-		clip.position = Vector2(x0 + kind * step_x - 12, COLUMN_TOP)
+		clip.position = Vector2(x0 + pos * step_x - 12, COLUMN_TOP)
 		clip.size = Vector2(_slot + 24, _column_height)
 		clip.clip_contents = true
 		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(clip)
-		_clips.append(clip)
+		_clips[kind] = clip
 		var column := Control.new()
 		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		column.material = _mask
 		clip.add_child(column)
-		_rows.append(column)
-		for i in catalogs[kind].entries.size():
-			var c := _make_card(catalogs[kind].entries[i], is_unlocked(kind, i))
+		_rows[kind] = column
+		for i in _count(kind):
+			var c: Control
+			if kind == ROW_BASE:
+				c = _make_base_card(base_options[i])
+			else:
+				c = _make_card(catalogs[kind].entries[i], kind == 1)
 			c.position = Vector2(card_x, _card_y(kind, i))
 			column.add_child(c)
 			_cards[kind].append(c)
@@ -326,16 +496,14 @@ func _build() -> void:
 
 
 ## Карточка карусели 260×190: цветной фон, крупная буква вместо иллюстрации, название внизу.
-func _make_card(e: CatalogEntry, open: bool) -> Control:
+## Пилюли «придёт с прокачкой» и (у технологии) «как у оригинала» включаются в `_refresh`.
+func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	var c := PanelContainer.new()
 	c.custom_minimum_size = Style.CARD_SIZE
 	c.size = Style.CARD_SIZE
 	c.pivot_offset = Style.CARD_SIZE / 2.0
 	c.add_theme_stylebox_override("panel", Style.flat(e.color, Style.R_CARD, Color.TRANSPARENT, 0))
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.set_meta(&"open", open)
-	if not open:
-		c.modulate.a = Style.DIM_LOCKED
 	var inner := Control.new()
 	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(inner)
@@ -348,13 +516,70 @@ func _make_card(e: CatalogEntry, open: bool) -> Control:
 	var caption := _label(e.title, CARD_LABEL_SIZE, Style.SURFACE_SOLID)
 	caption.position = Vector2(24, Style.CARD_SIZE.y - 24 - 44)
 	inner.add_child(caption)
-	if not open:
-		var pill := HintPill.make("придёт с прокачкой")
-		pill.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-		pill.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		pill.grow_vertical = Control.GROW_DIRECTION_BOTH
-		inner.add_child(pill)
+	inner.add_child(_center_pill("придёт с прокачкой", &"locked_pill"))
+	if with_origin_pill:
+		inner.add_child(_center_pill("как у оригинала", &"origin_pill"))
 	return c
+
+
+## Карточка основы: новая игра или сиквел / ремейк прошлой игры в цвете её жанра.
+func _make_base_card(o: BaseOption) -> Control:
+	var c := PanelContainer.new()
+	c.custom_minimum_size = Style.CARD_SIZE
+	c.size = Style.CARD_SIZE
+	c.pivot_offset = Style.CARD_SIZE / 2.0
+	var color := BASE_COLOR
+	if o.parent != null:
+		var ge := catalogs[0].by_value(int(o.parent.genre))
+		if ge != null:
+			color = ge.color
+	c.add_theme_stylebox_override("panel", Style.flat(color, Style.R_CARD, Color.TRANSPARENT, 0))
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var inner := Control.new()
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.add_child(inner)
+	if o.kind == GameConfig.Kind.NEW:
+		var glyph := _label("+", 96, Color(1, 1, 1, 0.35))
+		glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		glyph.offset_bottom = -24
+		inner.add_child(glyph)
+		var caption := _label("Новая игра", CARD_LABEL_SIZE, Style.SURFACE_SOLID)
+		caption.position = Vector2(24, Style.CARD_SIZE.y - 24 - 44)
+		inner.add_child(caption)
+	else:
+		var kind_label := _label("сиквел" if o.kind == GameConfig.Kind.SEQUEL else "ремейк", Style.FONT_CAPTION, Color(1, 1, 1, 0.75))
+		kind_label.position = Vector2(24, 20)
+		inner.add_child(kind_label)
+		var name_label := _label(o.parent.title, BASE_TITLE_SIZE, Style.SURFACE_SOLID)
+		name_label.position = Vector2(24, 50)
+		name_label.size = Vector2(Style.CARD_SIZE.x - 48, 70)
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_label.max_lines_visible = 2
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		inner.add_child(name_label)
+		var sub := "%s · часть %d" % [Game.tech_name(o.parent.tech), o.parent.part]
+		if o.parent.score != null:
+			sub = "%s · критики %.1f" % [Game.tech_name(o.parent.tech), o.parent.score.critics]
+		var sub_label := _label(sub, Style.FONT_CAPTION, Color(1, 1, 1, 0.75))
+		sub_label.position = Vector2(24, Style.CARD_SIZE.y - 24 - 26)
+		inner.add_child(sub_label)
+		if not o.open:
+			var pill := _center_pill(o.lock_reason, &"locked_pill")
+			pill.visible = true
+			inner.add_child(pill)
+	return c
+
+
+func _center_pill(text: String, meta: StringName) -> Control:
+	var pill := HintPill.make(text)
+	pill.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	pill.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	pill.grow_vertical = Control.GROW_DIRECTION_BOTH
+	pill.visible = false
+	pill.set_meta(meta, true)
+	return pill
 
 
 func _build_estimate(content: Control) -> void:
@@ -377,7 +602,8 @@ func _build_estimate(content: Control) -> void:
 	_title_label.custom_minimum_size = Vector2(0, int(TITLE_FONT * 1.3) * 2)
 	_title_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	column.add_child(_title_label)
-	column.add_child(_label("R другое название", Style.FONT_CAPTION, Style.INK_3))
+	_title_hint = _label("R другое название", Style.FONT_CAPTION, Style.INK_3)
+	column.add_child(_title_hint)
 	column.add_child(_spacer(16))
 	_sprints_value = _row(column, "Спринтов")
 	_price_value = _row(column, "Цена спринта")
@@ -440,6 +666,10 @@ func _refresh(animate: bool) -> void:
 	_header_label.text = "Релиз %d · Следующая игра" % release
 	_money_label.text = Style.format_money(cash)
 	_title_label.text = title
+	# Длинное название (ремейк сиквела) мельче, чтобы уместиться в две строки.
+	_title_label.add_theme_font_size_override("font_size", TITLE_FONT if title.length() <= TITLE_LONG else TITLE_FONT_LONG)
+	var franchise := franchise_parent() != null
+	_title_hint.text = "название по франшизе" if franchise else "R другое название"
 	_roll(&"sprints", _sprints_value, estimate.sprints, animate, func(v: float) -> String: return str(int(round(v))))
 	_roll(&"price", _price_value, estimate.sprint_price, animate, _money_text)
 	_roll(&"total", _total_value, estimate.total, animate, _money_text)
@@ -449,7 +679,12 @@ func _refresh(animate: bool) -> void:
 	_remainder_label.add_theme_color_override("font_color", Style.DANGER if danger else Style.INK_2)
 	var open := selection_open()
 	if not open:
-		_button_label.text = "Придёт с прокачкой"
+		if _tech_blocked(selected_entry(1).value):
+			_button_label.text = "Нужна другая технология"
+		elif base() != null and not base().open:
+			_button_label.text = base().lock_reason.capitalize()
+		else:
+			_button_label.text = "Придёт с прокачкой"
 	elif danger:
 		_button_label.text = "Не хватает " + Style.format_money(estimate.shortfall())
 	else:
@@ -464,13 +699,31 @@ func _refresh(animate: bool) -> void:
 	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if on_button and not active else Color.TRANSPARENT, 0))
 	_button_label.add_theme_color_override("font_color", ink)
 	# Колонки: выбранная карточка по центру колонки и крупнее, соседи раздвинуты на её рост.
-	for kind in ROWS:
+	for kind in _order:
+		if kind != ROW_BASE:
+			_captions[kind].text = ROW_LABELS[kind] + (" · как у оригинала" if is_locked_column(kind) else "")
 		_animate(_rows[kind], "position:y", _column_offset(kind), animate)
 		for i in _cards[kind].size():
 			var c: Control = _cards[kind][i]
 			_animate(c, "scale", Vector2.ONE * (_select_scale if i == index[kind] else 1.0), animate)
 			_animate(c, "position:y", _card_y(kind, i), animate)
+			if kind != ROW_BASE:
+				_refresh_card_lock(kind, i, c)
 	_place_focus_ring(animate)
+
+
+## Закрытая карточка затемнена, пилюля говорит почему: прокачка или технология оригинала.
+func _refresh_card_lock(kind: int, i: int, c: Control) -> void:
+	var e := catalogs[kind].entries[i]
+	var by_upgrade := not unlocked[kind].has(e.value)
+	var by_origin := kind == 1 and not by_upgrade and _tech_blocked(e.value)
+	c.modulate.a = Style.DIM_LOCKED if by_upgrade or by_origin else 1.0
+	var inner := c.get_child(0)
+	for child in inner.get_children():
+		if child.has_meta(&"locked_pill"):
+			child.visible = by_upgrade
+		elif child.has_meta(&"origin_pill"):
+			child.visible = by_origin
 
 
 ## Рамка фокуса только на карточках; на кнопке пропадает (плейтест 2026-11-07).
@@ -479,9 +732,9 @@ func _place_focus_ring(animate: bool) -> void:
 		_focus_ring.visible = false
 		return
 	var target: Control = _cards[focus_row][index[focus_row]]
-	var base := _clips[focus_row].position + Vector2(target.position.x, _column_offset(focus_row) + index[focus_row] * (Style.CARD_SIZE.y + Style.GAP_CARDS))
+	var base_pos := _clips[focus_row].position + Vector2(target.position.x, _column_offset(focus_row) + index[focus_row] * (Style.CARD_SIZE.y + Style.GAP_CARDS))
 	var grown := Style.CARD_SIZE * _select_scale
-	var rect := Rect2(base - (grown - Style.CARD_SIZE) / 2.0, grown)
+	var rect := Rect2(base_pos - (grown - Style.CARD_SIZE) / 2.0, grown)
 	var was_visible := _focus_ring.visible
 	_focus_ring.visible = true
 	_animate(_focus_ring, "position", rect.position, animate and was_visible)
@@ -507,7 +760,7 @@ func _card_y(kind: int, i: int) -> float:
 
 func _process(_delta: float) -> void:
 	# Границы маски в мировых координатах: карточка двигается при всплытии.
-	if _mask != null and not _clips.is_empty():
+	if _mask != null and _clips[0] != null:
 		var top := _clips[0].global_position.y
 		_mask.set_shader_parameter("top_px", top)
 		_mask.set_shader_parameter("bottom_px", top + _column_height)
