@@ -33,6 +33,7 @@ func _ready() -> void:
 	runner.tuning = tuning
 	add_child(runner)
 	runner.sprint_started.connect(func(_d: MinigameDef) -> void: _started += 1)
+	runner.sprint_started.connect(_check_pause)
 	runner.sprint_finished.connect(_on_sprint_finished)
 	runner.sprint_replayed.connect(func(_d: MinigameDef) -> void: _replayed += 1)
 	Debug.watch("баги", func() -> String: return str(record.bug_ids) if record else "")
@@ -57,6 +58,12 @@ func _ready() -> void:
 			Debug.minigame_id = str(args["minigame"])
 			Debug.minigame_loop = false
 			_run_single()
+			if args.has("pause"):
+				# `--pause` (с `--cards`): через секунду поставить мини-игру на паузу под скриншот.
+				AutoTest.bot_mode = AutoTest.BotMode.OFF
+				await get_tree().create_timer(1.0 + tuning.intro_seconds).timeout
+				if runner._minigame != null:
+					runner._minigame.pause()
 		else:
 			_run_plan()
 	elif Debug.minigame_single:
@@ -145,3 +152,25 @@ func _check(results: Array[bool]) -> void:
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
 			AutoTest.fulfill("sprint runner checks")
 			AutoTest.note("sprint runner checks done: %s, %d sprints, frames_left=%d, fps=%d" % [what, 2 * n, AutoTest.frames_left, Engine.get_frames_per_second()])
+
+
+## Пауза мини-игры (#42): таймер стоит, ввод выключен, после продолжения идёт дальше.
+## Под ботом бот паузу не ставит, тест зовёт `pause()` сам на первом спринте одной мини-игры.
+func _check_pause(_d: MinigameDef) -> void:
+	if not AutoTest.enabled or not single or _check_phase != 0:
+		return
+	for i in 20:
+		await get_tree().process_frame
+	var m := runner._minigame
+	if m == null or not m.running:
+		return
+	m.pause()
+	var left := m.time_left
+	for i in 10:
+		await get_tree().process_frame
+	_expect(m.paused and not m.running and is_equal_approx(m.time_left, left) and not m.is_processing_unhandled_input(),
+			"пауза: таймер %.2f → %.2f, running %s" % [left, m.time_left, m.running])
+	m.resume()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect(not m.paused and m.running and m.time_left < left, "продолжение после паузы")
