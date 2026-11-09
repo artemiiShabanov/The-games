@@ -1,9 +1,12 @@
 extends Control
-## Тестовая сцена демки: запускает платформер × 8-bit с сидом и набором багов из раздела
-## «Демки» дебаг-меню (`Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога показывает,
-## куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага, LOSE идёт вправо без
-## прыжков и теряет жизни. `--no-checks` без проверок, `--pause` открывает меню паузы,
-## `--bugs` все баги каталога, `--bug=<id>` один баг.
+## Тестовая сцена демки: запускает демку 8-bit жанра, сида и набора багов из раздела «Демки»
+## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
+## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
+## финиширует первым), LOSE теряет жизни (гонки: едет вполгаза, соперники финишируют раньше).
+## `--genre=racing` гонки (или `platformer`, или номер `Game.Genre`), `--seed=<n>` сид,
+## `--no-checks` без проверок, `--pause` открывает меню паузы, `--bugs` все баги каталога,
+## `--bug=<id>` один баг.
+## У гонок до заезда проверяется генератор трассы на сотне сидов.
 
 
 var demo: Demo
@@ -31,6 +34,8 @@ func _ready() -> void:
 	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
 	if AutoTest.enabled and not args.has("no-checks"):
 		AutoTest.require("demo checks")
+		if _genre() == Game.Genre.RACING:
+			_check_tracks()
 	_launch()
 	if args.has("pause"):
 		# `--pause`: через полторы секунды открыть меню паузы, для скриншота.
@@ -39,9 +44,24 @@ func _ready() -> void:
 			demo._open_pause()
 
 
+func _genre() -> Game.Genre:
+	# Под автотестом жанр только из `--genre`, по умолчанию платформер: сохранённое меню не
+	# подменяет демку в `tools/ci.sh`.
+	var genre := 0 if AutoTest.enabled else Debug.demo_genre
+	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
+	if args.has("genre"):
+		var v := str(args["genre"])
+		genre = DemoCatalog.GENRE_KEYS.find(v) if DemoCatalog.GENRE_KEYS.has(v) else int(v)
+	return clampi(genre, 0, Game.Genre.size() - 1) as Game.Genre
+
+
 func _launch() -> void:
 	_label.visible = false
-	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.demo_seed, "Тест демки")
+	var seed_ := Debug.demo_seed
+	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("seed"):
+		# `--seed=<n>`: сид записи мимо сохранённого меню.
+		seed_ = int(AutoTest.parse_args(OS.get_cmdline_user_args())["seed"])
+	record = GameRecord.create(_genre(), Game.Tech.BIT8, seed_, "Тест демки")
 	record.setting = Debug.demo_setting as Game.Setting
 	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("setting"):
 		# `--setting=<0..2>`: сеттинг записи под скриншот.
@@ -56,6 +76,12 @@ func _launch() -> void:
 		# `--bug=<id>`: один баг под скриншот.
 		record.add_bug(StringName(str(AutoTest.parse_args(OS.get_cmdline_user_args())["bug"])))
 	demo = DemoCatalog.create(record)
+	if demo == null:
+		_label.text = "У пары %s × 8-bit ещё нет демки" % Game.genre_name(record.genre)
+		_label.visible = true
+		if AutoTest.enabled:
+			AutoTest.fail("demo: нет сцены %s" % DemoCatalog.path(record.genre, record.tech))
+		return
 	demo.setup(record, &"debug")
 	demo.demo_started.connect(func(_r: GameRecord, _s: StringName) -> void: _started += 1)
 	demo.demo_finished.connect(_on_finished)
@@ -64,9 +90,10 @@ func _launch() -> void:
 
 
 func _on_finished(r: GameRecord, reached: bool) -> void:
+	var title := demo._result_title(reached)
 	demo.queue_free()
 	demo = null
-	_label.text = "Вернулись из демки: %s\n%s\n\nA снова, F1 меню" % ["добежал" if reached else "не добежал", r]
+	_label.text = "Вернулись из демки: %s\n%s\n\nA снова, F1 меню" % [title, r]
 	_label.visible = true
 	if AutoTest.enabled:
 		_check(reached)
@@ -86,14 +113,30 @@ func _check(reached: bool) -> void:
 	match _phase:
 		0:
 			if record.bug_ids.is_empty():
-				_expect(reached, "WIN: бот не добежал до флага на сиде %d" % record.seed)
+				_expect(reached, "WIN: бот не дошёл до цели на сиде %d" % record.seed)
 			_expect(_started == 1, "WIN: demo_started %d раз" % _started)
 			_phase = 1
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
 			_launch()
 		1:
-			_expect(not reached, "LOSE: стоя на месте добежал")
+			_expect(not reached, "LOSE: бот проигрыша дошёл до цели")
 			_phase = 2
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
 			AutoTest.fulfill("demo checks")
 			AutoTest.note("demo checks done: seed %d" % record.seed)
+
+
+## Гонки: сто сидов дают трассу, которая проходит проверку генератора (замкнутость, ширина,
+## повороты, участки петли не сливаются), и генерация детерминирована.
+func _check_tracks() -> void:
+	var t := RacingGenTuning.load_default()
+	var fallbacks := 0
+	for s in range(1, 101):
+		var tr := RacingTrackGen.generate(s, t)
+		var why := RacingTrackGen.validate(tr, t)
+		_expect(why == "", "трасса сида %d: %s" % [s, why])
+		fallbacks += 1 if tr.fallback else 0
+	var a := RacingTrackGen.generate(7, t)
+	var b := RacingTrackGen.generate(7, t)
+	_expect(a.points == b.points and a.tiles == b.tiles, "трасса сида 7 не повторяется")
+	AutoTest.note("racing tracks: 100 сидов прошли проверку, запасной эллипс %d" % fallbacks)

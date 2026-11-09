@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Спрайты 8-bit из текстовых карт по сеттингам: «Пираты» здесь, «Космос» и «Замки» в
-pixel_sets_extra.py (#47). Тайлы 16×16, палитра сеттинга 4 цвета плюс чёрный, одинаковые слоты.
+pixel_sets_extra.py (#47). Тайлы 16×16, палитра сеттинга 4 цвета плюс чёрный. Слоты платформера
+есть у каждого набора; слоты гонок (#48, шлюпки в 8 направлениях, вода, отмель, берег, риф, бочка,
+буй, финиш) пока только у пиратов, другие сеттинги берут их у пиратов.
 Пишет PNG в thegames/assets/settings/<сеттинг>/8bit/ и превью-лист (×8) всех наборов в --preview.
 
     python3 tools/pixel_sprites.py                 # сгенерировать все наборы
@@ -338,6 +340,257 @@ SPRITES = {
 }
 
 
+# --- Гонки × 8-bit (#48), вид сверху -----------------------------------------------------
+# Шлюпка в 8 направлениях из двух карт: нос вправо (E) и по диагонали вверх-вправо (NE);
+# остальные повороты на 90° без потерь. Индекс направления по часовой на экране (y вниз):
+# 0 E, 1 SE, 2 S, 3 SW, 4 W, 5 NW, 6 N, 7 NE. Парус всегда по левому борту, `w` пена за кормой.
+# Своя шлюпка: корпус дерево R, банка песок S, белый парус; соперник: перекраска в `RIVAL_COLORS`.
+
+BOAT_E = [
+    "................",
+    "................",
+    "................",
+    "................",
+    "..KKKKKKKKK.....",
+    ".KRWWWWWWRRKK...",
+    ".KRRWWWWWWRRRKK.",
+    "wKRRRWWWWWKRRRRK",
+    "wKRRSRRRRRRRRRRK",
+    ".KRRSRRRRRRRRKK.",
+    ".KRRSRRRRRRKK...",
+    "..KKKKKKKKK.....",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+
+BOAT_NE = [
+    "................",
+    "................",
+    "..........KKK...",
+    "........KKRRRK..",
+    "......KKRRRRRK..",
+    ".....KWWRKRRRK..",
+    "....KWWWWRRRRK..",
+    "...KWWWWRRRRK...",
+    "..KWWWWRRRRK....",
+    ".KRWWWRRRRRK....",
+    ".KRRWSSRRRK.....",
+    "..KRRRSSRK......",
+    "..wKRRRRK.......",
+    "...wKRRK........",
+    ".....KK.........",
+    "................",
+]
+
+# Соперник: жёлтая шлюпка под чёрным парусом, банка дерево.
+RIVAL_COLORS = {"R": "S", "S": "R", "W": "K"}
+
+
+def _cw(rows):
+    """Поворот карты на 90° по часовой."""
+    n = len(rows)
+    return ["".join(rows[n - 1 - x][y] for x in range(n)) for y in range(n)]
+
+
+def boat_frames(prefix, recolor=None):
+    """8 направлений шлюпки: `<prefix>_0..7`, пена `w` становится белой."""
+    out = {}
+    e, ne = BOAT_E, BOAT_NE
+    for k in range(4):
+        out[2 * k] = e
+        out[(2 * k + 7) % 8] = ne
+        e, ne = _cw(e), _cw(ne)
+    frames = {}
+    for i in range(8):
+        rows = out[i]
+        if recolor:
+            rows = ["".join(recolor.get(ch, ch) for ch in r) for r in rows]
+        frames["%s_%d" % (prefix, i)] = [r.replace("w", "W") for r in rows]
+    return frames
+
+
+RACING = {}
+RACING.update(boat_frames("boat"))
+RACING.update(boat_frames("rival", RIVAL_COLORS))
+RACING.update({
+    # Трасса: глубокая вода, блик в разных местах тайла; демка мешает их по клетке с отражениями.
+    "race_water": [
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBWWBBBB",
+        "BBBBBBBBBBBBWBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+    ],
+    "race_water_1": [
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBWWBBBBBBBBBBB",
+        "BBBBBWBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+    ],
+    # Обочина: отмель, песок сквозь воду; замедляет.
+    "race_shallow": [
+        "SBBBSBBBSBBBSBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBSBBBSBBBSBBBSB",
+        "BBBBBBBBBBBBBBBB",
+        "SBBBSBBBSBBBSBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBSBBBSBBBSBBBSB",
+        "BBBBBBBBBBBBBBBB",
+        "SBBBSBBBSBBBSBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBSBBBSBBBSBBBSB",
+        "BBBBBBBBBBBBBBBB",
+        "SBBBSBBBSBBBSBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBSBBBSBBBSBBBSB",
+        "BBBBBBBBBBBBBBBB",
+    ],
+    # Стена: берег, сюда шлюпка не заходит. Два варианта, во втором ракушка.
+    "race_sand": [
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSRSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSRSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSRSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSRS",
+        "SSSSSSSSSSSSSSSS",
+        "SRSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSRSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+    ],
+    "race_sand_1": [
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSRSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSKKKSSSSSSSS",
+        "SSSSKWWWKSSSSSSS",
+        "SSSSKWKWKSSSSSSS",
+        "SSSSSKWKSSSSSSSS",
+        "SSSSSSKSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SRSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSRSS",
+        "SSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSS",
+    ],
+    # Препятствия на воде: риф в пене и бочка (вид сверху, крышка с клёпками).
+    "race_rock": [
+        "................",
+        "................",
+        ".....WWWWW......",
+        "...WWKKKKKWW....",
+        "..WKKRRRRRKKW...",
+        "..WKRRSRRRRKW...",
+        ".WKRRSSRRRRRKW..",
+        ".WKRRRRRRRKRKW..",
+        ".WKRRRRRRKKRKW..",
+        ".WKKRRRRRRRKKW..",
+        "..WKKRRRRKKKW...",
+        "...WWKKKKKWW....",
+        ".....WWWWW......",
+        "................",
+        "................",
+        "................",
+    ],
+    "race_barrel": [
+        "................",
+        "................",
+        "................",
+        ".....KKKKKK.....",
+        "....KRRRRRRK....",
+        "...KRKKKKKKRK...",
+        "...KRKSSSSKRK...",
+        "...KRKSKKSKRK...",
+        "...KRKSKKSKRK...",
+        "...KRKSSSSKRK...",
+        "...KRKKKKKKRK...",
+        "....KRRRRRRK....",
+        ".....KKKKKK.....",
+        "................",
+        "................",
+        "................",
+    ],
+    # Буй на кромке трассы, украшение без столкновений.
+    "race_buoy": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "......KKKK......",
+        ".....KRRRRK.....",
+        ".....KRWWRK.....",
+        ".....KRWWRK.....",
+        ".....KRRRRK.....",
+        "......KKKK......",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    # Финиш: шахматная полоса поперёк трассы, тайл кладётся вертикальной полосой.
+    "race_finish": [
+        "....KKKKWWWW....",
+        "....KKKKWWWW....",
+        "....KKKKWWWW....",
+        "....KKKKWWWW....",
+        "....WWWWKKKK....",
+        "....WWWWKKKK....",
+        "....WWWWKKKK....",
+        "....WWWWKKKK....",
+        "....KKKKWWWW....",
+        "....KKKKWWWW....",
+        "....KKKKWWWW....",
+        "....KKKKWWWW....",
+        "....WWWWKKKK....",
+        "....WWWWKKKK....",
+        "....WWWWKKKK....",
+        "....WWWWKKKK....",
+    ],
+})
+SPRITES.update(RACING)
+
+# Слоты платформера обязательны у каждого сеттинга; без слота гонок сеттинг берёт пиратский
+# (`SettingDef.sprite`), пока у него нет своего арта.
+PLATFORMER_SLOTS = set(SPRITES) - set(RACING)
+
+
 def png_bytes(width, height, rgba_rows):
     raw = b"".join(b"\x00" + bytes(row) for row in rgba_rows)
 
@@ -380,7 +633,8 @@ def main():
     for set_name, (palette, sprites) in all_sets.items():
         out = os.path.join(ROOT, "thegames", "assets", "settings", set_name, "8bit")
         os.makedirs(out, exist_ok=True)
-        assert set(sprites) == set(SPRITES), "у %s не те слоты: %s" % (set_name, set(SPRITES) ^ set(sprites))
+        assert PLATFORMER_SLOTS <= set(sprites) <= set(SPRITES), "у %s не те слоты: %s" % (
+            set_name, (PLATFORMER_SLOTS - set(sprites)) | (set(sprites) - set(SPRITES)))
         for name, rows in sprites.items():
             w, h, px = render(rows, 1, palette)
             with open(os.path.join(out, name + ".png"), "wb") as f:
@@ -390,21 +644,29 @@ def main():
         path = sys.argv[sys.argv.index("--preview") + 1]
         scale = 6
         names = list(SPRITES)
-        cell = 32 * scale + 8
-        width, height = len(names) * (16 * scale + 8) + 16 * scale, len(all_sets) * (16 * scale + 8)
+        # Лист переносится по `per_line` клеток; у сеттинга без слота клетка пустая.
+        per_line = 17
+        lines = (len(names) + per_line - 1) // per_line
+        cell_h = 16 * scale + 8
+        width = per_line * (16 * scale + 8) + 16 * scale
+        height = len(all_sets) * lines * cell_h
         bg = (0xF4, 0xF1, 0xEC, 255)
         canvas = [list(bg) * width for _ in range(height)]
         for row, (set_name, (palette, sprites)) in enumerate(all_sets.items()):
-            ox = 4
-            for name in names:
-                w, h, px = render(sprites[name], scale, palette)
-                oy = row * (16 * scale + 8) + 4
-                for y in range(h):
-                    for x in range(w):
-                        p = px[y][x * 4:x * 4 + 4]
-                        if p[3]:
-                            canvas[oy + y][(ox + x) * 4:(ox + x) * 4 + 4] = p
-                ox += w + 8
+            for line in range(lines):
+                ox = 4
+                oy = (row * lines + line) * cell_h + 4
+                for name in names[line * per_line:(line + 1) * per_line]:
+                    if name not in sprites:
+                        ox += 16 * scale + 8
+                        continue
+                    w, h, px = render(sprites[name], scale, palette)
+                    for y in range(h):
+                        for x in range(w):
+                            p = px[y][x * 4:x * 4 + 4]
+                            if p[3]:
+                                canvas[oy + y][(ox + x) * 4:(ox + x) * 4 + 4] = p
+                    ox += w + 8
         with open(path, "wb") as f:
             f.write(png_bytes(width, height, canvas))
         print("превью:", path)

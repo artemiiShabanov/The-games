@@ -5,8 +5,9 @@ extends Control
 ## студии, как спринты (решение 2026-11-06): карточка всплывает, экран демки в `screen`,
 ## после итога карточка уезжает вниз и приходит `demo_finished`. Таймера нет (решение
 ## 2026-11-05): демка кончается по своей цели или по своему условию провала (жизни, счёт),
-## затем короткий экран итога («добежал» / «не добежал»). Esc открывает паузу с пунктами
-## «Вернуться» и «Пропустить» (решение 2026-11-06); B остаётся демке, у платформера это дэш.
+## затем короткий экран итога («добежал» / «не добежал», слова жанра в `_result_title`).
+## Esc открывает паузу с пунктами «Вернуться» и «Пропустить» (решение 2026-11-06); B
+## остаётся демке, у платформера это дэш, у гонок тормоз.
 ## Подклассы переопределяют `_game_input`, а не `_unhandled_input`. Баги читаются флагами из
 ## записи: `has_bug(&"wild_physics")`. Общие баги (#44) живут здесь и работают в любой
 ## демке: фризы `frame_drops` (`bug_frame`), заикание звука `audio_stutter` (`bug_music`,
@@ -54,6 +55,15 @@ void fragment() {
 }
 """
 const MENU_ITEMS: Array[String] = ["Вернуться", "Пропустить"]
+## Пиксельные цифры 3×5 для HUD демок 8-bit (`draw_pixel_text`), плюс «/» для места в гонке.
+const PIXEL_DIGITS := {
+	"0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
+	"2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
+	"4": ["101", "101", "111", "001", "001"], "5": ["111", "100", "111", "001", "111"],
+	"6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "001", "001", "001"],
+	"8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
+	"/": ["001", "001", "010", "100", "100"],
+}
 
 var record: GameRecord
 var source: StringName = &"debug"
@@ -326,6 +336,18 @@ func flicker_hidden(line: int) -> bool:
 	return n > _flicker_limit and (Engine.get_process_frames() + n) % 2 == 1
 
 
+## Строка пиксельными цифрами `PIXEL_DIGITS` клетками `cell` с тенью на клетку вправо-вниз.
+func draw_pixel_text(canvas: CanvasItem, pos: Vector2, text: String, ink: Color, shadow: Color, cell := 2.0) -> void:
+	for i in text.length():
+		var rows: Array = PIXEL_DIGITS.get(text[i], [])
+		for ry in rows.size():
+			for rx in 3:
+				if rows[ry][rx] == "1":
+					var r := Rect2(pos + Vector2(i * 4 * cell + rx * cell, ry * cell), Vector2(cell, cell))
+					canvas.draw_rect(Rect2(r.position + Vector2(cell, cell) / 2.0, r.size), shadow)
+					canvas.draw_rect(r, ink)
+
+
 ## Итог: по цели (true) или по условию провала демки (false). Экран итога, потом сигнал.
 func end_demo(goal: bool) -> void:
 	if not running:
@@ -335,7 +357,7 @@ func end_demo(goal: bool) -> void:
 	reached = goal
 	_on_end(goal)
 	if not embedded:
-		_show_overlay("добежал" if goal else "не добежал", _result_caption(), Style.SUCCESS if goal else Style.INK)
+		_show_overlay(_result_title(goal), _result_caption(), Style.SUCCESS if goal else Style.INK)
 	_result_left = RESULT_SECONDS
 
 
@@ -463,6 +485,11 @@ func _game_input(_event: InputEvent) -> void:
 ## Подпись на экране итога: монеты, время и т.п.
 func _result_caption() -> String:
 	return ""
+
+
+## Заголовок экрана итога словами жанра: у платформера «добежал», у гонок «добрался первым».
+func _result_title(goal: bool) -> String:
+	return "добежал" if goal else "не добежал"
 
 
 # --- Оверлей итога и паузы в стиле оболочки ------------------------------------------------

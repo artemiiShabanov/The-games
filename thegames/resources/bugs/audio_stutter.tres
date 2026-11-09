@@ -15,5 +15,6 @@ params = Dictionary[StringName, float]({
 &"stutter_period_s": 3.0
 })
 clip_by_genre = Dictionary[int, String]({
-0: "Прыжок есть, звук прыжка через секунду"
+0: "Прыжок есть, звук прыжка через секунду",
+1: "Удар о берег есть, звук удара через секунду"
 })

@@ -54,13 +54,6 @@ const DUST_LIFE := 0.3
 const TILE := 16
 const MAX_FALL := 400.0
 const RUN_CYCLE: Array[int] = [0, 1, 2, 1]
-const DIGITS := {
-	"0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
-	"2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
-	"4": ["101", "101", "111", "001", "001"], "5": ["111", "100", "111", "001", "111"],
-	"6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "001", "001", "001"],
-	"8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
-}
 const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 ## Что может стать розовой заглушкой; герой и земля никогда.
@@ -682,12 +675,4 @@ func _draw_hud() -> void:
 
 
 func _draw_number(pos: Vector2, n: int) -> void:
-	var s := str(n)
-	for i in s.length():
-		var rows: Array = DIGITS[s[i]]
-		for ry in rows.size():
-			for rx in 3:
-				if rows[ry][rx] == "1":
-					var r := Rect2(pos + Vector2(i * 8 + rx * 2, ry * 2), Vector2(2, 2))
-					hud.draw_rect(Rect2(r.position + Vector2(1, 1), r.size), HUD_SHADOW)
-					hud.draw_rect(r, HUD_INK)
+	draw_pixel_text(hud, pos, str(n), HUD_INK, HUD_SHADOW)

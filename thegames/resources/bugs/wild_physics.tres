@@ -13,5 +13,16 @@ clip = "Герой уходит за верх экрана, внизу мель�
 spectacular = true
 params = Dictionary[StringName, float]({
 &"enemy_speed_mult": 2.0,
-&"jump_mult": 3.0
+&"jump_mult": 3.0,
+&"grip_mult": 0.25,
+&"rival_speed_mult": 1.6
+})
+manifestation_by_genre = Dictionary[int, String]({
+1: "Шлюпки скользят, как по льду, соперники носятся быстрее"
+})
+tweet_by_genre = Dictionary[int, String]({
+1: "Лодку несёт боком, как по льду, а соперники гоняют как на моторах"
+})
+clip_by_genre = Dictionary[int, String]({
+1: "Шлюпка уходит в занос и бьётся о берег, мимо пролетает соперник"
 })
