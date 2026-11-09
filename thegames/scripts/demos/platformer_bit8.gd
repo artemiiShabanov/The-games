@@ -10,7 +10,7 @@ extends Demo
 ## 416×208), три слоя: `backdrop` статичный фон (небо, солнце, море, острова, облака: на
 ## камеру не реагируют), `world` со сдвигом камеры, `hud` поверх. Камера целочисленная,
 ## привязана к округлённой позиции героя, чтобы его спрайт не дрожал; по вертикали мёртвая
-## зона. Спрайты пиратов 16×16, чиптюн-петля.
+## зона. Спрайты и цвета фона из сеттинга записи (`SettingDef`, #46), 16×16, чиптюн-петля.
 ##
 ## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`). Общие (#44) механикой
 ## живут в `Demo`, демка только зовёт хуки в своих местах:
@@ -52,7 +52,6 @@ const FLYER_BOB := 3.0
 const GHOST_EVERY := 0.03
 const DUST_LIFE := 0.3
 const TILE := 16
-const SPRITES := "res://assets/settings/pirates/8bit/"
 const MAX_FALL := 400.0
 const RUN_CYCLE: Array[int] = [0, 1, 2, 1]
 const DIGITS := {
@@ -62,13 +61,6 @@ const DIGITS := {
 	"6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "001", "001", "001"],
 	"8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
 }
-const SKY_BANDS: Array[Color] = [Color("#1F4F9A"), Color("#2A61A9"), Color("#3273B8"), Color("#4486C7"),
-	Color("#5A9BD5"), Color("#78B3E0"), Color("#9CCBE8")]
-const SUN := Color("#F2C85A")
-const SEA := Color("#1E5C8F")
-const SEA_LIGHT := Color("#3B86C4")
-const ISLAND := Color("#2B6B4F")
-const ISLAND_DARK := Color("#1F4F3B")
 const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 ## Что может стать розовой заглушкой; герой и земля никогда.
@@ -116,6 +108,8 @@ var _ghosts: Array[Vector4] = []
 ## Пыль: позиция, скорость, остаток жизни.
 var _dust: Array[Vector3] = []
 var bot_dir := 0.0
+## Сеттинг записи: спрайты и цвета фона.
+var scene_set: SettingDef
 
 # Звук.
 var _music: AudioStreamPlayer
@@ -128,13 +122,15 @@ var _enemy_mult := 1.0
 
 func _on_start() -> void:
 	tuning = PlatformerDemoTuning.load_default()
+	# Сеттинг записи (#46): спрайты и фон; без своего спрайта слот берёт пиратский.
+	scene_set = SettingDef.of(record.setting)
 	level = PlatformerLevelGen.generate(record.seed)
 	base_y = level.height * TILE
 	lives = tuning.lives
 	_setup_bugs()
 	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "hero_dash", "enemy_0", "enemy_1", "parrot_0", "parrot_1", "coin",
 			"checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
-		tex[name] = load(SPRITES + name + ".png")
+		tex[name] = scene_set.sprite(name)
 	var scale_px := EMBED_SCALE if embedded else SCALE
 	view = ((embed_size if embedded else CardFrame.inner_size()) / scale_px).floor()
 	var container := SubViewportContainer.new()
@@ -571,16 +567,18 @@ func _tex_or_pink(slot: String, name: String, pos: Vector2, size_px := Vector2(1
 		canvas.draw_texture(tex[name], pos)
 
 
-## Статичный фон в координатах экрана: полосы неба, солнце, море с бликами, острова, облака.
+## Статичный фон в координатах экрана из цветов сеттинга (#46): полосы неба, светило, полоса
+## горизонта с бликами, силуэты на горизонте, облака.
 func _draw_backdrop() -> void:
 	var horizon := roundf(view.y * 0.72)
-	var band_h := horizon / SKY_BANDS.size()
-	for i in SKY_BANDS.size():
-		backdrop.draw_rect(Rect2(0, roundf(i * band_h), view.x, ceilf(band_h) + 1), SKY_BANDS[i])
+	var bands := scene_set.sky_bands
+	var band_h := horizon / bands.size()
+	for i in bands.size():
+		backdrop.draw_rect(Rect2(0, roundf(i * band_h), view.x, ceilf(band_h) + 1), bands[i])
 	# Солнце: круг из квадратов справа сверху.
 	var sun := Vector2(view.x - 56.0, 30.0)
 	for r in [[Vector2(-6, -12), Vector2(12, 24)], [Vector2(-12, -6), Vector2(24, 12)], [Vector2(-10, -10), Vector2(20, 20)]]:
-		backdrop.draw_rect(Rect2(sun + r[0], r[1]), SUN)
+		backdrop.draw_rect(Rect2(sun + r[0], r[1]), scene_set.sun)
 	# Острова на горизонте.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(record.seed, ":islands"))
@@ -593,14 +591,14 @@ func _draw_backdrop() -> void:
 			var k := float(i) / steps
 			var sw := w * (1.0 - k * 0.8)
 			backdrop.draw_rect(Rect2(roundf(x + (w - sw) / 2.0), roundf(horizon - h * (i + 1) / steps), roundf(sw), ceilf(h / steps) + 1),
-					ISLAND_DARK if i % 2 == 0 else ISLAND)
+					scene_set.silhouette_dark if i % 2 == 0 else scene_set.silhouette)
 		x += w + rng.randf_range(10.0, 50.0)
 	# Море до низа экрана с полосками бликов.
-	backdrop.draw_rect(Rect2(0, horizon, view.x, view.y - horizon), SEA)
+	backdrop.draw_rect(Rect2(0, horizon, view.x, view.y - horizon), scene_set.horizon)
 	for i in 14:
 		var y := horizon + 3 + i * 6
 		var bx := fmod(i * 37.0, view.x - 24.0)
-		backdrop.draw_rect(Rect2(bx, y, 8 + (i % 3) * 6, 1), SEA_LIGHT)
+		backdrop.draw_rect(Rect2(bx, y, 8 + (i % 3) * 6, 1), scene_set.horizon_light)
 	for c in clouds:
 		_tex_or_pink("cloud", "cloud_big" if c.big else "cloud_small", Vector2(c.x, c.y),
 				Vector2(32, 16) if c.big else Vector2(16, 16), backdrop)

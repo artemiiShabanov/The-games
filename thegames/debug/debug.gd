@@ -58,6 +58,8 @@ var minigame_replays := 0
 var minigame_single := false
 ## Раздел «Демки»: сид и набор багов для `demo_test`.
 var demo_seed := 1
+## Сеттинг записи тестовой демки (#46): 0 пираты, 1 космос, 2 замки.
+var demo_setting := 0
 var demo_bugs: Array[StringName] = []
 var active := false
 
@@ -308,6 +310,9 @@ func _register_builtin() -> void:
 		run_test_scene(MINIGAME_SCENE))
 	add_number(SECTION_DEMOS, "Сид", func() -> int: return demo_seed,
 			func(v: float) -> void: demo_seed = int(v), 1, 999, 1, true)
+	var setting_names: Array[String] = ["пираты", "космос", "замки"]
+	add_choice(SECTION_DEMOS, "Сеттинг", setting_names, func() -> String: return setting_names[demo_setting],
+			func(v: String) -> void: demo_setting = maxi(setting_names.find(v), 0), true)
 	var catalog := BugCatalog.load_default()
 	if catalog != null:
 		for bug in catalog.bugs:

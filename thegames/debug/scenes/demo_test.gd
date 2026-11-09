@@ -42,6 +42,10 @@ func _ready() -> void:
 func _launch() -> void:
 	_label.visible = false
 	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.demo_seed, "Тест демки")
+	record.setting = Debug.demo_setting as Game.Setting
+	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("setting"):
+		# `--setting=<0..2>`: сеттинг записи под скриншот.
+		record.setting = int(AutoTest.parse_args(OS.get_cmdline_user_args())["setting"]) as Game.Setting
 	for id in Debug.demo_bugs:
 		record.add_bug(id)
 	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("bugs"):

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SettingDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+
+[resource]
+script = ExtResource("1_set")
+setting = 0
+id = &"pirates"
+sprites_8bit = "res://assets/settings/pirates/8bit/"
+sky_bands = Array[Color]([Color(0.1216, 0.3098, 0.6039, 1), Color(0.1647, 0.3804, 0.6627, 1), Color(0.1961, 0.4510, 0.7216, 1), Color(0.2667, 0.5255, 0.7804, 1), Color(0.3529, 0.6078, 0.8353, 1), Color(0.4706, 0.7020, 0.8784, 1), Color(0.6118, 0.7961, 0.9098, 1)])
+sun = Color(0.9490, 0.7843, 0.3529, 1)
+horizon = Color(0.1176, 0.3608, 0.5608, 1)
+horizon_light = Color(0.2314, 0.5255, 0.7686, 1)
+silhouette = Color(0.1686, 0.4196, 0.3098, 1)
+silhouette_dark = Color(0.1216, 0.3098, 0.2314, 1)

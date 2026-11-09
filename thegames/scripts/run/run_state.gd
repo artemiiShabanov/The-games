@@ -85,8 +85,9 @@ func unlocked_techs() -> Array[Game.Tech]:
 
 
 ## M1: один сеттинг (решение 2026-11-06), три сеттинга и «новый сеттинг» в M2.
+## Три сеттинга открыты со старта забега (`specs/run.md`, #46).
 func unlocked_settings() -> Array[Game.Setting]:
-	return [Game.Setting.PIRATES]
+	return [Game.Setting.PIRATES, Game.Setting.SPACE, Game.Setting.CASTLES]
 
 
 func _bought() -> Array[UpgradeDef]:
