@@ -11,7 +11,10 @@ extends Minigame
 ## speed, shift, shift_end, double. Мармелад (STYLE «Мармелад»): блоки мягкие тела
 ## `JellyShape`, на место садятся с вытяжкой, сплющиванием и вздрогом, от неверной стрелки
 ## качаются вбок на пружинке; курсор не рамка, а подъём на бортике блока под ним и бледное
-## гнездо на ленте. Игра и бот от мармелада не зависят: он только рисуется.
+## гнездо на ленте. Возвращаемый блок тянет за собой склизкий след (`SlimeTrail`, в координатах
+## ленты, чтобы след ехал с ней); севший блок продавливает рельс с той стороны, куда ехал
+## (рельс прогибается дугой на затухающей пружине, как стенка в «Выведи»), и брызгает мягкими
+## каплями (`SplashFx.pop`) из углов. Игра и бот от мармелада не зависят: он только рисуется.
 
 class Block:
 	var x := 0.0
@@ -29,6 +32,9 @@ class Block:
 	var sway := JellySpring.new()
 	var landed := false
 	var miss_seen := false
+	## Куда ехал блок от последнего верного нажатия: 1 вверх, −1 вниз; след за ним.
+	var move_dir := 0
+	var trail: SlimeTrail
 
 const BLOCK := 128.0
 const GAP := 20.0
@@ -51,6 +57,18 @@ const MISS_POKE := -180.0
 const SWAY_KICK := 240.0
 const SWAY_PUSH := 120.0
 const LIFT_SECONDS := 0.1
+## Мармелад: след возвращаемого блока (жизнь, с, и непрозрачность), толчок прогиба рельса
+## (пик около RAIL_BOW_PX), длина прогнутого куска рельса и его непрозрачность на пике прогиба,
+## брызги при посадке.
+const TRAIL_LIFE := 0.7
+const TRAIL_ALPHA := 0.2
+const RAIL_KICK := 370.0
+const RAIL_BOW_PX := 8.0
+const RAIL_BOW_ALPHA := 0.45
+const RAIL_BOW_LENGTH := BLOCK + 2.0 * GAP
+const SPLASH_COUNT := 3
+const SPLASH_SPEED := 300.0
+const SPLASH_LIFE := 0.45
 
 var speed := 240.0
 var shift_share := 0.3
@@ -63,6 +81,13 @@ var _bot_timer := 0.0
 var _click: AudioStreamPlayer
 var _miss_sound: AudioStreamPlayer
 var _wrong: AudioStreamPlayer
+## Мармелад, только рисование: сколько проехала лента (следы хранятся в её координатах),
+## прогиб рельса под севшим блоком и брызги.
+var _scroll := 0.0
+var _rail := JellySpring.new()
+var _rail_block: Block
+var _rail_dir := 0
+var _fx := SplashFx.new()
 
 
 func _on_start() -> void:
@@ -143,6 +168,7 @@ func _press(dir: int) -> void:
 	# Сдвинут вверх: нужна стрелка вниз, и наоборот; двойной сдвиг сходит на один за нажатие.
 	if dir == -signi(b.shift):
 		b.shift -= signi(b.shift)
+		b.move_dir = dir
 		_click.play()
 		if b.jelly != null:
 			b.jelly.poke(PRESS_POKE)
@@ -159,6 +185,7 @@ func _press(dir: int) -> void:
 func _on_tick(delta: float) -> void:
 	var dx := speed * delta
 	var cx := _cursor_x()
+	_scroll += dx
 	for b in blocks:
 		b.x -= dx
 		b.pop = maxf(b.pop - delta, 0.0)
@@ -225,9 +252,13 @@ func _process(delta: float) -> void:
 	var mid := _lane_mid()
 	var under: Block = _under_cursor() if running else null
 	var lift_rate := tu.lift_px / LIFT_SECONDS * delta
+	_fx.step(delta, Callable())
+	_rail.step(delta, tu.spring_stiffness * 2.0, tu.spring_damping * 1.5)
 	for b in blocks:
 		b.sway.step(delta, tu.spring_stiffness, tu.spring_damping)
 		b.lift = move_toward(b.lift, tu.lift_px if b == under else 0.0, lift_rate)
+		if b.trail != null:
+			b.trail.step(delta)
 		var on_screen := b.x < size.x + BLOCK and b.x > -BLOCK * 2.0
 		if not on_screen:
 			continue
@@ -242,14 +273,41 @@ func _process(delta: float) -> void:
 			b.jelly.snap(center)
 			continue
 		b.jelly.follow(delta, center)
+		_jelly_trail(b, center)
 		if b.fixed and not b.landed and is_zero_approx(b.offset):
 			b.landed = true
 			b.jelly.poke(LAND_POKE)
+			_jelly_land(b, center)
 		if b.missed and not b.miss_seen:
 			b.miss_seen = true
 			b.jelly.poke(MISS_POKE)
 	if not running:
 		queue_redraw()
+
+
+## След за блоком, пока он едет к ленте: точки в координатах ленты, рвётся, когда блок встал.
+func _jelly_trail(b: Block, center: Vector2) -> void:
+	var moving := not is_equal_approx(b.offset, _offset_for(b.shift))
+	if moving:
+		if b.trail == null:
+			b.trail = SlimeTrail.new(Style.accent(1), TRAIL_LIFE, TRAIL_ALPHA)
+		b.trail.add(center + Vector2(_scroll, 0.0), BLOCK)
+	elif b.trail != null:
+		b.trail.cut()
+
+
+## Посадка: рельс со стороны, куда ехал блок, прогибается наружу, из углов на передней кромке
+## блока брызги его цвета.
+func _jelly_land(b: Block, center: Vector2) -> void:
+	_rail_block = b
+	_rail_dir = b.move_dir
+	_rail.value = 0.0
+	_rail.velocity = 0.0
+	_rail.kick(RAIL_KICK)
+	var edge := center.y - b.move_dir * BLOCK / 2.0
+	var color := _block_color(b)
+	for side: float in [-1.0, 1.0]:
+		_fx.pop(Vector2(center.x + side * BLOCK * 0.45, edge), color, SPLASH_COUNT, SPLASH_SPEED, SPLASH_LIFE)
 
 
 ## Середина тела с его качанием: туда же рисуются стрелки.
@@ -268,24 +326,22 @@ func _draw() -> void:
 		return
 	var mid := _lane_mid()
 	var cx := _cursor_x()
-	# Рельсы ленты сверху и снизу ряда.
+	# Рельсы ленты сверху и снизу ряда; рельс под только что севшим блоком прогнут.
 	var rail := Color(Style.INK, 0.08)
-	draw_rect(Rect2(0, mid - BLOCK / 2.0 - 12, size.x, 4), rail)
-	draw_rect(Rect2(0, mid + BLOCK / 2.0 + 8, size.x, 4), rail)
+	_draw_rail(rail, 1)
+	_draw_rail(rail, -1)
 	# Курсор: бледное гнездо на месте блока в ленте, сам блок под ним поднят на бортике.
 	var cursor := Rect2(cx - BLOCK / 2.0, mid - BLOCK / 2.0, BLOCK, BLOCK)
 	Style.flat(Color(Style.INK, 0.06), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), cursor)
+	# Следы под блоками, из координат ленты в экран.
+	var ci := get_canvas_item()
+	for b in blocks:
+		if b.trail != null:
+			b.trail.draw(self, Vector2(-_scroll, 0.0))
 	for b in blocks:
 		if b.x > size.x + BLOCK or b.x < -BLOCK * 2.0:
 			continue
-		var k := b.pop / POP_SECONDS
-		var color := Style.accent(0)
-		if b.missed:
-			color = Style.INK_3
-		elif b.fixed:
-			color = Style.SUCCESS.lerp(Style.accent(0), 1.0 - k)
-		elif b.shift != 0:
-			color = Style.accent(1)
+		var color := _block_color(b)
 		var up := Vector2(0.0, -b.lift)
 		var c: Vector2
 		if b.jelly != null:
@@ -293,7 +349,7 @@ func _draw() -> void:
 			c = _jelly_mid(b) + up
 		else:
 			var at := _block_center(b, mid) + up
-			Style.flat(color, Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(at - Vector2(BLOCK, BLOCK) / 2.0, Vector2(BLOCK, BLOCK)))
+			Style.flat(color, Style.R_CTL, Color.TRANSPARENT, 0).draw(ci, Rect2(at - Vector2(BLOCK, BLOCK) / 2.0, Vector2(BLOCK, BLOCK)))
 			c = at
 		# Метка на сдвинутом блоке: стрелки, куда его вернуть, по одной на нажатие.
 		if b.shift != 0 and not b.missed:
@@ -302,6 +358,9 @@ func _draw() -> void:
 			for j in n:
 				var a := c + Vector2(0.0, (j - (n - 1) / 2.0) * 22.0 * signi(b.shift))
 				draw_colored_polygon(PackedVector2Array([a + Vector2(-16, -d * 0.5), a + Vector2(16, -d * 0.5), a + Vector2(0, d)]), Color(1, 1, 1, 0.9))
+	# Прогнутый кусок рельса поверх блоков: иначе севший блок, вытянутый посадкой, его прячет.
+	_draw_rail_bow(rail)
+	_fx.draw_air(self, Vector2.ZERO)
 	# Промахи крестиками справа сверху.
 	var r := 7.0
 	var gap2 := 28.0
@@ -311,3 +370,67 @@ func _draw() -> void:
 		var px := ex + j * gap2
 		draw_line(Vector2(px - r + 1, 60.0 - r + 1), Vector2(px + r - 1, 60.0 + r - 1), col, 3.0, true)
 		draw_line(Vector2(px - r + 1, 60.0 + r - 1), Vector2(px + r - 1, 60.0 - r + 1), col, 3.0, true)
+
+
+func _block_color(b: Block) -> Color:
+	if b.missed:
+		return Style.INK_3
+	if b.fixed:
+		return Style.SUCCESS.lerp(Style.accent(0), 1.0 - b.pop / POP_SECONDS)
+	if b.shift != 0:
+		return Style.accent(1)
+	return Style.accent(0)
+
+
+## Рельс полосой во всю ширину: `side` 1 верхний, −1 нижний.
+func _rail_rect(side: int) -> Rect2:
+	var mid := _lane_mid()
+	if side > 0:
+		return Rect2(0, mid - BLOCK / 2.0 - 12, size.x, 4)
+	return Rect2(0, mid + BLOCK / 2.0 + 8, size.x, 4)
+
+
+## Прогибается ли сейчас рельс `side`: блок только что сел, ехав в его сторону.
+func _rail_bowing(side: int) -> bool:
+	return _rail_block != null and _rail_dir == side and absf(_rail.value) >= 0.05 and Jelly.on()
+
+
+## Края прогнутого куска рельса по x: он идёт за севшим блоком.
+func _rail_bow_x() -> float:
+	return _rail_block.x + BLOCK / 2.0 + _rail_block.sway.value - RAIL_BOW_LENGTH / 2.0
+
+
+## Рельс под блоками; на прогибе без куска под севшим блоком, тот рисует `_draw_rail_bow`.
+func _draw_rail(col: Color, side: int) -> void:
+	var rect := _rail_rect(side)
+	if not _rail_bowing(side):
+		draw_rect(rect, col)
+		return
+	var x0 := _rail_bow_x()
+	var x1 := x0 + RAIL_BOW_LENGTH
+	draw_rect(Rect2(rect.position.x, rect.position.y, maxf(x0 - rect.position.x, 0.0), rect.size.y), col)
+	draw_rect(Rect2(x1, rect.position.y, maxf(rect.end.x - x1, 0.0), rect.size.y), col)
+
+
+## Прогнутый кусок рельса поверх блоков: дуга наружу (концы стоят), как стенка в «Выведи»;
+## на пике цвета севшего блока, по мере затухания пружины гаснет к бледному рельсу.
+func _draw_rail_bow(col: Color) -> void:
+	var side := _rail_dir
+	if not _rail_bowing(side):
+		return
+	var rect := _rail_rect(side)
+	var bow := _rail.value
+	var k := clampf(absf(bow) / RAIL_BOW_PX, 0.0, 1.0)
+	var ink := col.lerp(Color(_block_color(_rail_block), RAIL_BOW_ALPHA), k)
+	var x0 := _rail_bow_x()
+	# Наружу: верхний рельс вверх, нижний вниз.
+	var out := Vector2(0.0, -side * bow)
+	var steps := 12
+	var poly := PackedVector2Array()
+	for j in steps + 1:
+		var u := float(j) / steps
+		poly.append(Vector2(x0 + RAIL_BOW_LENGTH * u, rect.position.y) + out * sin(PI * u))
+	for j in range(steps, -1, -1):
+		var u := float(j) / steps
+		poly.append(Vector2(x0 + RAIL_BOW_LENGTH * u, rect.end.y) + out * sin(PI * u))
+	draw_colored_polygon(poly, ink)

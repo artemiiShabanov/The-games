@@ -12,7 +12,8 @@ extends Minigame
 ## Мармелад (STYLE «Мармелад»): карточка и фигура на ней мягкие тела, отстают на въезде,
 ## качаются после остановки и наклоняются, улетая. Зона решения это серое гнездо без рамки;
 ## карточка в нём поднята на бортик (выделение толщиной, теней нет), решение вдавливает её и
-## встряхивает, при смене правила оно вспухает.
+## встряхивает, при смене правила оно вспухает. Верное решение роняет с карточки несколько
+## неярких капель цвета успеха.
 
 enum Kind { NUMBER_LE, NUMBER_GE, EVEN, ODD, COLOR, SIDES_LE, SIDES_GE }
 
@@ -84,6 +85,8 @@ var _bad: AudioStreamPlayer
 var _swap: AudioStreamPlayer
 ## Правило вспухает при смене: добавка к масштабу.
 var _rule_pop := JellySpring.new()
+## Мягкие брызги верного решения.
+var _splash := SplashFx.new()
 
 
 func _on_start() -> void:
@@ -321,12 +324,15 @@ func _card_pose(c: Card) -> Vector4:
 	return Vector4(at.x + 520.0 * e, at.y, 1.0 - k, FLY_TILT * e)
 
 
-## Решение: карточка вдавливается в бортик и сжимается; ошибка её ещё и встряхивает вбок.
+## Решение: карточка вдавливается в бортик и сжимается; ошибка её ещё и встряхивает вбок,
+## верное брызгает с верхнего края несколькими каплями цвета успеха.
 func _jelly_decided(c: Card) -> void:
 	c.lift.value = 0.0
 	c.lift.velocity = 0.0
 	if c.body == null:
 		return
+	if c.correct and Jelly.on():
+		_splash.pop(Vector2(c.x + CARD_W / 2.0, size.y * 0.52 - CARD_H / 2.0), Style.SUCCESS, 6, 650.0, 0.55)
 	c.body.poke(DECIDE_POKE)
 	c.figure.poke(DECIDE_POKE * 0.6)
 	if not c.correct:
@@ -361,6 +367,7 @@ func _process(delta: float) -> void:
 		return
 	var tu := Jelly.tuning()
 	_rule_pop.step(delta, tu.spring_stiffness, tu.spring_damping)
+	_splash.step(delta, Callable())
 	var active := _active()
 	for c in cards:
 		if c.body == null:
@@ -417,6 +424,7 @@ func _draw() -> void:
 		draw_string(font, Vector2(-w / 2.0, fs * 0.36 + (10.0 if c.sides == 3 else 0.0)), txt,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(Style.SURFACE_SOLID, alpha))
 		draw_set_transform_matrix(Transform2D.IDENTITY)
+	_splash.draw_air(self, Vector2.ZERO)
 	# Правило сверху пиктограммами, при смене вспухает.
 	var pivot := Vector2(size.x / 2.0, 150.0)
 	var pop := 1.0 + maxf(_rule_pop.value, -0.5)

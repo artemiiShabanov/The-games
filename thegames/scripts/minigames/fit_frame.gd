@@ -52,11 +52,13 @@ var bounce: Array[float] = [0.0, 0.0]
 var shake: Array[float] = [0.0, 0.0]
 
 ## Прототип мармелада (ветка proto/jelly): вид поверх того же геймплея, `Jelly.on()` выбирает
-## рисунок. Фигура мягким телом, трафареты упругими контурами, круги по жидкости.
+## рисунок. Фигура мягким телом, трафареты упругими контурами, круги по жидкости; при попадании
+## из трафарета мягкие брызги цвета фигуры.
 var jelly_shape: SoftBlob
 var jelly_stencils: Array[SoftOutline] = []
 var jelly_shake: Array[JellySpring] = []
 var jelly_rings := RingFx.new()
+var jelly_splash := SplashFx.new()
 
 
 func _on_start() -> void:
@@ -186,6 +188,7 @@ func _draw() -> void:
 		return
 	if Jelly.on() and jelly_shape != null:
 		_draw_jelly()
+		jelly_splash.draw_air(self, Vector2.ZERO)
 		_draw_dots()
 		return
 	var center := size / 2.0
@@ -335,12 +338,13 @@ func _jelly_spawn() -> void:
 	jelly_rings.add(size / 2.0 + cur_origin, SHAPE_R * 0.4, SHAPE_R * 1.5, Color(Style.INK, 0.12), 2, 1.0)
 
 
-## Фигура влетела: трафарет раздувается, по жидкости круг.
+## Фигура влетела: трафарет раздувается, по жидкости круг и несколько неярких капель цвета фигуры.
 func _jelly_hit(target: int) -> void:
 	if jelly_shape == null:
 		return
 	jelly_stencils[target].pulse(420.0)
 	jelly_rings.add(_stencil_home(target), STENCIL_R * 0.9, STENCIL_R * 1.6, Color(Style.accent(target), 0.35), 1, 0.6)
+	jelly_splash.pop(_stencil_home(target) + Vector2(0.0, -STENCIL_R * 0.8), Style.accent(cur_color), 6, 650.0, 0.55)
 
 
 ## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит.
@@ -350,6 +354,7 @@ func _process(delta: float) -> void:
 		return
 	var tu := Jelly.tuning()
 	jelly_rings.step(delta)
+	jelly_splash.step(delta, Callable())
 	for i in 2:
 		jelly_shake[i].step(delta, tu.spring_stiffness, tu.spring_damping * 0.6)
 		jelly_stencils[i].sides = stencil_sides

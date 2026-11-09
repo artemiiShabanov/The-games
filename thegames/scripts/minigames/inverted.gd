@@ -11,9 +11,10 @@ extends Minigame
 ## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется, с `t`
 ## интервал короче).
 ## Мармелад (STYLE «Мармелад»): точка мягкое тело, тянется вдоль хода, отстаёт и качается после
-## остановки, при ударе плющится о стену, а стена прогибается и дрожит; за точкой тает бледный
-## след по лабиринту. Смена режима: лабиринт вздрагивает, точка вздрагивает. Геймплей прежний,
-## меняется только рисунок.
+## остановки, при ударе плющится о стену, а стена прогибается и дрожит, от удара отлетает пара
+## мягких брызг; за точкой тянется склизкий след во всю её ширину (`SlimeTrail`), он лежит на
+## лабиринте и тает. Выход пройден: из кольца мягкие брызги цвета точки. Смена режима: лабиринт
+## вздрагивает, точка вздрагивает. Геймплей прежний, меняется только рисунок.
 
 enum Mode { DOT, MAZE }
 
@@ -61,18 +62,31 @@ const JELLY_SQUASH := 520.0
 const JELLY_WALL_KICK := 200.0
 const JELLY_FLIP_KICK := 0.4
 const JELLY_POKE := 180.0
-const TRAIL_SECONDS := 0.35
-const TRAIL_WIDTH := 12.0
-const TRAIL_ALPHA := 0.14
+## След: сколько живёт, с, непрозрачность свежего и ширина в долях диаметра точки.
+const TRAIL_SECONDS := 0.8
+const TRAIL_ALPHA := 0.2
+const TRAIL_WIDTH := 0.9
+## Радиус, которым след огибает поворот (не меньше полуширины следа, иначе внутренний край
+## ляжет сам на себя); на столько же след не доходит до центра клетки.
+const TRAIL_TURN := 28.0
+## Брызги: на выходе и от удара о стену (число капель до тюнинга, скорость).
+const POP_EXIT := 4
+const POP_EXIT_SPEED := 300.0
+const POP_BUMP := 2
+const POP_BUMP_SPEED := 200.0
 var jelly_dot: JellyShape
 var jelly_wall := JellySpring.new()
 var jelly_flip := JellySpring.new()
 ## Стена, о которую ударились: клетка и сторона, в координатах лабиринта.
 var _hit_rect := Rect2()
 var _hit_dir := Vector2.ZERO
-var _trail := PackedVector2Array()
-var _trail_time := PackedFloat32Array()
-var _jelly_time := 0.0
+## След в координатах лабиринта, брызги в координатах экрана.
+var _trail := SlimeTrail.new(Style.INK, TRAIL_SECONDS, TRAIL_ALPHA)
+var _fx := SplashFx.new()
+## Ход, по которому сейчас идёт след (клетки), и откуда след вошёл в его начало.
+var _trail_from := Vector2(-1, -1)
+var _trail_to := Vector2(-1, -1)
+var _trail_in := Vector2.ZERO
 var _seen_shake := 0.0
 var _seen_flash := 0.0
 var _seen_maze := -1
@@ -212,6 +226,11 @@ func _arrived() -> void:
 	if cell == exit_cell:
 		maze_index += 1
 		_done_sound.play()
+		if Jelly.on():
+			# Брызги из кольца выхода там, где оно на экране сейчас, до смены лабиринта.
+			_layout()
+			var at := _origin + (Vector2(exit_cell) + Vector2(0.5, 0.5)) * CELL
+			_fx.pop(at, _dot_color(), POP_EXIT, POP_EXIT_SPEED)
 		if maze_index >= mazes_total:
 			finish(true)
 			return
@@ -318,7 +337,6 @@ func _process(delta: float) -> void:
 	if jelly_dot == null or paused or walls.is_empty():
 		return
 	var tu := Jelly.tuning()
-	_jelly_time += delta
 	_layout()
 	var new_maze := maze_index != _seen_maze
 	if new_maze or mode != _seen_mode:
@@ -330,7 +348,8 @@ func _process(delta: float) -> void:
 			jelly_wall.value = 0.0
 			jelly_wall.velocity = 0.0
 			_trail.clear()
-			_trail_time.clear()
+			_trail_from = Vector2(-1, -1)
+			_trail_to = Vector2(-1, -1)
 		_seen_maze = maze_index
 		_seen_mode = mode
 	if shake > _seen_shake:
@@ -342,6 +361,7 @@ func _process(delta: float) -> void:
 		jelly_wall.value = 0.0
 		jelly_wall.velocity = 0.0
 		jelly_wall.kick(JELLY_WALL_KICK)
+		_fx.pop(_dot_screen + dir * DOT_R, _dot_color(), POP_BUMP, POP_BUMP_SPEED, 0.4)
 	if flash > _seen_flash:
 		jelly_flip.kick(JELLY_FLIP_KICK)
 	_seen_shake = shake
@@ -349,28 +369,47 @@ func _process(delta: float) -> void:
 	jelly_wall.step(delta, tu.spring_stiffness * 2.0, tu.spring_damping * 1.5)
 	jelly_flip.step(delta, tu.spring_stiffness, tu.spring_damping)
 	jelly_dot.follow(delta, _dot_screen)
-	# След в координатах лабиринта: в режиме лабиринта он едет вместе со стенами.
-	if _trail.is_empty() or _trail[_trail.size() - 1].distance_to(_dot_local) > 2.0:
-		_trail.append(_dot_local)
-		_trail_time.append(_jelly_time)
-	while _trail_time.size() > 0 and _jelly_time - _trail_time[0] > TRAIL_SECONDS:
-		_trail.remove_at(0)
-		_trail_time.remove_at(0)
+	# След в координатах лабиринта: в режиме лабиринта он едет вместе со стенами. Пока точка
+	# стоит, отметки не добавляются (шаг следа), и след тает.
+	_trail.add(_trail_point(), DOT_R * 2.0 * TRAIL_WIDTH)
+	_trail.step(delta)
+	_fx.step(delta, Callable())
 	if not running:
 		queue_redraw()
 
 
-## Бледный след точки, тает от хвоста к голове.
-func _draw_trail(col: Color) -> void:
-	if _trail.size() < 2:
-		return
-	var pts := PackedVector2Array()
-	var cols := PackedColorArray()
-	for i in _trail.size():
-		var age := clampf((_jelly_time - _trail_time[i]) / TRAIL_SECONDS, 0.0, 1.0)
-		pts.append(_origin + _trail[i])
-		cols.append(Color(col, TRAIL_ALPHA * (1.0 - age)))
-	draw_polyline_colors(pts, cols, TRAIL_WIDTH, true)
+## Куда кладётся след в координатах лабиринта. Путь точки ломаный, от центра к центру клетки,
+## а широкая полупрозрачная линия на прямом углу легла бы сама на себя тёмным клином. Поэтому
+## след не доходит до центра клетки на `TRAIL_TURN` (это под точкой) и огибает поворот дугой
+## такого радиуса; при развороте назад рвётся. Смена режима след не рвёт: в координатах
+## лабиринта точка не прыгает.
+func _trail_point() -> Vector2:
+	var d := (anim_to - anim_from).normalized()
+	if anim_from != _trail_from or anim_to != _trail_to:
+		# Новый ход: откуда след вошёл в клетку, с которой он начинается.
+		var last := (_trail_to - _trail_from).normalized()
+		_trail_in = last if _trail_to == anim_from else Vector2.ZERO
+		if _trail_in != Vector2.ZERO and _trail_in.dot(d) < -0.5:
+			_trail.cut()
+			_trail_in = Vector2.ZERO
+		_trail_from = anim_from
+		_trail_to = anim_to
+	var c := (anim_from + Vector2(0.5, 0.5)) * CELL
+	if d == Vector2.ZERO:
+		return c
+	var s := minf(_dot_local.distance_to(c), CELL - TRAIL_TURN)
+	if _trail_in != Vector2.ZERO and absf(_trail_in.dot(d)) < 0.5 and s < TRAIL_TURN:
+		var o := c + (d - _trail_in) * TRAIL_TURN
+		var a0 := (-d).angle()
+		var turn := wrapf(_trail_in.angle() - a0, -PI, PI)
+		return o + Vector2.from_angle(a0 + turn * s / TRAIL_TURN) * TRAIL_TURN
+	return c + d * s
+
+
+## Цвет точки: управляемая синяя, иначе чёрная; во время блокировки после удара тусклее.
+func _dot_color() -> Color:
+	var col := Style.accent(0) if mode == Mode.DOT else Style.INK
+	return col.lerp(Style.INK_3, 0.5) if lock > 0.0 else col
 
 
 ## Стена после удара прогибается дугой от точки: концы на месте, середина качается.
@@ -405,10 +444,9 @@ func _draw() -> void:
 	var active := Style.accent(0)
 	var passive := Style.INK
 	var wall_color := passive if mode == Mode.DOT else active
-	var dot_color := active if mode == Mode.DOT else passive
+	var dot_color := _dot_color()
 	if lock > 0.0:
 		wall_color = wall_color.lerp(Style.INK_3, 0.5)
-		dot_color = dot_color.lerp(Style.INK_3, 0.5)
 	# Смена режима: лабиринт вздрагивает масштабом вокруг своего центра.
 	var wobble := 1.0 + (jelly_flip.value if jelly else 0.0)
 	var gc := origin + grid / 2.0
@@ -434,12 +472,16 @@ func _draw() -> void:
 	if bent:
 		_draw_bent_wall(_hit_rect, ink)
 	if jelly:
-		_draw_trail(dot_color)
+		# След под точкой, в цвете точки.
+		_trail.color = dot_color
+		_trail.draw(self, origin)
 	draw_set_transform(Vector2.ZERO)
 	if jelly and not jelly_dot.blob.points.is_empty():
 		jelly_dot.draw(self, dot_color)
 	else:
 		draw_circle(_dot_screen, DOT_R, dot_color)
+	if jelly:
+		_fx.draw_air(self, Vector2.ZERO)
 	# Лабиринты справа сверху, левее подпись режима: что сейчас двигается (внизу её закрывал
 	# бы лабиринт в режиме, где он едет).
 	var r := 7.0

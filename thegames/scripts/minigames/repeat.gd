@@ -10,8 +10,9 @@ extends Minigame
 ## пропустить мимо.
 ## Параметры от `t` в `resources/minigames/repeat.tres`: length, show, fake_share.
 ## Мармелад (STYLE «Мармелад»): клавиши мягкие `JellyShape`, вспыхнувшая клавиша вминается и
-## встаёт на бортик темнее себя, верное нажатие расходится тихим кругом, неверное трясёт клавишу
-## вбок; точки прогресса, раундов и ошибок мягко вспухают при смене. В покое вид прежний.
+## встаёт на бортик темнее себя, верное нажатие расходится тихим кругом и парой неярких капель,
+## собранная последовательность брызгает чуть больше, неверное нажатие трясёт клавишу вбок;
+## точки прогресса, раундов и ошибок мягко вспухают при смене. В покое вид прежний.
 
 enum Phase { SHOW, INPUT, PAUSE }
 
@@ -57,6 +58,7 @@ var _bot_timer := 0.0
 var _pads: Array[JellyShape] = []
 var _lift: Array[JellySpring] = []
 var _rings := RingFx.new()
+var _splash := SplashFx.new()
 var _fake_shown := false
 ## Вспухание точек: прогресс, раунды, ошибки; состояние, чтобы заметить смену.
 var _dot_pop: Array[JellySpring] = []
@@ -204,6 +206,7 @@ func _press(key: int) -> void:
 		_flash(key, Style.SUCCESS, PRESS_SECONDS)
 		_rings.add(_pad_center(key), PAD * 0.5, PAD * 0.78, Color(Style.SUCCESS, 0.35), 1, 0.45)
 		step += 1
+		_jelly_splash(key, step >= sequence.size())
 		if step >= sequence.size():
 			rounds_done += 1
 			if rounds_done >= ROUNDS:
@@ -231,6 +234,18 @@ func _press(key: int) -> void:
 
 # --- Мармелад -----------------------------------------------------------------------------
 
+## Верное нажатие: пара капель цвета успеха с верхнего края клавиши; последняя клавиша
+## последовательности брызгает чуть больше и выше.
+func _jelly_splash(key: int, done: bool) -> void:
+	if not Jelly.on():
+		return
+	var at := _pad_center(key) - Vector2(0.0, PAD * 0.45)
+	if done:
+		_splash.pop(at, Style.SUCCESS, 6, 650.0, 0.55)
+	else:
+		_splash.pop(at, Style.SUCCESS, 3, 450.0, 0.4)
+
+
 ## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит.
 func _process(delta: float) -> void:
 	super(delta)
@@ -239,6 +254,7 @@ func _process(delta: float) -> void:
 	var tu := Jelly.tuning()
 	var moving := Jelly.on()
 	_rings.step(delta)
+	_splash.step(delta, Callable())
 	var fake_now := fake_left > 0.0 and fake_left < FAKE_SECONDS
 	if fake_now and not _fake_shown and fake_key >= 0:
 		_pads[fake_key].poke(90.0)
@@ -406,6 +422,7 @@ func _draw() -> void:
 		var glyph: String = GameInput.key(KEYS[i])
 		var w := font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, 56).x
 		draw_string(font, Vector2(center.x - w / 2.0, center.y + 20.0), glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, 56, ink)
+	_splash.draw_air(self, Vector2.ZERO)
 	# Прогресс последовательности под площадками: заполняется при повторе.
 	if not sequence.is_empty():
 		var gap := 32.0

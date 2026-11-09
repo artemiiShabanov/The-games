@@ -9,8 +9,9 @@ extends Minigame
 ## (допуск в шагах).
 ## Мармелад: своя волна как мармеладная струна, рисуется по частоте и амплитуде на пружинах, так
 ## что после шага догоняет новую форму с недолётом и коротким качанием и чуть выгибается
-## серединой; промах сплющивает и толкает её вбок, совпадение раздувает слитую волну. Точки волн
-## мягкие, текущая стоит на бортике, засчитанная вздрагивает с кругом. Геймплей на настоящих числах.
+## серединой; промах сплющивает и толкает её вбок, совпадение раздувает слитую волну и брызгает
+## мягкими каплями цвета успеха с нескольких гребней. Точки волн мягкие, текущая стоит на бортике,
+## засчитанная вздрагивает с кругом и каплей-другой. Геймплей на настоящих числах.
 
 const WAVES := 4
 const NEED := 3
@@ -31,6 +32,7 @@ const HZ_PER_CYCLE := 36.0
 const TONE_VOLUME := 0.18
 const DOT_R := 7.0
 const DOT_GAP := 28.0
+const SPLASH_CRESTS := 5
 
 var offset_steps := 3
 var two_axes := 0.0
@@ -61,6 +63,7 @@ var _jelly_swell := JellySpring.new()
 var _jelly_side := JellySpring.new()
 var _jelly_dots: Array[JellyShape] = []
 var _jelly_rings := RingFx.new()
+var _jelly_splash := SplashFx.new()
 var _jelly_side_dir := 1.0
 
 
@@ -161,6 +164,10 @@ func _fix() -> void:
 		if wave_index < _jelly_dots.size():
 			_jelly_dots[wave_index].poke(260.0)
 			_jelly_rings.add(_dot_pos(wave_index), DOT_R, DOT_R * 3.2, Color(Style.SUCCESS, 0.5), 1, 0.6)
+			if Jelly.on():
+				_jelly_splash.pop(_dot_pos(wave_index), Color(Style.SUCCESS, 0.7), 1, 170.0, 0.35)
+		if Jelly.on():
+			_splash_crests()
 	else:
 		shake = SHAKE_SECONDS
 		lock = LOCK_SECONDS
@@ -255,10 +262,35 @@ func _process(delta: float) -> void:
 		_jelly_freq.value = freq
 		_jelly_amp.value = amp
 	_jelly_rings.step(delta)
+	_jelly_splash.step(delta, Callable())
 	for j in _jelly_dots.size():
 		_jelly_dots[j].follow(delta, _dot_pos(j))
 	if not running:
 		queue_redraw()
+
+
+## Слитая волна брызгает с гребней: до SPLASH_CRESTS верхушек, равномерно по ширине, по 2–3
+## мягкие капли с каждой. Фаза та же, что у рисования, чтобы капли срывались с самого гребня.
+func _splash_crests() -> void:
+	var phase := elapsed * 2.0
+	var crests: Array[float] = []
+	# Верхушка там, где sin = −1 (y вниз): u·f·TAU + phase = −PI/2 + TAU·n.
+	var n := ceili((phase + PI / 2.0) / TAU)
+	while true:
+		var u := (-PI / 2.0 - phase + TAU * n) / (ref_freq * TAU)
+		if u > 0.97:
+			break
+		if u >= 0.03:
+			crests.append(u)
+		n += 1
+	if crests.is_empty():
+		return
+	var count := mini(crests.size(), SPLASH_CRESTS)
+	var pts := _wave_points(ref_freq, ref_amp, phase, 0.0)
+	for i in count:
+		var idx := int(round(float(i) * (crests.size() - 1) / maxf(count - 1, 1.0))) if count > 1 else crests.size() >> 1
+		var at := pts[clampi(int(round(crests[idx] * SEGMENTS)), 0, SEGMENTS)]
+		_jelly_splash.pop(at, Color(Style.SUCCESS, 0.9), 4, 300.0, 0.55)
 
 
 func _dot_pos(j: int) -> Vector2:
@@ -305,6 +337,7 @@ func _draw() -> void:
 	else:
 		draw_polyline(_wave_points(ref_freq, ref_amp, elapsed * 2.0, 0.0), Color(Style.accent(1), 0.8), LINE_WIDTH, true)
 		draw_polyline(_wave_points(own_freq, own_amp * swell, elapsed * 2.0, dx, bend), Style.accent(0), LINE_WIDTH, true)
+	_jelly_splash.draw_air(self, Vector2.ZERO)
 	# Подписи осей снизу: частота и амплитуда своей волны против эталона не раскрываются.
 	var font := get_theme_default_font()
 	var caption := "частота ← →   амплитуда ↑ ↓"

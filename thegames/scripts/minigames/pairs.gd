@@ -6,7 +6,10 @@ extends Minigame
 ## cols (3 или 4 при четырёх рядах), close (секунды до закрытия непарных).
 ## Мармелад (STYLE «Мармелад»): карточки мягкими телами `JellyShape`, курсор показан толщиной
 ## (карточка на бортике темнее себя, подъём пружинит) вместо синей рамки, переворот сжимает
-## карточку по ширине и она садится вздрогом, пара вздрагивает обеими, непарные трясутся вбок.
+## карточку по ширине и она садится вздрогом, пара вздрагивает обеими и брызгает мягкими каплями
+## цвета своей фигуры (`SplashFx.pop`), непарные трясутся вбок. Поле стоит на белой карточке
+## спринта, поэтому карточки серые (STYLE: «внутри белой карточки карточки серые»): закрытые
+## темнее, открытые светлее, собранные с зелёным оттенком; бортик от своей заливки.
 
 enum Shape { CIRCLE, SQUARE, TRIANGLE, DIAMOND, RING, CROSS, STAR, HEX }
 
@@ -15,6 +18,16 @@ const CARD := 128.0
 const GAP := 16.0
 const FLIP_SECONDS := 0.16
 const BOT_STEP := 0.3
+## Заливки карточек: закрытая (рубашка) тёплый серый темнее `surface-2`, открытая `surface-2`,
+## собранная `surface-2` с оттенком успеха. Все читаются на белой карточке спринта.
+const HIDDEN_COLOR := Color("#DFDAD1")
+const OPEN_COLOR := Style.SURFACE_2
+const MATCHED_COLOR := Color("#C9DFCF")
+## Брызги пары: капель с карточки (до масштаба тюнинга), скорость, жизнь, приглушение к серому.
+const POP_COUNT := 7
+const POP_SPEED := 300.0
+const POP_LIFE := 0.5
+const POP_MUTE := 0.3
 
 var cols := 3
 var close_seconds := 1.0
@@ -43,6 +56,7 @@ var _prev_matched: Array[bool] = []
 var _match_wait: Array[int] = []
 var _shaken := -1
 var _rest_reach := 1.0
+var _fx := SplashFx.new()
 
 
 func _on_start() -> void:
@@ -220,10 +234,9 @@ func _draw() -> void:
 		# Переворот: карточка сжимается по ширине к середине и обратно.
 		var k := flip[i] / FLIP_SECONDS
 		var w := absf(1.0 - 2.0 * k) if k > 0.0 else 1.0
-		var bg := Style.SURFACE_SOLID if shown else Style.accent(0)
+		var bg := OPEN_COLOR if shown else HIDDEN_COLOR
 		if matched[i]:
-			# Непрозрачный аналог прежней заливки: на бортике полупрозрачная просвечивала бы.
-			bg = Style.SURFACE_SOLID.lerp(Style.SUCCESS, 0.18)
+			bg = MATCHED_COLOR
 		var center := _card_center(i)
 		var lift := _lift[i].value
 		if CARD * w >= 2.0:
@@ -234,11 +247,13 @@ func _draw() -> void:
 		var grow := _card_reach(i, center) / _rest_reach
 		draw_set_transform(center, 0.0, Vector2(w, 1.0) * grow)
 		if shown and k < 0.5:
-			_draw_shape(kinds[i], Vector2.ZERO, CARD * 0.28, Style.accent(1 + kinds[i] % 3) if not matched[i] else Style.SUCCESS)
+			_draw_shape(kinds[i], Vector2.ZERO, CARD * 0.28, _kind_color(kinds[i]) if not matched[i] else Style.SUCCESS)
 		elif not shown:
 			# Рубашка: точка по центру.
-			draw_circle(Vector2.ZERO, 8.0, Color(1, 1, 1, 0.5))
+			draw_circle(Vector2.ZERO, 8.0, Style.INK_3)
 		draw_set_transform(Vector2.ZERO)
+	# Брызги пары поверх карточек.
+	_fx.draw_air(self, Vector2.ZERO)
 	# Пары справа сверху.
 	var total := kinds.size() / 2
 	var r := 7.0
@@ -246,6 +261,10 @@ func _draw() -> void:
 	var x0 := size.x - 48.0 - (total - 1) * gap
 	for j in total:
 		draw_circle(Vector2(x0 + j * gap, 60.0), r, Style.SUCCESS if j < pairs_done else Style.SURFACE_2)
+
+
+func _kind_color(kind: int) -> Color:
+	return Style.accent(1 + kind % 3)
 
 
 func _draw_shape(kind: int, c: Vector2, r: float, color: Color) -> void:
@@ -354,6 +373,7 @@ func _process(delta: float) -> void:
 	var tu := Jelly.tuning()
 	var moving := Jelly.on()
 	var cur := _index(cursor)
+	_fx.step(delta, Callable())
 	for i in _cards.size():
 		if flip[i] > _prev_flip[i] + 0.0001 and open[i]:
 			# Открыли: карточка вдавливается в бортик, как кнопка.
@@ -375,6 +395,9 @@ func _process(delta: float) -> void:
 			if moving:
 				for i in _match_wait:
 					_cards[i].poke(280.0)
+					# Мягкие брызги цвета фигуры, приглушённые к серому карточки.
+					var col := _kind_color(kinds[i]).lerp(OPEN_COLOR, POP_MUTE)
+					_fx.pop(_card_center(i) + Vector2(0.0, -CARD * 0.25), col, POP_COUNT, POP_SPEED, POP_LIFE)
 			_match_wait.clear()
 	# Непарные трясутся вбок в разные стороны, как только вторая открылась.
 	if second < 0:

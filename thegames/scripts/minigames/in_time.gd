@@ -9,8 +9,10 @@ extends Minigame
 ## Параметры от `t` в `resources/minigames/in_time.tres`: beat, travel, window, long_share,
 ## chord_share, offbeat_share.
 ## Мармелад (STYLE «Мармелад»): ноты мягкие, вытягиваются на бегу и плющатся о метку при
-## попадании, метки упругими кольцами вздрагивают на долю, при попадании (с кругом по полю) и
-## при ошибке, зажатая метка чуть вмята; кружки счёта подпрыгивают. Геймплей тот же.
+## попадании, метки упругими кольцами вздрагивают на долю, при попадании (с кругом по полю и
+## мягкими брызгами цвета дорожки) и при ошибке, зажатая метка чуть вмята; кружки счёта
+## подпрыгивают. Геймплей тот же.
+## Дорожки со скруглёнными углами и кончаются над пилюлей подсказки ввода (зазор от 24 пикселей).
 
 enum NoteState { PENDING, HOLDING, HIT, MISS }
 
@@ -34,7 +36,11 @@ const LANE_W := 150.0
 const LANE_GAP := 30.0
 const NOTE_R := 44.0
 const TOP_Y := 70.0
-const HIT_FROM_BOTTOM := 150.0
+## Метка над низом поля: дорожка (метка + NOTE_R + LANE_PAD_BOTTOM) кончается над пилюлей
+## подсказки (Style.PILL_HEIGHT + отступ 40) с зазором 32. Тайминг в секундах от этого не зависит.
+const HIT_FROM_BOTTOM := 180.0
+const LANE_PAD_TOP := 20.0
+const LANE_PAD_BOTTOM := 24.0
 const POP_SECONDS := 0.25
 const SHAKE_SECONDS := 0.35
 const PULSE_SECONDS := 0.18
@@ -69,6 +75,8 @@ var _marks: Array[JellyShape] = []
 var _rings := RingFx.new()
 var _dots: Array[JellySpring] = []
 var _last_pulse := 0.0
+var _splash := SplashFx.new()
+var _lane_box := Style.flat(Color(Style.INK, 0.035), Style.R_CTL, Color.TRANSPARENT, 0)
 
 
 func _on_start() -> void:
@@ -270,6 +278,11 @@ func _jelly_land(n: Note, k: float) -> void:
 	if k >= 1.0:
 		_rings.add(Vector2(_lane_x(n.lane), size.y - HIT_FROM_BOTTOM), RING_R, RING_R + 40.0,
 				Color(Style.accent(n.lane), 0.6), 1, 0.45)
+		# Сдержанные брызги: горсть капель цвета дорожки с верхнего края метки (pop сам
+		# приглушает цвет), чтобы не тонули в залитом кольце.
+		_splash.pop(Vector2(_lane_x(n.lane), size.y - HIT_FROM_BOTTOM - RING_R + 8.0),
+				Color(Style.accent(n.lane), 0.85),
+				3, 360.0, 0.5)
 		_jelly_dot(n)
 
 
@@ -292,6 +305,7 @@ func _process(delta: float) -> void:
 	var tu := Jelly.tuning()
 	var hit_y := size.y - HIT_FROM_BOTTOM
 	_rings.step(delta)
+	_splash.step(delta, Callable())
 	if pulse > _last_pulse:
 		for m in _marks:
 			m.poke(90.0)
@@ -363,8 +377,8 @@ func _draw() -> void:
 	for lane in LANES:
 		var x := _lane_x(lane)
 		var col := Style.accent(lane)
-		draw_rect(Rect2(x - LANE_W / 2.0, TOP_Y - 20.0, LANE_W, hit_y - TOP_Y + 20.0 + NOTE_R + 24.0),
-				Color(Style.INK, 0.035))
+		_lane_box.draw(get_canvas_item(), Rect2(x - LANE_W / 2.0, TOP_Y - LANE_PAD_TOP, LANE_W,
+				hit_y - TOP_Y + LANE_PAD_TOP + NOTE_R + LANE_PAD_BOTTOM))
 		# Метка: кольцо с глифом, при зажатии и попадании заливается.
 		var pop := lane_flash[lane] / POP_SECONDS
 		var beat_pulse := pulse / PULSE_SECONDS
@@ -412,6 +426,8 @@ func _draw() -> void:
 			n.body.draw(self, col)
 		else:
 			draw_circle(Vector2(x, y), NOTE_R * pose.w, col)
+	if jelly:
+		_splash.draw_air(self, Vector2.ZERO)
 	# Счёт нот справа сверху: попадания зелёные, промахи серые; решённый кружок подпрыгивает.
 	var r := 7.0
 	var gap := 24.0

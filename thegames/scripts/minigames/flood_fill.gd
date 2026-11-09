@@ -9,7 +9,8 @@ extends Minigame
 ## Мармелад (STYLE «Мармелад»): статичный вид прежний, а перекрашенная клетка шлёпается
 ## пружиной масштаба, и волна заливки бежит по сетке плюхами; новая картинка всплывает волной из
 ## угла; кружки палитры мягкие, выбранный стоит на бортике вместо синей рамки и вздрагивает,
-## заливка вдавливает его; потраченный ход и собранная картинка подпрыгивают точкой.
+## заливка вдавливает его; потраченный ход и собранная картинка подпрыгивают точкой, а когда
+## волна докатилась, с верхнего края сетки летят несколько неярких капель её цвета.
 
 const FIRST_SIZE := 4
 const FIRST_COLORS := 3
@@ -71,6 +72,10 @@ var _picture_spring: Array[JellySpring] = []
 var _jelly_time := 0.0
 var _last_sel := -1
 var _press_left := 0.0
+## Брызги собранной картинки: ждут, пока волна заливки докатится до дальнего угла.
+var _splash := SplashFx.new()
+var _splash_left := 0.0
+var _splash_color := 0
 
 
 func _on_start() -> void:
@@ -309,6 +314,7 @@ func _draw() -> void:
 	# Угол заливки, шлёпается вместе со своей клеткой.
 	var corner_r := cell * 0.22 * (1.0 + _cell_value(0) * PLOP_Y)
 	draw_arc(origin + Vector2(cell / 2.0, cell / 2.0), corner_r, 0.0, TAU, 32, Style.SURFACE_SOLID, 4.0, true)
+	_splash.draw_air(self, Vector2.ZERO)
 	# Палитра внизу мягкими кружками, выбранный цвет на бортике.
 	for c in k:
 		var lift := _swatch_lift[c].value if c < _swatch_lift.size() else 0.0
@@ -398,6 +404,8 @@ func _jelly_fill(region: Array[int], color: int, missed: bool) -> void:
 			_plop(cell, MISS_KICK)
 	elif _uniform_after(region, color):
 		_picture_spring[picture].kick(DOT_KICK)
+		_splash_left = 2.0 * (n - 1) * WAVE_STEP + 0.05
+		_splash_color = color
 
 
 ## Станет ли сетка одноцветной, если область `region` перекрасить в `color`.
@@ -419,6 +427,12 @@ func _process(delta: float) -> void:
 	_jelly_time += delta
 	var tu := Jelly.tuning()
 	var moving := Jelly.on()
+	_splash.step(delta, Callable())
+	if _splash_left > 0.0:
+		_splash_left -= delta
+		if _splash_left <= 0.0 and moving:
+			var top := Vector2(size.x / 2.0, (size.y - GRID_PX) / 2.0 - 40.0 + 6.0)
+			_splash.pop(top, Style.accent(_splash_color), 6, 700.0, 0.6)
 	var k_cell := tu.spring_stiffness * CELL_STIFF_GAIN
 	var d_cell := tu.spring_damping * CELL_DAMP_GAIN
 	for i in n * n:
