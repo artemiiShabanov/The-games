@@ -31,9 +31,10 @@ static func attach_pill(c: Control) -> void:
 	ui().attach(c, Style.R_PILL, 14.0, false, 0.0, true, 2.5)
 
 
-## Большой контейнер (карточка экрана, панель): тянется и качается, но без линзы и нажатия.
+## Большой контейнер (карточка экрана, панель, пост): тянется, качается и мягко вминается под
+## курсором (вмятина ограничена радиусом, текст не плывёт).
 static func attach_container(c: Control, radius := 24.0, margin := 32.0) -> void:
-	ui().attach(c, radius, margin, false, 0.0, false)
+	ui().attach(c, radius, margin, false, 0.0, true, 0.6)
 
 
 ## Кнопка: пружинит, вминается под курсором, в фокусе поднимается на бортике. Хозяин ставит

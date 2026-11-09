@@ -36,6 +36,7 @@ var _buttons: Array[PanelContainer] = []
 var _button_labels: Array[Label] = []
 var _button_lifts: Array[JellyLift] = []
 var _items: Array[Control] = []
+var _item_lifts: Array[Array] = []
 var _stream_holder: Control
 var _demo: Demo
 var _revealed := false
@@ -119,6 +120,7 @@ func move(dir: int) -> void:
 	ShellSounds.play(&"tick")
 	_center_on(index, true)
 	_refresh_buttons()
+	_refresh_item_focus()
 
 
 func scroll_to_end() -> void:
@@ -127,6 +129,7 @@ func scroll_to_end() -> void:
 	ShellSounds.play(&"tick")
 	_center_on(index, true)
 	_refresh_buttons()
+	_refresh_item_focus()
 
 
 func set_focus_demo(v: bool) -> void:
@@ -205,12 +208,15 @@ func _build() -> void:
 				node = _make_numbers(item)
 		_column.add_child(node)
 		_items.append(node)
+		_item_lifts.append(_jelly_item(node))
 	var buttons := _make_buttons()
 	_column.add_child(buttons)
 	_items.append(buttons)
+	_item_lifts.append([])
 	for n in _items:
 		n.modulate.a = 0.0 if not Debug.skip_cards else 1.0
 	_refresh_buttons()
+	_refresh_item_focus.call_deferred()
 
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -236,6 +242,31 @@ func _reveal() -> void:
 		var n := _items[i]
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tw.tween_property(n, "modulate:a", 1.0, Style.SWITCH_SECONDS).set_delay(i * STAGGER_SECONDS)
+
+
+## Мармелад ленты: посты пружинят при листании и вминаются под курсором; текущий пост на
+## бледном нейтральном бортике (фокус виден, но не обещает нажатия). Ряд цифр: обе карточки.
+func _jelly_item(node: Control) -> Array:
+	var hosts: Array[Control] = []
+	if node is PanelContainer:
+		hosts.append(node)
+	else:
+		for child in node.get_children():
+			if child is PanelContainer:
+				hosts.append(child)
+	var lifts: Array = []
+	for h in hosts:
+		Jelly.attach_container(h, Style.R_CARD, 16.0)
+		var l := JellyLift.add_under(h, Style.R_CARD) if h.clip_contents else JellyLift.add_to(h, Style.R_CARD)
+		l.neutral = true
+		lifts.append(l)
+	return lifts
+
+
+func _refresh_item_focus() -> void:
+	for i in _item_lifts.size():
+		for l in _item_lifts[i]:
+			(l as JellyLift).focused = i == index
 
 
 ## Прокрутка так, чтобы карточка `i` встала по центру области; крайние упираются в края.

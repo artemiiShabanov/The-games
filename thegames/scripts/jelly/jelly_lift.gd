@@ -10,6 +10,8 @@ extends Node2D
 
 var focused := false
 var hover_lift := false
+## Бледный нейтральный бортик: фокус на неинтерактивном (пост ленты), не обещает нажатия.
+var neutral := false
 var resting := 0.0
 var radius := 24.0
 var spring := JellySpring.new()
@@ -83,7 +85,9 @@ func _process(delta: float) -> void:
 	var show := spring.value > 0.2 and host.is_visible_in_tree()
 	visible = show
 	if _sibling and show:
+		# Сосед не наследует от хозяина ни места, ни проявления.
 		position = host.position
+		modulate = host.modulate
 	if show and absf(spring.value - _drawn) > 0.01:
 		queue_redraw()
 
@@ -99,7 +103,9 @@ func _draw() -> void:
 	# темнее; тёмная (кнопка в фокусе): светлее, темнее некуда.
 	var lum := base.get_luminance()
 	var lip: Color
-	if lum > 0.95:
+	if neutral:
+		lip = Style.SURFACE_2.darkened(0.1)
+	elif lum > 0.95:
 		lip = Style.SURFACE_2.darkened(0.08)
 	elif lum > 0.75:
 		lip = base.darkened(tu.lift_darken * 0.6)
