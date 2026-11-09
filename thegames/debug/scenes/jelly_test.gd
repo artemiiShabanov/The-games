@@ -12,7 +12,8 @@ var shots: Array[int] = []
 var crop := Rect2i(240, 560, 760, 380)
 var images: Array[Image] = []
 var constructor: Constructor
-## Действия по кадрам для экрана: кадр -> команда (down, up, left, right, a, mouse=XxY).
+## Действия по кадрам для экрана: кадр -> команда (down, up, left, right, a, mouse=XxY,
+## click=XxY, release=XxY). `--locked` открыт только первый жанр.
 var actions: Dictionary[int, String] = {}
 
 
@@ -37,7 +38,7 @@ func _ready() -> void:
 		var kv := part.split(":")
 		actions[int(kv[0])] = kv[1]
 	if args.has("screen"):
-		_open_constructor()
+		_open_constructor(args.has("locked"))
 		return
 	var def := MinigamePool.find(MinigamePool.load_all(), StringName(str(args.get("game", "runner"))))
 	runner = def.scene.instantiate() as Minigame
@@ -48,10 +49,11 @@ func _ready() -> void:
 
 
 ## Экран настройки игры со всем открытым, как в `constructor_test`.
-func _open_constructor() -> void:
+func _open_constructor(locked := false) -> void:
 	var genres: Array[Game.Genre] = []
 	for g in Game.Genre.values():
-		genres.append(g as Game.Genre)
+		if not locked or genres.size() < 1:
+			genres.append(g as Game.Genre)
 	var techs: Array[Game.Tech] = []
 	for t in Game.Tech.values():
 		techs.append(t as Game.Tech)
@@ -64,6 +66,15 @@ func _open_constructor() -> void:
 
 
 func _act(cmd: String) -> void:
+	if cmd.begins_with("click=") or cmd.begins_with("release="):
+		var xy2 := cmd.get_slice("=", 1).split("x")
+		var b := InputEventMouseButton.new()
+		b.button_index = MOUSE_BUTTON_LEFT
+		b.pressed = cmd.begins_with("click=")
+		b.position = Vector2(float(xy2[0]), float(xy2[1]))
+		b.global_position = b.position
+		Input.parse_input_event(b)
+		return
 	if cmd.begins_with("mouse="):
 		var xy := cmd.trim_prefix("mouse=").split("x")
 		var pos := Vector2(float(xy[0]), float(xy[1]))

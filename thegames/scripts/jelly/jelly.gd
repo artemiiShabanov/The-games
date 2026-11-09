@@ -25,12 +25,10 @@ static func attach(c: Control, radius := 16.0, margin := 24.0, ring := false, ex
 	ui().attach(c, radius, margin, ring, expand, hover, hover_gain)
 
 
-## Пилюля и прочая мелочь вне карточки: заметнее вминается и приподнимается под курсором.
-static func attach_pill(c: Control) -> JellyLift:
+## Пилюля и прочая мелочь вне карточки: заметнее вминается и вздрагивает под курсором.
+## Бортика нет: он обещал бы, что на пилюлю можно нажать, а она не интерактивная.
+static func attach_pill(c: Control) -> void:
 	ui().attach(c, Style.R_PILL, 14.0, false, 0.0, true, 2.5)
-	var l := JellyLift.add_to(c, Style.R_PILL)
-	l.hover_lift = true
-	return l
 
 
 ## Большой контейнер (карточка экрана, панель): тянется и качается, но без линзы и нажатия.

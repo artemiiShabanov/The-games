@@ -82,6 +82,9 @@ class Body:
 	## Сила реакции на курсор: вмятина и вздрог при наведении.
 	var hover_gain := 1.0
 	var hovered := false
+	## Бортик под элементом: искажение берёт его вместе с элементом, иначе при сжатии он двоится.
+	var lift: WeakRef
+	var extra := 0.0
 	var depth := 0
 	var clip: WeakRef
 	var ready := false
@@ -155,6 +158,12 @@ func poke(c: Control, strength: float) -> void:
 	b.q_v += tu.ui_poke * strength * 1.4
 
 
+func set_lift(c: Control, l: Node) -> void:
+	var b := _find(c)
+	if b != null:
+		b.lift = weakref(l)
+
+
 func is_hovered(c: Control) -> bool:
 	var b := _find(c)
 	return b != null and b.hovered
@@ -178,6 +187,9 @@ func _input(event: InputEvent) -> void:
 		if _pressed != null:
 			_pressed.r_v -= tu.ui_press
 			_pressed.q_v += tu.ui_press * 0.5
+			var l := _pressed.lift.get_ref() as JellyLift if _pressed.lift != null else null
+			if l != null:
+				l.press()
 	elif _pressed != null:
 		_pressed.r_v += tu.ui_press * 0.6
 		_pressed = null
@@ -225,6 +237,10 @@ func _process(delta: float) -> void:
 func _track(b: Body, c: Control, delta: float, tu: JellyTuning, mouse: Vector2) -> void:
 	var xf := c.get_global_transform_with_canvas()
 	var rect := xf * Rect2(Vector2.ZERO, c.size)
+	# Бортик входит в область искажения, но не в движение: его рост не рывок.
+	var l := b.lift.get_ref() as JellyLift if b.lift != null else null
+	# С запасом на кадр: бортик обновляется после слоя и при нажатии быстро меняется.
+	b.extra = (l.spring.value + absf(l.spring.velocity) * delta + 1.0) * xf.get_scale().y if l != null and l.visible else 0.0
 	var center := rect.get_center()
 	var half := rect.size / 2.0 + Vector2.ONE * b.expand
 	var scale := maxf(half.length(), 1.0)
@@ -301,7 +317,7 @@ func _upload(active: Array[Body], tu: JellyTuning) -> void:
 		var dyn := b.lag - b.lean
 		var bend := Vector2(dyn.x, 0.0) if absf(dyn.x) > absf(dyn.y) else Vector2(0.0, dyn.y)
 		bend *= tu.ui_bend
-		data[i * 4] = Vector4(b.center.x, b.center.y, b.half.x, b.half.y)
+		data[i * 4] = Vector4(b.center.x, b.center.y + b.extra / 2.0, b.half.x, b.half.y + b.extra / 2.0)
 		data[i * 4 + 1] = Vector4(inv.x.x, inv.y.x, inv.x.y, inv.y.y)
 		# Линза с минусом: курсор не приближает, а вминает элемент.
 		data[i * 4 + 2] = Vector4(bend.x, bend.y, minf(b.radius + b.expand, minf(b.half.x, b.half.y)), -b.lens)

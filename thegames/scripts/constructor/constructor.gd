@@ -444,16 +444,16 @@ func _build_estimate(content: Control) -> void:
 	var panel := PanelContainer.new()
 	var panel_face := Style.card(true)
 	if Jelly.on():
+		# Смета своим цветом из палитры, а не белым по белому; тени нет.
 		panel_face.shadow_size = 0
+		panel_face.bg_color = Style.SURFACE_2
 	panel.add_theme_stylebox_override("panel", panel_face)
 	panel.position = Vector2(_left_width + Style.GAP_CARDS, 0)
 	panel.size = Vector2(Style.ESTIMATE_WIDTH, _inner.y)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(panel)
-	# Смета мармеладная, как кнопка: толщина вместо тени, мягкая вмятина под курсором.
+	# Смета мармеладная: пружинит и мягко вминается под курсором; бортика нет, она не нажимается.
 	Jelly.attach(panel, Style.R_CARD, 20.0, false, 0.0, true, 0.6)
-	if Jelly.on():
-		JellyLift.add_to(panel, Style.R_CARD, 6.0)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
@@ -557,6 +557,9 @@ func _refresh(animate: bool) -> void:
 	var on_button := focus_row == ROW_BUTTON
 	# Активная: тёмная в фокусе, `surface-2` с чернилами без фокуса; закрытая: `surface-2` с `ink-3`.
 	var bg := Style.INK if active and on_button else Style.SURFACE_2
+	if Jelly.on() and not (active and on_button):
+		# На сером поле сметы кнопка белая, закрытая светлее поля.
+		bg = Style.SURFACE_SOLID if active else Style.BG
 	var ink := Style.INK_3
 	if active:
 		ink = Style.SURFACE_SOLID if on_button else Style.INK

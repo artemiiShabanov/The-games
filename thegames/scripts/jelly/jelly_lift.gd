@@ -48,6 +48,7 @@ static func _make(host_: Control, radius_: float, resting_: float) -> JellyLift:
 	l.resting = resting_
 	l.spring.value = resting_
 	l._phase = randf() * TAU
+	Jelly.ui().set_lift(host_, l)
 	return l
 
 
@@ -98,15 +99,32 @@ func _draw() -> void:
 	else:
 		lip = base.lightened(tu.lift_darken * 1.4)
 	lip.a = 1.0
+	# Затемнённая (закрытая) карточка накрыта белой вуалью: бортик смешан с белым так же.
+	lip = lip.lerp(Style.SURFACE_SOLID, float(host.get_meta(&"jelly_veil", 0.0)))
 	var r := minf(radius, minf(size.x, size.y) / 2.0)
 	var shape := RunnerJelly.rounded_rect(size, r, CORNER_STEPS, 2)
+	# Бортик чуть уже карточки: прячется под её скругления, а не торчит углами.
+	var inset := minf(3.0, 1.0 + k * 0.25)
+	var squeeze := 1.0 - 2.0 * inset / maxf(size.x, 1.0)
+	var cx := size.x / 2.0
 	var shifted := PackedVector2Array()
 	for p in shape:
-		shifted.append(p + Vector2(0.0, k))
+		shifted.append(Vector2(cx + (p.x - cx) * squeeze, p.y + k))
 	for part in Geometry2D.clip_polygons(shifted, shape):
 		if Geometry2D.is_polygon_clockwise(part) and part.size() > 2:
 			continue
 		draw_colored_polygon(part, lip)
-		var outline := PackedVector2Array(part)
-		outline.append(part[0])
-		draw_polyline(outline, lip, 1.0, true)
+	# Сглаженный край только по нижнему контуру: по стыку с карточкой линия просвечивала бы
+	# сквозь затемнённую карточку ободком.
+	var edge := PackedVector2Array()
+	for p in shifted:
+		if p.y > size.y - r + k * 0.5:
+			edge.append(p)
+	_draw_open_edge(edge, lip)
+
+
+## Нижняя дуга из точек контура по часовой: от правого нижнего угла через низ к левому.
+func _draw_open_edge(points: PackedVector2Array, col: Color) -> void:
+	if points.size() < 2:
+		return
+	draw_polyline(points, col, 1.0, true)

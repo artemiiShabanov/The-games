@@ -269,9 +269,34 @@ static func center_pill(text: String, meta: StringName) -> Control:
 ## Показать на карточке ровно одну пилюлю по `meta` (или ни одной при пустом) и затемнить.
 static func set_card_lock(c: Control, meta: StringName) -> void:
 	c.modulate.a = 1.0 if meta == &"" else Style.DIM_LOCKED
+	if Jelly.on():
+		# Прототип мармелада: прозрачность карточки и бортика наложилась бы ободком на стыке,
+		# поэтому затемнение белой вуалью сверху, на белом поле выглядит так же.
+		c.modulate.a = 1.0
+		var veil := _veil_of(c)
+		veil.visible = meta != &""
+		c.set_meta(&"jelly_veil", (1.0 - Style.DIM_LOCKED) if meta != &"" else 0.0)
+		for child in c.get_children():
+			if child is JellyLift:
+				(child as JellyLift).queue_redraw()
 	for child in inner_of(c).get_children():
 		if child is HintPill:
 			child.visible = meta != &"" and child.has_meta(meta)
+
+
+static func _veil_of(c: Control) -> Panel:
+	for child in c.get_children():
+		if child is Panel and child.has_meta(&"veil"):
+			return child
+	var veil := Panel.new()
+	veil.set_meta(&"veil", true)
+	veil.add_theme_stylebox_override("panel", Style.flat(Color(Style.SURFACE_SOLID, 1.0 - Style.DIM_LOCKED), Style.R_CARD, Color.TRANSPARENT, 0))
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veil.size = Style.CARD_SIZE
+	veil.use_parent_material = true
+	c.add_child(veil)
+	# Пилюля причины под вуалью тоже затемнена, как раньше вся карточка.
+	return veil
 
 
 static func label(text: String, font_size: int, color: Color) -> Label:
