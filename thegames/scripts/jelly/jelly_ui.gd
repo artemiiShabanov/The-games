@@ -57,12 +57,17 @@ void fragment() {
 		if (max(du.x, du.y) > m * 2.0 + 24.0) {
 			continue;
 		}
-		// Вес только по самой точке кадра: искажение не выходит за поле элемента на соседей.
+		// Точка берётся из искажённого места, если она внутри элемента (при сжатии там
+		// проступает фон из-за края) или искажённое место внутри элемента (при растяжении
+		// элемент выходит за край). Иначе кадр как есть. Плавного поля за краем нет: при сжатии
+		// оно выворачивало полосу за краем зеркалом.
+		vec2 mapped = warp(src, A, B, C, D);
 		float d0 = rr_sdf(src - A.xy, A.zw, C.z);
-		float w = 1.0 - smoothstep(m * 0.35, m, d0);
-		if (w > 0.0) {
-			src = mix(src, warp(src, A, B, C, D), w);
-		}
+		float d1 = rr_sdf(mapped - A.xy, A.zw, C.z);
+		// Сглаженная кромка (до полутора пикселей снаружи) считается элементом, иначе при
+		// сжатии она оставалась призраком за краем.
+		float w = max(1.0 - smoothstep(0.8, 1.8, d0), 1.0 - smoothstep(0.8, 1.8, d1));
+		src = mix(src, mapped, w);
 	}
 	vec2 duv = vec2(dFdx(SCREEN_UV.x) / dFdx(UV.x), dFdy(SCREEN_UV.y) / dFdy(UV.y));
 	COLOR = texture(screen_tex, SCREEN_UV + (src - p) / canvas_size * duv);
@@ -146,6 +151,10 @@ func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0,
 	b.expand = expand
 	b.hover = hover
 	b.hover_gain = hover_gain
+	# Бортик мог появиться раньше регистрации (карусель подкладывает его до `attach`).
+	for child in c.get_children():
+		if child is JellyLift:
+			b.lift = weakref(child)
 	bodies.append(b)
 
 

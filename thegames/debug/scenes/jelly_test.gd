@@ -27,6 +27,9 @@ func _ready() -> void:
 		AutoTest.bot_mode = AutoTest.BotMode.LOSE
 	if args.has("flat"):
 		Jelly.enabled = false
+	# `--set=ui_press:0;lift_px:12` числа материала на прогон.
+	for kv in str(args.get("set", "")).split(";", false):
+		Jelly.tuning().set(kv.get_slice(":", 0), float(kv.get_slice(":", 1)))
 	if args.has("crop"):
 		var c := str(args["crop"]).split(",")
 		crop = Rect2i(int(c[0]), int(c[1]), int(c[2]), int(c[3]))

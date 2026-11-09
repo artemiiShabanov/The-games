@@ -4,11 +4,9 @@ extends Node2D
 ## Под хозяином проступает бортик его же цвета, темнее (у белых тёплый серый, у тёмных светлее):
 ## `resting` постоянная толщина (карточка экрана, смета), плюс подъём в фокусе (`focused`) или
 ## под курсором (`hover_lift`). В фокусе элемент едва дышит; нажатие (`press`) вдавливает его в
-## бортик. Рисуется только видимый серп бортика (сдвинутая форма минус сама форма), поэтому
-## полупрозрачная подложка хозяина не темнеет. Обычно ребёнок хозяина позади него; у хозяина,
+## бортик. Рисуется сдвинутой формой целиком за хозяином: подложка хозяина должна быть
+## плотной (затемнённые карточки накрываются вуалью, а не прозрачностью). Обычно ребёнок хозяина позади него; у хозяина,
 ## который режет содержимое (`clip_contents`), сосед перед ним (`add_under`).
-
-const CORNER_STEPS := 8
 
 var focused := false
 var hover_lift := false
@@ -102,29 +100,12 @@ func _draw() -> void:
 	# Затемнённая (закрытая) карточка накрыта белой вуалью: бортик смешан с белым так же.
 	lip = lip.lerp(Style.SURFACE_SOLID, float(host.get_meta(&"jelly_veil", 0.0)))
 	var r := minf(radius, minf(size.x, size.y) / 2.0)
-	var shape := RunnerJelly.rounded_rect(size, r, CORNER_STEPS, 2)
-	# Бортик чуть уже карточки: прячется под её скругления, а не торчит углами.
-	var inset := minf(3.0, 1.0 + k * 0.25)
-	var squeeze := 1.0 - 2.0 * inset / maxf(size.x, 1.0)
-	var cx := size.x / 2.0
-	var shifted := PackedVector2Array()
-	for p in shape:
-		shifted.append(Vector2(cx + (p.x - cx) * squeeze, p.y + k))
-	for part in Geometry2D.clip_polygons(shifted, shape):
-		if Geometry2D.is_polygon_clockwise(part) and part.size() > 2:
-			continue
-		draw_colored_polygon(part, lip)
-	# Сглаженный край только по нижнему контуру: по стыку с карточкой линия просвечивала бы
-	# сквозь затемнённую карточку ободком.
-	var edge := PackedVector2Array()
-	for p in shifted:
-		if p.y > size.y - r + k * 0.5:
-			edge.append(p)
-	_draw_open_edge(edge, lip)
-
-
-## Нижняя дуга из точек контура по часовой: от правого нижнего угла через низ к левому.
-func _draw_open_edge(points: PackedVector2Array, col: Color) -> void:
-	if points.size() < 2:
-		return
-	draw_polyline(points, col, 1.0, true)
+	# Та же форма, сдвинутая вниз и чуть уже: целиком за плотной карточкой, видна только
+	# нижняя полоса. Без вычитаний: стыка, через который просвечивает фон, нет.
+	# Сужение пропорционально высоте: у вдавленного бортика иначе открывается щель в углу.
+	var inset := minf(3.0, k * 0.3)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = lip
+	sb.set_corner_radius_all(int(r))
+	sb.anti_aliasing = true
+	draw_style_box(sb, Rect2(Vector2(inset, k), Vector2(size.x - 2.0 * inset, size.y)))
