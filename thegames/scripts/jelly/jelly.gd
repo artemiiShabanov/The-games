@@ -13,6 +13,34 @@ static var material := 0
 static var _tunings: Array[JellyTuning] = []
 
 
+static var _ui: JellyUi
+
+
+## Подключить элемент интерфейса к мармеладу: `radius` его скругление, `margin` поле вокруг,
+## в котором искажение сходит на нет, `ring` для рамок (искажается только полоса контура).
+static func attach(c: Control, radius := 16.0, margin := 24.0, ring := false, expand := 0.0, hover := true) -> void:
+	ui().attach(c, radius, margin, ring, expand, hover)
+
+
+## Большой контейнер (карточка экрана, панель): тянется и качается, но без линзы и нажатия.
+static func attach_container(c: Control, radius := 24.0, margin := 32.0) -> void:
+	ui().attach(c, radius, margin, false, 0.0, false)
+
+
+## Вздрог элемента: фокус, выбор, подтверждение.
+static func poke(c: Control, strength := 1.0) -> void:
+	if c != null:
+		ui().poke(c, strength)
+
+
+static func ui() -> JellyUi:
+	if _ui == null or not is_instance_valid(_ui):
+		_ui = JellyUi.new()
+		var tree := Engine.get_main_loop() as SceneTree
+		tree.root.add_child.call_deferred(_ui)
+	return _ui
+
+
 static func on() -> bool:
 	return enabled
 
@@ -42,6 +70,11 @@ static func register_debug() -> void:
 	_num("Брызги", tu, &"splash_scale", 0.0, 3.0, 0.1)
 	_num("Волна поверхности", tu, &"ripple_amp", 0.0, 30.0, 1.0)
 	_num("Жёсткость предметов", tu, &"spring_stiffness", 60.0, 900.0, 20.0)
+	_num("Интерфейс: жёсткость", tu, &"ui_stiffness", 60.0, 900.0, 20.0)
+	_num("Интерфейс: затухание", tu, &"ui_damping", 1.0, 30.0, 1.0)
+	_num("Интерфейс: инерция", tu, &"ui_inertia", 0.0, 0.08, 0.002)
+	_num("Интерфейс: вздрог", tu, &"ui_poke", 0.0, 3.0, 0.1)
+	_num("Интерфейс: линза курсора", tu, &"ui_hover_lens", 0.0, 0.3, 0.01)
 
 
 static func _num(label: String, _tu: JellyTuning, prop: StringName, lo: float, hi: float, step: float) -> void:

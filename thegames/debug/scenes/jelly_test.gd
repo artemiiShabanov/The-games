@@ -11,6 +11,9 @@ var frame := 0
 var shots: Array[int] = []
 var crop := Rect2i(240, 560, 760, 380)
 var images: Array[Image] = []
+var constructor: Constructor
+## Действия по кадрам для экрана: кадр -> команда (down, up, left, right, a, mouse=XxY).
+var actions: Dictionary[int, String] = {}
 
 
 func _ready() -> void:
@@ -30,6 +33,12 @@ func _ready() -> void:
 	var every := int(args.get("every", "4"))
 	for i in int(args.get("count", "0")):
 		shots.append(from + i * every)
+	for part in str(args.get("actions", "")).split(",", false):
+		var kv := part.split(":")
+		actions[int(kv[0])] = kv[1]
+	if args.has("screen"):
+		_open_constructor()
+		return
 	var def := MinigamePool.find(MinigamePool.load_all(), StringName(str(args.get("game", "runner"))))
 	runner = def.scene.instantiate() as Minigame
 	runner.setup(def, float(args.get("t", "0.3")), int(args.get("seed", "3")))
@@ -38,8 +47,44 @@ func _ready() -> void:
 	runner.finished.connect(func(ok: bool) -> void: AutoTest.note("runner finished: %s" % ok))
 
 
+## Экран настройки игры со всем открытым, как в `constructor_test`.
+func _open_constructor() -> void:
+	var genres: Array[Game.Genre] = []
+	for g in Game.Genre.values():
+		genres.append(g as Game.Genre)
+	var techs: Array[Game.Tech] = []
+	for t in Game.Tech.values():
+		techs.append(t as Game.Tech)
+	var settings: Array[Game.Setting] = []
+	for st in Game.Setting.values():
+		settings.append(st as Game.Setting)
+	constructor = (load("res://scenes/constructor.tscn") as PackedScene).instantiate() as Constructor
+	constructor.setup(genres, techs, settings, 60000, 2, 1)
+	add_child(constructor)
+
+
+func _act(cmd: String) -> void:
+	if cmd.begins_with("mouse="):
+		var xy := cmd.trim_prefix("mouse=").split("x")
+		var pos := Vector2(float(xy[0]), float(xy[1]))
+		var e := InputEventMouseMotion.new()
+		e.position = pos
+		e.global_position = pos
+		get_viewport().warp_mouse(pos)
+		Input.parse_input_event(e)
+		return
+	match cmd:
+		"down": constructor.move(1)
+		"up": constructor.move(-1)
+		"left": constructor.focus(constructor.focus_row - 1)
+		"right": constructor.focus(constructor.focus_row + 1)
+		"a": constructor.confirm()
+
+
 func _process(_delta: float) -> void:
 	frame += 1
+	if actions.has(frame) and constructor != null:
+		_act(actions[frame])
 	if shots.has(frame):
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()

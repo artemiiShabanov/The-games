@@ -40,6 +40,8 @@ var _rows: Array[Control] = []
 var _mask: ShaderMaterial
 var _column_height := 0.0
 var _focus_ring: Panel
+var _poked := Vector2i(-1, -1)
+var _jelly_ring: JellyRing
 
 
 ## Построить колонки в области `area` (размер этого узла): подписи и карточки по колонкам.
@@ -91,11 +93,17 @@ func build(labels: Array[String], cards_: Array[Array], area: Vector2) -> void:
 			c.position = Vector2(card_x, _card_y(col, i))
 			column.add_child(c)
 			_inherit_material(c)
+			# Прототип мармелада (proto/jelly): поле меньше половины зазора, соседи не задеваются.
+			Jelly.attach(c, Style.R_CARD, Style.GAP_CARDS * 0.45)
 	_focus_ring = Panel.new()
 	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(Style.R_CARD))
 	_focus_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_focus_ring.visible = false
 	add_child(_focus_ring)
+	# Прототип мармелада (proto/jelly): рамка упругим контуром вместо панели с твином.
+	_jelly_ring = JellyRing.new()
+	_jelly_ring.visible = false
+	add_child(_jelly_ring)
 
 
 func count(col: int) -> int:
@@ -136,6 +144,12 @@ func step(col: int, dir: int) -> bool:
 
 ## Расставить колонки: выбранная по центру и крупнее, соседи раздвинуты, рамка фокуса.
 func refresh(animate: bool) -> void:
+	# Вздрог карточки, которая стала выбранной в фокусной колонке или получила фокус.
+	if animate and focus_col >= 0 and focus_col < cards.size() and not cards[focus_col].is_empty():
+		var key := Vector2i(focus_col, index[focus_col])
+		if key != _poked:
+			Jelly.poke(cards[focus_col][index[focus_col]])
+	_poked = Vector2i(focus_col, index[focus_col] if focus_col >= 0 and focus_col < cards.size() else -1)
 	for col in cards.size():
 		_animate(_rows[col], "position:y", _column_offset(col), animate)
 		for i in cards[col].size():
@@ -149,11 +163,20 @@ func refresh(animate: bool) -> void:
 func _place_focus_ring(animate: bool) -> void:
 	if focus_col < 0 or focus_col >= cards.size() or cards[focus_col].is_empty():
 		_focus_ring.visible = false
+		_jelly_ring.visible = false
 		return
 	var target: Control = cards[focus_col][index[focus_col]]
 	var base := _clips[focus_col].position + Vector2(target.position.x, _column_offset(focus_col) + index[focus_col] * (Style.CARD_SIZE.y + Style.GAP_CARDS))
 	var grown := Style.CARD_SIZE * select_scale
 	var rect := Rect2(base - (grown - Style.CARD_SIZE) / 2.0, grown)
+	if Jelly.on():
+		_focus_ring.visible = false
+		_jelly_ring.target = rect
+		if not _jelly_ring.visible or not animate or Debug.skip_cards:
+			_jelly_ring.visible = true
+			_jelly_ring.snap()
+		return
+	_jelly_ring.visible = false
 	var was_visible := _focus_ring.visible
 	_focus_ring.visible = true
 	_animate(_focus_ring, "position", rect.position, animate and was_visible)

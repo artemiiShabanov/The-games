@@ -52,3 +52,21 @@ extends Resource
 @export_group("Пружины предметов")
 @export var spring_stiffness := 280.0
 @export var spring_damping := 6.0
+
+@export_group("Интерфейс")
+## Пружины элементов интерфейса: жёсткость и затухание.
+@export var ui_stiffness := 300.0
+@export var ui_damping := 11.0
+## Доля рывка скорости (пиксели в секунду), которая уходит в отставание элемента.
+@export var ui_inertia := 0.018
+## То же для роста: перелёт масштаба после увеличения.
+@export var ui_scale_inertia := 0.05
+## Насколько отставание вытягивает элемент и насколько гнёт середину.
+@export var ui_stretch := 0.8
+@export var ui_bend := 0.5
+## Вздрог при фокусе, сжатие при нажатии.
+@export var ui_poke := 0.5
+@export var ui_press := 0.8
+## Линза под курсором и наклон к нему (наклон выключен: карточка выглядела перекошенной).
+@export var ui_hover_lens := 0.06
+@export var ui_lean := 0.0

@@ -310,6 +310,8 @@ func focus(row: int) -> void:
 	if row == focus_row:
 		return
 	focus_row = row
+	if row == ROW_BUTTON:
+		Jelly.poke(_button)
 	ShellSounds.play(&"tick")
 	_refresh(true)
 
@@ -330,6 +332,7 @@ func confirm() -> void:
 		ShellSounds.play(&"miss")
 		return
 	ShellSounds.play(&"done")
+	Jelly.poke(_button, -2.0)
 	game_configured.emit(current_config())
 
 
@@ -352,12 +355,16 @@ func _build() -> void:
 	add_child(right)
 	var money_pill := HintPill.header("")
 	right.add_child(money_pill)
+	Jelly.register_debug()
+	Jelly.attach(header, Style.R_PILL, 16.0)
+	Jelly.attach(money_pill, Style.R_PILL, 16.0)
 	_money_label = money_pill.get_child(0) as Label
 	_money_label.add_theme_font_override("font", Style.mono_font())
 	_money_label.add_theme_color_override("font_color", Style.MONEY)
 
 	card = CardFrame.new()
 	add_child(card)
+	Jelly.attach_container(card, Style.R_CARD, 40.0)
 	_inner = CardFrame.inner_size()
 	_left_width = _inner.x - Style.ESTIMATE_WIDTH - Style.GAP_CARDS
 	var content := card.content
@@ -386,6 +393,8 @@ func _build() -> void:
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
 	hints.add_child(HintPill.make("R название"))
 	add_child(hints)
+	for pill in hints.get_children():
+		Jelly.attach(pill as Control, Style.R_PILL, 12.0)
 	MouseUi.pass_through(self)
 
 
@@ -424,6 +433,7 @@ func _build_estimate(content: Control) -> void:
 	panel.size = Vector2(Style.ESTIMATE_WIDTH, _inner.y)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(panel)
+	Jelly.attach_container(panel, Style.R_CARD, 20.0)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
@@ -475,6 +485,7 @@ func _build_estimate(content: Control) -> void:
 	_button_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_button.add_child(_button_label)
 	column.add_child(_button)
+	Jelly.attach(_button, Style.R_CTL, 16.0)
 
 
 func _row(column: VBoxContainer, caption: String) -> Label:
