@@ -10,6 +10,9 @@ class Drop:
 	var vel := Vector2.ZERO
 	var r := 4.0
 	var color := Color.WHITE
+	var born := 0.0
+	## Сколько живёт капля без поверхности, с; 0: пока не упадёт.
+	var life := 0.0
 
 class Blot:
 	var pos := Vector2.ZERO
@@ -54,6 +57,26 @@ func burst(at: Vector2, count: int, speed: float, angle: float, spread: float, c
 		drops.append(d)
 
 
+## Мягкие брызги для мини-игр без поверхности: пучок неярких капель цвета `color` (смешан с
+## белым, чтобы не кричал) веером вверх из `at`; капли летят по дуге и гаснут за `life`.
+## `count` масштабируется тюнингом. Шагать `step(delta, Callable())`, рисовать `draw_air`.
+func pop(at: Vector2, color: Color, count := 6, speed := 380.0, life := 0.55) -> void:
+	var n := int(round(count * Jelly.tuning().splash_scale * 2.0))
+	var soft := color.lerp(Style.SURFACE_SOLID, 0.25)
+	for i in maxi(n, 2):
+		if drops.size() >= MAX_DROPS:
+			drops.pop_front()
+		var d := Drop.new()
+		var a := -PI / 2.0 + rng.randf_range(-1.2, 1.2)
+		d.pos = at
+		d.vel = Vector2(cos(a), sin(a)) * speed * rng.randf_range(0.5, 1.1)
+		d.r = rng.randf_range(2.5, 5.5)
+		d.color = soft
+		d.born = time
+		d.life = life * rng.randf_range(0.8, 1.2)
+		drops.append(d)
+
+
 ## Точка следа под скользящим телом; `w` ширина.
 func add_trail(pos: Vector2, w: float) -> void:
 	if absf(pos.x - _last_trail_x) < 5.0:
@@ -94,6 +117,8 @@ func step(delta: float, ground: Callable) -> void:
 	time += delta
 	var alive: Array[Drop] = []
 	for d in drops:
+		if d.life > 0.0 and time - d.born > d.life:
+			continue
 		d.vel.y += tu.droplet_gravity * delta
 		var next := d.pos + d.vel * delta
 		var stuck := false
@@ -102,7 +127,7 @@ func step(delta: float, ground: Callable) -> void:
 				blot(Vector2(w.position.x if d.vel.x > 0.0 else w.end.x, next.y), d.r, d.color, true)
 				stuck = true
 				break
-		if not stuck:
+		if not stuck and ground.is_valid():
 			var gy: float = ground.call(next.x)
 			if next.y >= gy and d.vel.y > 0.0:
 				blot(Vector2(next.x, gy), d.r, d.color)
@@ -163,6 +188,9 @@ func _on_ground(p: Vector2, ground: Callable, lift: float) -> Vector2:
 func draw_air(ci: CanvasItem, offset: Vector2) -> void:
 	for d in drops:
 		var s := clampf(d.vel.length() / 900.0, 0.0, 0.8)
+		var col := d.color
+		if d.life > 0.0:
+			col.a *= clampf(1.0 - (time - d.born) / d.life, 0.0, 1.0)
 		ci.draw_set_transform(d.pos + offset, d.vel.angle(), Vector2(1.0 + s, 1.0 / (1.0 + s * 0.5)))
-		ci.draw_circle(Vector2.ZERO, d.r, d.color)
+		ci.draw_circle(Vector2.ZERO, d.r, col)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
