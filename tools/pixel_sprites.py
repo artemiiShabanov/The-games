@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Спрайты 8-bit из текстовых карт: сеттинг «Пираты», тайлы 16×16, палитра 4 цвета плюс чёрный.
-Пишет PNG в thegames/assets/settings/pirates/8bit/ и превью-лист (×8) в --preview.
+"""Спрайты 8-bit из текстовых карт по сеттингам: «Пираты» здесь, «Космос» и «Замки» в
+pixel_sets_extra.py (#47). Тайлы 16×16, палитра сеттинга 4 цвета плюс чёрный, одинаковые слоты.
+Пишет PNG в thegames/assets/settings/<сеттинг>/8bit/ и превью-лист (×8) всех наборов в --preview.
 
-    python3 tools/pixel_sprites.py                 # сгенерировать спрайты
+    python3 tools/pixel_sprites.py                 # сгенерировать все наборы
     python3 tools/pixel_sprites.py --preview out.png
 
 Карты правятся прямо здесь: символ = цвет палитры, точка = прозрачно. После правки:
@@ -13,8 +14,10 @@ import struct
 import sys
 import zlib
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pixel_sets_extra  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "thegames", "assets", "settings", "pirates", "8bit")
 
 # Палитра «Пираты» для 8-bit: 4 цвета плюс чёрный.
 PALETTE = {
@@ -346,7 +349,17 @@ def png_bytes(width, height, rgba_rows):
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
 
 
-def render(rows, scale=1):
+def sets():
+    """Наборы: имя папки сеттинга → (палитра, спрайты)."""
+    return {
+        "pirates": (PALETTE, SPRITES),
+        "space": (pixel_sets_extra.SPACE_PALETTE, pixel_sets_extra.SPACE),
+        "castles": (pixel_sets_extra.CASTLES_PALETTE, pixel_sets_extra.CASTLES),
+    }
+
+
+def render(rows, scale=1, palette=None):
+    palette = palette or PALETTE
     h = len(rows)
     w = len(rows[0])
     out = []
@@ -355,7 +368,7 @@ def render(rows, scale=1):
         line = []
         for x in range(w):
             ch = rows[y][x]
-            px = (0, 0, 0, 0) if ch == "." else PALETTE[ch] + (255,)
+            px = (0, 0, 0, 0) if ch == "." else palette[ch] + (255,)
             line.extend(px * scale)
         for _ in range(scale):
             out.append(line)
@@ -363,30 +376,35 @@ def render(rows, scale=1):
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
-    for name, rows in SPRITES.items():
-        w, h, px = render(rows)
-        with open(os.path.join(OUT, name + ".png"), "wb") as f:
-            f.write(png_bytes(w, h, px))
-    print("спрайтов: %d в %s" % (len(SPRITES), os.path.relpath(OUT, ROOT)))
+    all_sets = sets()
+    for set_name, (palette, sprites) in all_sets.items():
+        out = os.path.join(ROOT, "thegames", "assets", "settings", set_name, "8bit")
+        os.makedirs(out, exist_ok=True)
+        assert set(sprites) == set(SPRITES), "у %s не те слоты: %s" % (set_name, set(SPRITES) ^ set(sprites))
+        for name, rows in sprites.items():
+            w, h, px = render(rows, 1, palette)
+            with open(os.path.join(out, name + ".png"), "wb") as f:
+                f.write(png_bytes(w, h, px))
+        print("%s: спрайтов %d в %s" % (set_name, len(sprites), os.path.relpath(out, ROOT)))
     if "--preview" in sys.argv:
         path = sys.argv[sys.argv.index("--preview") + 1]
-        scale = 8
+        scale = 6
         names = list(SPRITES)
-        cols = 6
-        cell = 16 * scale + 8
-        rows_n = (len(names) + cols - 1) // cols
-        width, height = cols * cell, rows_n * cell
+        cell = 32 * scale + 8
+        width, height = len(names) * (16 * scale + 8) + 16 * scale, len(all_sets) * (16 * scale + 8)
         bg = (0xF4, 0xF1, 0xEC, 255)
         canvas = [list(bg) * width for _ in range(height)]
-        for i, name in enumerate(names):
-            w, h, px = render(SPRITES[name], scale)
-            ox, oy = (i % cols) * cell + 4, (i // cols) * cell + 4
-            for y in range(h):
-                for x in range(w):
-                    p = px[y][x * 4:x * 4 + 4]
-                    if p[3]:
-                        canvas[oy + y][(ox + x) * 4:(ox + x) * 4 + 4] = p
+        for row, (set_name, (palette, sprites)) in enumerate(all_sets.items()):
+            ox = 4
+            for name in names:
+                w, h, px = render(sprites[name], scale, palette)
+                oy = row * (16 * scale + 8) + 4
+                for y in range(h):
+                    for x in range(w):
+                        p = px[y][x * 4:x * 4 + 4]
+                        if p[3]:
+                            canvas[oy + y][(ox + x) * 4:(ox + x) * 4 + 4] = p
+                ox += w + 8
         with open(path, "wb") as f:
             f.write(png_bytes(width, height, canvas))
         print("превью:", path)
