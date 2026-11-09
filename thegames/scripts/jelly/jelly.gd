@@ -21,8 +21,16 @@ static var _ui: JellyUi
 
 ## Подключить элемент интерфейса к мармеладу: `radius` его скругление, `margin` поле вокруг,
 ## в котором искажение сходит на нет, `ring` для рамок (искажается только полоса контура).
-static func attach(c: Control, radius := 16.0, margin := 24.0, ring := false, expand := 0.0, hover := true) -> void:
-	ui().attach(c, radius, margin, ring, expand, hover)
+static func attach(c: Control, radius := 16.0, margin := 24.0, ring := false, expand := 0.0, hover := true, hover_gain := 1.0) -> void:
+	ui().attach(c, radius, margin, ring, expand, hover, hover_gain)
+
+
+## Пилюля и прочая мелочь вне карточки: заметнее вминается и приподнимается под курсором.
+static func attach_pill(c: Control) -> JellyLift:
+	ui().attach(c, Style.R_PILL, 14.0, false, 0.0, true, 2.5)
+	var l := JellyLift.add_to(c, Style.R_PILL)
+	l.hover_lift = true
+	return l
 
 
 ## Большой контейнер (карточка экрана, панель): тянется и качается, но без линзы и нажатия.
@@ -46,6 +54,45 @@ static func ui() -> JellyUi:
 
 static func focus_lift() -> bool:
 	return focus_style == 0
+
+
+static var _font_file: FontFile
+static var _fonts: Dictionary[int, Font] = {}
+
+
+## Весёлый жирный шрифт прототипа: системный SF Pro Rounded нужной жирности, чёткий при
+## масштабе (MSDF). Только macOS и только для проб: в игру его класть нельзя (лицензия), на
+## замену нужен открытый скруглённый гротеск с кириллицей. Без файла: встроенный шрифт с
+## искусственной жирностью.
+static func fun_font(weight := 700) -> Font:
+	if _fonts.has(weight):
+		return _fonts[weight]
+	if _font_file == null:
+		_font_file = FontFile.new()
+		if _font_file.load_dynamic_font("/System/Library/Fonts/SFNSRounded.ttf") != OK:
+			_font_file = null
+		else:
+			_font_file.multichannel_signed_distance_field = true
+	var v := FontVariation.new()
+	if _font_file != null:
+		v.base_font = _font_file
+		# Ось задаётся числовым тегом: строковый ключ «wght» молча игнорируется.
+		v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
+	else:
+		v.base_font = ThemeDB.fallback_font
+		v.variation_embolden = clampf((weight - 400) / 500.0, 0.0, 1.0)
+	_fonts[weight] = v
+	return v
+
+
+static var _mono_bold: SystemFont
+
+
+static func mono_bold() -> Font:
+	if _mono_bold == null:
+		_mono_bold = Style.mono_font().duplicate() as SystemFont
+		_mono_bold.font_weight = 700
+	return _mono_bold
 
 
 static func on() -> bool:

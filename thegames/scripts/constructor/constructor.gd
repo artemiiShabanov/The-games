@@ -342,6 +342,11 @@ func confirm() -> void:
 # --- Построение --------------------------------------------------------------------------------
 
 func _build() -> void:
+	# Прототип мармелада (proto/jelly): весь экран жирным скруглённым шрифтом.
+	if Jelly.on():
+		var t := Theme.new()
+		t.default_font = Jelly.fun_font(700)
+		theme = t
 	# Шапка над карточкой: релиз слева, деньги справа.
 	var header := HintPill.header("")
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
@@ -359,15 +364,21 @@ func _build() -> void:
 	var money_pill := HintPill.header("")
 	right.add_child(money_pill)
 	Jelly.register_debug()
-	Jelly.attach(header, Style.R_PILL, 16.0)
-	Jelly.attach(money_pill, Style.R_PILL, 16.0)
+	Jelly.attach_pill(header)
+	Jelly.attach_pill(money_pill)
 	_money_label = money_pill.get_child(0) as Label
-	_money_label.add_theme_font_override("font", Style.mono_font())
+	_money_label.add_theme_font_override("font", _mono())
 	_money_label.add_theme_color_override("font_color", Style.MONEY)
 
 	card = CardFrame.new()
 	add_child(card)
 	Jelly.attach_container(card, Style.R_CARD, 40.0)
+	if Jelly.on():
+		# Без тени: карточку от фона отделяет толщина. Подложка плотная, чтобы бортик не просвечивал.
+		var face := Style.card(true)
+		face.shadow_size = 0
+		card.add_theme_stylebox_override("panel", face)
+		JellyLift.add_under(card, Style.R_CARD, 6.0)
 	_inner = CardFrame.inner_size()
 	_left_width = _inner.x - Style.ESTIMATE_WIDTH - Style.GAP_CARDS
 	var content := card.content
@@ -397,7 +408,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make("R название"))
 	add_child(hints)
 	for pill in hints.get_children():
-		Jelly.attach(pill as Control, Style.R_PILL, 12.0)
+		Jelly.attach_pill(pill as Control)
 	MouseUi.pass_through(self)
 
 
@@ -431,17 +442,25 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 
 func _build_estimate(content: Control) -> void:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Style.card(true))
+	var panel_face := Style.card(true)
+	if Jelly.on():
+		panel_face.shadow_size = 0
+	panel.add_theme_stylebox_override("panel", panel_face)
 	panel.position = Vector2(_left_width + Style.GAP_CARDS, 0)
 	panel.size = Vector2(Style.ESTIMATE_WIDTH, _inner.y)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(panel)
-	Jelly.attach_container(panel, Style.R_CARD, 20.0)
+	# Смета мармеладная, как кнопка: толщина вместо тени, мягкая вмятина под курсором.
+	Jelly.attach(panel, Style.R_CARD, 20.0, false, 0.0, true, 0.6)
+	if Jelly.on():
+		JellyLift.add_to(panel, Style.R_CARD, 6.0)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
 	column.add_child(_label("Смета", Style.FONT_H2, Style.INK_2))
 	_title_label = _label("", TITLE_FONT, Style.INK)
+	if Jelly.on():
+		_title_label.add_theme_font_override("font", Jelly.fun_font(800))
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.max_lines_visible = 2
 	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -464,7 +483,7 @@ func _build_estimate(content: Control) -> void:
 	total_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	total_row.add_child(total_caption)
 	_total_value = _label("", TOTAL_FONT, Style.INK)
-	_total_value.add_theme_font_override("font", Style.mono_font())
+	_total_value.add_theme_font_override("font", _mono())
 	_total_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	total_row.add_child(_total_value)
 	var rem := HBoxContainer.new()
@@ -474,7 +493,7 @@ func _build_estimate(content: Control) -> void:
 	_remainder_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rem.add_child(_remainder_label)
 	_remainder_value = _label("", Style.FONT_BODY, Style.MONEY)
-	_remainder_value.add_theme_font_override("font", Style.mono_font())
+	_remainder_value.add_theme_font_override("font", _mono())
 	rem.add_child(_remainder_value)
 	var filler := Control.new()
 	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -500,7 +519,7 @@ func _row(column: VBoxContainer, caption: String) -> Label:
 	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(c)
 	var v := _label("", Style.FONT_BODY, Style.INK)
-	v.add_theme_font_override("font", Style.mono_font())
+	v.add_theme_font_override("font", _mono())
 	row.add_child(v)
 	return v
 
@@ -604,6 +623,10 @@ func _shake(node: Control) -> void:
 
 func _label(text: String, font_size: int, color: Color) -> Label:
 	return CardColumns.label(text, font_size, color)
+
+
+func _mono() -> Font:
+	return Jelly.mono_bold() if Jelly.on() else Style.mono_font()
 
 
 func _spacer(h: int) -> Control:

@@ -36,9 +36,9 @@ vec2 warp(vec2 src, vec4 A, vec4 B, vec4 C, vec4 D) {
 		u -= C.xy * (1.0 - t * t);
 	}
 	u = mat2(vec2(B.x, B.z), vec2(B.y, B.w)) * u;
-	if (C.w > 0.0001) {
+	if (abs(C.w) > 0.0001) {
 		vec2 v = u - D.xy;
-		float sig = 0.7 * min(h.x, h.y);
+		float sig = min(0.7 * min(h.x, h.y), 70.0);
 		u = D.xy + v * (1.0 - C.w * exp(-dot(v, v) / (sig * sig)));
 	}
 	return A.xy + u;
@@ -79,6 +79,9 @@ class Body:
 	var expand := 0.0
 	## Реагирует ли на курсор линзой: большим контейнерам нельзя, линза на полэкрана кривит всё.
 	var hover := true
+	## Сила реакции на курсор: вмятина и вздрог при наведении.
+	var hover_gain := 1.0
+	var hovered := false
 	var depth := 0
 	var clip: WeakRef
 	var ready := false
@@ -128,7 +131,7 @@ func _init() -> void:
 	add_child(_rect)
 
 
-func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0, hover := true) -> void:
+func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0, hover := true, hover_gain := 1.0) -> void:
 	for b in bodies:
 		if b.control() == c:
 			return
@@ -139,6 +142,7 @@ func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0,
 	b.ring = ring
 	b.expand = expand
 	b.hover = hover
+	b.hover_gain = hover_gain
 	bodies.append(b)
 
 
@@ -149,6 +153,11 @@ func poke(c: Control, strength: float) -> void:
 	var tu := Jelly.tuning()
 	b.r_v += tu.ui_poke * strength
 	b.q_v += tu.ui_poke * strength * 1.4
+
+
+func is_hovered(c: Control) -> bool:
+	var b := _find(c)
+	return b != null and b.hovered
 
 
 func _find(c: Control) -> Body:
@@ -243,6 +252,11 @@ func _track(b: Body, c: Control, delta: float, tu: JellyTuning, mouse: Vector2) 
 	b.scale = scale
 	var hovered := b.hover and not b.ring and Rect2(center - half, half * 2.0).has_point(mouse) and _top_at(mouse) == b
 	var lean := Vector2.ZERO
+	if hovered and not b.hovered:
+		# Курсор заехал: элемент вздрагивает.
+		b.r_v -= tu.ui_poke * 0.5 * b.hover_gain
+		b.q_v += tu.ui_poke * 0.4 * b.hover_gain
+	b.hovered = hovered
 	if hovered:
 		lean = (mouse - center) * tu.ui_lean
 		b.lens_at = (mouse - center).clamp(-half, half)
@@ -256,7 +270,7 @@ func _track(b: Body, c: Control, delta: float, tu: JellyTuning, mouse: Vector2) 
 		b.r += b.r_v * dt
 		b.q_v += (-b.q * tu.ui_stiffness * 1.3 - b.q_v * tu.ui_damping) * dt
 		b.q += b.q_v * dt
-		b.lens_v += (((tu.ui_hover_lens if hovered else 0.0) - b.lens) * 200.0 - b.lens_v * 26.0) * dt
+		b.lens_v += (((tu.ui_hover_lens * b.hover_gain if hovered else 0.0) - b.lens) * 200.0 - b.lens_v * 26.0) * dt
 		b.lens += b.lens_v * dt
 	var cap := 0.2 * minf(half.x, half.y)
 	if b.lag.length() > cap:
@@ -289,7 +303,8 @@ func _upload(active: Array[Body], tu: JellyTuning) -> void:
 		bend *= tu.ui_bend
 		data[i * 4] = Vector4(b.center.x, b.center.y, b.half.x, b.half.y)
 		data[i * 4 + 1] = Vector4(inv.x.x, inv.y.x, inv.x.y, inv.y.y)
-		data[i * 4 + 2] = Vector4(bend.x, bend.y, minf(b.radius + b.expand, minf(b.half.x, b.half.y)), b.lens)
+		# Линза с минусом: курсор не приближает, а вминает элемент.
+		data[i * 4 + 2] = Vector4(bend.x, bend.y, minf(b.radius + b.expand, minf(b.half.x, b.half.y)), -b.lens)
 		data[i * 4 + 3] = Vector4(b.lens_at.x, b.lens_at.y, 1.0 if b.ring else 0.0, b.margin)
 	_material.set_shader_parameter("bodies", data)
 	_material.set_shader_parameter("count", active.size())
