@@ -95,6 +95,7 @@ func build(labels: Array[String], cards_: Array[Array], area: Vector2) -> void:
 			c.position = Vector2(card_x, _card_y(col, i))
 			column.add_child(c)
 			_inherit_material(c)
+			_scaled_font(c)
 			# Мармелад: поле меньше половины зазора, соседи не задеваются.
 			Jelly.attach(c, Style.R_CARD, Style.GAP_CARDS * 0.45)
 
@@ -183,6 +184,16 @@ func _process(_delta: float) -> void:
 		var top := _clips[0].global_position.y
 		_mask.set_shader_parameter("top_px", top)
 		_mask.set_shader_parameter("bottom_px", top + _column_height)
+
+
+## Карточки увеличиваются масштабом: их подписи растром с запасом (`Jelly.fun_font_scaled`),
+## иначе выбранная карточка мылится. Жирность и размер подписей не меняются.
+func _scaled_font(node: Node) -> void:
+	if node is Label:
+		var l := node as Label
+		l.add_theme_font_override("font", Jelly.fun_font_scaled(700))
+	for child in node.get_children():
+		_scaled_font(child)
 
 
 ## Все потомки карточки рисуются материалом колонки, иначе маска краёв на них не действует.

@@ -74,31 +74,52 @@ static func ui() -> JellyUi:
 const FONT_PATH := "res://assets/fonts/nunito/Nunito-Variable.ttf"
 
 static var _font_file: FontFile
+static var _font_file_scaled: FontFile
 static var _fonts: Dictionary[int, Font] = {}
 
 
 ## Весёлый жирный шрифт оболочки нужной жирности: Nunito (OFL, `assets/fonts/nunito/`),
-## переменный, растр с двойным запасом под масштаб. Стрелок и «␣» в нём нет, их подставляет системный
-## шрифт. Без файла: встроенный шрифт с искусственной жирностью.
+## переменный. Растр с родной подстройкой Godot под размер окна: фиксированный запас ломал её,
+## и в окне меньше 1080p буквы рисовались крупнее и ужимались зубцами. MSDF не годится: рвёт
+## буквы на перекрытых контурах переменного шрифта. Стрелок и «␣» в Nunito нет, их подставляет
+## системный шрифт. Без файла: встроенный шрифт с искусственной жирностью.
 static func fun_font(weight := 700) -> Font:
-	if _fonts.has(weight):
-		return _fonts[weight]
-	if _font_file == null and ResourceLoader.exists(FONT_PATH):
-		_font_file = load(FONT_PATH) as FontFile
-		if _font_file != null:
-			# MSDF ломается на перекрытых контурах переменного шрифта (рваные «А», «К», «8»),
-			# поэтому растр с запасом: увеличенные карточки карусели остаются чёткими.
-			_font_file.multichannel_signed_distance_field = false
-			_font_file.oversampling = 2.0
+	return _font(weight, false)
+
+
+## Тот же шрифт для текста, который увеличивается масштабом (карточки карусели): растр с
+## двойным запасом и мип-картами, чтобы и в увеличенной, и в обычной карточке он был чётким.
+static func fun_font_scaled(weight := 700) -> Font:
+	return _font(weight, true)
+
+
+static func _font(weight: int, scaled: bool) -> Font:
+	var key := weight * 2 + (1 if scaled else 0)
+	if _fonts.has(key):
+		return _fonts[key]
+	var file: FontFile = null
+	if ResourceLoader.exists(FONT_PATH):
+		if scaled:
+			if _font_file_scaled == null:
+				_font_file_scaled = (load(FONT_PATH) as FontFile).duplicate() as FontFile
+				_font_file_scaled.multichannel_signed_distance_field = false
+				_font_file_scaled.oversampling = 2.0
+				_font_file_scaled.generate_mipmaps = true
+			file = _font_file_scaled
+		else:
+			if _font_file == null:
+				_font_file = load(FONT_PATH) as FontFile
+				_font_file.multichannel_signed_distance_field = false
+			file = _font_file
 	var v := FontVariation.new()
-	if _font_file != null:
-		v.base_font = _font_file
+	if file != null:
+		v.base_font = file
 		# Ось задаётся числовым тегом: строковый ключ «wght» молча игнорируется.
 		v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
 	else:
 		v.base_font = ThemeDB.fallback_font
 		v.variation_embolden = clampf((weight - 400) / 500.0, 0.0, 1.0)
-	_fonts[weight] = v
+	_fonts[key] = v
 	return v
 
 
