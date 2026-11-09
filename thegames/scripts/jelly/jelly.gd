@@ -64,23 +64,25 @@ static func ui() -> JellyUi:
 	return _ui
 
 
+const FONT_PATH := "res://assets/fonts/nunito/Nunito-Variable.ttf"
+
 static var _font_file: FontFile
 static var _fonts: Dictionary[int, Font] = {}
 
 
-## Весёлый жирный шрифт прототипа: системный SF Pro Rounded нужной жирности, чёткий при
-## масштабе (MSDF). Только macOS и только для проб: в игру его класть нельзя (лицензия), на
-## замену нужен открытый скруглённый гротеск с кириллицей. Без файла: встроенный шрифт с
-## искусственной жирностью.
+## Весёлый жирный шрифт оболочки нужной жирности: Nunito (OFL, `assets/fonts/nunito/`),
+## переменный, растр с двойным запасом под масштаб. Стрелок и «␣» в нём нет, их подставляет системный
+## шрифт. Без файла: встроенный шрифт с искусственной жирностью.
 static func fun_font(weight := 700) -> Font:
 	if _fonts.has(weight):
 		return _fonts[weight]
-	if _font_file == null:
-		_font_file = FontFile.new()
-		if _font_file.load_dynamic_font("/System/Library/Fonts/SFNSRounded.ttf") != OK:
-			_font_file = null
-		else:
-			_font_file.multichannel_signed_distance_field = true
+	if _font_file == null and ResourceLoader.exists(FONT_PATH):
+		_font_file = load(FONT_PATH) as FontFile
+		if _font_file != null:
+			# MSDF ломается на перекрытых контурах переменного шрифта (рваные «А», «К», «8»),
+			# поэтому растр с запасом: увеличенные карточки карусели остаются чёткими.
+			_font_file.multichannel_signed_distance_field = false
+			_font_file.oversampling = 2.0
 	var v := FontVariation.new()
 	if _font_file != null:
 		v.base_font = _font_file
