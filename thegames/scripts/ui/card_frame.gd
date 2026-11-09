@@ -25,9 +25,10 @@ func _ready() -> void:
 	if parent != null:
 		parent.resized.connect(layout)
 	layout()
-	# Мармелад: карточка пружинит при всплытии и уходе, от фона её отделяет толщина. Бортик
-	# соседом перед ней: карточка режет содержимое (`clip_contents`) и срезала бы его.
-	Jelly.attach_container(self, Style.R_CARD, 40.0)
+	# Мармелад: карточка тянется и пружинит при всплытии и уходе (на курсор не реагирует), от
+	# фона её отделяет толщина. Бортик соседом перед ней: карточка режет содержимое
+	# (`clip_contents`) и срезала бы его.
+	Jelly.attach_frame(self)
 	_add_lip.call_deferred()
 
 

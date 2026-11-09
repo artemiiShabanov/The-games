@@ -37,3 +37,4 @@ ui_poke = 0.9
 ui_press = 1.4
 ui_hover_lens = 0.12
 ui_lean = 0.0
+ui_frame_motion = 4.5

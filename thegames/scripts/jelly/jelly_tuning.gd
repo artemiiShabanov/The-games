@@ -67,6 +67,8 @@ extends Resource
 ## Вздрог при фокусе, сжатие при нажатии.
 @export var ui_poke := 0.5
 @export var ui_press := 0.8
+## Множитель отклика на движение у карточки экрана при выезде и уходе.
+@export var ui_frame_motion := 3.5
 ## Вмятина под курсором и наклон к нему (наклон выключен: карточка выглядела перекошенной).
 @export var ui_hover_lens := 0.06
 @export var ui_lean := 0.0

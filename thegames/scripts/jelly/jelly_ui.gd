@@ -86,6 +86,8 @@ class Body:
 	var hover := true
 	## Сила реакции на курсор: вмятина и вздрог при наведении.
 	var hover_gain := 1.0
+	## Множитель отклика на рывок: карточке во весь экран нужен сильнее, иначе не видно.
+	var motion_gain := 1.0
 	var hovered := false
 	## Бортик под элементом: искажение берёт его вместе с элементом, иначе при сжатии он двоится.
 	var lift: WeakRef
@@ -139,7 +141,7 @@ func _init() -> void:
 	add_child(_rect)
 
 
-func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0, hover := true, hover_gain := 1.0) -> void:
+func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0, hover := true, hover_gain := 1.0, motion_gain := 1.0) -> void:
 	for b in bodies:
 		if b.control() == c:
 			return
@@ -151,6 +153,7 @@ func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0,
 	b.expand = expand
 	b.hover = hover
 	b.hover_gain = hover_gain
+	b.motion_gain = motion_gain
 	# Бортик мог появиться раньше регистрации (карусель подкладывает его до `attach`).
 	for child in c.get_children():
 		if child is JellyLift:
@@ -267,7 +270,7 @@ func _track(b: Body, c: Control, delta: float, tu: JellyTuning, mouse: Vector2) 
 	var vel := (center - b.center) / delta
 	var rate := (scale - b.scale) / delta / scale
 	# Рывок отдаётся телу долей скорости: элемент отстаёт и потом догоняет с качанием.
-	b.lag_v -= (vel - b.vel) * tu.ui_inertia
+	b.lag_v -= (vel - b.vel) * tu.ui_inertia * b.motion_gain
 	b.r_v -= (rate - b.scale_rate) * tu.ui_scale_inertia
 	b.q_v -= (rate - b.scale_rate) * tu.ui_scale_inertia * 0.6
 	b.vel = vel
@@ -297,7 +300,7 @@ func _track(b: Body, c: Control, delta: float, tu: JellyTuning, mouse: Vector2) 
 		b.q += b.q_v * dt
 		b.lens_v += (((tu.ui_hover_lens * b.hover_gain if hovered else 0.0) - b.lens) * 200.0 - b.lens_v * 26.0) * dt
 		b.lens += b.lens_v * dt
-	var cap := 0.2 * minf(half.x, half.y)
+	var cap := 0.2 * minf(half.x, half.y) * minf(b.motion_gain, 1.5)
 	if b.lag.length() > cap:
 		b.lag = b.lag.normalized() * cap
 	b.r = clampf(b.r, -0.15, 0.15)

@@ -44,6 +44,12 @@ static func button(c: Control, radius := float(Style.R_CTL)) -> JellyLift:
 	return JellyLift.add_to(c, radius)
 
 
+## Карточка экрана (`CardFrame`): заметно мармеладная, пока выезжает и уезжает, а на курсор и
+## фокус не реагирует. Числа в `ui_frame_motion`.
+static func attach_frame(c: Control) -> void:
+	ui().attach(c, Style.R_CARD, 40.0, false, 0.0, false, 0.0, tuning().ui_frame_motion)
+
+
 ## Модальная карточка поверх экрана (пауза, предложение, итог): пружинит при появлении,
 ## от фона её отделяет постоянная толщина, как у карточки экрана.
 static func panel(c: Control, radius := float(Style.R_CARD)) -> JellyLift:
