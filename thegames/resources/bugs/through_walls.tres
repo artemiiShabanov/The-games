@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_walls"]
+
+[resource]
+script = ExtResource("1_walls")
+id = &"through_walls"
+kind = 1
+genre = 1
+stamp = "СКВОЗЬ СТЕНЫ"
+manifestation = "Шлюпка проходит сквозь берег и вылетает с трассы"
+tweet = "Лодка прошла сквозь пляж и поплыла по песку. Физика уровня «и так сойдёт»"
+clip = "Шлюпка вылетает сквозь берег и скользит по песку"
+spectacular = true
+params = Dictionary[StringName, float]({
+&"first_s": 6.0,
+&"period_s": 12.0,
+&"ghost_s": 1.2,
+&"kick_speed": 220.0,
+&"rival_chance": 0.5,
+&"blink_s": 0.5
+})

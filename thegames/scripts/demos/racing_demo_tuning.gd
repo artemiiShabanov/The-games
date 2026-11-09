@@ -58,8 +58,7 @@ const PATH := "res://resources/demos/racing_bit8.tres"
 ## Решётка старта: ряды за линией финиша в точках средней линии, шаг рядов.
 @export var grid_back := 3
 @export var grid_row_gap := 3
-## Чих (`sneeze_enemies`): соперник от касания крутится волчком столько секунд.
-@export var spin_seconds := 1.0
+## Чих (`sneeze_enemies`): соперник крутится со скоростью, рад/с; длительность в ресурсе бага.
 @export var spin_rate := 14.0
 ## Залипание газа (`sticky_input`): отпущенный газ сам включается рывком такой длины.
 @export var stick_burst := 0.35

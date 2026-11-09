@@ -39,7 +39,6 @@ countdown = 1.5
 max_seconds = 90.0
 grid_back = 3
 grid_row_gap = 3
-spin_seconds = 1.0
 spin_rate = 14.0
 stick_burst = 0.35
 stick_gap = 0.2

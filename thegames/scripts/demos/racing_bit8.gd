@@ -22,9 +22,11 @@ extends Demo
 ## `pink_placeholders` соперники, бочки, рифы, буи или финиш розовыми квадратами;
 ## `alien_palette` весь слой мира в сдвинутых цветах; `sprite_flicker` спрайты сверх лимита на
 ## строке тайлов через кадр. Свои проявления: `wild_physics` шлюпки скользят, как по льду, а
-## соперники быстрее (`grip_mult`, `rival_speed_mult`); `sneeze_enemies` соперник от любого
-## касания крутится волчком; `unreachable_coins` финишная черта нарисована на берегу, а
-## засчитывается по-прежнему на воде.
+## соперники быстрее (`grip_mult`, `rival_speed_mult`); `sneeze_enemies` соперник от касания
+## игрока крутится и сходит с трассы на отмель, потом возвращается; `unreachable_coins`
+## финишная черта нарисована на берегу, а засчитывается по-прежнему на воде;
+## `through_walls` (жанровый баг гонок, #49) шлюпку периодически выносит сквозь берег на
+## песок, потом ставит обратно на среднюю линию.
 
 class Car:
 	var pos := Vector2.ZERO
@@ -43,6 +45,12 @@ class Car:
 	## Предельная скорость как доля игрока.
 	var top := 1.0
 	var spin := 0.0
+	## Баг «сквозь стены»: секунд полёта без столкновений и мигание после возврата на трассу.
+	var ghost := 0.0
+	var blink := 0.0
+	## Баг «чих»: секунд схода с трассы и борт, к которому соперника несёт.
+	var offroad := 0.0
+	var offroad_side := 1.0
 	var stall := 0.0
 	var reverse_left := 0.0
 	var bump_cd := 0.0
@@ -113,6 +121,9 @@ var _sfx := {}
 # Баги жанра и баланса; общие баги в `Demo` (#44).
 var _grip_mult := 1.0
 var _rival_mult := 1.0
+## «Сквозь стены»: до следующего вылета и сколько их было.
+var _wall_timer := 0.0
+var _wall_count := 0
 var _finish_on_shore := false
 
 
@@ -200,6 +211,7 @@ func _setup_audio() -> void:
 	_sfx["go"] = Sfx.player(Sfx.blip(880.0, 0.25, 0.4, 10.0))
 	_sfx["bump"] = Sfx.player(Sfx.thud(0.12, 0.45))
 	_sfx["spin"] = Sfx.player(Sfx.blip(262.0, 0.2, 0.3, 14.0))
+	_sfx["warp"] = Sfx.player(Sfx.blip(1046.0, 0.3, 0.3, 8.0))
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.45, 5.0))
 	_sfx["lose"] = Sfx.player(Sfx.blip(196.0, 0.4, 0.45, 6.0))
 	for p in _sfx.values():
@@ -213,6 +225,8 @@ func _setup_bugs() -> void:
 		_grip_mult = bug_param(&"wild_physics", &"grip_mult", 0.25)
 		_rival_mult = bug_param(&"wild_physics", &"rival_speed_mult", 1.6)
 	_finish_on_shore = has_bug(&"unreachable_coins")
+	# Первый вылет сквозь берег в первые секунды гонки, чтобы баг был виден сразу.
+	_wall_timer = bug_param(&"through_walls", &"first_s", 6.0)
 
 
 func _placeholder_slots() -> Array[String]:
@@ -294,6 +308,7 @@ func _step(delta: float) -> void:
 		_update_camera(delta)
 		return
 	race_time += delta
+	_through_walls(delta)
 	var ctl := _player_controls(delta)
 	_drive(player, ctl.x, ctl.y, ctl.z, delta)
 	for c in cars:
@@ -369,6 +384,10 @@ func _top_speed(c: Car) -> float:
 ## Физика шлюпки: газ до доли предельной скорости, тормоз и задний ход, выбег; на отмели
 ## предел ниже. Поворот растёт со скоростью; скорость догоняет курс по сцеплению.
 func _drive(c: Car, steer: float, gas: float, brake: float, delta: float) -> void:
+	if c.ghost > 0.0:
+		# «Сквозь стены»: летит по инерции без столкновений, руль и газ не слушаются.
+		c.pos = (c.pos + c.vel * delta).clamp(Vector2(8, 8), track.size_px() - Vector2(8, 8))
+		return
 	var limit := _top_speed(c) * (tuning.side_speed_mult if track.tile_at(c.pos) != RacingTrack.Tile.ROAD else 1.0)
 	if c.spin > 0.0:
 		c.spin -= delta
@@ -434,7 +453,7 @@ func _blocked(p: Vector2) -> bool:
 
 
 ## Машины не проходят друг сквозь друга: перекрытие делится пополам. Баг «чих»: соперник,
-## которого коснулся игрок, крутится волчком.
+## которого коснулся игрок, крутится и сходит с трассы на отмель (`_ai`), потом возвращается.
 func _separate() -> void:
 	var min_d := tuning.car_radius * 2.0 + 1.0
 	for i in cars.size():
@@ -452,9 +471,15 @@ func _separate() -> void:
 				b.pos += push
 			if has_bug(&"sneeze_enemies") and (a.player or b.player):
 				var other := b if a.player else a
-				if other.spin <= 0.0:
-					other.spin = tuning.spin_seconds
+				if other.offroad <= 0.0:
+					# Чих: соперник крутится и сходит с трассы на отмель от борта игрока.
+					other.spin = bug_param(&"sneeze_enemies", &"spin_s", 0.4)
+					other.offroad = bug_param(&"sneeze_enemies", &"off_track_s", 2.5)
+					var side := signf(track.lateral(other.pos, other.idx) - track.lateral(player.pos, other.idx))
+					other.offroad_side = side if side != 0.0 else 1.0
 					_play("spin")
+					if AutoTest.enabled and not embedded:
+						AutoTest.note("racing: чих, соперник у точки %d сходит с трассы на %.1f с" % [other.idx, race_time])
 
 
 ## Пройденные точки, финиш и застревание.
@@ -500,6 +525,12 @@ func _ai(c: Car, lane: float, k: float, delta: float) -> Vector3:
 	var side := track.avoid_side[ti]
 	if side != 0 and (absf(off) < 1.0 or signf(off) == float(side)):
 		off = -side * tuning.avoid_offset
+	if c.offroad > 0.0:
+		# Чих: курс на отмель у берега, пока не пройдёт; дальше обычный ряд и назад на трассу.
+		c.offroad -= delta
+		c.stall = 0.0
+		off = c.offroad_side * (track.road_half_px + track.side_px * 0.6)
+		k = minf(k, bug_param(&"sneeze_enemies", &"off_track_throttle", 0.5))
 	var target := track.points[ti] + track.normals[ti] * off
 	var diff := wrapf((target - c.pos).angle() - c.heading, -PI, PI)
 	var steer := clampf(diff * 2.5, -1.0, 1.0)
@@ -520,6 +551,60 @@ func _ai(c: Car, lane: float, k: float, delta: float) -> Vector3:
 	if c.speed > top * want + 20.0:
 		return Vector3(steer, 0.0, 1.0)
 	return Vector3(steer, want, 0.0)
+
+
+## Баг «сквозь стены» (#49): раз в `period_s` (первый раз через `first_s` после старта)
+## шлюпка игрока, а через раз с шансом `rival_chance` соперник, теряет столкновения: её
+## выносит вбок со скоростью `kick_speed` (плюс треть своей вдоль трассы) сквозь берег на
+## песок на `ghost_s` секунд, потом ставит на среднюю линию у её точки и она мигает
+## `blink_s`. Гонку можно закончить.
+func _through_walls(delta: float) -> void:
+	if not has_bug(&"through_walls"):
+		return
+	for c in cars:
+		c.blink = maxf(c.blink - delta, 0.0)
+		if c.ghost > 0.0:
+			c.ghost -= delta
+			if c.ghost <= 0.0:
+				_put_back(c)
+	_wall_timer -= delta
+	if _wall_timer > 0.0:
+		return
+	_wall_timer = bug_param(&"through_walls", &"period_s", 12.0) * bug_rng.randf_range(0.8, 1.2)
+	var c := player
+	if _wall_count % 2 == 1 and bug_rng.randf() < bug_param(&"through_walls", &"rival_chance", 0.5):
+		var rivals: Array[Car] = []
+		for r in cars:
+			if not r.player and r.ghost <= 0.0:
+				rivals.append(r)
+		if not rivals.is_empty():
+			c = rivals[bug_rng.randi_range(0, rivals.size() - 1)]
+	_wall_count += 1
+	if c.ghost > 0.0:
+		return
+	var side := signf(track.lateral(c.pos, c.idx))
+	if side == 0.0:
+		side = 1.0
+	c.ghost = bug_param(&"through_walls", &"ghost_s", 1.2)
+	c.spin = 0.0
+	c.offroad = 0.0
+	# Выносит в основном вбок, к ближнему берегу: носом туда же, чтобы вылет читался.
+	c.vel = track.tangents[c.idx] * maxf(c.speed, 0.0) * 0.35 \
+			+ track.normals[c.idx] * side * bug_param(&"through_walls", &"kick_speed", 220.0)
+	c.heading = c.vel.angle()
+	_play("warp")
+	if AutoTest.enabled and not embedded:
+		AutoTest.note("racing: %s вылетает сквозь берег на %.1f с у точки %d" % ["игрок" if c.player else "соперник", race_time, c.idx])
+
+
+## После вылета: на среднюю линию у своей точки носом по ходу, с половиной скорости, мигает.
+func _put_back(c: Car) -> void:
+	c.pos = track.points[c.idx].round()
+	c.heading = track.tangents[c.idx].angle()
+	c.speed *= 0.5
+	c.vel = Vector2.from_angle(c.heading) * c.speed
+	c.stall = 0.0
+	c.blink = bug_param(&"through_walls", &"blink_s", 0.5)
 
 
 ## Бот на средней линии у своей точки, носом по ходу.
@@ -651,8 +736,15 @@ func _draw_world_layer() -> void:
 				Color(HUD_INK, 0.7 * k))
 	for c in cars:
 		if not c.player and rect.has_point(c.pos):
-			_sprite("rival", "rival_%d" % _dir_index(c.heading), c.pos)
-	_sprite("hero", "boat_%d" % _dir_index(player.heading), player.pos)
+			if not _blinked(c):
+				_sprite("rival", "rival_%d" % _dir_index(c.heading), c.pos)
+	if not _blinked(player):
+		_sprite("hero", "boat_%d" % _dir_index(player.heading), player.pos)
+
+
+## Мигание после возврата на трассу («сквозь стены»): через пару кадров.
+func _blinked(c: Car) -> bool:
+	return c.blink > 0.0 and Engine.get_process_frames() % 6 < 3
 
 
 ## Запечь статичную карту в текстуру: тайлы по типу (вода из двух тайлов с бликом и их
