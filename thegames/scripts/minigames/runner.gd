@@ -56,6 +56,8 @@ var reached := false
 var _jump_sound: AudioStreamPlayer
 var _fall_sound: AudioStreamPlayer
 var _finish_sound: AudioStreamPlayer
+## Прототип желе (ветка proto/jelly): вид поверх того же геймплея, `Jelly.on()` выбирает рисунок.
+var jelly: RunnerJelly
 
 
 func _on_start() -> void:
@@ -70,7 +72,42 @@ func _on_start() -> void:
 	add_child(_jump_sound)
 	add_child(_fall_sound)
 	add_child(_finish_sound)
+	_setup_jelly()
 	queue_redraw()
+
+
+func _setup_jelly() -> void:
+	Jelly.register_debug()
+	var pits: Array[Vector2] = []
+	var pillars: Array[Vector2] = []
+	for o in obstacles:
+		if o.kind == Kind.PIT:
+			pits.append(Vector2(o.x, o.x + o.w))
+		else:
+			pillars.append(Vector2(o.x, o.w))
+	jelly = RunnerJelly.new()
+	jelly.setup(pits, pillars, track_length, DOT_R, PILLAR_H, FAIL_AT, rng.randi())
+	jelly.ground_y = size.y - GROUND_FROM_BOTTOM
+
+
+## Центр точки в координатах мира желе: X по дорожке, Y экранный.
+func _dot_world() -> Vector2:
+	var ground_y := size.y - GROUND_FROM_BOTTOM
+	if fall_left > 0.0:
+		var p := 1.0 - fall_left / FALL_SECONDS
+		return Vector2(fall_from.x + (20.0 if fall_kind == Kind.PIT else -40.0) * p, ground_y - DOT_R + fall_from.y + 120.0 * p * p)
+	return Vector2(world_x, ground_y - DOT_R + dot_y)
+
+
+## Желе живёт и после финиша, пока сцена на экране; на паузе стоит.
+func _process(delta: float) -> void:
+	super(delta)
+	if jelly == null or paused:
+		return
+	jelly.ground_y = size.y - GROUND_FROM_BOTTOM
+	jelly.step(delta, _dot_world())
+	if not running:
+		queue_redraw()
 
 
 ## Препятствия по дорожке с промежутком `gap`; с `t` двойные ямы и столбики подряд.
@@ -123,6 +160,7 @@ func _jump() -> void:
 	grounded = false
 	air_time = 0.0
 	_jump_sound.play()
+	jelly.jump(world_x)
 
 
 func _on_tick(delta: float) -> void:
@@ -145,6 +183,7 @@ func _on_tick(delta: float) -> void:
 		dot_y += vel_y * delta
 		air_time += delta
 		if dot_y >= 0.0:
+			jelly.land(world_x, vel_y)
 			dot_y = 0.0
 			vel_y = 0.0
 			grounded = true
@@ -154,6 +193,7 @@ func _on_tick(delta: float) -> void:
 	if world_x >= track_length:
 		reached = true
 		_finish_sound.play()
+		jelly.finish()
 		finish(true)
 	queue_redraw()
 
@@ -198,6 +238,10 @@ func _fall(o: Obstacle) -> void:
 	_fall_sound.play()
 	if falls >= FAIL_AT:
 		fall_left = FALL_SECONDS * 0.8
+	var pillar := -1
+	if o.kind == Kind.PILLAR:
+		pillar = jelly.pillars.find(Vector2(o.x, o.w))
+	jelly.fall(_dot_world(), Vector2(o.x, o.x + o.w), pillar, falls - 1)
 	# Точка возрождается сразу за препятствием (для двойной ямы: за второй).
 	var end_x := o.x + o.w
 	for other in obstacles:
@@ -207,6 +251,7 @@ func _fall(o: Obstacle) -> void:
 
 
 func _respawn() -> void:
+	jelly.respawn(Vector2(world_x, size.y - GROUND_FROM_BOTTOM - DOT_R))
 	if falls >= FAIL_AT:
 		finish(false)
 		return
@@ -220,6 +265,9 @@ func _respawn() -> void:
 
 func _draw() -> void:
 	if def == null:
+		return
+	if Jelly.on() and jelly != null:
+		_draw_jelly()
 		return
 	var ground_y := size.y - GROUND_FROM_BOTTOM
 	var dot_sx := size.x * DOT_SCREEN_X
@@ -281,7 +329,24 @@ func _draw() -> void:
 	draw_set_transform(pos, 0.0, Vector2(sx_scale, sy_scale))
 	draw_circle(Vector2.ZERO, DOT_R, col)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	# Прогресс дорожки сверху и падения справа.
+	_draw_hud()
+
+
+func _draw_jelly() -> void:
+	var cam := world_x - size.x * DOT_SCREEN_X
+	var alpha := 1.0
+	if fall_left > 0.0:
+		# Об столбик тело растекается лужей и гаснет позже, в яме пропадает сразу.
+		var k := fall_left / FALL_SECONDS
+		alpha = clampf(k * 2.0, 0.0, 1.0) if fall_kind == Kind.PILLAR else k
+	if safe_left > 0.0 and int(safe_left * 12.0) % 2 == 0:
+		alpha *= 0.4
+	jelly.draw(self, cam, size.x, alpha)
+	_draw_hud()
+
+
+## Прогресс дорожки сверху и падения справа; у желе метка падения вздрагивает.
+func _draw_hud() -> void:
 	var bar_x := size.x * 0.3
 	var bar_w := size.x * 0.4
 	draw_line(Vector2(bar_x, 60.0), Vector2(bar_x + bar_w, 60.0), Style.SURFACE_2, 4.0, true)
@@ -289,4 +354,7 @@ func _draw() -> void:
 	var gap2 := 28.0
 	var rx := size.x - 48.0 - (FAIL_AT - 1) * gap2
 	for i in FAIL_AT:
-		draw_circle(Vector2(rx + i * gap2, 60.0), 7.0, Style.DANGER if i < falls else Style.SURFACE_2)
+		var pop := 0.0
+		if Jelly.on() and jelly != null:
+			pop = clampf(jelly.pops[i].value * 0.04, -0.5, 1.0)
+		draw_circle(Vector2(rx + i * gap2, 60.0), 7.0 * (1.0 + pop), Style.DANGER if i < falls else Style.SURFACE_2)
