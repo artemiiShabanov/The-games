@@ -9,8 +9,11 @@ extends Demo
 ## Соперники едут по средней линии в своих рядах с разбросом скорости по сиду, сбрасывают
 ## скорость перед поворотами, объезжают препятствия с другого борта; машины расталкиваются, но
 ## не проходят друг сквозь друга. Застрявший бот сдаёт назад, а затем встаёт на среднюю линию.
-## Рисуется как платформер: виртуальный экран ×4 в карточке (×2 во встроенном режиме), слой
-## `world` со сдвигом целочисленной камеры, `hud` поверх (место, полоса круга, мини-карта).
+## Виртуальный экран ×4 в карточке (×2 во встроенном режиме), но без SubViewport, как у
+## платформера: слои `world` и `hud` увеличены целым масштабом, камера и шлюпки ходят по
+## пикселям экрана (плейтест 2026-11-09: фон дёргался шагами по 2-3 пикселя демки). Статичная
+## карта и мини-карта запечены в текстуры на старте; `hud` поверх (место, полоса круга,
+## мини-карта).
 ## Спрайты из сеттинга записи (`SettingDef`, слоты гонок пока только у пиратов).
 ##
 ## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`). Общие (#44) механикой живут
@@ -44,6 +47,7 @@ class Car:
 	var reverse_left := 0.0
 	var bump_cd := 0.0
 	var wake_timer := 0.0
+	var finish_time := 0.0
 
 
 const SCALE := 4
@@ -56,6 +60,7 @@ const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const HUD_DIM := Color(0.086, 0.078, 0.071, 0.55)
 const RIVAL_INK := Color("#F2C85A")
+const MINIMAP_BOX := Vector2(56.0, 38.0)
 ## Что может стать розовой заглушкой; своя шлюпка, вода и берег никогда.
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "barrel", "rock", "buoy", "finish"]
 const SPRITES: Array[String] = ["race_water", "race_water_1", "race_shallow", "race_sand", "race_sand_1",
@@ -68,6 +73,8 @@ var tuning: RacingDemoTuning
 var track: RacingTrack
 ## Виртуальный экран в пикселях демки: внутренность карточки, делённая на `SCALE`.
 var view := Vector2(416, 208)
+## Увеличение: `SCALE` в карточке, `EMBED_SCALE` в ленте.
+var scale_px := SCALE
 var tex := {}
 var world: Node2D
 var hud: Node2D
@@ -84,12 +91,20 @@ var scene_set: SettingDef
 ## Пена за кормой: позиция и остаток жизни.
 var _wake: Array[Vector3] = []
 var _lead := Vector2.ZERO
+var _lead_vel := Vector2.ZERO
+## Статичная карта (вода, отмель, берег, финиш) и мини-карта запечены в текстуры на старте.
+var _map_tex: ImageTexture
+var _minimap_tex: ImageTexture
 var _bot_lane := 0.0
+var _lane_hold := 0.0
 var _last_count := -1
 ## Залипание газа: газ был нажат, остаток рывка, пауза до следующего.
 var _gas_held := false
 var _burst := 0.0
 var _stick_gap := 0.0
+## Замеры времени под автотестом: ключ → (сумма, максимум, число) в микросекундах.
+var _perf: Dictionary[String, Vector3i] = {}
+var _perf_last := 0
 
 # Звук.
 var _music: AudioStreamPlayer
@@ -111,36 +126,40 @@ func _on_start() -> void:
 		tex["rival_%d" % i] = scene_set.sprite("rival_%d" % i)
 	for name in SPRITES:
 		tex[name] = scene_set.sprite(name)
-	var scale_px := EMBED_SCALE if embedded else SCALE
+	scale_px = EMBED_SCALE if embedded else SCALE
 	var area := embed_size if embedded else CardFrame.inner_size()
 	view = (area / scale_px).floor()
-	var container := SubViewportContainer.new()
-	container.position = ((area - view * scale_px) / 2.0).floor()
-	container.size = view * scale_px
-	container.custom_minimum_size = view * scale_px
-	container.stretch = true
-	container.stretch_shrink = scale_px
-	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	screen.add_child(container)
-	var viewport := SubViewport.new()
-	viewport.size = Vector2i(view)
-	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	viewport.snap_2d_transforms_to_pixel = true
-	container.add_child(viewport)
+	# Сцена без SubViewport: мир и HUD увеличены целым `scale_px` с ближайшим соседом, так арт
+	# остаётся чётким, а камера и шлюпки двигаются по пикселям экрана, а не по пикселям демки.
+	# На ×4 скорость 125 px/с давала шаги фона то 2, то 3 пикселя демки (8 и 12 экранных) за
+	# кадр, по диагонали лесенкой: это и читалось как рывки.
+	var stage := Control.new()
+	stage.position = ((area - view * scale_px) / 2.0).floor()
+	stage.size = view * scale_px
+	stage.clip_contents = true
+	stage.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(stage)
 	# Фон под картой: берег за краем, если карта меньше экрана.
 	var under := ColorRect.new()
 	under.color = Color("#F2C85A")
-	under.size = view
-	viewport.add_child(under)
+	under.size = stage.size
+	under.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(under)
 	world = Node2D.new()
+	world.scale = Vector2.ONE * scale_px
 	if bug_palette() != null:
 		world.material = bug_palette()
 	world.draw.connect(_draw_world)
-	viewport.add_child(world)
+	stage.add_child(world)
 	hud = Node2D.new()
+	hud.scale = Vector2.ONE * scale_px
 	hud.draw.connect(_draw_hud)
-	viewport.add_child(hud)
+	stage.add_child(hud)
+	var t0 := Time.get_ticks_usec()
+	_bake_map()
+	_bake_minimap()
+	_perf_add("bake", Time.get_ticks_usec() - t0)
 	_spawn_cars()
 	count_left = tuning.countdown
 	_setup_audio()
@@ -208,8 +227,16 @@ func _on_end(goal: bool) -> void:
 	_music.stop()
 	_play("finish" if goal else "lose")
 	if AutoTest.enabled and not embedded:
-		AutoTest.note("racing: %s, место %d, соперников на финише %d, %.1f с, ударов о берег %d, сид %d, трасса %d точек" % [
-				"цель" if goal else "провал", player_place(), bots_finished, race_time, bumps, record.seed, track.count()])
+		var rivals: PackedStringArray = []
+		var lead := track.count() * 2
+		for c in cars:
+			if not c.player:
+				rivals.append("%.1f" % c.finish_time if c.finished else "-")
+				lead = mini(lead, player.progress - c.progress)
+		AutoTest.note("racing: %s, место %d, %.1f с, соперники %s с, отрыв %d точек, ударов о берег %d, сид %d, трасса %d точек (%.0f px)" % [
+				"цель" if goal else "провал", player_place(), race_time, "/".join(rivals), lead, bumps, record.seed,
+				track.count(), track.count() * track.step_px])
+		AutoTest.note("racing perf (среднее/максимум): " + _perf_text())
 
 
 func _result_title(goal: bool) -> String:
@@ -228,11 +255,32 @@ func _result_caption() -> String:
 # --- Шаг ----------------------------------------------------------------------------------
 
 func _on_tick(delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	if _perf_last > 0:
+		_perf_add("frame", t0 - _perf_last)
+	_perf_last = t0
 	bug_audio_tick(delta)
 	# Фризы в движении с догоном времени (`Demo.bug_frame`).
 	if bug_frame(delta, absf(player.speed) > 5.0, _step):
 		world.queue_redraw()
 		hud.queue_redraw()
+	_perf_add("step", Time.get_ticks_usec() - t0)
+
+
+## Замер под автотестом: сумма, максимум и число замеров по ключу, итог в заметке в конце.
+func _perf_add(key: String, usec: int) -> void:
+	if not AutoTest.enabled or embedded:
+		return
+	var v: Vector3i = _perf.get(key, Vector3i.ZERO)
+	_perf[key] = Vector3i(v.x + usec, maxi(v.y, usec), v.z + 1)
+
+
+func _perf_text() -> String:
+	var parts: PackedStringArray = []
+	for key: String in _perf:
+		var v: Vector3i = _perf[key]
+		parts.append("%s %.0f/%d мкс" % [key, float(v.x) / maxi(v.z, 1), v.y])
+	return ", ".join(parts)
 
 
 func _step(delta: float) -> void:
@@ -275,7 +323,7 @@ func _player_controls(delta: float) -> Vector3:
 	var raw := Vector2.ZERO
 	if bot_driven():
 		var k := 1.0 if active_bot_mode() == AutoTest.BotMode.WIN else tuning.lose_throttle
-		var a := _ai(player, _player_lane(), k, delta)
+		var a := _ai(player, _player_lane(delta), k, delta)
 		raw = Vector2(a.x, a.y - a.z)
 	else:
 		var gas := 1.0 if Input.is_action_pressed(GameInput.A) else 0.0
@@ -421,6 +469,7 @@ func _track_progress(c: Car) -> void:
 	if c.finished or c.progress < track.count():
 		return
 	c.finished = true
+	c.finish_time = race_time
 	finish_order += 1
 	c.place = finish_order
 	if c.player:
@@ -444,8 +493,11 @@ func _ai(c: Car, lane: float, k: float, delta: float) -> Vector3:
 		c.stall = tuning.stuck_seconds * 0.5 + (c.stall - tuning.stuck_seconds)
 	var look := tuning.bot_lookahead + int(absf(c.speed) / tuning.bot_look_speed)
 	var ti := (c.idx + look) % n
+	# Гоночная линия: перед поворотом сдвиг к его внутренней стороне (нормаль смотрит вправо
+	# по ходу, поворот направо положительный).
+	var bend := track.tangents[ti].angle_to(track.tangents[(ti + tuning.bot_brake_window) % n])
+	var off := clampf(lane + bend * tuning.bot_line_gain, -tuning.bot_line_max, tuning.bot_line_max)
 	var side := track.avoid_side[ti]
-	var off := lane
 	if side != 0 and (absf(off) < 1.0 or signf(off) == float(side)):
 		off = -side * tuning.avoid_offset
 	var target := track.points[ti] + track.normals[ti] * off
@@ -454,12 +506,18 @@ func _ai(c: Car, lane: float, k: float, delta: float) -> Vector3:
 	if c.reverse_left > 0.0:
 		c.reverse_left -= delta
 		return Vector3(-steer, 0.0, 1.0)
-	var far := (c.idx + tuning.bot_brake_window) % n
-	var turn := absf(track.tangents[c.idx].angle_to(track.tangents[far]))
-	var want := k * lerpf(1.0, tuning.bot_corner_slow, clampf(turn / (PI / 2.0), 0.0, 1.0))
+	# Скорость в повороте: предел, на котором руль ещё держит дугу впереди (радиус по смене
+	# курса на окне), с запасом `bot_corner_grip`; тормозит только в крутых поворотах.
+	var turn := 0.0
+	for w: int in [maxi(tuning.bot_brake_window / 2, 1), tuning.bot_brake_window]:
+		turn = maxf(turn, absf(track.tangents[c.idx].angle_to(track.tangents[(c.idx + w) % n])) / w)
+	var top := _top_speed(c)
+	var want := k
+	if turn > 0.0001:
+		want = minf(want, tuning.turn_rate * track.step_px / turn * tuning.bot_corner_grip / top)
 	if absf(diff) > 1.0:
 		want = minf(want, 0.35)
-	if c.speed > _top_speed(c) * want + 20.0:
+	if c.speed > top * want + 20.0:
 		return Vector3(steer, 0.0, 1.0)
 	return Vector3(steer, want, 0.0)
 
@@ -477,17 +535,24 @@ func _respawn(c: Car) -> void:
 		AutoTest.note("racing: %s застрял у точки %d и встал на среднюю линию" % ["игрок" if c.player else "соперник", c.idx])
 
 
-## Ряд бота за игрока (WIN): впереди в его ряду соперник, обгон с другого борта.
-func _player_lane() -> float:
+## Ряд бота за игрока: по гоночной линии посередине; соперник впереди в этом ряду
+## обходится сбоку на `pass_offset` со стороны ближе к середине, ряд держится `pass_hold`
+## секунд и плавно возвращается к середине.
+func _player_lane(delta: float) -> float:
+	_lane_hold -= delta
 	for c in cars:
 		if c.player:
 			continue
 		var ahead := c.progress - player.progress
-		if ahead <= 0 or ahead >= 7:
+		if ahead <= 0 or ahead >= 6:
 			continue
 		var their := track.lateral(c.pos, c.idx)
-		if absf(their - _bot_lane) < 14.0:
-			_bot_lane = (-signf(their) if absf(their) > 1.0 else 1.0) * tuning.bot_lane * 2.0
+		if absf(their - _bot_lane) < tuning.pass_offset - 2.0:
+			var side := -signf(their) if absf(their) > 2.0 else (1.0 if _bot_lane >= 0.0 else -1.0)
+			_bot_lane = clampf(their + side * tuning.pass_offset, -tuning.bot_line_max, tuning.bot_line_max)
+			_lane_hold = tuning.pass_hold
+	if _lane_hold <= 0.0:
+		_bot_lane = move_toward(_bot_lane, 0.0, tuning.pass_return * delta)
 	return _bot_lane
 
 
@@ -507,13 +572,32 @@ func _update_wake(delta: float) -> void:
 
 
 ## Камера целочисленная: шлюпка игрока по центру с упреждением по скорости.
+## Камера: шлюпка игрока плюс упреждение по курсу и скорости, сглаженное критически
+## демпфированной пружиной (без рывков от ударов и расталкивания). Округляется один раз за
+## кадр до пикселя экрана; берётся от уже округлённой до пикселя экрана шлюпки, так своя
+## шлюпка стоит на экране ровно, а фон и соперники едут с ней в одной сетке. Зовётся в конце
+## шага, после физики, всегда в одном порядке.
 func _update_camera(delta: float) -> void:
-	_lead = _lead.lerp(player.vel * tuning.camera_lead, 1.0 - exp(-4.0 * delta))
+	var want := Vector2.from_angle(player.heading) * maxf(player.speed, 0.0) * tuning.camera_lead
+	if delta > 0.0:
+		var omega := 2.0 / maxf(tuning.camera_smooth, 0.01)
+		var x := omega * delta
+		var e := 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+		var change := _lead - want
+		var temp := (_lead_vel + omega * change) * delta
+		_lead_vel = (_lead_vel - omega * temp) * e
+		_lead = want + (change + temp) * e
 	var size := track.size_px()
-	cam = player.pos.round() + _lead.round() - (view / 2.0).floor()
-	cam.x = clampf(cam.x, 0.0, maxf(size.x - view.x, 0.0))
-	cam.y = clampf(cam.y, 0.0, maxf(size.y - view.y, 0.0))
-	world.position = -cam
+	var c := _snap(player.pos) + _snap(_lead) - (view / 2.0).floor()
+	c.x = clampf(c.x, 0.0, maxf(size.x - view.x, 0.0))
+	c.y = clampf(c.y, 0.0, maxf(size.y - view.y, 0.0))
+	cam = _snap(c)
+	world.position = -(cam * scale_px).round()
+
+
+## Точка в пикселях демки, округлённая до пикселя экрана.
+func _snap(p: Vector2) -> Vector2:
+	return (p * scale_px).round() / scale_px
 
 
 ## Место игрока: впереди те, кто финишировал раньше или прошёл больше точек.
@@ -537,7 +621,7 @@ func _dir_index(heading: float) -> int:
 func _sprite(slot: String, name: String, p: Vector2) -> void:
 	if flicker_hidden(int(floor(p.y / TILE))):
 		return
-	var at := p.round() - Vector2(8, 8)
+	var at := _snap(p) - Vector2(8, 8)
 	if is_pink(slot):
 		world.draw_rect(Rect2(at + Vector2(2, 2), Vector2(12, 12)), PINK)
 	else:
@@ -545,28 +629,14 @@ func _sprite(slot: String, name: String, p: Vector2) -> void:
 
 
 func _draw_world() -> void:
+	var t0 := Time.get_ticks_usec()
+	_draw_world_layer()
+	_perf_add("world", Time.get_ticks_usec() - t0)
+
+
+func _draw_world_layer() -> void:
 	flicker_reset()
-	var c0 := maxi(int(floor(cam.x / TILE)), 0)
-	var r0 := maxi(int(floor(cam.y / TILE)), 0)
-	var c1 := mini(int(ceil((cam.x + view.x) / TILE)), track.width - 1)
-	var r1 := mini(int(ceil((cam.y + view.y) / TILE)), track.height - 1)
-	for row in range(r0, r1 + 1):
-		for col in range(c0, c1 + 1):
-			var at := Vector2(col, row) * TILE
-			var h := hash(col * 4096 + row)
-			match track.tile(col, row):
-				RacingTrack.Tile.ROAD:
-					# Два тайла с бликом и их отражения по хешу клетки: вода без сетки бликов.
-					var t: Texture2D = tex["race_water_1" if h % 2 == 0 else "race_water"]
-					if h % 4 < 2:
-						world.draw_texture(t, at)
-					else:
-						world.draw_texture_rect(t, Rect2(at, Vector2(-TILE, TILE)), false)
-				RacingTrack.Tile.SIDE:
-					world.draw_texture(tex["race_shallow"], at)
-				_:
-					world.draw_texture(tex["race_sand_1" if h % 23 == 0 else "race_sand"], at)
-	_draw_finish()
+	world.draw_texture(_map_tex, Vector2.ZERO)
 	var rect := Rect2(cam - Vector2(16, 16), view + Vector2(32, 32))
 	for b in track.buoys:
 		if rect.has_point(b):
@@ -585,40 +655,105 @@ func _draw_world() -> void:
 	_sprite("hero", "boat_%d" % _dir_index(player.heading), player.pos)
 
 
+## Запечь статичную карту в текстуру: тайлы по типу (вода из двух тайлов с бликом и их
+## отражений по хешу клетки, берег с редкой ракушкой) и финиш. Раньше слой мира каждый кадр
+## рисовал сотни тайлов; теперь одна текстура, сверху только буи, препятствия и шлюпки.
+func _bake_map() -> void:
+	var size := Vector2i(track.size_px())
+	var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	var water: Array[Image] = []
+	for flip: bool in [false, true]:
+		for name: String in ["race_water_1", "race_water"]:
+			var im := _tile_image(name)
+			if flip:
+				im.flip_x()
+			water.append(im)
+	var shallow := _tile_image("race_shallow")
+	var sand := _tile_image("race_sand")
+	var shell := _tile_image("race_sand_1")
+	var full := Rect2i(0, 0, TILE, TILE)
+	for row in track.height:
+		for col in track.width:
+			var h := hash(col * 4096 + row)
+			var src := sand
+			match track.tile(col, row):
+				RacingTrack.Tile.ROAD:
+					src = water[h % 4]
+				RacingTrack.Tile.SIDE:
+					src = shallow
+				_:
+					src = shell if h % 23 == 0 else sand
+			img.blit_rect(src, full, Vector2i(col, row) * TILE)
+	_bake_finish(img)
+	_map_tex = ImageTexture.create_from_image(img)
+
+
+func _tile_image(name: String) -> Image:
+	var im := (tex[name] as Texture2D).get_image()
+	if im.is_compressed():
+		im.decompress()
+	im.convert(Image.FORMAT_RGBA8)
+	return im
+
+
 ## Финиш: шахматная полоса поперёк воды у точки 0 (старт на горизонтальном участке, полоса
-## вертикальная). Баг «не достать»: полоса лежит вдоль берега острова над стартом,
-## засчитывается всё равно на воде.
-func _draw_finish() -> void:
+## вертикальная). Баг «не достать»: полоса лежит вдоль берега острова у старта,
+## засчитывается всё равно на воде. Розовая заглушка запекается сразу.
+func _bake_finish(img: Image) -> void:
+	var strip := _tile_image("race_finish")
+	var full := Rect2i(0, 0, TILE, TILE)
+	var pink := is_pink("finish")
 	var p0 := track.points[0]
 	var col := int(floor(p0.x / TILE))
 	var reach := track.road_half_px + track.side_px
 	if _finish_on_shore:
-		# Берег острова над стартом: с решётки он в кадре, внешний берег под трассой нет.
+		# Берег острова со стороны центра карты: с решётки он в кадре, внешний берег нет.
+		var step := -1 if track.size_px().y / 2.0 < p0.y else 1
 		var row := int(floor(p0.y / TILE))
-		while row > 0 and track.tile(col, row) != RacingTrack.Tile.WALL:
-			row -= 1
+		while row > 0 and row < track.height - 1 and track.tile(col, row) != RacingTrack.Tile.WALL:
+			row += step
+		strip.rotate_90(CLOCKWISE)
 		var half := int(ceil(reach / TILE))
-		for c in range(col - half, col + half + 1):
-			var at := Vector2(c, row) * TILE
-			if is_pink("finish"):
-				world.draw_rect(Rect2(at + Vector2(0, 4), Vector2(16, 8)), PINK)
+		for c in range(maxi(col - half, 0), mini(col + half + 1, track.width)):
+			var at := Vector2i(c, row) * TILE
+			if pink:
+				img.fill_rect(Rect2i(at + Vector2i(0, 4), Vector2i(16, 8)), PINK)
 			else:
-				world.draw_set_transform(at + Vector2(TILE, 0), PI / 2.0)
-				world.draw_texture(tex["race_finish"], Vector2.ZERO)
-				world.draw_set_transform(Vector2.ZERO)
+				img.blend_rect(strip, full, at)
 		return
 	for row in range(int(floor((p0.y - reach) / TILE)), int(floor((p0.y + reach) / TILE)) + 1):
 		if track.tile(col, row) == RacingTrack.Tile.WALL:
 			continue
-		var at := Vector2(col, row) * TILE
-		if is_pink("finish"):
-			world.draw_rect(Rect2(at + Vector2(4, 0), Vector2(8, 16)), PINK)
+		var at := Vector2i(col, row) * TILE
+		if pink:
+			img.fill_rect(Rect2i(at + Vector2i(4, 0), Vector2i(8, 16)), PINK)
 		else:
-			world.draw_texture(tex["race_finish"], at)
+			img.blend_rect(strip, full, at)
+
+
+## Мини-карта: точки средней линии и отметка финиша на тёмной подложке, запечены один раз.
+func _bake_minimap() -> void:
+	var size := track.size_px()
+	var k := minf(MINIMAP_BOX.x / size.x, MINIMAP_BOX.y / size.y)
+	var px := Vector2i((size * k).ceil()) + Vector2i(4, 4)
+	var img := Image.create_empty(px.x, px.y, false, Image.FORMAT_RGBA8)
+	img.fill(HUD_DIM)
+	var dot := HUD_DIM.blend(Color(HUD_INK, 0.45))
+	for i in range(0, track.count(), 2):
+		img.set_pixelv(Vector2i((track.points[i] * k).floor()) + Vector2i(2, 2), dot)
+	var f := Vector2i((track.points[0] * k).floor()) + Vector2i(2, 2)
+	img.fill_rect(Rect2i(f - Vector2i(0, 2), Vector2i(1, 5)), HUD_INK)
+	_minimap_tex = ImageTexture.create_from_image(img)
 
 
 ## HUD в координатах экрана: место слева, полоса круга по центру, мини-карта справа, отсчёт.
 func _draw_hud() -> void:
+	var t0 := Time.get_ticks_usec()
+	_draw_hud_layer()
+	_perf_add("hud", Time.get_ticks_usec() - t0)
+
+
+func _draw_hud_layer() -> void:
 	draw_pixel_text(hud, Vector2(5.0, 4.0), "%d/%d" % [player_place(), CARS], HUD_INK, HUD_SHADOW)
 	var n := float(track.count())
 	var bar := Rect2(roundf(view.x / 2.0 - 60.0), 6.0, 120.0, 3.0)
@@ -635,15 +770,10 @@ func _draw_hud() -> void:
 
 
 func _draw_minimap() -> void:
-	var box := Vector2(56.0, 38.0)
 	var size := track.size_px()
-	var k := minf(box.x / size.x, box.y / size.y)
-	var origin := Vector2(view.x - box.x - 4.0, 4.0)
-	hud.draw_rect(Rect2(origin - Vector2(2, 2), size * k + Vector2(4, 4)), HUD_DIM)
-	for i in range(0, track.count(), 2):
-		hud.draw_rect(Rect2((origin + track.points[i] * k).floor(), Vector2.ONE), Color(HUD_INK, 0.45))
-	var f := (origin + track.points[0] * k).floor()
-	hud.draw_rect(Rect2(f - Vector2(0, 2), Vector2(1, 5)), HUD_INK)
+	var k := minf(MINIMAP_BOX.x / size.x, MINIMAP_BOX.y / size.y)
+	var origin := Vector2(view.x - MINIMAP_BOX.x - 4.0, 4.0)
+	hud.draw_texture(_minimap_tex, origin - Vector2(2, 2))
 	for c in cars:
 		if not c.player:
 			hud.draw_rect(Rect2((origin + c.pos * k).floor() - Vector2.ONE, Vector2(2, 2)), RIVAL_INK)

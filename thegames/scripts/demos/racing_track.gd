@@ -34,6 +34,8 @@ var avoid_side: PackedInt32Array = []
 ## Полуширина воды и ширина отмели в пикселях.
 var road_half_px := 56.0
 var side_px := 24.0
+## Шаг точек средней линии в пикселях (длина петли / число точек).
+var step_px := 8.0
 ## Сколько попыток понадобилось генератору; `fallback` это запасной эллипс без разброса.
 var attempts := 1
 var fallback := false

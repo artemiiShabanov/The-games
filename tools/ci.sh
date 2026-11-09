@@ -25,8 +25,8 @@ step "studio_test" sh tools/autotest.sh --scene=studio_test --frames=600
 step "bugfix_test" sh tools/autotest.sh --scene=bugfix_test --time-scale=4 --frames=3000
 step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=4 --frames=3000
 step "demo bugs" sh tools/autotest.sh --scene=demo_test --bugs --frames=3000
-step "demo racing" sh tools/autotest.sh --scene=demo_test --genre=racing --frames=4000
-step "demo racing bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --bugs --frames=4000
+step "demo racing" sh tools/autotest.sh --scene=demo_test --genre=racing --frames=5000
+step "demo racing bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --bugs --frames=5000
 step "feed racing" sh tools/autotest.sh --scene=feed_test --genre=racing --frames=400
 step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
 [ $status -eq 0 ] && echo "ci: зелёный" || echo "ci: есть красные шаги"

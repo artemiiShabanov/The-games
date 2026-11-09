@@ -4,20 +4,21 @@
 
 [resource]
 script = ExtResource("1_gen")
-width = 84
-height = 56
-points_min = 8
-points_max = 11
-radius_min = 0.55
+width = 108
+height = 70
+points_min = 10
+points_max = 13
+radius_min = 0.5
 radius_max = 1.0
 angle_jitter = 0.3
 margin = 2
 road_half = 3.5
 side_width = 1.5
+min_length_px = 2900.0
 sample_step = 8.0
 min_free_width = 4.0
 min_wall_between = 1.0
-max_turn_deg = 70.0
+max_turn_deg = 80.0
 turn_window = 6
 start_straightness = 0.92
 obstacles_min = 5

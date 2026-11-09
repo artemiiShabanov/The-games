@@ -5,11 +5,11 @@ extends RefCounted
 ## средняя линия с равным шагом, старт на почти горизонтальном участке внизу петли. Карта
 ## тайлов по расстоянию до средней линии: вода, отмель, берег. На воде бочки и рифы у борта,
 ## средняя линия от них свободна; буи по кромке. `validate()` проверяет замкнутость (линия
-## сходится, вода связна, внутри петли остров), отступ от краёв, ширину свободной воды, крутизну
+## сходится, вода связна, внутри петли остров), длину петли, отступ от краёв, ширину свободной воды, крутизну
 ## поворотов и что разные участки петли разделены берегом. Не прошла: повтор с производным
 ## сидом, после `MAX_ATTEMPTS` запасной эллипс без разброса.
 
-const MAX_ATTEMPTS := 10
+const MAX_ATTEMPTS := 16
 const TILE := RacingTrack.TILE
 ## Плотность сэмплов сплайна на отрезок перед пересэмплированием по длине.
 const SPLINE_STEPS := 24
@@ -46,27 +46,31 @@ static func _build(rng: RandomNumberGenerator, t: RacingGenTuning, plain: bool) 
 	var edge := (t.margin + t.road_half + t.side_width + 1.0) * TILE
 	var axes := Vector2(centre.x - edge, centre.y - edge)
 	# Опорные точки по кругу; угол растёт, на экране (y вниз) это по часовой.
-	var n := 9 if plain else rng.randi_range(t.points_min, t.points_max)
+	var count := 9 if plain else rng.randi_range(t.points_min, t.points_max)
 	var ctrl: PackedVector2Array = []
-	for i in n:
+	for i in count:
 		var jitter := 0.0 if plain else rng.randf_range(-t.angle_jitter, t.angle_jitter)
-		var a := (i + jitter) * TAU / n
+		var a := (i + jitter) * TAU / count
 		var r := 0.85 if plain else rng.randf_range(t.radius_min, t.radius_max)
 		ctrl.append(centre + Vector2(cos(a) * axes.x, sin(a) * axes.y) * r)
 	var dense := _spline(ctrl)
 	var pts := _resample(dense, t.sample_step)
-	# Старт: из почти горизонтальных точек самая нижняя; индекс 0 на линии финиша.
+	# Старт: точка, у которой весь участок решётки и линии финиша (от -12 до +4 точек) почти
+	# горизонтален; из таких самая нижняя, иначе самая прямая. Индекс 0 на линии финиша.
 	var tang := _tangents(pts)
+	var n := pts.size()
 	var start := 0
 	var best := -INF
 	var best_flat := -INF
 	var flat_i := 0
-	for i in pts.size():
-		var flat := absf(tang[i].x)
+	for i in n:
+		var flat := INF
+		for k in range(-12, 5):
+			flat = minf(flat, absf(tang[posmod(i + k, n)].x))
 		if flat > best_flat:
 			best_flat = flat
 			flat_i = i
-		if flat >= t.start_straightness and pts[i].y > best:
+		if flat >= t.start_straightness - 0.1 and pts[i].y > best:
 			best = pts[i].y
 			start = i
 	if best == -INF:
@@ -75,6 +79,10 @@ static func _build(rng: RandomNumberGenerator, t: RacingGenTuning, plain: bool) 
 	for i in pts.size():
 		rotated.append(pts[(start + i) % pts.size()])
 	track.points = rotated
+	var total := 0.0
+	for i in rotated.size():
+		total += rotated[i].distance_to(rotated[(i + 1) % rotated.size()])
+	track.step_px = total / rotated.size()
 	track.tangents = _tangents(rotated)
 	for tg in track.tangents:
 		track.normals.append(Vector2(-tg.y, tg.x))
@@ -201,8 +209,8 @@ static func _place_buoys(track: RacingTrack, t: RacingGenTuning) -> void:
 ## Пустая строка, если трасса годится, иначе причина.
 static func validate(track: RacingTrack, t: RacingGenTuning) -> String:
 	var n := track.count()
-	if n < 32:
-		return "короткая петля: %d точек" % n
+	if n * track.step_px < t.min_length_px:
+		return "короткая петля: %.0f px" % (n * track.step_px)
 	# Замкнутость: последняя точка рядом с первой.
 	if track.points[n - 1].distance_to(track.points[0]) > t.sample_step * 1.6:
 		return "петля не сходится"
