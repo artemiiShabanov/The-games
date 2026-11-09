@@ -2,7 +2,8 @@
 """Спрайты 8-bit из текстовых карт по сеттингам: «Пираты» здесь, «Космос» и «Замки» в
 pixel_sets_extra.py (#47). Тайлы 16×16, палитра сеттинга 4 цвета плюс чёрный. Слоты платформера
 есть у каждого набора; слоты гонок (#48, шлюпки в 8 направлениях, вода, отмель, берег, риф, бочка,
-буй, финиш) пока только у пиратов, другие сеттинги берут их у пиратов.
+буй, финиш) и шутера (#50, матрос сверху в 8 направлениях, канонир, ядро, пуля, ром, палуба,
+борт, трап, бочка, сундук, пушка, дымок) пока только у пиратов, другие сеттинги берут их у пиратов.
 Пишет PNG в thegames/assets/settings/<сеттинг>/8bit/ и превью-лист (×8) всех наборов в --preview.
 
     python3 tools/pixel_sprites.py                 # сгенерировать все наборы
@@ -586,9 +587,332 @@ RACING.update({
 })
 SPRITES.update(RACING)
 
-# Слоты платформера обязательны у каждого сеттинга; без слота гонок сеттинг берёт пиратский
+
+# --- Шутер × 8-bit (#50), вид сверху -----------------------------------------------------
+# Матрос сверху в 8 направлениях из двух карт, как шлюпка: лицом вправо (E) и по диагонали
+# вверх-вправо (NE), остальные повороты на 90°. Индексы те же: 0 E, 1 SE, ... 6 N, 7 NE.
+# Бандана R, тельняшка на плечах, пистоль K в правой руке. Ходок берёт слот противника
+# платформера (`enemy_0..1`, скелет анфас); канонир свой: скелет в треуголке и красном кафтане.
+
+HERO_E = [
+    "................",
+    "................",
+    "....KKKKK.......",
+    "...KWBWBWK......",
+    "...KWBWBWK......",
+    "...KWKKKKKK.....",
+    "...KKRRRRSSK....",
+    "..KRKRRRRSSK....",
+    "..KRKRRRRSSK....",
+    "...KKRRRRSSKKKKK",
+    "...KWKKKKKKSSKKK",
+    "...KWBWBWKKKK...",
+    "...KWBWBWK......",
+    "....KKKKK.......",
+    "................",
+    "................",
+]
+
+HERO_NE = [
+    "................",
+    "................",
+    "................",
+    "....KK........K.",
+    "...KWBKKKK...KKK",
+    "..KWBWKKSSK.KKK.",
+    ".KWBWKKRSSSKSK..",
+    ".KBWKKRRRSSKSK..",
+    ".KWKRRRRRRSKK...",
+    "..KKRRRRRRKKK...",
+    "...KRKRRRKKWK...",
+    "...KRRKKKWBWK...",
+    "....KKKWBWBK....",
+    "......KWBWK.....",
+    ".......KKK......",
+    "................",
+]
+
+
+def dir_frames(prefix, e, ne):
+    """8 направлений из карт E и NE: `<prefix>_0..7` по часовой от «вправо»."""
+    out = {}
+    for k in range(4):
+        out[2 * k] = e
+        out[(2 * k + 7) % 8] = ne
+        e, ne = _cw(e), _cw(ne)
+    return {"%s_%d" % (prefix, i): out[i] for i in range(8)}
+
+
+SHOOTER = {}
+SHOOTER.update(dir_frames("shoot_hero", HERO_E, HERO_NE))
+SHOOTER.update({
+    # Канонир: скелет в треуголке, кафтан R с пуговицами S, пистоль вправо; кадр 1 со вспышкой.
+    "shoot_gunner_0": [
+        "................",
+        ".....KKKKKK.....",
+        "..KKKKKKKKKKKK..",
+        "...KWWWWWWWWK...",
+        "...KWKKWWKKWK...",
+        "...KWKKWWKKWK...",
+        "...KWWWWWWWWK...",
+        "....KWKWWKWK....",
+        "....KKKKKKKK....",
+        "...KRRRSSRRRK...",
+        "..KRRRRSSRRRRKK.",
+        "..KRKRRSSRRKWKKK",
+        "..KWKRRSSRRK.KK.",
+        "...K.KRRRRK.....",
+        ".....KW..WK.....",
+        ".....KK..KK.....",
+    ],
+    "shoot_gunner_1": [
+        "................",
+        ".....KKKKKK.....",
+        "..KKKKKKKKKKKK..",
+        "...KWWWWWWWWK...",
+        "...KWKKWWKKWK...",
+        "...KWKKWWKKWK...",
+        "...KWWWWWWWWK...",
+        "....KWKWWKWK....",
+        "....KKKKKKKK..S.",
+        "...KRRRSSRRRKSWS",
+        "..KRRRRSSRRRKKKS",
+        "..KRKRRSSRRKWKK.",
+        "..KWKRRSSRRK.KK.",
+        "...K.KRRRRK.....",
+        "......KWWK......",
+        "......KKKK......",
+    ],
+    # Ядро игрока и пуля канонира (уголёк), центром в тайле.
+    "shoot_ball": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "......KKKK......",
+        ".....KWWKKK.....",
+        ".....KWKKKK.....",
+        ".....KKKKKK.....",
+        ".....KKKKKK.....",
+        "......KKKK......",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "shoot_shot": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "......KKKK......",
+        ".....KSSSSK.....",
+        ".....KSWWSK.....",
+        ".....KSWWSK.....",
+        ".....KSSSSK.....",
+        "......KKKK......",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    # Аптечка: бутылка рома с пробкой и этикеткой.
+    "shoot_rum": [
+        "................",
+        "................",
+        "......KKKK......",
+        "......KSSK......",
+        "......KKKK......",
+        "......KRRK......",
+        "......KRRK......",
+        ".....KRRRRK.....",
+        "....KRRRRRRK....",
+        "....KWWWWWWK....",
+        "....KWKWKWWK....",
+        "....KWWWWWWK....",
+        "....KRRRRRRK....",
+        "....KRRRRRRK....",
+        ".....KKKKKK.....",
+        "................",
+    ],
+    # Палуба: длинные доски по 8 пикселей; второй тайл со стыками и гвоздями, демка кладёт его
+    # редко, чтобы палуба не читалась кирпичной стеной.
+    "shoot_deck": [
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "KKKKKKKKKKKKKKKK",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "KKKKKKKKKKKKKKKK",
+    ],
+    "shoot_deck_1": [
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRSKRRRRRRR",
+        "RRRRRRRRKRRRRRRR",
+        "RRRRRRRRKRRRRRRR",
+        "RRRRRRRSKRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "KKKKKKKKKKKKKKKK",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "KKKKKKKKKKKKKKKK",
+    ],
+    # Борт: море снаружи (сверху), брус фальшборта к палубе (снизу); демка поворачивает тайл
+    # к своей стороне арены. Угол: брус по нижней и правой кромке.
+    "shoot_rail": [
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBWWBBBBBBBB",
+        "BBBBBWBBWBBBBBBB",
+        "BBBBBBBBBBBBBWWB",
+        "BBBBBBBBBBBBWBBW",
+        "BWWBBBBBBBBBBBBB",
+        "WBBWBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "KKKKKKKKKKKKKKKK",
+        "SSSSSSSSSSSSSSSS",
+        "RRRRRRRRRRRRRRRR",
+        "RRKRRRRRRRRRKRRR",
+        "RRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRR",
+        "KKKKKKKKKKKKKKKK",
+    ],
+    "shoot_rail_corner": [
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBWWBBBBBBBB",
+        "BBBBBWBBWBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BWWBBBBBBBBBBBBB",
+        "WBBWBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBKKKKKKK",
+        "BBBBBBBBBKSSSSSS",
+        "BBBBBBBBBKSRRRRR",
+        "BBBBBBBBBKSRKRRR",
+        "BBBBBBBBBKSRRRRR",
+        "BBBBBBBBBKSRRRRR",
+        "BBBBBBBBBKSRRRRK",
+    ],
+    # Абордажный трап: доски поперёк борта, по ним враги поднимаются на палубу.
+    "shoot_plank": [
+        "BBBKRRKRRKRRKBBB",
+        "BBBKRRKRRKRRKBBB",
+        "BWBKRRKRRKRRKBBB",
+        "WBBKRRKRRKRRKBWW",
+        "BBBKRRKRRKRRKWBB",
+        "BBBKRRKRRKRRKBBB",
+        "BBBKSRKSRKSRKBBB",
+        "BBBKRRKRRKRRKBBB",
+        "BBBKRRKRRKRRKBBB",
+        "KKKKRRKRRKRRKKKK",
+        "SSSKRRKRRKRRKSSS",
+        "RRRKRRKRRKRRKRRR",
+        "RRKKSRKSRKSRKKRR",
+        "RRRKRRKRRKRRKRRR",
+        "RRRKRRKRRKRRKRRR",
+        "KKKKRRKRRKRRKKKK",
+    ],
+    # Пропы палубы: бочка, сундук, пушка (ствол вверх), дымок от поверженного врага.
+    "shoot_barrel": [
+        "................",
+        "................",
+        "................",
+        ".....KKKKKK.....",
+        "....KRRRRRRK....",
+        "...KRKKKKKKRK...",
+        "...KRKSSSSKRK...",
+        "...KRKSKKSKRK...",
+        "...KRKSKKSKRK...",
+        "...KRKSSSSKRK...",
+        "...KRKKKKKKRK...",
+        "....KRRRRRRK....",
+        ".....KKKKKK.....",
+        "................",
+        "................",
+        "................",
+    ],
+    "shoot_chest": [
+        "................",
+        "................",
+        "................",
+        "..KKKKKKKKKKKK..",
+        ".KRRRRRRRRRRRRK.",
+        ".KRKRRRRRRRRKRK.",
+        ".KSSSSSSSSSSSSK.",
+        ".KRRRRRKKRRRRRK.",
+        ".KRRRRKSSKRRRRK.",
+        ".KRRRRKSSKRRRRK.",
+        ".KRRRRRKKRRRRRK.",
+        ".KSSSSSSSSSSSSK.",
+        ".KRKRRRRRRRRKRK.",
+        "..KKKKKKKKKKKK..",
+        "................",
+        "................",
+    ],
+    "shoot_cannon": [
+        "................",
+        "......KKKK......",
+        ".....KKWWKK.....",
+        "......KKKK......",
+        "......KWKK......",
+        "......KWKK......",
+        ".....KKWKKK.....",
+        "..KKKKKWKKKKKK..",
+        "..KRRKKKKKKRRK..",
+        ".KSKRKKKKKKRKSK.",
+        ".KSKRRKKKKRRKSK.",
+        ".KSKRRRRRRRRKSK.",
+        "..KRRRRRRRRRRK..",
+        "..KKKKKKKKKKKK..",
+        "................",
+        "................",
+    ],
+    "shoot_puff": [
+        "................",
+        "................",
+        "......KKK.......",
+        "....KKWWWKKK....",
+        "...KWWWWWWWWK...",
+        "..KWWWWKWWWWWK..",
+        "..KWWWWWWWWWWK..",
+        ".KWWKWWWWWWWWWK.",
+        ".KWWWWWWWWKWWWK.",
+        "..KWWWWWWWWWWK..",
+        "..KWWWKWWWWWWK..",
+        "...KWWWWWWWWK...",
+        "....KKKWWWKK....",
+        ".......KKK......",
+        "................",
+        "................",
+    ],
+})
+SPRITES.update(SHOOTER)
+
+# Слоты платформера обязательны у каждого сеттинга; без слота гонок и шутера сеттинг берёт пиратский
 # (`SettingDef.sprite`), пока у него нет своего арта.
-PLATFORMER_SLOTS = set(SPRITES) - set(RACING)
+PLATFORMER_SLOTS = set(SPRITES) - set(RACING) - set(SHOOTER)
 
 
 def png_bytes(width, height, rgba_rows):

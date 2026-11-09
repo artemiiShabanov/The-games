@@ -2,11 +2,12 @@ extends Control
 ## Тестовая сцена демки: запускает демку 8-bit жанра, сида и набора багов из раздела «Демки»
 ## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
 ## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
-## финиширует первым), LOSE теряет жизни (гонки: едет вполгаза, соперники финишируют раньше).
-## `--genre=racing` гонки (или `platformer`, или номер `Game.Genre`), `--seed=<n>` сид,
+## финиширует первым; шутер: уничтожает 30), LOSE теряет жизни (гонки: едет вполгаза,
+## соперники финишируют раньше; шутер: идёт на врагов, не стреляя).
+## `--genre=racing` гонки, `--genre=shooter` шутер (или `platformer`, или номер `Game.Genre`), `--seed=<n>` сид,
 ## `--no-checks` без проверок, `--pause` открывает меню паузы, `--bugs` все баги каталога,
 ## `--bug=<id>` один баг.
-## У гонок до заезда проверяется генератор трассы на сотне сидов.
+## У гонок до заезда проверяется генератор трассы на сотне сидов, у шутера генератор арены.
 
 
 var demo: Demo
@@ -36,6 +37,8 @@ func _ready() -> void:
 		AutoTest.require("demo checks")
 		if _genre() == Game.Genre.RACING:
 			_check_tracks()
+		elif _genre() == Game.Genre.SHOOTER:
+			_check_arenas()
 	_launch()
 	if args.has("pause"):
 		# `--pause`: через полторы секунды открыть меню паузы, для скриншота.
@@ -140,3 +143,21 @@ func _check_tracks() -> void:
 	var b := RacingTrackGen.generate(7, t)
 	_expect(a.points == b.points and a.tiles == b.tiles, "трасса сида 7 не повторяется")
 	AutoTest.note("racing tracks: 100 сидов прошли проверку, запасной эллипс %d" % fallbacks)
+
+
+## Шутер: сто сидов дают арену, которая проходит проверку генератора (палуба связна, старт и
+## трапы свободны, врагов хватает на цель), и генерация детерминирована.
+func _check_arenas() -> void:
+	var t := ShooterGenTuning.load_default()
+	var fallbacks := 0
+	var enemies := 0
+	for s in range(1, 101):
+		var a := ShooterArenaGen.generate(s, t)
+		var why := ShooterArenaGen.validate(a, t)
+		_expect(why == "", "арена сида %d: %s" % [s, why])
+		fallbacks += 1 if a.fallback else 0
+		enemies += a.total_enemies()
+	var a := ShooterArenaGen.generate(7, t)
+	var b := ShooterArenaGen.generate(7, t)
+	_expect(a.tiles == b.tiles and a.total_enemies() == b.total_enemies() and a.doors == b.doors, "арена сида 7 не повторяется")
+	AutoTest.note("shooter arenas: 100 сидов прошли проверку, запасная арена %d, врагов в волнах в среднем %.1f" % [fallbacks, enemies / 100.0])

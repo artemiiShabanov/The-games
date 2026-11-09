@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="ShooterDemoTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_demo_tuning.gd" id="1_demo"]
+
+[resource]
+script = ExtResource("1_demo")
+kills_goal = 30
+max_seconds = 120.0
+countdown = 1.5
+hero_speed = 72.0
+hero_radius = 5.0
+hero_hp = 5
+hurt_invuln = 1.2
+knockback = 10.0
+ball_speed = 210.0
+fire_cooldown = 0.22
+muzzle = 7.0
+hit_radius = 7.0
+walker_speed = 36.0
+walker_hp = 1
+gunner_speed = 28.0
+gunner_hp = 2
+keep_min = 70.0
+keep_max = 120.0
+strafe_flip = 2.0
+fire_every = 1.8
+first_shot = 1.2
+shot_speed = 80.0
+enemy_radius = 5.0
+spawn_gap = 1.0
+next_wave_alive = 1
+wave_max = 12.0
+wave_pause = 3.0
+max_alive = 8
+rum_every = 20.0
+rum_heal = 2
+bot_align = 4.0
+bot_danger = 30.0
+bot_dodge = 11.0
+bot_dodge_time = 0.6
+bot_range_min = 40.0
+bot_range_max = 130.0
+bot_rum_hp = 4
+music_db = -14.0
+sfx_db = -8.0

@@ -28,7 +28,8 @@
   из сохранённого дебаг-меню (`user://debug.cfg`): на высоком `t` бот «Наведи» застревает на
   призме, проверять с `t` по умолчанию. Демка: `--scene=demo_test --frames=3000` (гонки
   `--genre=racing --frames=4000`, `--seed=N`, `--setting=N`; трасса по сиду текстом
-  `Godot --headless --path thegames -s debug/tools/dump_track.gd -- <seed>`),
+  `Godot --headless --path thegames -s debug/tools/dump_track.gd -- <seed>`; шутер
+  `--genre=shooter --frames=6000`, арена и волны текстом `debug/tools/dump_arena.gd -- <seed>`),
   скриншот паузы `--scene=demo_test --no-checks --pause --frames=240`. Уровень платформера по
   сиду текстом: `Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=3000` (с переигровками `--replays=2 --frames=4500`). Багфикс:

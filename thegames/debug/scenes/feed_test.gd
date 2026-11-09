@@ -3,18 +3,22 @@ extends Control
 ## сдвигом репутации из раздела «Лента» дебаг-меню, счёт по формулам успеха без шума. После
 ## «Дальше» или «В демо» показывает, что нажали, A запускает снова. Под ботом: состав ленты по
 ## спеке, сдвиги критиков, выбор стримера, сигналы кнопок. Флаги `--no-checks`, `--quality=`,
-## `--bugs=`, `--end` (пролистать в конец), `--genre=racing` (стрим крутит демку гонок).
+## `--bugs=`, `--end` (пролистать в конец), `--genre=racing` или `--genre=shooter` (стрим крутит
+## демку гонок или шутера).
 
 const SECTION: StringName = &"Лента"
 ## Сцена грузится при запуске, не `preload`: константная ссылка на сцену с вложенным классом
 ## `FeedContent.Item` в сигнатурах держала ресурсы при выходе.
 const SCENE_PATH := "res://scenes/feed.tscn"
+## Название записи по жанру; хэштег ленты из него.
+const TITLES := {Game.Genre.PLATFORMER: "Пираты на платформах", Game.Genre.RACING: "Пираты на шлюпках",
+	Game.Genre.SHOOTER: "Пираты на абордаже"}
 
 var quality := 0.6
 var bugs := 2
 var rep_delta := 0.0
 var seed_value := 1
-## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48).
+## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50).
 var genre := Game.Genre.PLATFORMER
 var tuning: SuccessTuning
 var catalog: BugCatalog
@@ -77,7 +81,7 @@ func _exit_tree() -> void:
 
 
 func _make_record() -> GameRecord:
-	var rec := GameRecord.create(genre, Game.Tech.BIT8, seed_value, "Пираты на платформах" if genre == Game.Genre.PLATFORMER else "Пираты на шлюпках", Game.Setting.PIRATES)
+	var rec := GameRecord.create(genre, Game.Tech.BIT8, seed_value, str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])), Game.Setting.PIRATES)
 	var sprints := 5
 	var ok := int(round(quality * sprints))
 	for k in sprints:
@@ -146,7 +150,7 @@ func _run_checks() -> void:
 	_expect(content.views > 0 and content.views % 100 == 0 and content.online > 0, "просмотры %d, онлайн %d" % [content.views, content.online])
 	_expect(FeedContent.format_count(1234567) == "1,2 млн" and FeedContent.format_count(140400) == "140 тыс." and FeedContent.format_count(640) == "640",
 			"формат просмотров")
-	var tag := "#ПиратыНаПлатформах" if genre == Game.Genre.PLATFORMER else "#ПиратыНаШлюпках"
+	var tag := Feed.hashtag(str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])))
 	_expect(content.tag == tag, "хэштег %s" % content.tag)
 	# Сдвиги: ненавистник багов ниже общей C при двух багах, любитель ретро выше на 8-bit.
 	var by_id := {}

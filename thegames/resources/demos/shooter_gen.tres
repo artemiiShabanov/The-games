@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ShooterGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+width = 26
+height = 13
+door_margin_cols = 5
+door_margin_rows = 3
+props_min = 4
+props_max = 7
+prop_wall_gap = 2
+clear_center = 3
+clear_door = 2
+waves = 9
+wave_first = 3
+wave_growth = 0.75
+wave_jitter = 1
+gunner_share_first = 0.15
+gunner_share_last = 0.5
+enemies_min_total = 40
