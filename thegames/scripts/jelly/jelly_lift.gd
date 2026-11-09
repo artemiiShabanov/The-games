@@ -100,12 +100,38 @@ func _draw() -> void:
 	# Затемнённая (закрытая) карточка накрыта белой вуалью: бортик смешан с белым так же.
 	lip = lip.lerp(Style.SURFACE_SOLID, float(host.get_meta(&"jelly_veil", 0.0)))
 	var r := minf(radius, minf(size.x, size.y) / 2.0)
-	# Та же форма, сдвинутая вниз и чуть уже: целиком за плотной карточкой, видна только
-	# нижняя полоса. Без вычитаний: стыка, через который просвечивает фон, нет.
-	# Сужение пропорционально высоте: у вдавленного бортика иначе открывается щель в углу.
+	# Серп: та же форма, сдвинутая вниз и чуть уже, минус карточка, поднятая на 2 пикселя.
+	# Под карточку он заходит только на эти 2 пикселя: стыка нет, и сквозь растворяющуюся у
+	# края карусели карточку ему просвечивать нечем.
 	var inset := minf(3.0, k * 0.3)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = lip
-	sb.set_corner_radius_all(int(r))
-	sb.anti_aliasing = true
-	draw_style_box(sb, Rect2(Vector2(inset, k), Vector2(size.x - 2.0 * inset, size.y)))
+	var squeeze := 1.0 - 2.0 * inset / maxf(size.x, 1.0)
+	var cx := size.x / 2.0
+	var shape := RunnerJelly.rounded_rect(size, r, 10, 2)
+	var shifted := PackedVector2Array()
+	for p in shape:
+		shifted.append(Vector2(cx + (p.x - cx) * squeeze, p.y + k))
+	# Вычитается карточка, поднятая на 2 пикселя (а не поджатая со всех сторон): так серп
+	# всегда только снизу. Поджатая форма при низком бортике целиком влезала в сдвинутую,
+	# вычитание давало кольцо, и за карточкой рисовалась вся форма.
+	var cut := PackedVector2Array()
+	for p in shape:
+		cut.append(p - Vector2(0.0, 2.0))
+	for part in Geometry2D.clip_polygons(shifted, cut):
+		if Geometry2D.is_polygon_clockwise(part) or part.size() < 3:
+			continue
+		var tris := Geometry2D.triangulate_polygon(part)
+		if tris.is_empty():
+			continue
+		var colors := PackedColorArray()
+		colors.resize(part.size())
+		colors.fill(lip)
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), tris, part, colors)
+	# Сглаженный край по видимому контуру: точки сдвинутой формы снаружи карточки.
+	var edge := PackedVector2Array()
+	for p in shifted:
+		if not Geometry2D.is_point_in_polygon(p, shape):
+			edge.append(p)
+		elif edge.size() > 1:
+			break
+	if edge.size() > 1:
+		draw_polyline(edge, lip, 1.0, true)
