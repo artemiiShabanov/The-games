@@ -42,6 +42,7 @@ var _overlay_caption: Label
 var _menu_row: HBoxContainer
 var _menu_pills: Array[PanelContainer] = []
 var _menu_labels: Array[Label] = []
+var _menu_lifts: Array[JellyLift] = []
 var _menu_hint: Control
 
 
@@ -252,6 +253,7 @@ func _build_overlay() -> void:
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_overlay.add_child(panel)
+	Jelly.panel(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
@@ -281,6 +283,7 @@ func _build_overlay() -> void:
 		_menu_row.add_child(pill)
 		_menu_pills.append(pill)
 		_menu_labels.append(l)
+		_menu_lifts.append(Jelly.button(pill))
 	_menu_hint = HBoxContainer.new()
 	(_menu_hint as HBoxContainer).alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu_hint.add_child(HintPill.make("%s %s выбрать · %s подтвердить · %s вернуться" % [
@@ -291,12 +294,13 @@ func _build_overlay() -> void:
 	MouseUi.pass_through(_overlay)
 
 
-## Выбранный пункт: заливка `ink` и рамка фокуса; остальные `surface-2`.
+## Выбранный пункт: заливка `ink` и толщина фокуса (мармелад); остальные `surface-2`.
 func _refresh_menu() -> void:
 	for i in _menu_pills.size():
 		var on := i == _menu_index
 		_menu_pills[i].add_theme_stylebox_override("panel",
-				Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Style.FOCUS if on else Color.TRANSPARENT, 0))
+				Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
+		_menu_lifts[i].focused = on
 		_menu_labels[i].add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
 
 

@@ -1,6 +1,6 @@
 class_name JellyLift
 extends Node2D
-## Прототип мармелада (ветка proto/jelly): толщина вместо тени и вместо синей рамки фокуса.
+## Мармелад (STYLE «Мармелад»): толщина вместо тени и вместо синей рамки фокуса.
 ## Под хозяином проступает бортик его же цвета, темнее (у белых тёплый серый, у тёмных светлее):
 ## `resting` постоянная толщина (карточка экрана, смета), плюс подъём в фокусе (`focused`) или
 ## под курсором (`hover_lift`). В фокусе элемент едва дышит; нажатие (`press`) вдавливает его в
@@ -59,18 +59,24 @@ func _process(delta: float) -> void:
 		queue_free()
 		return
 	var tu := Jelly.tuning()
-	var on := Jelly.on()
+	var moving := Jelly.on()
 	var raised := focused if not hover_lift else Jelly.ui().is_hovered(host)
-	var target := resting if on else 0.0
-	if on and Jelly.focus_lift() and raised:
-		target = resting + tu.lift_px + (sin(Time.get_ticks_msec() / 1000.0 * 2.2 + _phase) * tu.lift_breathe if focused else 0.0)
-	if on and _press_left > 0.0:
+	var target := resting
+	if raised:
+		target = resting + tu.lift_px
+		if focused and moving:
+			target += sin(Time.get_ticks_msec() / 1000.0 * 2.2 + _phase) * tu.lift_breathe
+	if _press_left > 0.0:
 		target = minf(target, tu.lift_press)
 	_press_left -= delta
-	var k := tu.ui_stiffness * 1.6
-	# Вверх с лёгким перелётом, вниз без него: иначе бортик мигает, проходя через ноль.
-	var damping := tu.ui_damping * 1.1 if target > spring.value else 2.0 * sqrt(k)
-	spring.step(delta, k, damping, target)
+	if moving:
+		var k := tu.ui_stiffness * 1.6
+		# Вверх с лёгким перелётом, вниз без него: иначе бортик мигает, проходя через ноль.
+		var damping := tu.ui_damping * 1.1 if target > spring.value else 2.0 * sqrt(k)
+		spring.step(delta, k, damping, target)
+	else:
+		spring.value = target
+		spring.velocity = 0.0
 	if target <= 0.0 and spring.value < 0.2:
 		spring.value = 0.0
 		spring.velocity = 0.0
@@ -89,10 +95,15 @@ func _draw() -> void:
 	var face := host.get_theme_stylebox("panel") as StyleBoxFlat
 	var base := face.bg_color if face != null else Style.SURFACE_2
 	var tu := Jelly.tuning()
+	# Белая подложка: тёплый серый; светлая (surface-2): чуть темнее себя; цветная: заметно
+	# темнее; тёмная (кнопка в фокусе): светлее, темнее некуда.
+	var lum := base.get_luminance()
 	var lip: Color
-	if base.get_luminance() > 0.9:
+	if lum > 0.95:
 		lip = Style.SURFACE_2.darkened(0.08)
-	elif base.get_luminance() > 0.2:
+	elif lum > 0.75:
+		lip = base.darkened(tu.lift_darken * 0.6)
+	elif lum > 0.2:
 		lip = base.darkened(tu.lift_darken)
 	else:
 		lip = base.lightened(tu.lift_darken * 1.4)

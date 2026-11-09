@@ -46,7 +46,7 @@ var _offer_caption: Label
 var _cards: Array[PanelContainer] = []
 var _kind_pills: Array[PanelContainer] = []
 var _kind_labels: Array[Label] = []
-var _focus_ring: Panel
+var _lifts: Array[JellyLift] = []
 var _hints: Control
 var _closing := false
 var _bot_timer := 0.0
@@ -148,12 +148,14 @@ func confirm() -> void:
 		proceed()
 		return
 	var def := report.offer[index]
+	_lifts[index].press()
 	if not StudioPhase.buy(def, wallet, upkeep, state, economy):
 		_shake(_cards[index])
 		ShellSounds.play(&"miss")
 		return
 	bought = def
 	ShellSounds.play(&"done")
+	Jelly.poke(_cards[index], -1.5)
 	upgrade_bought.emit(def)
 	_mark_bought(index)
 	_roll_money(wallet.cash)
@@ -383,11 +385,6 @@ func _build() -> void:
 	_offer_caption.modulate.a = 0.0
 	content.add_child(_offer_caption)
 
-	_focus_ring = Panel.new()
-	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(Style.R_CARD))
-	_focus_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_focus_ring.visible = false
-	content.add_child(_focus_ring)
 	var n := report.offer.size()
 	var row_width := n * OFFER_CARD.x + maxi(n - 1, 0) * Style.GAP_CARDS
 	var x0 := (inner.x - row_width) / 2.0
@@ -397,6 +394,7 @@ func _build() -> void:
 		c.modulate.a = 0.0
 		content.add_child(c)
 		_cards.append(c)
+		_lifts.append(Jelly.button(c, Style.R_CARD))
 
 	_hints = HBoxContainer.new()
 	(_hints as HBoxContainer).alignment = BoxContainer.ALIGNMENT_CENTER
@@ -413,7 +411,8 @@ func _build() -> void:
 ## Карточка прокачки: вид пилюлей, название, строка эффекта, цена и надбавка к содержанию.
 func _make_card(def: UpgradeDef) -> PanelContainer:
 	var c := PanelContainer.new()
-	c.add_theme_stylebox_override("panel", Style.card(true))
+	# Серая карточка на белой карточке экрана (мармелад, 2026-11-09).
+	c.add_theme_stylebox_override("panel", Style.inner_card())
 	c.custom_minimum_size = OFFER_CARD
 	c.size = OFFER_CARD
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -425,7 +424,7 @@ func _make_card(def: UpgradeDef) -> PanelContainer:
 	pill_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(pill_row)
 	var pill := PanelContainer.new()
-	pill.add_theme_stylebox_override("panel", _pill_style(Style.SURFACE_2))
+	pill.add_theme_stylebox_override("panel", _pill_style(Style.SURFACE_SOLID))
 	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var pl := _label(def.kind_name(), Style.FONT_CAPTION, Style.INK_2)
 	pill.add_child(pl)
@@ -482,15 +481,12 @@ func _refresh_focus(animate: bool) -> void:
 	for i in _cards.size():
 		var y := OFFER_Y + 64 - (LIFT_PX if i == index else 0)
 		_animate(_cards[i], "position:y", float(y), animate)
-	if _cards.is_empty():
-		_focus_ring.visible = false
-		return
-	var c := _cards[index]
-	var rect := Rect2(Vector2(c.position.x, OFFER_Y + 64 - LIFT_PX), OFFER_CARD)
-	var was := _focus_ring.visible
-	_focus_ring.visible = true
-	_animate(_focus_ring, "position", rect.position, animate and was)
-	_animate(_focus_ring, "size", rect.size, animate and was)
+	# Фокус толщиной: карточка в фокусе приподнята на бортике, синей рамки нет (мармелад).
+	for i in _lifts.size():
+		var was := _lifts[i].focused
+		_lifts[i].focused = i == index
+		if animate and i == index and not was:
+			Jelly.poke(_cards[i])
 
 
 # --- Анимации -----------------------------------------------------------------------------------

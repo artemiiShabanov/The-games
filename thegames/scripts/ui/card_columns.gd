@@ -3,8 +3,8 @@ extends Control
 ## Вертикальные карусели карточек 260×190 рядом (STYLE, плейтест 2026-11-07): выбранная
 ## карточка колонки стоит по центру и увеличена так, что выбранные с полями `GAP_CARDS`
 ## заполняют ширину области; соседи обычного размера раздвинуты на её рост и растворяются к
-## верху и низу градиентной маской. Рамка фокуса на выбранной карточке колонки `focus_col`,
-## при `focus_col = -1` рамки нет. Содержимое карточек, их блокировки и ввод решает хозяин:
+## верху и низу градиентной маской. Фокус толщиной на выбранной карточке колонки `focus_col`
+## (мармелад), при `focus_col = -1` фокуса нет. Содержимое карточек, их блокировки и ввод решает хозяин:
 ## он даёт готовые `Control` размером `Style.CARD_SIZE`, двигает `index` и зовёт `refresh`.
 ## Используют конструктор и экран основы (#24).
 
@@ -39,9 +39,7 @@ var _clips: Array[Control] = []
 var _rows: Array[Control] = []
 var _mask: ShaderMaterial
 var _column_height := 0.0
-var _focus_ring: Panel
 var _poked := Vector2i(-1, -1)
-var _jelly_ring: JellyRing
 var _lifts: Array[Array] = []
 
 
@@ -97,17 +95,8 @@ func build(labels: Array[String], cards_: Array[Array], area: Vector2) -> void:
 			c.position = Vector2(card_x, _card_y(col, i))
 			column.add_child(c)
 			_inherit_material(c)
-			# Прототип мармелада (proto/jelly): поле меньше половины зазора, соседи не задеваются.
+			# Мармелад: поле меньше половины зазора, соседи не задеваются.
 			Jelly.attach(c, Style.R_CARD, Style.GAP_CARDS * 0.45)
-	_focus_ring = Panel.new()
-	_focus_ring.add_theme_stylebox_override("panel", Style.focus_ring(Style.R_CARD))
-	_focus_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_focus_ring.visible = false
-	add_child(_focus_ring)
-	# Прототип мармелада (proto/jelly): рамка упругим контуром вместо панели с твином.
-	_jelly_ring = JellyRing.new()
-	_jelly_ring.visible = false
-	add_child(_jelly_ring)
 
 
 func count(col: int) -> int:
@@ -163,36 +152,12 @@ func refresh(animate: bool) -> void:
 	_place_focus_ring(animate)
 
 
-## Рамка фокуса только на карточках (плейтест 2026-11-07).
-func _place_focus_ring(animate: bool) -> void:
-	var lift := Jelly.on() and Jelly.focus_lift()
+## Фокус толщиной (мармелад, 2026-11-09): выбранная карточка фокусной колонки поднята на
+## бортике, синей рамки нет.
+func _place_focus_ring(_animate_unused: bool) -> void:
 	for col in _lifts.size():
 		for i in _lifts[col].size():
 			(_lifts[col][i] as JellyLift).focused = col == focus_col and i == index[col]
-	if lift:
-		_focus_ring.visible = false
-		_jelly_ring.visible = false
-		return
-	if focus_col < 0 or focus_col >= cards.size() or cards[focus_col].is_empty():
-		_focus_ring.visible = false
-		_jelly_ring.visible = false
-		return
-	var target: Control = cards[focus_col][index[focus_col]]
-	var base := _clips[focus_col].position + Vector2(target.position.x, _column_offset(focus_col) + index[focus_col] * (Style.CARD_SIZE.y + Style.GAP_CARDS))
-	var grown := Style.CARD_SIZE * select_scale
-	var rect := Rect2(base - (grown - Style.CARD_SIZE) / 2.0, grown)
-	if Jelly.on():
-		_focus_ring.visible = false
-		_jelly_ring.target = rect
-		if not _jelly_ring.visible or not animate or Debug.skip_cards:
-			_jelly_ring.visible = true
-			_jelly_ring.snap()
-		return
-	_jelly_ring.visible = false
-	var was_visible := _focus_ring.visible
-	_focus_ring.visible = true
-	_animate(_focus_ring, "position", rect.position, animate and was_visible)
-	_animate(_focus_ring, "size", rect.size, animate and was_visible)
 
 
 ## Сдвиг колонки, при котором выбранная карточка стоит по центру.
@@ -268,17 +233,14 @@ static func center_pill(text: String, meta: StringName) -> Control:
 
 ## Показать на карточке ровно одну пилюлю по `meta` (или ни одной при пустом) и затемнить.
 static func set_card_lock(c: Control, meta: StringName) -> void:
-	c.modulate.a = 1.0 if meta == &"" else Style.DIM_LOCKED
-	if Jelly.on():
-		# Прототип мармелада: прозрачность карточки и бортика наложилась бы ободком на стыке,
-		# поэтому затемнение белой вуалью сверху, на белом поле выглядит так же.
-		c.modulate.a = 1.0
-		var veil := _veil_of(c)
-		veil.visible = meta != &""
-		c.set_meta(&"jelly_veil", (1.0 - Style.DIM_LOCKED) if meta != &"" else 0.0)
-		for child in c.get_children():
-			if child is JellyLift:
-				(child as JellyLift).queue_redraw()
+	# Мармелад: прозрачность карточки и бортика наложилась бы ободком на стыке, поэтому
+	# затемнение белой вуалью сверху; на белом поле выглядит так же, как `DIM_LOCKED`.
+	var veil := _veil_of(c)
+	veil.visible = meta != &""
+	c.set_meta(&"jelly_veil", (1.0 - Style.DIM_LOCKED) if meta != &"" else 0.0)
+	for child in c.get_children():
+		if child is JellyLift:
+			(child as JellyLift).queue_redraw()
 	for child in inner_of(c).get_children():
 		if child is HintPill:
 			child.visible = meta != &"" and child.has_meta(meta)

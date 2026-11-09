@@ -34,6 +34,7 @@ var _scroll: ScrollContainer
 var _column: VBoxContainer
 var _buttons: Array[PanelContainer] = []
 var _button_labels: Array[Label] = []
+var _button_lifts: Array[JellyLift] = []
 var _items: Array[Control] = []
 var _stream_holder: Control
 var _demo: Demo
@@ -138,6 +139,8 @@ func set_focus_demo(v: bool) -> void:
 
 
 func confirm() -> void:
+	if not _button_lifts.is_empty():
+		_button_lifts[0 if focus_demo else 1].press()
 	ShellSounds.play(&"done")
 	if focus_demo:
 		demo_requested.emit()
@@ -250,7 +253,8 @@ func _center_on(i: int, animate: bool) -> void:
 ## акцента у критиков.
 func _post(accent: Color) -> Array:
 	var panel := PanelContainer.new()
-	var sb := Style.card(true)
+	# Серые посты на белой карточке экрана: без теней иначе сливаются (мармелад, 2026-11-09).
+	var sb := Style.inner_card()
 	if accent.a > 0.0:
 		# Полоса акцента слева: левая рамка стайлбокса, остальные стороны без рамки.
 		sb.border_width_left = ACCENT_BAR
@@ -325,7 +329,7 @@ func _make_critic(item: FeedContent.Item) -> Control:
 ## онлайн, слева снизу говорящее пиксельное лицо, под кадром реплика.
 func _make_stream(item: FeedContent.Item) -> Control:
 	var panel := PanelContainer.new()
-	var sb := Style.card(true)
+	var sb := Style.inner_card()
 	sb.set_content_margin_all(0)
 	panel.add_theme_stylebox_override("panel", sb)
 	panel.clip_contents = true
@@ -420,7 +424,7 @@ func _make_numbers(item: FeedContent.Item) -> Control:
 
 func _number_card(caption: String, value: String, color: Color) -> Control:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Style.card(true))
+	panel.add_theme_stylebox_override("panel", Style.inner_card())
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var col := VBoxContainer.new()
@@ -448,6 +452,7 @@ func _make_buttons() -> Control:
 		row.add_child(b)
 		_buttons.append(b)
 		_button_labels.append(l)
+		_button_lifts.append(Jelly.button(b))
 	return row
 
 
@@ -456,6 +461,7 @@ func _refresh_buttons() -> void:
 	for i in _buttons.size():
 		var on := at_end() and ((i == 0) == focus_demo)
 		_buttons[i].add_theme_stylebox_override("panel", Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
+		_button_lifts[i].focused = on
 		_button_labels[i].add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
 
 

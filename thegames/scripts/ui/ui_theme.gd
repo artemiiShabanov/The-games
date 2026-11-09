@@ -6,6 +6,8 @@ extends Node
 
 func _ready() -> void:
 	apply()
+	# Ручки мармелада общие для всех сцен; Debug готов только после своего `_ready`.
+	Jelly.register_debug.call_deferred()
 
 
 func apply() -> void:

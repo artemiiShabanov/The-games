@@ -17,6 +17,7 @@ var focus_buy := true
 var _card: Control
 var _buttons: Array[PanelContainer] = []
 var _labels: Array[Label] = []
+var _lifts: Array[JellyLift] = []
 
 
 func setup(record_: GameRecord, catalog_: BugCatalog, cost_: int, cash_: int) -> void:
@@ -79,6 +80,7 @@ func set_focus_buy(v: bool) -> void:
 
 
 func confirm() -> void:
+	_lifts[0 if focus_buy else 1].press()
 	if focus_buy:
 		if not affordable():
 			_shake(_buttons[0])
@@ -108,6 +110,7 @@ func _build() -> void:
 	panel.custom_minimum_size = Vector2(Style.FEED_WIDTH, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(panel)
+	Jelly.panel(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
 	panel.add_child(column)
@@ -149,6 +152,7 @@ func _build() -> void:
 		buttons.add_child(b)
 		_buttons.append(b)
 		_labels.append(l)
+		_lifts.append(Jelly.button(b))
 	var pill_row := HBoxContainer.new()
 	pill_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	pill_row.add_child(HintPill.make("← → выбрать · %s подтвердить · %s отказаться" % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
@@ -165,7 +169,9 @@ func _refresh() -> void:
 		var ink := Style.INK_3
 		if active:
 			ink = Style.SURFACE_SOLID if on else Style.INK
-		_buttons[i].add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if on and not active else Color.TRANSPARENT, 0))
+		# Фокус толщиной, синей обводки нет и у закрытой кнопки (мармелад).
+		_buttons[i].add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Color.TRANSPARENT, 0))
+		_lifts[i].focused = on
 		_labels[i].add_theme_color_override("font_color", ink)
 	_labels[0].text = "Купить" if affordable() else "Не хватает " + Style.format_money(cost - cash)
 

@@ -20,6 +20,7 @@ static func make(text: String) -> HintPill:
 	label.add_theme_color_override("font_color", Style.INK_2)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	pill.add_child(label)
+	Jelly.attach_pill(pill)
 	return pill
 
 
@@ -41,6 +42,7 @@ static func header(text: String) -> PanelContainer:
 	label.add_theme_color_override("font_color", Style.INK_2)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	pill.add_child(label)
+	Jelly.attach_pill(pill)
 	return pill
 
 

@@ -342,11 +342,6 @@ func confirm() -> void:
 # --- Построение --------------------------------------------------------------------------------
 
 func _build() -> void:
-	# Прототип мармелада (proto/jelly): весь экран жирным скруглённым шрифтом.
-	if Jelly.on():
-		var t := Theme.new()
-		t.default_font = Jelly.fun_font(700)
-		theme = t
 	# Шапка над карточкой: релиз слева, деньги справа.
 	var header := HintPill.header("")
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
@@ -363,22 +358,12 @@ func _build() -> void:
 	add_child(right)
 	var money_pill := HintPill.header("")
 	right.add_child(money_pill)
-	Jelly.register_debug()
-	Jelly.attach_pill(header)
-	Jelly.attach_pill(money_pill)
 	_money_label = money_pill.get_child(0) as Label
-	_money_label.add_theme_font_override("font", _mono())
+	_money_label.add_theme_font_override("font", Style.mono_font())
 	_money_label.add_theme_color_override("font_color", Style.MONEY)
 
 	card = CardFrame.new()
 	add_child(card)
-	Jelly.attach_container(card, Style.R_CARD, 40.0)
-	if Jelly.on():
-		# Без тени: карточку от фона отделяет толщина. Подложка плотная, чтобы бортик не просвечивал.
-		var face := Style.card(true)
-		face.shadow_size = 0
-		card.add_theme_stylebox_override("panel", face)
-		JellyLift.add_under(card, Style.R_CARD, 6.0)
 	_inner = CardFrame.inner_size()
 	_left_width = _inner.x - Style.ESTIMATE_WIDTH - Style.GAP_CARDS
 	var content := card.content
@@ -407,8 +392,6 @@ func _build() -> void:
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
 	hints.add_child(HintPill.make("R название"))
 	add_child(hints)
-	for pill in hints.get_children():
-		Jelly.attach_pill(pill as Control)
 	MouseUi.pass_through(self)
 
 
@@ -442,12 +425,8 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 
 func _build_estimate(content: Control) -> void:
 	var panel := PanelContainer.new()
-	var panel_face := Style.card(true)
-	if Jelly.on():
-		# Смета своим цветом из палитры, а не белым по белому; тени нет.
-		panel_face.shadow_size = 0
-		panel_face.bg_color = Style.SURFACE_2
-	panel.add_theme_stylebox_override("panel", panel_face)
+	# Смета своим цветом из палитры, а не белым по белому (мармелад, 2026-11-09).
+	panel.add_theme_stylebox_override("panel", Style.inner_card())
 	panel.position = Vector2(_left_width + Style.GAP_CARDS, 0)
 	panel.size = Vector2(Style.ESTIMATE_WIDTH, _inner.y)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -459,8 +438,7 @@ func _build_estimate(content: Control) -> void:
 	panel.add_child(column)
 	column.add_child(_label("Смета", Style.FONT_H2, Style.INK_2))
 	_title_label = _label("", TITLE_FONT, Style.INK)
-	if Jelly.on():
-		_title_label.add_theme_font_override("font", Jelly.fun_font(800))
+	_title_label.add_theme_font_override("font", Jelly.fun_font(800))
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.max_lines_visible = 2
 	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -483,7 +461,7 @@ func _build_estimate(content: Control) -> void:
 	total_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	total_row.add_child(total_caption)
 	_total_value = _label("", TOTAL_FONT, Style.INK)
-	_total_value.add_theme_font_override("font", _mono())
+	_total_value.add_theme_font_override("font", Style.mono_font())
 	_total_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	total_row.add_child(_total_value)
 	var rem := HBoxContainer.new()
@@ -493,7 +471,7 @@ func _build_estimate(content: Control) -> void:
 	_remainder_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rem.add_child(_remainder_label)
 	_remainder_value = _label("", Style.FONT_BODY, Style.MONEY)
-	_remainder_value.add_theme_font_override("font", _mono())
+	_remainder_value.add_theme_font_override("font", Style.mono_font())
 	rem.add_child(_remainder_value)
 	var filler := Control.new()
 	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -507,8 +485,7 @@ func _build_estimate(content: Control) -> void:
 	_button_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_button.add_child(_button_label)
 	column.add_child(_button)
-	Jelly.attach(_button, Style.R_CTL, 16.0)
-	_button_lift = JellyLift.add_to(_button, Style.R_CTL)
+	_button_lift = Jelly.button(_button)
 
 
 func _row(column: VBoxContainer, caption: String) -> Label:
@@ -519,7 +496,7 @@ func _row(column: VBoxContainer, caption: String) -> Label:
 	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(c)
 	var v := _label("", Style.FONT_BODY, Style.INK)
-	v.add_theme_font_override("font", _mono())
+	v.add_theme_font_override("font", Style.mono_font())
 	row.add_child(v)
 	return v
 
@@ -557,15 +534,14 @@ func _refresh(animate: bool) -> void:
 	var on_button := focus_row == ROW_BUTTON
 	# Активная: тёмная в фокусе, `surface-2` с чернилами без фокуса; закрытая: `surface-2` с `ink-3`.
 	var bg := Style.INK if active and on_button else Style.SURFACE_2
-	if Jelly.on() and not (active and on_button):
+	if not (active and on_button):
 		# На сером поле сметы кнопка белая, закрытая светлее поля.
 		bg = Style.SURFACE_SOLID if active else Style.BG
 	var ink := Style.INK_3
 	if active:
 		ink = Style.SURFACE_SOLID if on_button else Style.INK
-	# Прототип мармелада: при фокусе толщиной синей обводки у закрытой кнопки нет.
-	var ring := on_button and not active and not (Jelly.on() and Jelly.focus_lift())
-	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if ring else Color.TRANSPARENT, 0))
+	# Фокус толщиной, синей обводки нет и у закрытой кнопки (мармелад).
+	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Color.TRANSPARENT, 0))
 	_button_lift.focused = on_button
 	_button_label.add_theme_color_override("font_color", ink)
 	for kind in ROWS:
@@ -626,10 +602,6 @@ func _shake(node: Control) -> void:
 
 func _label(text: String, font_size: int, color: Color) -> Label:
 	return CardColumns.label(text, font_size, color)
-
-
-func _mono() -> Font:
-	return Jelly.mono_bold() if Jelly.on() else Style.mono_font()
 
 
 func _spacer(h: int) -> Control:

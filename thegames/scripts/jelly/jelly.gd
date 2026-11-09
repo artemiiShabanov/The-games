@@ -1,8 +1,11 @@
 class_name Jelly
 extends RefCounted
-## Прототип желе (ветка proto/jelly): общий выключатель и тюнинг. Системы спрашивают
-## `Jelly.on()` и рисуют по-старому, если желе выключено, чтобы сравнивать. Ручки живут в
-## разделе «Желе» дебаг-меню; `register_debug` зовёт сцена, которая желе использует.
+## Мармелад (решение 2026-11-09, STYLE «Мармелад»): тюнинг, выключатель движения и общие
+## подключения. Статичный вид (шрифт, толщина вместо тени и рамки фокуса) действует всегда;
+## `Jelly.on()` выключает только движение: искажение, пружины, дыхание, брызги. Элементы
+## подключаются в общих фабриках (`CardFrame`, `HintPill`, `CardColumns`) или хелперами ниже:
+## `button` для кнопок, `panel` для модальных карточек, `attach_container` для панелей.
+## Ручки в разделе «Желе» дебаг-меню.
 
 const SECTION: StringName = &"Желе"
 const MATERIALS: Array[String] = ["мармелад", "желе"]
@@ -10,9 +13,6 @@ const PATHS: Array[String] = ["res://resources/jelly.tres", "res://resources/jel
 
 static var enabled := true
 static var material := 0
-## Чем показывать фокус: 0 толщиной (`JellyLift`), 1 упругой рамкой.
-const FOCUS_STYLES: Array[String] = ["толщина", "рамка"]
-static var focus_style := 0
 static var _tunings: Array[JellyTuning] = []
 
 
@@ -36,6 +36,20 @@ static func attach_container(c: Control, radius := 24.0, margin := 32.0) -> void
 	ui().attach(c, radius, margin, false, 0.0, false)
 
 
+## Кнопка: пружинит, вминается под курсором, в фокусе поднимается на бортике. Хозяин ставит
+## `focused` у возвращённого бортика и зовёт `press` при подтверждении.
+static func button(c: Control, radius := float(Style.R_CTL)) -> JellyLift:
+	ui().attach(c, radius, 16.0, false, 0.0, true, 1.0)
+	return JellyLift.add_to(c, radius)
+
+
+## Модальная карточка поверх экрана (пауза, предложение, итог): пружинит при появлении,
+## от фона её отделяет постоянная толщина, как у карточки экрана.
+static func panel(c: Control, radius := float(Style.R_CARD)) -> JellyLift:
+	attach_container(c, radius, 32.0)
+	return JellyLift.add_to(c, radius, Style.CARD_THICKNESS)
+
+
 ## Вздрог элемента: фокус, выбор, подтверждение.
 static func poke(c: Control, strength := 1.0) -> void:
 	if c != null:
@@ -48,10 +62,6 @@ static func ui() -> JellyUi:
 		var tree := Engine.get_main_loop() as SceneTree
 		tree.root.add_child.call_deferred(_ui)
 	return _ui
-
-
-static func focus_lift() -> bool:
-	return focus_style == 0
 
 
 static var _font_file: FontFile
@@ -83,16 +93,6 @@ static func fun_font(weight := 700) -> Font:
 	return v
 
 
-static var _mono_bold: SystemFont
-
-
-static func mono_bold() -> Font:
-	if _mono_bold == null:
-		_mono_bold = Style.mono_font().duplicate() as SystemFont
-		_mono_bold.font_weight = 700
-	return _mono_bold
-
-
 static func on() -> bool:
 	return enabled
 
@@ -107,14 +107,11 @@ static func tuning() -> JellyTuning:
 
 static func register_debug() -> void:
 	Debug.clear_section(SECTION)
-	Debug.add_toggle(SECTION, "Желе включено", func() -> bool: return enabled,
+	Debug.add_toggle(SECTION, "Движение мармелада", func() -> bool: return enabled,
 			func(v: bool) -> void: enabled = v, true)
 	Debug.add_choice(SECTION, "Материал (ручки ниже от него)", MATERIALS,
 			func() -> String: return MATERIALS[material],
 			func(v: String) -> void: material = maxi(MATERIALS.find(v), 0), true)
-	Debug.add_choice(SECTION, "Фокус", FOCUS_STYLES,
-			func() -> String: return FOCUS_STYLES[focus_style],
-			func(v: String) -> void: focus_style = maxi(FOCUS_STYLES.find(v), 0), true)
 	var tu := tuning()
 	_num("Фокус: высота бортика", tu, &"lift_px", 0.0, 20.0, 1.0)
 	_num("Жёсткость тела", tu, &"blob_stiffness", 100.0, 1200.0, 20.0)

@@ -177,6 +177,7 @@ func _build_pause() -> void:
 	panel.custom_minimum_size = Vector2(Style.FEED_WIDTH, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_pause_overlay.add_child(panel)
+	Jelly.panel(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -197,6 +198,8 @@ func _build_pause() -> void:
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_resume_button.add_child(bl)
 	column.add_child(_resume_button)
+	# Единственная кнопка всегда в фокусе: поднята на бортике (мармелад).
+	Jelly.button(_resume_button).focused = true
 	var hint := HBoxContainer.new()
 	hint.alignment = BoxContainer.ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE

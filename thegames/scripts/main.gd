@@ -467,6 +467,7 @@ func _show_card(title: String, lines: Array[String], hint: String) -> void:
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	panel.custom_minimum_size = Vector2(880, 0)
 	_card.add_child(panel)
+	Jelly.panel(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
 	panel.add_child(column)

@@ -19,7 +19,6 @@ const MONEY := Color("#1F8A4C")
 const SUCCESS := Color("#2BB37A")
 const DANGER := Color("#D93A2B")
 const BUG := Color("#F07A1C")
-const SHADOW := Color(0, 0, 0, 0.06)
 
 ## Акценты мини-игр a1..a4; палитру выбирает игрок в настройках, стартовая здесь.
 static var accents: Array[Color] = [Color("#2F5BFF"), Color("#F07A1C"), Color("#2BB37A"), Color("#E0457B")]
@@ -73,6 +72,8 @@ const CARD_DROP_SECONDS := 0.24
 const SWITCH_SECONDS := 0.24
 const SHAKE_PX := 4
 const DIM_LOCKED := 0.4
+## Толщина карточки экрана и модальной карточки вместо тени (мармелад, 2026-11-09).
+const CARD_THICKNESS := 6.0
 
 
 # --- Шрифт чисел и формат денег ---------------------------------------------------------------
@@ -85,6 +86,7 @@ static func mono_font() -> Font:
 	if _mono == null:
 		var f := SystemFont.new()
 		f.font_names = PackedStringArray(["Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace"])
+		f.font_weight = 700
 		_mono = f
 	return _mono
 
@@ -128,13 +130,14 @@ static func focus_ring(object_radius: int) -> StyleBoxFlat:
 	return sb
 
 
-## Карточка: белая подложка с прозрачностью и мягкой тенью.
+## Карточка: белая подложка, без тени (мармелад: от фона отделяет толщина `JellyLift`).
 static func card(solid := false) -> StyleBoxFlat:
-	var sb := flat(SURFACE_SOLID if solid else SURFACE, R_CARD, Color.TRANSPARENT, PAD_CARD)
-	sb.shadow_color = SHADOW
-	sb.shadow_size = 12
-	sb.shadow_offset = Vector2(0, 2)
-	return sb
+	return flat(SURFACE_SOLID if solid else SURFACE, R_CARD, Color.TRANSPARENT, PAD_CARD)
+
+
+## Карточка внутри белой карточки (смета, прокачка): `surface-2`, без тени.
+static func inner_card() -> StyleBoxFlat:
+	return flat(SURFACE_2, R_CARD, Color.TRANSPARENT, PAD_CARD)
 
 
 ## Тема оболочки: применяется к корневому окну автолоадом `UiTheme`, все Control наследуют.
@@ -142,6 +145,8 @@ static func card(solid := false) -> StyleBoxFlat:
 static func make_theme() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = FONT_BODY
+	# Жирный скруглённый гротеск (мармелад, 2026-11-09).
+	t.default_font = Jelly.fun_font(700)
 
 	t.set_color("font_color", "Label", INK)
 	t.set_color("font_color", "RichTextLabel", INK)
