@@ -6,6 +6,9 @@ extends Control
 
 const SHEET := "debug/playtest/jelly_sheet.png"
 
+## `--sheet=path` свой путь листа (параллельные прогоны не перетирают друг друга).
+var sheet_path := SHEET
+
 var runner: Minigame
 var frame := 0
 var shots: Array[int] = []
@@ -19,6 +22,7 @@ var actions: Dictionary[int, String] = {}
 
 func _ready() -> void:
 	var args := AutoTest.parse_args(OS.get_cmdline_user_args())
+	sheet_path = str(args.get("sheet", SHEET))
 	var bg := ColorRect.new()
 	bg.color = Style.BG
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -121,5 +125,5 @@ func _save_sheet() -> void:
 		var img := images[i]
 		img.convert(Image.FORMAT_RGBA8)
 		sheet.blit_rect(img, Rect2i(Vector2i.ZERO, crop.size), Vector2i((i % cols) * (crop.size.x + 4), (i / cols) * (crop.size.y + 4)))
-	sheet.save_png(ProjectSettings.globalize_path("res://" + SHEET))
-	AutoTest.note("sheet " + SHEET)
+	sheet.save_png(ProjectSettings.globalize_path("res://" + sheet_path))
+	AutoTest.note("sheet " + sheet_path)

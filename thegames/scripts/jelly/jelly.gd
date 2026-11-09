@@ -102,6 +102,29 @@ static func fun_font(weight := 700) -> Font:
 	return v
 
 
+## Залить многоугольник; если контур сам себя пересёк, рисуется кругом по центру, без ошибки.
+static func fill(ci: CanvasItem, poly: PackedVector2Array, col: Color) -> void:
+	RunnerJelly.fill(ci, poly, col)
+
+
+## Цвет бортика под цветом `base` (как у `JellyLift`): белый в тёплый серый, светлый чуть
+## темнее, цветной заметно темнее, тёмный светлее.
+static func lip_color(base: Color) -> Color:
+	var tu := tuning()
+	var lum := base.get_luminance()
+	var lip: Color
+	if lum > 0.95:
+		lip = Style.SURFACE_2.darkened(0.08)
+	elif lum > 0.75:
+		lip = base.darkened(tu.lift_darken * 0.6)
+	elif lum > 0.2:
+		lip = base.darkened(tu.lift_darken)
+	else:
+		lip = base.lightened(tu.lift_darken * 1.4)
+	lip.a = base.a
+	return lip
+
+
 static func on() -> bool:
 	return enabled
 
