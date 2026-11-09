@@ -4,3 +4,26 @@
 
 [resource]
 script = ExtResource("1_jelly")
+blob_stiffness = 900.0
+blob_damping = 16.0
+blob_neighbor = 200.0
+blob_pressure = 2500.0
+blob_gravity = 700.0
+blob_sit = 0.04
+blob_inertia = 0.16
+blob_friction = 5.0
+blob_stretch = 0.00016
+blob_stretch_max = 0.2
+blob_breathe = 0.006
+splash_scale = 0.35
+blot_seconds = 1.0
+trail_seconds = 0.7
+trail_width = 4.0
+trail_alpha = 0.45
+ripple_amp = 3.5
+ripple_wavelength = 110.0
+ripple_decay = 5.5
+ripple_range = 300.0
+dent = 2.0
+spring_stiffness = 520.0
+spring_damping = 12.0

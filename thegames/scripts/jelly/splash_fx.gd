@@ -138,7 +138,7 @@ func draw_surface(ci: CanvasItem, offset: Vector2, ground: Callable) -> void:
 		if k <= 0.0:
 			continue
 		var w := b.w * (0.35 + 0.65 * k) * (0.8 + 0.2 * sin(b.pos.x * 0.07))
-		var col := Color(Style.accent(0), 0.85 * k)
+		var col := Color(Style.accent(0), tu.trail_alpha * k)
 		ci.draw_line(_on_ground(a.pos, ground, a.w * 0.7) + offset, _on_ground(b.pos, ground, b.w * 0.7) + offset, col, w, true)
 	for b in blots:
 		var age := time - b.born

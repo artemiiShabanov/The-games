@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="JellyTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/jelly/jelly_tuning.gd" id="1_jelly"]
+
+[resource]
+script = ExtResource("1_jelly")
+blob_stiffness = 380.0
+blob_damping = 7.0
+blob_neighbor = 160.0
+blob_pressure = 1400.0
+blob_gravity = 1200.0
+blob_sit = 0.06
+blob_inertia = 0.3
+blob_friction = 7.0
+blob_stretch = 0.00042
+blob_stretch_max = 0.5
+blob_breathe = 0.02
+splash_scale = 1.0
+blot_seconds = 1.8
+trail_seconds = 1.3
+trail_width = 7.0
+trail_alpha = 0.85
+ripple_amp = 9.0
+ripple_wavelength = 130.0
+ripple_decay = 3.2
+ripple_range = 460.0
+dent = 5.0
+spring_stiffness = 280.0
+spring_damping = 6.0

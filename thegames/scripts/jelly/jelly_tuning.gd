@@ -1,6 +1,7 @@
 class_name JellyTuning
 extends Resource
-## Прототип желе (ветка proto/jelly): числа мягкого тела, брызг, следа, волн по поверхности и
+## Прототип желе (ветка proto/jelly): материал. Два ресурса: `resources/jelly.tres` мармелад
+## (плотный, мало брызг, по умолчанию) и `resources/jelly_soft.tres` желе. Числа мягкого тела, брызг, следа, волн по поверхности и
 ## пружин мелких объектов. Ресурс `resources/jelly.tres`, ручки в разделе «Желе» дебаг-меню.
 
 @export_group("Тело")
@@ -36,6 +37,7 @@ extends Resource
 ## Сколько живёт след от скольжения, с.
 @export var trail_seconds := 1.3
 @export var trail_width := 7.0
+@export var trail_alpha := 0.85
 
 @export_group("Поверхность")
 ## Высота волны от удара на 1000 пикселей в секунду скорости падения.

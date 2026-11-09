@@ -19,6 +19,14 @@ var walls: Array[Rect2] = []
 var contact := 0.0
 var contact_min := 0.0
 var contact_max := 0.0
+## Масштаб и поворот формы: хозяин ведёт их, как центр (фигура растёт, покачивается).
+var shape_scale := 1.0
+var angle := 0.0
+## Вытягивание по направлению скорости центра, а не только по вертикали (фигура летит вбок).
+var stretch_free := false
+
+## Своя форма покоя (многоугольник) вместо круга; задаётся до `reset`.
+var _shape := PackedVector2Array()
 
 var _rest := PackedVector2Array()
 var _area0 := 0.0
@@ -32,19 +40,43 @@ func _init(radius_ := 28.0) -> void:
 
 ## Поставить тело в точку; `scale` меньше единицы: тело надувается из капли.
 func reset(at: Vector2, scale := 1.0) -> void:
-	var n := maxi(Jelly.tuning().blob_points, 8)
+	var n := _shape.size() if not _shape.is_empty() else maxi(Jelly.tuning().blob_points, 8)
 	_rest.resize(n)
 	points.resize(n)
 	velocities.resize(n)
 	for i in n:
 		var a := TAU * i / n
-		_rest[i] = Vector2(cos(a), sin(a)) * radius
-		points[i] = at + _rest[i] * scale
+		_rest[i] = _shape[i] if not _shape.is_empty() else Vector2(cos(a), sin(a)) * radius
+		points[i] = at + _rest[i].rotated(angle) * scale * shape_scale
 		velocities[i] = Vector2.ZERO
 	_area0 = _area_of(_rest)
 	center = at
 	center_velocity = Vector2.ZERO
 	_ready = true
+
+
+## Форма покоя: точки по кругу против часовой (в математических осях), центр в нуле.
+func set_shape(shape: PackedVector2Array) -> void:
+	_shape = shape
+
+
+## Правильный многоугольник `sides` радиуса `r` в `n` точках по углу, вершина вверх, острия
+## чуть притуплены: мармеладка, а не стекло.
+static func polygon_shape(sides: int, r: float, n: int, blunt := 0.94) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var seg := TAU / sides
+	for i in n:
+		var a := -PI / 2.0 + TAU * i / n
+		var local := fposmod(a + PI / 2.0, seg) - seg / 2.0
+		var rr := minf(r * cos(PI / sides) / cos(local), r * blunt)
+		out.append(Vector2(cos(a), sin(a)) * rr)
+	return out
+
+
+## Толчок всем точкам от центра (`strength` > 0 раздувает, < 0 сжимает): вздрог.
+func pulse(strength: float) -> void:
+	for i in points.size():
+		velocities[i] += _rest[i].normalized() * strength
 
 
 ## Толкнуть точки скоростью `v`; со `side` только сторону, смотрящую туда, с весом по углу.
@@ -74,8 +106,12 @@ func step(delta: float, target: Vector2, ground: Callable) -> void:
 	for i in n:
 		local[i] = points[i] - from
 		velocities[i] -= dv * tu.blob_inertia
-	var s := 1.0 + clampf(absf(cv.y) * tu.blob_stretch, 0.0, tu.blob_stretch_max)
-	var shape := Vector2(1.0 / sqrt(s), s)
+	var speed := cv.length() if stretch_free else absf(cv.y)
+	var s := 1.0 + clampf(speed * tu.blob_stretch, 0.0, tu.blob_stretch_max)
+	var dir := cv.angle() if stretch_free and speed > 1.0 else PI / 2.0
+	# Вытягивание вдоль `dir`, сжатие поперёк, затем поворот формы и масштаб.
+	var form := Transform2D(dir, Vector2.ZERO) * Transform2D(0.0, Vector2(s, 1.0 / sqrt(s)), 0.0, Vector2.ZERO) \
+			* Transform2D(-dir, Vector2.ZERO) * Transform2D(angle, Vector2.ZERO).scaled(Vector2.ONE * shape_scale)
 	var subs := maxi(1, ceili(delta / SUBSTEP))
 	var dt := delta / subs
 	var touching := 0
@@ -87,13 +123,14 @@ func step(delta: float, target: Vector2, ground: Callable) -> void:
 		var sit := Vector2(0.0, tu.blob_sit * radius)
 		var breathe := 1.0 + tu.blob_breathe * sin(_time * TAU * 0.7)
 		var area := _area_of(local)
-		var pressure := tu.blob_pressure * (_area0 - area) / _area0
+		var area0 := _area0 * shape_scale * shape_scale
+		var pressure := tu.blob_pressure * (area0 - area) / area0
 		var last_pass := k == subs - 1
 		for i in n:
 			var q := local[i]
 			var prev := local[(i - 1 + n) % n]
 			var next := local[(i + 1) % n]
-			var goal := sit + _rest[i] * shape * breathe
+			var goal := sit + form * (_rest[i] * breathe)
 			var tangent := next - prev
 			var normal := Vector2(tangent.y, -tangent.x).normalized()
 			var a := (goal - q) * tu.blob_stiffness - velocities[i] * tu.blob_damping

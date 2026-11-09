@@ -1,6 +1,6 @@
 extends Control
-## Прототип желе (ветка proto/jelly): «Прыгай» прямо на фоне, без спринта, и лист кадров в
-## движении. Флаги: `--lose` бот проваливает (падения и удары), `--from=N` первый кадр,
+## Прототип желе (ветка proto/jelly): мини-игра прямо на фоне, без спринта, и лист кадров в
+## движении. Флаги: `--game=fit_frame` другая мини-игра (по умолчанию runner), `--lose` бот проваливает (падения и удары), `--from=N` первый кадр,
 ## `--every=N` шаг, `--count=N` кадров в листе, `--crop=x,y,w,h` вырезка, `--flat` без желе,
 ## `--t=0.5` сложность. Лист пишется в `debug/playtest/jelly_sheet.png`.
 
@@ -30,7 +30,7 @@ func _ready() -> void:
 	var every := int(args.get("every", "4"))
 	for i in int(args.get("count", "0")):
 		shots.append(from + i * every)
-	var def := MinigamePool.find(MinigamePool.load_all(), &"runner")
+	var def := MinigamePool.find(MinigamePool.load_all(), StringName(str(args.get("game", "runner"))))
 	runner = def.scene.instantiate() as Minigame
 	runner.setup(def, float(args.get("t", "0.3")), int(args.get("seed", "3")))
 	add_child(runner)

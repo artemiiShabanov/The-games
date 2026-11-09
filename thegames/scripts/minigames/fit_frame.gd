@@ -51,6 +51,13 @@ var flash: Array[float] = [0.0, 0.0]
 var bounce: Array[float] = [0.0, 0.0]
 var shake: Array[float] = [0.0, 0.0]
 
+## Прототип мармелада (ветка proto/jelly): вид поверх того же геймплея, `Jelly.on()` выбирает
+## рисунок. Фигура мягким телом, трафареты упругими контурами, круги по жидкости.
+var jelly_shape: SoftBlob
+var jelly_stencils: Array[SoftOutline] = []
+var jelly_shake: Array[JellySpring] = []
+var jelly_rings := RingFx.new()
+
 
 func _on_start() -> void:
 	shapes_total = int(round(def.param(&"shapes", t, 6.0)))
@@ -58,6 +65,7 @@ func _on_start() -> void:
 	hold_seconds = def.param(&"hold", t, 1.5)
 	sides_max = clampi(int(round(def.param(&"sides_max", t, 6.0))), MIN_SIDES + 1, MAX_SIDES)
 	stencil_sides = rng.randi_range(MIN_SIDES, sides_max)
+	_setup_jelly()
 	queue_redraw()
 
 
@@ -65,9 +73,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not running or event.is_echo():
 		return
 	if event.is_action_pressed(GameInput.UP):
-		stencil_sides = mini(stencil_sides + 1, MAX_SIDES)
+		_set_stencil_sides(mini(stencil_sides + 1, MAX_SIDES))
 	elif event.is_action_pressed(GameInput.DOWN):
-		stencil_sides = maxi(stencil_sides - 1, MIN_SIDES)
+		_set_stencil_sides(maxi(stencil_sides - 1, MIN_SIDES))
 	elif event.is_action_pressed(GameInput.LEFT):
 		_send(0)
 	elif event.is_action_pressed(GameInput.RIGHT):
@@ -100,6 +108,7 @@ func _on_tick(delta: float) -> void:
 		State.HIT:
 			if cur_age >= HIT_SECONDS:
 				bounce[cur_target] = BOUNCE_SECONDS
+				_jelly_hit(cur_target)
 				_resolve()
 		State.MISS, State.SINK:
 			if cur_age >= MISS_SECONDS:
@@ -114,7 +123,7 @@ func _on_timeout() -> bool:
 ## Бот: WIN подгоняет стороны и отправляет в нужный трафарет, LOSE ничего не трогает.
 func _bot_step(_delta: float) -> bool:
 	if AutoTest.bot_mode == AutoTest.BotMode.WIN and state == State.READY and cur_age >= BOT_REACTION:
-		stencil_sides = cur_sides
+		_set_stencil_sides(cur_sides)
 		_send(cur_color)
 	return false
 
@@ -131,6 +140,7 @@ func _spawn() -> void:
 	cur_phase = rng.randf_range(0.0, TAU)
 	state = State.RISING
 	cur_age = 0.0
+	_jelly_spawn()
 
 
 func _send(target: int) -> void:
@@ -147,10 +157,13 @@ func _send(target: int) -> void:
 	else:
 		shake[target] = SHAKE_SECONDS
 		ShellSounds.play(&"miss")
+		jelly_shake[target].kick(900.0 * (1.0 if target == 1 else -1.0))
 		_miss(State.MISS)
 
 
 func _miss(next: State) -> void:
+	if next == State.SINK:
+		jelly_rings.add(size / 2.0 + cur_origin, SHAPE_R * 0.5, SHAPE_R * 1.6, Color(Style.INK, 0.14), 2, 0.9)
 	misses += 1
 	results.append(false)
 	state = next
@@ -170,6 +183,10 @@ func _resolve() -> void:
 
 func _draw() -> void:
 	if def == null:
+		return
+	if Jelly.on() and jelly_shape != null:
+		_draw_jelly()
+		_draw_dots()
 		return
 	var center := size / 2.0
 	var stencil_pos: Array[Vector2] = [center + Vector2(-STENCIL_OFFSET, 0), center + Vector2(STENCIL_OFFSET, 0)]
@@ -204,6 +221,10 @@ func _draw() -> void:
 			var col := Style.accent(cur_color).lerp(Style.INK_3, p)
 			_draw_shape(home, lerpf(1.0, 0.5, p), col, 1.0 - p, p, 0.0)
 
+	_draw_dots()
+
+
+func _draw_dots() -> void:
 	var r := 7.0
 	var gap := 28.0
 	var x0 := size.x - 48.0 - (shapes_total - 1) * gap
@@ -271,3 +292,131 @@ func _draw_outline(pts: PackedVector2Array, col: Color, width: float) -> void:
 	draw_polyline(closed, col, width, true)
 	for p in pts:
 		draw_circle(p, width / 2.0, col)
+
+
+# --- Мармелад (прототип, ветка proto/jelly) -------------------------------------------------
+
+func _setup_jelly() -> void:
+	Jelly.register_debug()
+	jelly_shape = SoftBlob.new(SHAPE_R)
+	jelly_shape.stretch_free = true
+	for i in 2:
+		var o := SoftOutline.new()
+		o.sides = stencil_sides
+		o.radius = STENCIL_R
+		jelly_stencils.append(o)
+		jelly_shake.append(JellySpring.new())
+
+
+func _stencil_home(i: int) -> Vector2:
+	return size / 2.0 + Vector2(-STENCIL_OFFSET if i == 0 else STENCIL_OFFSET, 0.0)
+
+
+## Смена сторон трафаретов: контуры перетекают сами, а совпавшая фигура радостно вздрагивает.
+func _set_stencil_sides(n: int) -> void:
+	if n == stencil_sides:
+		return
+	stencil_sides = n
+	if jelly_shape == null:
+		return
+	for o in jelly_stencils:
+		o.pulse(-60.0)
+	if (state == State.RISING or state == State.READY) and n == cur_sides:
+		jelly_shape.pulse(160.0)
+
+
+func _jelly_spawn() -> void:
+	if jelly_shape == null:
+		return
+	jelly_shape.set_shape(SoftBlob.polygon_shape(cur_sides, SHAPE_R, 48))
+	jelly_shape.shape_scale = 0.6
+	jelly_shape.angle = 0.0
+	jelly_shape.reset(size / 2.0 + cur_origin, 0.85)
+	jelly_rings.add(size / 2.0 + cur_origin, SHAPE_R * 0.4, SHAPE_R * 1.5, Color(Style.INK, 0.12), 2, 1.0)
+
+
+## Фигура влетела: трафарет раздувается, по жидкости круг.
+func _jelly_hit(target: int) -> void:
+	if jelly_shape == null:
+		return
+	jelly_stencils[target].pulse(420.0)
+	jelly_rings.add(_stencil_home(target), STENCIL_R * 0.9, STENCIL_R * 1.6, Color(Style.accent(target), 0.35), 1, 0.6)
+
+
+## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит.
+func _process(delta: float) -> void:
+	super(delta)
+	if jelly_shape == null or paused:
+		return
+	var tu := Jelly.tuning()
+	jelly_rings.step(delta)
+	for i in 2:
+		jelly_shake[i].step(delta, tu.spring_stiffness, tu.spring_damping * 0.6)
+		jelly_stencils[i].sides = stencil_sides
+		jelly_stencils[i].step(delta, _stencil_home(i) + Vector2(jelly_shake[i].value * 0.03, 0.0))
+	var pose := _shape_pose()
+	if pose.z > 0.0:
+		jelly_shape.shape_scale = pose.w
+		jelly_shape.angle = sin((cur_age + rise_seconds) * 2.4 + cur_phase) * 0.04 if state == State.READY else 0.0
+		jelly_shape.collide = false
+		jelly_shape.step(delta, Vector2(pose.x, pose.y), Callable())
+	if not running:
+		queue_redraw()
+
+
+## Где фигура сейчас: (x, y, видимость 0..1, масштаб); видимость 0 значит фигуры нет.
+func _shape_pose() -> Vector4:
+	var home := size / 2.0 + cur_origin
+	match state:
+		State.RISING:
+			var p := clampf(cur_age / rise_seconds, 0.0, 1.0)
+			var at := home + _float_offset(cur_age)
+			return Vector4(at.x, at.y, p, lerpf(0.6, 1.0, p))
+		State.READY:
+			var at := home + _float_offset(rise_seconds + cur_age)
+			return Vector4(at.x, at.y, 1.0, 1.0)
+		State.HIT:
+			var p := clampf(cur_age / HIT_SECONDS, 0.0, 1.0)
+			var e := 1.0 - (1.0 - p) * (1.0 - p)
+			var at := home.lerp(_stencil_home(cur_target), e)
+			return Vector4(at.x, at.y, 1.0, lerpf(1.0, STENCIL_R / SHAPE_R * 0.8, e))
+		State.MISS:
+			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
+			var at := home + Vector2(_shake_offset(MISS_SECONDS - cur_age, MISS_SECONDS, 14.0), 0)
+			return Vector4(at.x, at.y, 1.0 - p * 0.9, lerpf(1.0, 0.6, p))
+		State.SINK:
+			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
+			return Vector4(home.x, home.y, 1.0 - p, lerpf(1.0, 0.5, p))
+	return Vector4(0.0, 0.0, 0.0, 1.0)
+
+
+func _draw_jelly() -> void:
+	jelly_rings.draw(self)
+	for i in 2:
+		var col := Style.accent(i)
+		var o := jelly_stencils[i]
+		if flash[i] > 0.0:
+			RunnerJelly.fill(self, o.points, Color(col, 0.35 * flash[i] / FLASH_SECONDS))
+		o.draw(self, col, STENCIL_WIDTH)
+	var pose := _shape_pose()
+	if pose.z <= 0.0 or jelly_shape.points.is_empty():
+		return
+	var col := Style.accent(cur_color)
+	var alpha := pose.z
+	var blur := 0.0
+	match state:
+		State.RISING:
+			blur = 1.0 - pose.z
+			alpha = pose.z
+		State.READY:
+			blur = 0.25
+		State.MISS, State.SINK:
+			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
+			col = col.lerp(Style.INK_3, p)
+			blur = p * (0.5 if state == State.MISS else 1.0)
+	var at := Vector2(pose.x, pose.y)
+	if blur > 0.0:
+		for k in 6:
+			draw_circle(at, SHAPE_R * pose.w * (1.6 - k * 0.15), Color(col, 0.07 * blur * alpha))
+	if alpha > 0.0 and blur < 1.0:
+		RunnerJelly.fill(self, jelly_shape.polygon(Vector2.ZERO, 2), Color(col, alpha * (1.0 - blur * 0.6)))

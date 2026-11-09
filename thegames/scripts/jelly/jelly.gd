@@ -5,10 +5,12 @@ extends RefCounted
 ## разделе «Желе» дебаг-меню; `register_debug` зовёт сцена, которая желе использует.
 
 const SECTION: StringName = &"Желе"
-const PATH := "res://resources/jelly.tres"
+const MATERIALS: Array[String] = ["мармелад", "желе"]
+const PATHS: Array[String] = ["res://resources/jelly.tres", "res://resources/jelly_soft.tres"]
 
 static var enabled := true
-static var _tuning: JellyTuning
+static var material := 0
+static var _tunings: Array[JellyTuning] = []
 
 
 static func on() -> bool:
@@ -16,18 +18,21 @@ static func on() -> bool:
 
 
 static func tuning() -> JellyTuning:
-	if _tuning == null:
-		_tuning = load(PATH) as JellyTuning
-		if _tuning == null:
-			_tuning = JellyTuning.new()
-	return _tuning
+	if _tunings.is_empty():
+		for path in PATHS:
+			var tu := load(path) as JellyTuning
+			_tunings.append(tu if tu != null else JellyTuning.new())
+	return _tunings[clampi(material, 0, _tunings.size() - 1)]
 
 
 static func register_debug() -> void:
 	Debug.clear_section(SECTION)
-	var tu := tuning()
 	Debug.add_toggle(SECTION, "Желе включено", func() -> bool: return enabled,
 			func(v: bool) -> void: enabled = v, true)
+	Debug.add_choice(SECTION, "Материал (ручки ниже от него)", MATERIALS,
+			func() -> String: return MATERIALS[material],
+			func(v: String) -> void: material = maxi(MATERIALS.find(v), 0), true)
+	var tu := tuning()
 	_num("Жёсткость тела", tu, &"blob_stiffness", 100.0, 1200.0, 20.0)
 	_num("Затухание тела", tu, &"blob_damping", 1.0, 30.0, 1.0)
 	_num("Давление", tu, &"blob_pressure", 0.0, 4000.0, 100.0)
@@ -39,6 +44,7 @@ static func register_debug() -> void:
 	_num("Жёсткость предметов", tu, &"spring_stiffness", 60.0, 900.0, 20.0)
 
 
-static func _num(label: String, tu: JellyTuning, prop: StringName, lo: float, hi: float, step: float) -> void:
-	Debug.add_number(SECTION, label, func() -> float: return float(tu.get(prop)),
-			func(v: float) -> void: tu.set(prop, v), lo, hi, step)
+static func _num(label: String, _tu: JellyTuning, prop: StringName, lo: float, hi: float, step: float) -> void:
+	# Ручка правит текущий материал, а не тот, что был при регистрации.
+	Debug.add_number(SECTION, label, func() -> float: return float(tuning().get(prop)),
+			func(v: float) -> void: tuning().set(prop, v), lo, hi, step)
