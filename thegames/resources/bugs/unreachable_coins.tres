@@ -7,9 +7,18 @@ script = ExtResource("1_5ifll")
 id = &"unreachable_coins"
 aspect = 4
 stamp = "НЕ ДОСТАТЬ"
-manifestation = "Платформы с монетами висят выше прыжка"
-tweet = "Монеты видно, монеты не взять. Кто это тестировал?"
-clip = "Герой прыгает под платформой, монеты над головой"
+manifestation = "Цель видно, а не достать"
+tweet = "Награду видно, а не взять. Кто это тестировал?"
+clip = "Награда висит там, куда не добраться"
 params = Dictionary[StringName, float]({
 &"lift_rows": 5.0
+})
+manifestation_by_genre = Dictionary[int, String]({
+0: "Платформы с монетами висят выше прыжка"
+})
+tweet_by_genre = Dictionary[int, String]({
+0: "Монеты видно, монеты не взять. Кто это тестировал?"
+})
+clip_by_genre = Dictionary[int, String]({
+0: "Герой прыгает под платформой, монеты над головой"
 })

@@ -19,12 +19,30 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var tweet: String
 ## Кадр для клипа стримера: что видно на стоп-кадре.
 @export var clip: String
+## Те же строки под жанр демки (#44): ключ `Game.Genre`. Баги баланса в каждом жанре проявляются
+## по-своему («цель недостижима», «враги от чиха»), у общих багов слова про героя и монеты; без
+## записи для жанра берутся общие строки выше.
+@export var manifestation_by_genre: Dictionary[int, String] = {}
+@export var tweet_by_genre: Dictionary[int, String] = {}
+@export var clip_by_genre: Dictionary[int, String] = {}
 ## Зрелищный баг: чаще попадает в клипы и даёт вирусность.
 @export var spectacular := false
 ## Вес при выборе среди подходящих багов, которых ещё нет в записи (#38).
 @export var weight := 1.0
 ## Параметры проявления: демка читает `param(&"freeze_ms_max", 400.0)`.
 @export var params: Dictionary[StringName, float] = {}
+
+
+func manifestation_for(genre: Game.Genre) -> String:
+	return manifestation_by_genre.get(int(genre), manifestation)
+
+
+func tweet_for(genre: Game.Genre) -> String:
+	return tweet_by_genre.get(int(genre), tweet)
+
+
+func clip_for(genre: Game.Genre) -> String:
+	return clip_by_genre.get(int(genre), clip)
 
 
 func param(name: StringName, default: float) -> float:

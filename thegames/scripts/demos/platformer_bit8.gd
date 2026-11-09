@@ -12,7 +12,8 @@ extends Demo
 ## привязана к округлённой позиции героя, чтобы его спрайт не дрожал; по вертикали мёртвая
 ## зона. Спрайты пиратов 16×16, чиптюн-петля.
 ##
-## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`):
+## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`). Общие (#44) механикой
+## живут в `Demo`, демка только зовёт хуки в своих местах:
 ## `frame_drops` фризы в движении с догоном времени; `audio_stutter` заикание музыки и
 ## задержка звуков; `sticky_input` ввод с опозданием и залипание прыжка; `pink_placeholders`
 ## часть спрайтов розовыми квадратами; `unreachable_coins` платформы с монетами подняты выше
@@ -70,38 +71,11 @@ const ISLAND := Color("#2B6B4F")
 const ISLAND_DARK := Color("#1F4F3B")
 const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
-const PINK := Color("#FF2BD6")
-## Чужая палитра: сдвиг оттенка всего слоя мира (баг `alien_palette`).
-const HUE_SHADER := """
-shader_type canvas_item;
-uniform float hue_shift = 0.45;
-vec3 rgb2hsv(vec3 c) {
-	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-	float d = q.x - min(q.w, q.y);
-	float e = 1.0e-10;
-	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
-vec3 hsv2rgb(vec3 c) {
-	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-void fragment() {
-	vec4 c = texture(TEXTURE, UV) * COLOR;
-	vec3 hsv = rgb2hsv(c.rgb);
-	hsv.x = fract(hsv.x + hue_shift);
-	COLOR = vec4(hsv2rgb(hsv), c.a);
-}
-"""
 ## Что может стать розовой заглушкой; герой и земля никогда.
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "coin", "platform", "checkpoint", "flag", "cloud"]
 const MELODY := [0, null, 3, null, 7, 7, 5, 3, 2, null, 5, null, 3, 2, 0, null,
 	-2, null, 2, null, 5, 5, 3, 2, 0, null, 3, null, 2, 0, -2, null]
 const BASS := [-12, -12, -9, -9, -14, -14, -12, -12, -14, -14, -10, -10, -12, -12, -14, -14]
-const STUTTER_SECONDS := 0.35
-const STUTTER_CHUNK := 0.07
 
 var tuning: PlatformerDemoTuning
 var level: PlatformerLevel
@@ -142,31 +116,14 @@ var _ghosts: Array[Vector4] = []
 ## Пыль: позиция, скорость, остаток жизни.
 var _dust: Array[Vector3] = []
 var bot_dir := 0.0
-var _bug_rng := RandomNumberGenerator.new()
 
 # Звук.
 var _music: AudioStreamPlayer
 var _sfx := {}
 
-# Баги.
-var _freeze_timer := 0.0
-var _freeze_left := 0.0
-var _frozen := 0.0
-var _stutter_timer := 0.0
-var _stutter_left := 0.0
-var _stutter_pos := 0.0
-var _stutter_chunk := 0.0
-var _axis_log: Array[Vector2] = []
-var _jump_queue: Array[float] = []
-var _sticky_extra := 0
-var _sticky_first := true
-var _pink: Dictionary = {}
+# Баги жанра и баланса; общие баги в `Demo` (#44).
 var _jump_mult := 1.0
 var _enemy_mult := 1.0
-var _flicker_limit := 0
-## Материал чужой палитры для слоя мира, ставится после создания слоя.
-var _palette: ShaderMaterial
-var _line_counts: Dictionary[int, int] = {}
 
 
 func _on_start() -> void:
@@ -174,7 +131,6 @@ func _on_start() -> void:
 	level = PlatformerLevelGen.generate(record.seed)
 	base_y = level.height * TILE
 	lives = tuning.lives
-	_bug_rng.seed = hash(str(record.seed, ":bugs"))
 	_setup_bugs()
 	for name in ["hero_run_0", "hero_run_1", "hero_run_2", "hero_jump", "hero_dash", "enemy_0", "enemy_1", "parrot_0", "parrot_1", "coin",
 			"checkpoint", "flag", "ground", "ground_inner", "platform", "cloud_small", "cloud_big"]:
@@ -201,8 +157,8 @@ func _on_start() -> void:
 	backdrop.draw.connect(_draw_backdrop)
 	viewport.add_child(backdrop)
 	world = Node2D.new()
-	if _palette != null:
-		world.material = _palette
+	if bug_palette() != null:
+		world.material = bug_palette()
 	world.draw.connect(_draw_world)
 	viewport.add_child(world)
 	hud = Node2D.new()
@@ -238,6 +194,7 @@ func _on_start() -> void:
 func _setup_audio() -> void:
 	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS), tuning.music_db if not embedded else -80.0)
 	add_child(_music)
+	bug_music = _music
 	if not embedded:
 		_music.play()
 	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.09, 0.35, 26.0))
@@ -251,19 +208,14 @@ func _setup_audio() -> void:
 		add_child(p)
 
 
+## Баги жанра и баланса: дикая физика и монеты выше прыжка; общие ставит `Demo`.
 func _setup_bugs() -> void:
-	if has_bug(&"frame_drops"):
-		_freeze_timer = 1.0
-	if has_bug(&"audio_stutter"):
-		_stutter_timer = 1.5
-	if has_bug(&"sprite_flicker"):
-		_flicker_limit = int(_bug_param(&"sprite_flicker", &"max_per_line", 3.0))
 	if has_bug(&"wild_physics"):
-		_jump_mult = _bug_param(&"wild_physics", &"jump_mult", 3.0)
-		_enemy_mult = _bug_param(&"wild_physics", &"enemy_speed_mult", 2.0)
+		_jump_mult = bug_param(&"wild_physics", &"jump_mult", 3.0)
+		_enemy_mult = bug_param(&"wild_physics", &"enemy_speed_mult", 2.0)
 	if has_bug(&"unreachable_coins"):
 		# Платформы с монетами поднимаются выше прыжка вместе со своими монетами.
-		var lift := int(_bug_param(&"unreachable_coins", &"lift_rows", 5.0))
+		var lift := int(bug_param(&"unreachable_coins", &"lift_rows", 5.0))
 		for i in level.platforms.size():
 			var p := level.platforms[i]
 			var new_y := mini(p.position.y + lift, level.height - 3)
@@ -277,27 +229,11 @@ func _setup_bugs() -> void:
 			if moved:
 				p.position.y = new_y
 				level.platforms[i] = p
-	if has_bug(&"alien_palette"):
-		var shader := Shader.new()
-		shader.code = HUE_SHADER
-		var mat := ShaderMaterial.new()
-		mat.shader = shader
-		mat.set_shader_parameter("hue_shift", _bug_param(&"alien_palette", &"hue_shift", 0.45))
-		_palette = mat
-	if has_bug(&"pink_placeholders"):
-		var share := _bug_param(&"pink_placeholders", &"share", 0.35)
-		var slots := PLACEHOLDER_SLOTS.duplicate()
-		var count := maxi(1, int(round(slots.size() * share)))
-		for i in count:
-			var k := _bug_rng.randi_range(0, slots.size() - 1)
-			_pink[slots[k]] = true
-			slots.remove_at(k)
 
 
-func _bug_param(bug_id: StringName, name: StringName, default: float) -> float:
-	var catalog := BugCatalog.load_default()
-	var bug := catalog.by_id(bug_id) if catalog != null else null
-	return bug.param(name, default) if bug != null else default
+## Что может стать розовой заглушкой; герой и земля никогда.
+func _placeholder_slots() -> Array[String]:
+	return PLACEHOLDER_SLOTS
 
 
 func _tile_feet(col: int, row: int) -> Vector2:
@@ -305,11 +241,7 @@ func _tile_feet(col: int, row: int) -> Vector2:
 
 
 func _play(name: String) -> void:
-	var p: AudioStreamPlayer = _sfx[name]
-	if has_bug(&"audio_stutter"):
-		get_tree().create_timer(_bug_param(&"audio_stutter", &"delay_ms", 350.0) / 1000.0).timeout.connect(p.play)
-	else:
-		p.play()
+	bug_play(_sfx[name])
 
 
 func _on_end(goal: bool) -> void:
@@ -331,12 +263,9 @@ func _game_input(event: InputEvent) -> void:
 		vel.y *= tuning.jump_cut
 
 
-## Нажатие прыжка: с багом управления уходит в очередь с задержкой.
+## Нажатие прыжка: с багом управления уходит в очередь с задержкой (`Demo.bug_press`).
 func _request_jump() -> void:
-	if has_bug(&"sticky_input"):
-		_jump_queue.append(elapsed + _bug_param(&"sticky_input", &"delay_ms", 120.0) / 1000.0)
-	else:
-		_jump()
+	bug_press(_jump)
 
 
 func _jump() -> void:
@@ -345,11 +274,8 @@ func _jump() -> void:
 	vel.y = -4.0 * tuning.jump_height * _jump_mult / tuning.jump_time
 	grounded = false
 	_play("jump")
-	if has_bug(&"sticky_input") and _sticky_extra == 0:
-		# Первый прыжок залипает всегда, чтобы баг был виден в первые секунды, дальше по шансу.
-		if _sticky_first or _bug_rng.randf() < _bug_param(&"sticky_input", &"stick_chance", 0.25):
-			_sticky_extra = int(_bug_param(&"sticky_input", &"extra_presses", 2.0))
-		_sticky_first = false
+	# Залипание: прыжок повторится на приземлениях (`Demo.bug_stick`).
+	bug_stick()
 
 
 ## Дэш: в сторону взгляда, без гравитации, в воздухе один раз до приземления.
@@ -369,55 +295,25 @@ func _gravity() -> float:
 	return 8.0 * tuning.jump_height * _jump_mult / (tuning.jump_time * tuning.jump_time)
 
 
-## Ось движения: с багом управления берётся из прошлого на delay_ms.
+## Ось движения: с багом управления берётся из прошлого на delay_ms (`Demo.bug_axis`).
 func _current_axis() -> float:
 	var raw := bot_dir if bot_driven() else GameInput.axis().x
-	if not has_bug(&"sticky_input"):
-		return raw
-	_axis_log.append(Vector2(elapsed, raw))
-	var delay := _bug_param(&"sticky_input", &"delay_ms", 120.0) / 1000.0
-	var value := raw
-	for sample in _axis_log:
-		if sample.x <= elapsed - delay:
-			value = sample.y
-	while _axis_log.size() > 0 and _axis_log[0].x < elapsed - delay - 0.5:
-		_axis_log.remove_at(0)
-	return value
+	return bug_axis(Vector2(raw, 0.0)).x
 
 
 # --- Шаг ----------------------------------------------------------------------------------
 
 func _on_tick(delta: float) -> void:
-	_update_audio_bug(delta)
-	if has_bug(&"frame_drops"):
-		if _freeze_left > 0.0:
-			# Фриз: мир стоит, кадр не обновляется, время копится и догоняется рывком.
-			_freeze_left -= delta
-			_frozen += delta
-			if _freeze_left <= 0.0:
-				var steps := 3
-				for i in steps:
-					_step(_frozen / steps)
-				_frozen = 0.0
-				world.queue_redraw()
-			return
-		_freeze_timer -= delta
-		if _freeze_timer <= 0.0 and move_dir != 0.0:
-			var lo := _bug_param(&"frame_drops", &"freeze_ms_min", 200.0)
-			var hi := _bug_param(&"frame_drops", &"freeze_ms_max", 400.0)
-			_freeze_left = _bug_rng.randf_range(lo, hi) / 1000.0
-			_freeze_timer = _bug_param(&"frame_drops", &"period_s", 2.5) * _bug_rng.randf_range(0.7, 1.3)
-			return
-	_step(delta)
-	world.queue_redraw()
+	bug_audio_tick(delta)
+	# Фризы в движении с догоном времени (`Demo.bug_frame`).
+	if bug_frame(delta, move_dir != 0.0, _step):
+		world.queue_redraw()
 
 
 func _step(delta: float) -> void:
 	anim_time += delta
 	invuln = maxf(invuln - delta, 0.0)
-	while not _jump_queue.is_empty() and _jump_queue[0] <= elapsed:
-		_jump_queue.remove_at(0)
-		_jump()
+	bug_input_tick()
 	dash_cooldown = maxf(dash_cooldown - delta, 0.0)
 	if dash_left > 0.0:
 		dash_left -= delta
@@ -451,8 +347,7 @@ func _step(delta: float) -> void:
 	_move_y(vel.y * delta)
 	if grounded:
 		dash_air_used = false
-	if grounded and not was_grounded and _sticky_extra > 0:
-		_sticky_extra -= 1
+	if grounded and not was_grounded and bug_take_stick():
 		_jump()
 	if move_dir != 0.0 and grounded and dash_left <= 0.0:
 		run_anim += delta * tuning.run_fps
@@ -483,26 +378,6 @@ func _update_camera() -> void:
 	world.position = Vector2(-cam_x, -cam_y)
 	hud.queue_redraw()
 
-
-func _update_audio_bug(delta: float) -> void:
-	if not has_bug(&"audio_stutter") or not _music.playing:
-		return
-	if _stutter_left > 0.0:
-		_stutter_left -= delta
-		_stutter_chunk -= delta
-		if _stutter_chunk <= 0.0:
-			_music.seek(_stutter_pos)
-			_stutter_chunk = STUTTER_CHUNK
-		return
-	_stutter_timer -= delta
-	if _stutter_timer <= 0.0:
-		_stutter_left = STUTTER_SECONDS
-		_stutter_pos = _music.get_playback_position()
-		_stutter_chunk = STUTTER_CHUNK
-		_stutter_timer = _bug_param(&"audio_stutter", &"stutter_period_s", 3.0) * _bug_rng.randf_range(0.8, 1.2)
-
-
-# --- Движение и столкновения с тайлами ------------------------------------------------------
 
 func _solid(col: int, row: int) -> bool:
 	if col < 0 or col >= level.width or row < 0:
@@ -631,7 +506,7 @@ func _die() -> void:
 	vel = Vector2.ZERO
 	grounded = false
 	invuln = tuning.invulnerable_seconds
-	_sticky_extra = 0
+	bug_clear_stick()
 	dash_left = 0.0
 	_ghosts.clear()
 	_update_camera()
@@ -690,7 +565,7 @@ func _bot_step(delta: float) -> void:
 func _tex_or_pink(slot: String, name: String, pos: Vector2, size_px := Vector2(16, 16), canvas: CanvasItem = null) -> void:
 	if canvas == null:
 		canvas = world
-	if _pink.has(slot):
+	if is_pink(slot):
 		canvas.draw_rect(Rect2(pos, size_px), PINK)
 	else:
 		canvas.draw_texture(tex[name], pos)
@@ -733,16 +608,11 @@ func _draw_backdrop() -> void:
 
 ## Баг мерцания: спрайт на строке тайлов сверх лимита виден только через кадр.
 func _flicker_hidden(y_px: float) -> bool:
-	if _flicker_limit <= 0:
-		return false
-	var line := int(floor(y_px / TILE))
-	var n: int = _line_counts.get(line, 0) + 1
-	_line_counts[line] = n
-	return n > _flicker_limit and (Engine.get_process_frames() + n) % 2 == 1
+	return flicker_hidden(int(floor(y_px / TILE)))
 
 
 func _draw_world() -> void:
-	_line_counts.clear()
+	flicker_reset()
 	var first := maxi(int(floor(cam_x / TILE)) - 1, 0)
 	var last := mini(int(ceil((cam_x + view.x) / TILE)) + 1, level.width - 1)
 	for col in range(first, last + 1):
@@ -761,7 +631,7 @@ func _draw_world() -> void:
 		if _flicker_hidden(base_y - (c.y + 0.5) * TILE):
 			continue
 		_tex_or_pink("coin", "coin", Vector2(c.x * TILE, base_y - (c.y + 1) * TILE - bob))
-	if _pink.has("checkpoint"):
+	if is_pink("checkpoint"):
 		world.draw_rect(Rect2(level.checkpoint.x * TILE, base_y - (level.checkpoint.y + 1) * TILE, 16, 16), PINK)
 	else:
 		world.draw_texture(tex["checkpoint"], Vector2(level.checkpoint.x * TILE, base_y - (level.checkpoint.y + 1) * TILE),
@@ -774,7 +644,7 @@ func _draw_world() -> void:
 			continue
 		if _flicker_hidden(w.y - TILE / 2.0):
 			continue
-		if _pink.has("enemy"):
+		if is_pink("enemy"):
 			world.draw_rect(Rect2(roundf(w.x - TILE / 2.0), roundf(w.y - TILE), 16, 16), PINK)
 		else:
 			_draw_sprite(tex[parrot_frame if w.flying else enemy_frame], Vector2(w.x, w.y), w.dir)

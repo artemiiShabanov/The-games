@@ -8,10 +8,16 @@ id = &"sticky_input"
 aspect = 2
 stamp = "ЗАЛИПЛО"
 manifestation = "Кнопка залипает, ввод с опозданием"
-tweet = "Нажал прыжок один раз, герой прыгнул трижды"
-clip = "Герой скачет сам после одного нажатия"
+tweet = "Нажал один раз, сработало трижды"
+clip = "Действие повторяется само после одного нажатия"
 params = Dictionary[StringName, float]({
 &"delay_ms": 120.0,
 &"extra_presses": 2.0,
 &"stick_chance": 0.25
+})
+tweet_by_genre = Dictionary[int, String]({
+0: "Нажал прыжок один раз, герой прыгнул трижды"
+})
+clip_by_genre = Dictionary[int, String]({
+0: "Герой скачет сам после одного нажатия"
 })

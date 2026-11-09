@@ -9,8 +9,11 @@ aspect = 1
 stamp = "ЗАИКАЕТСЯ"
 manifestation = "Музыка заикается, звуки с задержкой"
 tweet = "Саундтрек как с зажёванной кассеты"
-clip = "Прыжок есть, звук прыжка через секунду"
+clip = "Действие есть, звук через секунду"
 params = Dictionary[StringName, float]({
 &"delay_ms": 350.0,
 &"stutter_period_s": 3.0
+})
+clip_by_genre = Dictionary[int, String]({
+0: "Прыжок есть, звук прыжка через секунду"
 })

@@ -8,7 +8,15 @@ extends Control
 ## затем короткий экран итога («добежал» / «не добежал»). Esc открывает паузу с пунктами
 ## «Вернуться» и «Пропустить» (решение 2026-11-06); B остаётся демке, у платформера это дэш.
 ## Подклассы переопределяют `_game_input`, а не `_unhandled_input`. Баги читаются флагами из
-## записи: `has_bug(&"wild_physics")`. Встроенный режим (`embed(size)`, #26): без карточки и
+## записи: `has_bug(&"wild_physics")`. Общие баги (#44) живут здесь и работают в любой
+## демке: фризы `frame_drops` (`bug_frame`), заикание звука `audio_stutter` (`bug_music`,
+## `bug_play`, `bug_audio_tick`), ввод с опозданием и залипанием `sticky_input` (`bug_axis`,
+## `bug_press`, `bug_input_tick`, `bug_stick`, `bug_take_stick`), розовые заглушки
+## `pink_placeholders` по слотам спрайтов демки (`_placeholder_slots`, `is_pink`,
+## `draw_pink`), чужая палитра `alien_palette` (`bug_palette` на слой мира) и мерцание 8-bit
+## `sprite_flicker` (`flicker_reset`, `flicker_hidden`). Демка зовёт эти хуки в своих местах и
+## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
+## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
 ## в ленте.
 
@@ -16,6 +24,35 @@ signal demo_started(record: GameRecord, source: StringName)
 signal demo_finished(record: GameRecord, reached_goal: bool)
 
 const RESULT_SECONDS := 1.8
+## Розовая заглушка вместо спрайта (`pink_placeholders`).
+const PINK := Color("#FF2BD6")
+## Заикание музыки: длина залипания и кусок, который повторяется.
+const STUTTER_SECONDS := 0.35
+const STUTTER_CHUNK := 0.07
+## Чужая палитра: сдвиг оттенка всего слоя мира (`alien_palette`).
+const HUE_SHADER := """
+shader_type canvas_item;
+uniform float hue_shift = 0.45;
+vec3 rgb2hsv(vec3 c) {
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+vec3 hsv2rgb(vec3 c) {
+	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+void fragment() {
+	vec4 c = texture(TEXTURE, UV) * COLOR;
+	vec3 hsv = rgb2hsv(c.rgb);
+	hsv.x = fract(hsv.x + hue_shift);
+	COLOR = vec4(hsv2rgb(hsv), c.a);
+}
+"""
 const MENU_ITEMS: Array[String] = ["Вернуться", "Пропустить"]
 
 var record: GameRecord
@@ -45,6 +82,27 @@ var _menu_labels: Array[Label] = []
 var _menu_lifts: Array[JellyLift] = []
 var _menu_hint: Control
 
+# Общие баги (#44).
+## Случайность багов из сида записи: проявления повторяются от запуска к запуску.
+var bug_rng := RandomNumberGenerator.new()
+## Музыка демки для заикания; демка ставит свою после создания плеера.
+var bug_music: AudioStreamPlayer
+var _freeze_timer := 0.0
+var _freeze_left := 0.0
+var _frozen := 0.0
+var _stutter_timer := 0.0
+var _stutter_left := 0.0
+var _stutter_pos := 0.0
+var _stutter_chunk := 0.0
+var _axis_log: Array[Vector3] = []
+var _press_queue: Array[Array] = []
+var _sticky_extra := 0
+var _sticky_first := true
+var _pink: Dictionary[String, bool] = {}
+var _palette: ShaderMaterial
+var _flicker_limit := 0
+var _line_counts: Dictionary[int, int] = {}
+
 
 func setup(record_: GameRecord, source_: StringName) -> void:
 	record = record_
@@ -63,6 +121,7 @@ func start() -> void:
 	if embedded:
 		size = embed_size
 		screen = self
+		_setup_common_bugs()
 		_on_start()
 		running = true
 		demo_started.emit(record, source)
@@ -75,6 +134,7 @@ func start() -> void:
 	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.content.add_child(screen)
 	_build_overlay()
+	_setup_common_bugs()
 	_on_start()
 	await card.raise_card()
 	running = true
@@ -93,6 +153,177 @@ func active_bot_mode() -> AutoTest.BotMode:
 
 func has_bug(id: StringName) -> bool:
 	return record != null and record.has_bug(id)
+
+
+# --- Общие баги (#44) ------------------------------------------------------------------------
+
+## Слоты спрайтов, которые могут стать розовыми заглушками; герой и земля никогда. Демка
+## переопределяет.
+func _placeholder_slots() -> Array[String]:
+	return []
+
+
+func _setup_common_bugs() -> void:
+	bug_rng.seed = hash(str(record.seed, ":bugs")) if record != null else 1
+	if has_bug(&"frame_drops"):
+		_freeze_timer = 1.0
+	if has_bug(&"audio_stutter"):
+		_stutter_timer = 1.5
+	if has_bug(&"sprite_flicker"):
+		_flicker_limit = int(bug_param(&"sprite_flicker", &"max_per_line", 3.0))
+	if has_bug(&"alien_palette"):
+		var shader := Shader.new()
+		shader.code = HUE_SHADER
+		_palette = ShaderMaterial.new()
+		_palette.shader = shader
+		_palette.set_shader_parameter("hue_shift", bug_param(&"alien_palette", &"hue_shift", 0.45))
+	if has_bug(&"pink_placeholders"):
+		var share := bug_param(&"pink_placeholders", &"share", 0.35)
+		var slots := _placeholder_slots().duplicate()
+		var count := mini(maxi(1, int(round(slots.size() * share))), slots.size())
+		for i in count:
+			var k := bug_rng.randi_range(0, slots.size() - 1)
+			_pink[slots[k]] = true
+			slots.remove_at(k)
+
+
+## Параметр бага из каталога: `bug_param(&"frame_drops", &"period_s", 2.5)`.
+func bug_param(bug_id: StringName, name: StringName, default: float) -> float:
+	var catalog := BugCatalog.load_default()
+	var bug := catalog.by_id(bug_id) if catalog != null else null
+	return bug.param(name, default) if bug != null else default
+
+
+## Кадр мира с фризами: `step(dt)` один раз; с `frame_drops` во время движения (`moving`) мир
+## замирает на 200-400 мс, время копится и догоняется тремя шагами. true, если мир шагнул
+## (демке пора перерисовать слой).
+func bug_frame(delta: float, moving: bool, step: Callable) -> bool:
+	if has_bug(&"frame_drops"):
+		if _freeze_left > 0.0:
+			_freeze_left -= delta
+			_frozen += delta
+			if _freeze_left > 0.0:
+				return false
+			for i in 3:
+				step.call(_frozen / 3.0)
+			_frozen = 0.0
+			return true
+		_freeze_timer -= delta
+		if _freeze_timer <= 0.0 and moving:
+			var lo := bug_param(&"frame_drops", &"freeze_ms_min", 200.0)
+			var hi := bug_param(&"frame_drops", &"freeze_ms_max", 400.0)
+			_freeze_left = bug_rng.randf_range(lo, hi) / 1000.0
+			_freeze_timer = bug_param(&"frame_drops", &"period_s", 2.5) * bug_rng.randf_range(0.7, 1.3)
+			return false
+	step.call(delta)
+	return true
+
+
+## Звук демки: с `audio_stutter` с задержкой.
+func bug_play(p: AudioStreamPlayer) -> void:
+	if has_bug(&"audio_stutter"):
+		get_tree().create_timer(bug_param(&"audio_stutter", &"delay_ms", 350.0) / 1000.0).timeout.connect(p.play)
+	else:
+		p.play()
+
+
+## Заикание музыки `bug_music`: раз в несколько секунд кусок повторяется. Звать каждый кадр.
+func bug_audio_tick(delta: float) -> void:
+	if not has_bug(&"audio_stutter") or bug_music == null or not bug_music.playing:
+		return
+	if _stutter_left > 0.0:
+		_stutter_left -= delta
+		_stutter_chunk -= delta
+		if _stutter_chunk <= 0.0:
+			bug_music.seek(_stutter_pos)
+			_stutter_chunk = STUTTER_CHUNK
+		return
+	_stutter_timer -= delta
+	if _stutter_timer <= 0.0:
+		_stutter_left = STUTTER_SECONDS
+		_stutter_pos = bug_music.get_playback_position()
+		_stutter_chunk = STUTTER_CHUNK
+		_stutter_timer = bug_param(&"audio_stutter", &"stutter_period_s", 3.0) * bug_rng.randf_range(0.8, 1.2)
+
+
+## Направление ввода: с `sticky_input` из прошлого на `delay_ms`. Звать раз за шаг мира.
+func bug_axis(raw: Vector2) -> Vector2:
+	if not has_bug(&"sticky_input"):
+		return raw
+	_axis_log.append(Vector3(elapsed, raw.x, raw.y))
+	var delay := bug_param(&"sticky_input", &"delay_ms", 120.0) / 1000.0
+	var value := raw
+	for sample in _axis_log:
+		if sample.x <= elapsed - delay:
+			value = Vector2(sample.y, sample.z)
+	while _axis_log.size() > 0 and _axis_log[0].x < elapsed - delay - 0.5:
+		_axis_log.remove_at(0)
+	return value
+
+
+## Нажатие действия: сразу, а с `sticky_input` через `delay_ms` (`bug_input_tick` выполняет).
+func bug_press(action: Callable) -> void:
+	if has_bug(&"sticky_input"):
+		_press_queue.append([elapsed + bug_param(&"sticky_input", &"delay_ms", 120.0) / 1000.0, action])
+	else:
+		action.call()
+
+
+## Выполнить отложенные нажатия, чей срок пришёл. Звать в начале шага мира.
+func bug_input_tick() -> void:
+	while not _press_queue.is_empty() and float(_press_queue[0][0]) <= elapsed:
+		var action: Callable = _press_queue.pop_front()[1]
+		action.call()
+
+
+## Действие удалось: с `sticky_input` кнопка может залипнуть и повториться ещё `extra_presses`
+## раз (первое залипает всегда, чтобы баг был виден сразу, дальше по шансу).
+func bug_stick() -> void:
+	if not has_bug(&"sticky_input") or _sticky_extra > 0:
+		return
+	if _sticky_first or bug_rng.randf() < bug_param(&"sticky_input", &"stick_chance", 0.25):
+		_sticky_extra = int(bug_param(&"sticky_input", &"extra_presses", 2.0))
+	_sticky_first = false
+
+
+## Демка в удобный для повтора момент (платформер: приземление) спрашивает, повторить ли
+## залипшее нажатие.
+func bug_take_stick() -> bool:
+	if _sticky_extra <= 0:
+		return false
+	_sticky_extra -= 1
+	return true
+
+
+func bug_clear_stick() -> void:
+	_sticky_extra = 0
+
+
+func is_pink(slot: String) -> bool:
+	return _pink.has(slot)
+
+
+func draw_pink(canvas: CanvasItem, rect: Rect2) -> void:
+	canvas.draw_rect(rect, PINK)
+
+
+## Материал чужой палитры для слоя мира или null.
+func bug_palette() -> ShaderMaterial:
+	return _palette
+
+
+## Мерцание 8-bit: сбросить счёт спрайтов на строках в начале кадра рисования.
+func flicker_reset() -> void:
+	_line_counts.clear()
+
+
+## Спрайт на строке `line` сверх лимита виден только через кадр.
+func flicker_hidden(line: int) -> bool:
+	if _flicker_limit <= 0:
+		return false
+	var n: int = _line_counts.get(line, 0) + 1
+	_line_counts[line] = n
+	return n > _flicker_limit and (Engine.get_process_frames() + n) % 2 == 1
 
 
 ## Итог: по цели (true) или по условию провала демки (false). Экран итога, потом сигнал.

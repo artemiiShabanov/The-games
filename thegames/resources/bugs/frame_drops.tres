@@ -8,9 +8,12 @@ id = &"frame_drops"
 stamp = "15 FPS"
 manifestation = "Кадры проседают: фризы по 200-400 мс в движении"
 tweet = "Играл бы, если бы не слайд-шоу. 15 FPS, серьёзно?"
-clip = "Герой замирает в прыжке, камера дёргается"
+clip = "Картинка замирает на полсекунды и дёргается"
 params = Dictionary[StringName, float]({
 &"freeze_ms_max": 400.0,
 &"freeze_ms_min": 200.0,
 &"period_s": 2.5
+})
+clip_by_genre = Dictionary[int, String]({
+0: "Герой замирает в прыжке, камера дёргается"
 })

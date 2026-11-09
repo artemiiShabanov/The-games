@@ -97,7 +97,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var bug := clip_bug(record, catalog)
 	var vars := {
 		"title": record.title, "genre": Game.genre_name(record.genre), "setting": Game.setting_name(record.setting),
-		"tech": Game.tech_name(record.tech), "bug": bug.manifestation.to_lower() if bug != null else "", "tag": c.tag}
+		"tech": Game.tech_name(record.tech), "bug": bug.manifestation_for(record.genre).to_lower() if bug != null else "", "tag": c.tag}
 	seed(rng.seed + rng.state)  # Array.shuffle использует глобальный генератор: сидим его от rng.
 	var handles := texts.handles.duplicate()
 	handles.shuffle()
@@ -109,8 +109,8 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	tweet_pool.append_array(texts.tweets_viral if score.viral else texts.tweets_quiet)
 	tweet_pool.shuffle()
 	var tweets: Array[String] = []
-	if bug != null and bug.tweet != "":
-		tweets.append(bug.tweet + " " + c.tag)
+	if bug != null and bug.tweet_for(record.genre) != "":
+		tweets.append(bug.tweet_for(record.genre) + " " + c.tag)
 	for s in tweet_pool:
 		if tweets.size() >= 4:
 			break

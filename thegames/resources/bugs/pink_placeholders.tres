@@ -8,8 +8,14 @@ id = &"pink_placeholders"
 aspect = 3
 stamp = "ЗАГЛУШКИ"
 manifestation = "Розовые квадраты вместо части спрайтов"
-tweet = "Враги розовые квадраты. Это стиль или дедлайн?"
-clip = "Розовый квадрат бежит на героя"
+tweet = "Часть спрайтов розовые квадраты. Это стиль или дедлайн?"
+clip = "Розовый квадрат посреди уровня"
 params = Dictionary[StringName, float]({
 &"share": 0.35
+})
+tweet_by_genre = Dictionary[int, String]({
+0: "Враги розовые квадраты. Это стиль или дедлайн?"
+})
+clip_by_genre = Dictionary[int, String]({
+0: "Розовый квадрат бежит на героя"
 })
