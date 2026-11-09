@@ -8,7 +8,10 @@ extends Minigame
 ## всегда на месте. Неверная стрелка
 ## только дёргает блок. Три блока проехали непоправленными: провал. Доля сдвинутых растёт по
 ## ходу раунда и с `t`, темп ленты с `t`. Параметры в `resources/minigames/patch_line.tres`:
-## speed, shift, shift_end, double.
+## speed, shift, shift_end, double. Мармелад (STYLE «Мармелад»): блоки мягкие тела
+## `JellyShape`, на место садятся с вытяжкой, сплющиванием и вздрогом, от неверной стрелки
+## качаются вбок на пружинке; курсор не рамка, а подъём на бортике блока под ним и бледное
+## гнездо на ленте. Игра и бот от мармелада не зависят: он только рисуется.
 
 class Block:
 	var x := 0.0
@@ -19,6 +22,13 @@ class Block:
 	var pop := 0.0
 	var shake := 0.0
 	var offset := 0.0
+	## Мармелад, только рисование: тело (заводится, когда блок подъезжает к экрану),
+	## подъём под курсором, качание вбок от неверной стрелки, отметки уже показанных событий.
+	var jelly: JellyShape
+	var lift := 0.0
+	var sway := JellySpring.new()
+	var landed := false
+	var miss_seen := false
 
 const BLOCK := 128.0
 const GAP := 20.0
@@ -33,6 +43,14 @@ const POP_SECONDS := 0.3
 const SHAKE_SECONDS := 0.25
 const SNAP_SECONDS := 0.1
 const BOT_REACTION := 0.12
+## Мармелад: вздрог при посадке на место, сжатие от нажатия, толчок вбок от неверной стрелки,
+## за сколько секунд блок поднимается под курсором.
+const LAND_POKE := 240.0
+const PRESS_POKE := -140.0
+const MISS_POKE := -180.0
+const SWAY_KICK := 240.0
+const SWAY_PUSH := 120.0
+const LIFT_SECONDS := 0.1
 
 var speed := 240.0
 var shift_share := 0.3
@@ -120,11 +138,14 @@ func _press(dir: int) -> void:
 	if b.shift == 0:
 		b.shake = SHAKE_SECONDS
 		_wrong.play()
+		_jelly_wrong(b, dir)
 		return
 	# Сдвинут вверх: нужна стрелка вниз, и наоборот; двойной сдвиг сходит на один за нажатие.
 	if dir == -signi(b.shift):
 		b.shift -= signi(b.shift)
 		_click.play()
+		if b.jelly != null:
+			b.jelly.poke(PRESS_POKE)
 		if b.shift == 0:
 			b.fixed = true
 			b.pop = POP_SECONDS
@@ -132,6 +153,7 @@ func _press(dir: int) -> void:
 	else:
 		b.shake = SHAKE_SECONDS
 		_wrong.play()
+		_jelly_wrong(b, dir)
 
 
 func _on_tick(delta: float) -> void:
@@ -175,25 +197,88 @@ func _bot_step(delta: float) -> bool:
 	return false
 
 
+# --- Мармелад -----------------------------------------------------------------------------
+
+## Неверная стрелка: блок качается вбок на пружинке, бок со стороны толчка вминается.
+func _jelly_wrong(b: Block, dir: int) -> void:
+	var side := float(dir)
+	b.sway.kick(SWAY_KICK * side)
+	if b.jelly != null:
+		b.jelly.push(Vector2(SWAY_PUSH * side, 0.0), Vector2(-side, 0.0))
+
+
+func _block_center(b: Block, mid: float) -> Vector2:
+	return Vector2(b.x + BLOCK / 2.0 + b.sway.value, mid - b.offset)
+
+
+func _lane_mid() -> float:
+	return size.y * 0.5 + 20.0
+
+
+## Тела блоков на экране ведутся за игровыми координатами; мармелад живёт и после финиша,
+## пока сцена на экране; на паузе стоит.
+func _process(delta: float) -> void:
+	super(delta)
+	if def == null or paused or blocks.is_empty():
+		return
+	var tu := Jelly.tuning()
+	var mid := _lane_mid()
+	var under: Block = _under_cursor() if running else null
+	var lift_rate := tu.lift_px / LIFT_SECONDS * delta
+	for b in blocks:
+		b.sway.step(delta, tu.spring_stiffness, tu.spring_damping)
+		b.lift = move_toward(b.lift, tu.lift_px if b == under else 0.0, lift_rate)
+		var on_screen := b.x < size.x + BLOCK and b.x > -BLOCK * 2.0
+		if not on_screen:
+			continue
+		var center := _block_center(b, mid)
+		if b.jelly == null:
+			# Тянется только по вертикали (по осям, STYLE): лента едет ровно, посадка тянет блок.
+			b.jelly = JellyShape.rect(Vector2(BLOCK, BLOCK), Style.R_CTL)
+			b.jelly.blob.stretch_free = false
+			b.jelly.snap(center)
+			b.jelly.blob.center_velocity = Vector2(-speed, 0.0)
+		if not Jelly.on():
+			b.jelly.snap(center)
+			continue
+		b.jelly.follow(delta, center)
+		if b.fixed and not b.landed and is_zero_approx(b.offset):
+			b.landed = true
+			b.jelly.poke(LAND_POKE)
+		if b.missed and not b.miss_seen:
+			b.miss_seen = true
+			b.jelly.poke(MISS_POKE)
+	if not running:
+		queue_redraw()
+
+
+## Середина тела с его качанием: туда же рисуются стрелки.
+func _jelly_mid(b: Block) -> Vector2:
+	var pts := b.jelly.blob.points
+	var sum := Vector2.ZERO
+	for p in pts:
+		sum += p
+	return sum / maxf(pts.size(), 1.0)
+
+
 # --- Рисование ----------------------------------------------------------------------------
 
 func _draw() -> void:
 	if def == null:
 		return
-	var mid := size.y * 0.5 + 20.0
+	var mid := _lane_mid()
 	var cx := _cursor_x()
 	# Рельсы ленты сверху и снизу ряда.
 	var rail := Color(Style.INK, 0.08)
 	draw_rect(Rect2(0, mid - BLOCK / 2.0 - 12, size.x, 4), rail)
 	draw_rect(Rect2(0, mid + BLOCK / 2.0 + 8, size.x, 4), rail)
+	# Курсор: бледное гнездо на месте блока в ленте, сам блок под ним поднят на бортике.
+	var cursor := Rect2(cx - BLOCK / 2.0, mid - BLOCK / 2.0, BLOCK, BLOCK)
+	Style.flat(Color(Style.INK, 0.06), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), cursor)
 	for b in blocks:
+		if b.x > size.x + BLOCK or b.x < -BLOCK * 2.0:
+			continue
 		var k := b.pop / POP_SECONDS
-		var scale_ := 1.0 + 0.12 * sin(k * PI)
-		var w := BLOCK * scale_
-		var x := b.x + (BLOCK - w) / 2.0
-		if b.shake > 0.0:
-			x += sin(b.shake * 50.0) * 6.0 * b.shake / SHAKE_SECONDS
-		var y := mid - w / 2.0 - b.offset
 		var color := Style.accent(0)
 		if b.missed:
 			color = Style.INK_3
@@ -201,23 +286,28 @@ func _draw() -> void:
 			color = Style.SUCCESS.lerp(Style.accent(0), 1.0 - k)
 		elif b.shift != 0:
 			color = Style.accent(1)
-		Style.flat(color, Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(x, y, w, w))
+		var up := Vector2(0.0, -b.lift)
+		var c: Vector2
+		if b.jelly != null:
+			b.jelly.draw_lifted(self, color, b.lift, up)
+			c = _jelly_mid(b) + up
+		else:
+			var at := _block_center(b, mid) + up
+			Style.flat(color, Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(at - Vector2(BLOCK, BLOCK) / 2.0, Vector2(BLOCK, BLOCK)))
+			c = at
 		# Метка на сдвинутом блоке: стрелки, куда его вернуть, по одной на нажатие.
 		if b.shift != 0 and not b.missed:
 			var n := absi(b.shift)
 			var d := signi(b.shift) * 18.0
 			for j in n:
-				var c := Vector2(x + w / 2.0, y + w / 2.0 + (j - (n - 1) / 2.0) * 22.0 * signi(b.shift))
-				draw_colored_polygon(PackedVector2Array([c + Vector2(-16, -d * 0.5), c + Vector2(16, -d * 0.5), c + Vector2(0, d)]), Color(1, 1, 1, 0.9))
-	# Курсор: рамка фокуса вокруг места блока на ленте.
-	var cursor := Rect2(cx - BLOCK / 2.0, mid - BLOCK / 2.0, BLOCK, BLOCK)
-	Style.focus_ring(Style.R_CTL).draw(get_canvas_item(), cursor)
+				var a := c + Vector2(0.0, (j - (n - 1) / 2.0) * 22.0 * signi(b.shift))
+				draw_colored_polygon(PackedVector2Array([a + Vector2(-16, -d * 0.5), a + Vector2(16, -d * 0.5), a + Vector2(0, d)]), Color(1, 1, 1, 0.9))
 	# Промахи крестиками справа сверху.
 	var r := 7.0
 	var gap2 := 28.0
 	var ex := size.x - 48.0 - (FAIL_AT - 1) * gap2
 	for j in FAIL_AT:
-		var c := Style.DANGER if j < misses else Style.SURFACE_2
+		var col := Style.DANGER if j < misses else Style.SURFACE_2
 		var px := ex + j * gap2
-		draw_line(Vector2(px - r + 1, 60.0 - r + 1), Vector2(px + r - 1, 60.0 + r - 1), c, 3.0, true)
-		draw_line(Vector2(px - r + 1, 60.0 + r - 1), Vector2(px + r - 1, 60.0 - r + 1), c, 3.0, true)
+		draw_line(Vector2(px - r + 1, 60.0 - r + 1), Vector2(px + r - 1, 60.0 + r - 1), col, 3.0, true)
+		draw_line(Vector2(px - r + 1, 60.0 + r - 1), Vector2(px + r - 1, 60.0 - r + 1), col, 3.0, true)

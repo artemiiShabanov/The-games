@@ -102,7 +102,7 @@ static func fun_font(weight := 700) -> Font:
 	return v
 
 
-## Залить многоугольник; если контур сам себя пересёк, рисуется кругом по центру, без ошибки.
+## Залить многоугольник со сглаженным краем; самопересечённый заливается выпуклой оболочкой.
 static func fill(ci: CanvasItem, poly: PackedVector2Array, col: Color) -> void:
 	RunnerJelly.fill(ci, poly, col)
 

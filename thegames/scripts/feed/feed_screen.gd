@@ -512,7 +512,7 @@ func _face(color: Color, letter: String, size_px: int) -> Control:
 func _draw_face(c: Control, color: Color, letter: String, size_px: int) -> void:
 	c.draw_circle(Vector2(size_px / 2.0, size_px / 2.0), size_px / 2.0, color)
 	if letter != "":
-		var font := ThemeDB.fallback_font
+		var font := c.get_theme_default_font()
 		var fs := int(size_px * 0.5)
 		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		c.draw_string(font, Vector2(size_px / 2.0 - w / 2.0, size_px / 2.0 + fs * 0.36), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Style.SURFACE_SOLID)

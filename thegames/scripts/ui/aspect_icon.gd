@@ -23,7 +23,8 @@ func _init() -> void:
 func _draw() -> void:
 	var center := size / 2.0
 	draw_arc(center, SIZE / 2.0 - 2.0, 0.0, TAU, 64, color, 4.0, true)
-	var font := ThemeDB.fallback_font
+	# Шрифт темы (Nunito), а не встроенный.
+	var font := get_theme_default_font()
 	var font_size := 40
 	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size).x
 	draw_string(font, Vector2(center.x - w / 2.0, center.y + font_size * 0.36), text,

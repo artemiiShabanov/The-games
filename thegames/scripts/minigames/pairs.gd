@@ -4,6 +4,9 @@ extends Minigame
 ## открытыми, разные закрываются через паузу. Собрать все пары до таймера, иначе провал. С `t`
 ## сетка 4×4 и карточки закрываются быстрее. Параметры в `resources/minigames/pairs.tres`:
 ## cols (3 или 4 при четырёх рядах), close (секунды до закрытия непарных).
+## Мармелад (STYLE «Мармелад»): карточки мягкими телами `JellyShape`, курсор показан толщиной
+## (карточка на бортике темнее себя, подъём пружинит) вместо синей рамки, переворот сжимает
+## карточку по ширине и она садится вздрогом, пара вздрагивает обеими, непарные трясутся вбок.
 
 enum Shape { CIRCLE, SQUARE, TRIANGLE, DIAMOND, RING, CROSS, STAR, HEX }
 
@@ -30,6 +33,16 @@ var _bot_memory: Array[int] = []
 var _flip_sound: AudioStreamPlayer
 var _match_sound: AudioStreamPlayer
 var _miss_sound: AudioStreamPlayer
+
+# Мармелад: только вид, геймплей о нём не знает. Состояние игры сверяется в `_process`.
+var _cards: Array[JellyShape] = []
+var _lift: Array[JellySpring] = []
+var _press_left: Array[float] = []
+var _prev_flip: Array[float] = []
+var _prev_matched: Array[bool] = []
+var _match_wait: Array[int] = []
+var _shaken := -1
+var _rest_reach := 1.0
 
 
 func _on_start() -> void:
@@ -58,6 +71,7 @@ func _on_start() -> void:
 		flip.append(0.0)
 		_bot_memory.append(-1)
 	cursor = Vector2i(cols / 2, ROWS / 2)
+	_setup_jelly()
 	queue_redraw()
 
 
@@ -194,29 +208,37 @@ func _origin() -> Vector2:
 	return (size - grid) / 2.0 + Vector2(0, -8)
 
 
+func _card_home(i: int) -> Vector2:
+	return _origin() + Vector2(i % cols, i / cols) * (CARD + GAP) + Vector2(CARD, CARD) / 2.0
+
+
 func _draw() -> void:
-	if def == null or kinds.is_empty():
+	if def == null or kinds.is_empty() or _cards.is_empty():
 		return
-	var o := _origin()
 	for i in kinds.size():
-		var c := Vector2i(i % cols, i / cols)
-		var pos := o + Vector2(c) * (CARD + GAP)
 		var shown := open[i] or matched[i]
 		# Переворот: карточка сжимается по ширине к середине и обратно.
 		var k := flip[i] / FLIP_SECONDS
-		var w := CARD * absf(1.0 - 2.0 * k) if k > 0.0 else CARD
-		var rect := Rect2(pos + Vector2((CARD - w) / 2.0, 0), Vector2(w, CARD))
+		var w := absf(1.0 - 2.0 * k) if k > 0.0 else 1.0
 		var bg := Style.SURFACE_SOLID if shown else Style.accent(0)
 		if matched[i]:
-			bg = Color(Style.SUCCESS, 0.18)
-		Style.flat(bg, Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), rect)
+			# Непрозрачный аналог прежней заливки: на бортике полупрозрачная просвечивала бы.
+			bg = Style.SURFACE_SOLID.lerp(Style.SUCCESS, 0.18)
+		var center := _card_center(i)
+		var lift := _lift[i].value
+		if CARD * w >= 2.0:
+			if lift > 0.2:
+				Jelly.fill(self, _card_contour(i, center, w, lift), Jelly.lip_color(bg))
+			Jelly.fill(self, _card_contour(i, center, w, 0.0), bg)
+		# Лицо и рубашка идут за телом: центр, вздрог и сжатие переворота.
+		var grow := _card_reach(i, center) / _rest_reach
+		draw_set_transform(center, 0.0, Vector2(w, 1.0) * grow)
 		if shown and k < 0.5:
-			_draw_shape(kinds[i], rect.get_center(), CARD * 0.28, Style.accent(1 + kinds[i] % 3) if not matched[i] else Style.SUCCESS)
+			_draw_shape(kinds[i], Vector2.ZERO, CARD * 0.28, Style.accent(1 + kinds[i] % 3) if not matched[i] else Style.SUCCESS)
 		elif not shown:
 			# Рубашка: точка по центру.
-			draw_circle(rect.get_center(), 8.0, Color(1, 1, 1, 0.5))
-		if c == cursor:
-			Style.focus_ring(Style.R_CTL).draw(get_canvas_item(), Rect2(pos, Vector2(CARD, CARD)))
+			draw_circle(Vector2.ZERO, 8.0, Color(1, 1, 1, 0.5))
+		draw_set_transform(Vector2.ZERO)
 	# Пары справа сверху.
 	var total := kinds.size() / 2
 	var r := 7.0
@@ -258,3 +280,137 @@ func _poly(c: Vector2, r: float, sides: int) -> PackedVector2Array:
 		var a := -PI / 2.0 + TAU * i / sides
 		pts.append(c + Vector2(cos(a), sin(a)) * r)
 	return pts
+
+
+# --- Мармелад ------------------------------------------------------------------------------
+
+func _setup_jelly() -> void:
+	for i in kinds.size():
+		var card := JellyShape.rect(Vector2(CARD, CARD), Style.R_CTL)
+		_cards.append(card)
+		_lift.append(JellySpring.new())
+		_press_left.append(0.0)
+		_prev_flip.append(0.0)
+		_prev_matched.append(false)
+		_place(i)
+	_rest_reach = maxf(_card_reach(0, _card_center(0)), 1.0)
+
+
+## Тело в покое оседает на свою посадку и тяжесть (`_sag`); рисуется поднятым на неё же,
+## поэтому ставится сразу осевшим: иначе на старте все карточки качнутся вниз.
+func _place(i: int) -> void:
+	var card := _cards[i]
+	card.snap(_card_home(i))
+	var sag := Vector2(0.0, _sag())
+	var pts := card.blob.points
+	for p in pts.size():
+		pts[p] += sag
+	card.blob.points = pts
+
+
+func _sag() -> float:
+	var tu := Jelly.tuning()
+	return tu.blob_sit * CARD / 2.0 + tu.blob_gravity / maxf(tu.blob_stiffness, 1.0)
+
+
+## Видимый центр карточки: среднее точек тела (толчок вбок сдвигает их, а не ведущий центр).
+func _card_center(i: int) -> Vector2:
+	var pts := _cards[i].blob.points
+	if pts.is_empty():
+		return _card_home(i)
+	var c := Vector2.ZERO
+	for p in pts:
+		c += p
+	return c / pts.size() - Vector2(0.0, _sag())
+
+
+## Средний радиус тела: насколько вздрог раздул или сжал карточку.
+func _card_reach(i: int, center: Vector2) -> float:
+	var pts := _cards[i].blob.points
+	if pts.is_empty():
+		return _rest_reach
+	var sum := 0.0
+	var lifted := center + Vector2(0.0, _sag())
+	for p in pts:
+		sum += p.distance_to(lifted)
+	return sum / pts.size()
+
+
+## Контур карточки, сжатый по ширине `w` к видимому центру и сдвинутый вниз на `drop` (бортик).
+func _card_contour(i: int, center: Vector2, w: float, drop: float) -> PackedVector2Array:
+	var poly := _cards[i].contour(Vector2(0.0, drop - _sag()))
+	if w < 1.0:
+		for p in poly.size():
+			poly[p] = Vector2(center.x + (poly[p].x - center.x) * w, poly[p].y)
+	return poly
+
+
+## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит. Состояние игры только
+## читается: начатый переворот, новая пара, вскрытая непарная.
+func _process(delta: float) -> void:
+	super(delta)
+	if _cards.is_empty() or paused:
+		return
+	var tu := Jelly.tuning()
+	var moving := Jelly.on()
+	var cur := _index(cursor)
+	for i in _cards.size():
+		if flip[i] > _prev_flip[i] + 0.0001 and open[i]:
+			# Открыли: карточка вдавливается в бортик, как кнопка.
+			_press_left[i] = 0.12
+		if _prev_flip[i] > 0.0 and flip[i] <= 0.0 and moving:
+			# Переворот закончился: карточка садится лёгким вздрогом.
+			_cards[i].poke(110.0)
+		_prev_flip[i] = flip[i]
+		if matched[i] and not _prev_matched[i]:
+			_match_wait.append(i)
+		_prev_matched[i] = matched[i]
+		_step_lift(i, i == cur, delta, tu, moving)
+	# Пара вздрагивает обеими, когда вторая перевернулась.
+	if not _match_wait.is_empty():
+		var landed := true
+		for i in _match_wait:
+			landed = landed and flip[i] <= 0.0
+		if landed:
+			if moving:
+				for i in _match_wait:
+					_cards[i].poke(280.0)
+			_match_wait.clear()
+	# Непарные трясутся вбок в разные стороны, как только вторая открылась.
+	if second < 0:
+		_shaken = -1
+	elif _shaken != second and flip[second] <= 0.0:
+		_shaken = second
+		if moving:
+			_cards[first].push(Vector2(-240.0, 0.0))
+			_cards[second].push(Vector2(240.0, 0.0))
+	for i in _cards.size():
+		var home := _card_home(i)
+		if not moving or _cards[i].blob.center.distance_to(home) > CARD / 2.0:
+			_place(i)
+		else:
+			_cards[i].follow(delta, home)
+	queue_redraw()
+
+
+## Подъём курсора как у `JellyLift`: вверх с лёгким перелётом, вниз без него, в фокусе дышит.
+func _step_lift(i: int, focused: bool, delta: float, tu: JellyTuning, moving: bool) -> void:
+	var target := 0.0
+	if focused:
+		target = tu.lift_px
+		if moving:
+			target += sin(Time.get_ticks_msec() / 1000.0 * 2.2 + i) * tu.lift_breathe
+	if _press_left[i] > 0.0:
+		target = minf(target, tu.lift_press)
+		_press_left[i] -= delta
+	var spring := _lift[i]
+	if moving:
+		var k := tu.ui_stiffness * 1.6
+		var damping := tu.ui_damping * 1.1 if target > spring.value else 2.0 * sqrt(k)
+		spring.step(delta, k, damping, target)
+	else:
+		spring.value = target
+		spring.velocity = 0.0
+	if target <= 0.0 and spring.value < 0.2:
+		spring.value = 0.0
+		spring.velocity = 0.0

@@ -10,6 +10,10 @@ extends Minigame
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
 ## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется, с `t`
 ## интервал короче).
+## Мармелад (STYLE «Мармелад»): точка мягкое тело, тянется вдоль хода, отстаёт и качается после
+## остановки, при ударе плющится о стену, а стена прогибается и дрожит; за точкой тает бледный
+## след по лабиринту. Смена режима: лабиринт вздрагивает, точка вздрагивает. Геймплей прежний,
+## меняется только рисунок.
 
 enum Mode { DOT, MAZE }
 
@@ -51,6 +55,33 @@ var _bump: AudioStreamPlayer
 var _done_sound: AudioStreamPlayer
 var _flip_sound: AudioStreamPlayer
 
+## Мармелад: тело точки, прогиб стены после удара, вздрог лабиринта при смене режима, след.
+const JELLY_LUNGE := 9.0
+const JELLY_SQUASH := 520.0
+const JELLY_WALL_KICK := 200.0
+const JELLY_FLIP_KICK := 0.4
+const JELLY_POKE := 180.0
+const TRAIL_SECONDS := 0.35
+const TRAIL_WIDTH := 12.0
+const TRAIL_ALPHA := 0.14
+var jelly_dot: JellyShape
+var jelly_wall := JellySpring.new()
+var jelly_flip := JellySpring.new()
+## Стена, о которую ударились: клетка и сторона, в координатах лабиринта.
+var _hit_rect := Rect2()
+var _hit_dir := Vector2.ZERO
+var _trail := PackedVector2Array()
+var _trail_time := PackedFloat32Array()
+var _jelly_time := 0.0
+var _seen_shake := 0.0
+var _seen_flash := 0.0
+var _seen_maze := -1
+var _seen_mode := Mode.DOT
+## Раскладка кадра: угол лабиринта и точка на экране, точка в координатах лабиринта.
+var _origin := Vector2.ZERO
+var _dot_screen := Vector2.ZERO
+var _dot_local := Vector2.ZERO
+
 
 func _on_start() -> void:
 	mazes_total = maxi(int(round(def.param(&"mazes", t, 2.0))), 1)
@@ -65,6 +96,7 @@ func _on_start() -> void:
 	for p in [_step_sound, _bump, _done_sound, _flip_sound]:
 		add_child(p)
 	_new_maze()
+	jelly_dot = JellyShape.circle(DOT_R)
 	queue_redraw()
 
 
@@ -235,25 +267,140 @@ func _next_dir() -> int:
 	return -1
 
 
+# --- Мармелад -----------------------------------------------------------------------------
+
+## Где сейчас лабиринт и точка. Без мармелада удар трясёт управляемое, с ним управляемое один
+## раз подаётся к стене (тело и стена доигрывают удар сами).
+func _layout() -> void:
+	var center := size / 2.0 + Vector2(0, 10)
+	var grid := Vector2(N, N) * CELL
+	var pos := anim_from.lerp(anim_to, ease(anim, -1.8))
+	_dot_local = (pos + Vector2(0.5, 0.5)) * CELL
+	var jolt := shake_dir * sin(shake * 50.0) * 8.0 * shake / SHAKE_SECONDS
+	if Jelly.on():
+		var k := clampf((1.0 - shake / SHAKE_SECONDS) / 0.5, 0.0, 1.0)
+		jolt = _bump_dir() * sin(PI * k) * JELLY_LUNGE if shake > 0.0 else Vector2.ZERO
+		# В режиме лабиринта к точке едет стена, то есть лабиринт против хода точки.
+		if mode == Mode.MAZE:
+			jolt = -jolt
+	if mode == Mode.DOT:
+		_origin = center - grid / 2.0
+		_dot_screen = _origin + _dot_local + jolt
+	else:
+		# Точка стоит в центре экрана, лабиринт едет под ней.
+		_dot_screen = center
+		_origin = center - _dot_local - jolt
+
+
+## Куда точка упёрлась при последнем ударе: в режиме лабиринта против нажатой стрелки.
+func _bump_dir() -> Vector2:
+	return shake_dir if mode == Mode.DOT else -shake_dir
+
+
+## Прямоугольник стены клетки `c` со стороны `d` в координатах лабиринта (общая стена соседей
+## даёт один и тот же прямоугольник).
+func _wall_rect(c: Vector2i, d: int) -> Rect2:
+	var h := WALL / 2.0
+	var p := Vector2(c) * CELL
+	match d:
+		0:
+			return Rect2(p + Vector2(-h, -h), Vector2(CELL + WALL, WALL))
+		1:
+			return Rect2(p + Vector2(CELL - h, -h), Vector2(WALL, CELL + WALL))
+		2:
+			return Rect2(p + Vector2(-h, CELL - h), Vector2(CELL + WALL, WALL))
+	return Rect2(p + Vector2(-h, -h), Vector2(WALL, CELL + WALL))
+
+
+## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит.
+func _process(delta: float) -> void:
+	super(delta)
+	if jelly_dot == null or paused or walls.is_empty():
+		return
+	var tu := Jelly.tuning()
+	_jelly_time += delta
+	_layout()
+	var new_maze := maze_index != _seen_maze
+	if new_maze or mode != _seen_mode:
+		# Новый лабиринт или смена режима: точка переставляется без полёта через экран.
+		jelly_dot.snap(_dot_screen)
+		if _seen_maze >= 0:
+			jelly_dot.poke(JELLY_POKE)
+		if new_maze:
+			jelly_wall.value = 0.0
+			jelly_wall.velocity = 0.0
+			_trail.clear()
+			_trail_time.clear()
+		_seen_maze = maze_index
+		_seen_mode = mode
+	if shake > _seen_shake:
+		# Удар: передний край точки плющится о стену, стена прогибается от точки.
+		var dir := _bump_dir()
+		_hit_dir = dir
+		_hit_rect = _wall_rect(cell, DIRS.find(Vector2i(dir)))
+		jelly_dot.push(-dir * JELLY_SQUASH, dir)
+		jelly_wall.value = 0.0
+		jelly_wall.velocity = 0.0
+		jelly_wall.kick(JELLY_WALL_KICK)
+	if flash > _seen_flash:
+		jelly_flip.kick(JELLY_FLIP_KICK)
+	_seen_shake = shake
+	_seen_flash = flash
+	jelly_wall.step(delta, tu.spring_stiffness * 2.0, tu.spring_damping * 1.5)
+	jelly_flip.step(delta, tu.spring_stiffness, tu.spring_damping)
+	jelly_dot.follow(delta, _dot_screen)
+	# След в координатах лабиринта: в режиме лабиринта он едет вместе со стенами.
+	if _trail.is_empty() or _trail[_trail.size() - 1].distance_to(_dot_local) > 2.0:
+		_trail.append(_dot_local)
+		_trail_time.append(_jelly_time)
+	while _trail_time.size() > 0 and _jelly_time - _trail_time[0] > TRAIL_SECONDS:
+		_trail.remove_at(0)
+		_trail_time.remove_at(0)
+	if not running:
+		queue_redraw()
+
+
+## Бледный след точки, тает от хвоста к голове.
+func _draw_trail(col: Color) -> void:
+	if _trail.size() < 2:
+		return
+	var pts := PackedVector2Array()
+	var cols := PackedColorArray()
+	for i in _trail.size():
+		var age := clampf((_jelly_time - _trail_time[i]) / TRAIL_SECONDS, 0.0, 1.0)
+		pts.append(_origin + _trail[i])
+		cols.append(Color(col, TRAIL_ALPHA * (1.0 - age)))
+	draw_polyline_colors(pts, cols, TRAIL_WIDTH, true)
+
+
+## Стена после удара прогибается дугой от точки: концы на месте, середина качается.
+func _draw_bent_wall(rect: Rect2, col: Color) -> void:
+	var bow := _hit_dir * jelly_wall.value
+	var along := Vector2.RIGHT if rect.size.x > rect.size.y else Vector2.DOWN
+	var across := Vector2(along.y, along.x)
+	var length := rect.size.dot(along)
+	var thick := rect.size.dot(across)
+	var a := _origin + rect.position
+	var steps := 12
+	var poly := PackedVector2Array()
+	for k in steps + 1:
+		var u := float(k) / steps
+		poly.append(a + along * length * u + bow * sin(PI * u))
+	for k in range(steps, -1, -1):
+		var u := float(k) / steps
+		poly.append(a + along * length * u + across * thick + bow * sin(PI * u))
+	draw_colored_polygon(poly, col)
+
+
 # --- Рисование ----------------------------------------------------------------------------
 
 func _draw() -> void:
 	if def == null or walls.is_empty():
 		return
-	var center := size / 2.0 + Vector2(0, 10)
+	_layout()
 	var grid := Vector2(N, N) * CELL
-	var pos := anim_from.lerp(anim_to, ease(anim, -1.8))
-	var dot_local := (pos + Vector2(0.5, 0.5)) * CELL
-	var jolt := shake_dir * sin(shake * 50.0) * 8.0 * shake / SHAKE_SECONDS
-	var origin: Vector2
-	var dot_screen: Vector2
-	if mode == Mode.DOT:
-		origin = center - grid / 2.0
-		dot_screen = origin + dot_local + jolt
-	else:
-		# Точка стоит в центре экрана, лабиринт едет под ней.
-		dot_screen = center
-		origin = center - dot_local - jolt
+	var origin := _origin
+	var jelly := Jelly.on() and jelly_dot != null
 	# Управляемое синее, остальное чёрное; во время блокировки после удара всё тускнеет.
 	var active := Style.accent(0)
 	var passive := Style.INK
@@ -262,32 +409,43 @@ func _draw() -> void:
 	if lock > 0.0:
 		wall_color = wall_color.lerp(Style.INK_3, 0.5)
 		dot_color = dot_color.lerp(Style.INK_3, 0.5)
+	# Смена режима: лабиринт вздрагивает масштабом вокруг своего центра.
+	var wobble := 1.0 + (jelly_flip.value if jelly else 0.0)
+	var gc := origin + grid / 2.0
+	draw_set_transform(gc * (1.0 - wobble), 0.0, Vector2(wobble, wobble))
 	# Подложка и выход: кольцо в цвете управляемого, в которое садится точка.
 	Style.flat(Color(Style.INK, 0.04), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(origin - Vector2(WALL, WALL), grid + Vector2(WALL, WALL) * 2.0))
 	var exit_center := origin + (Vector2(exit_cell) + Vector2(0.5, 0.5)) * CELL
 	var ink := wall_color if flash <= 0.0 else wall_color.lerp(Style.FOCUS, flash / FLASH_SECONDS)
 	draw_arc(exit_center, DOT_R + 10.0, 0.0, TAU, 48, ink, 6.0, true)
 	# Стены прямоугольниками с нахлёстом на полтолщины, чтобы углы сходились без зазоров.
-	var h := WALL / 2.0
+	# Стена после удара рисуется дугой, пока качается.
+	var bent := jelly and absf(jelly_wall.value) > 0.05 and _hit_rect.has_area()
 	for y in N:
 		for x in N:
 			var c := Vector2i(x, y)
-			var p := origin + Vector2(c) * CELL
-			if _has_wall(c, 0):
-				draw_rect(Rect2(p + Vector2(-h, -h), Vector2(CELL + WALL, WALL)), ink)
-			if _has_wall(c, 3):
-				draw_rect(Rect2(p + Vector2(-h, -h), Vector2(WALL, CELL + WALL)), ink)
-			if _has_wall(c, 1):
-				draw_rect(Rect2(p + Vector2(CELL - h, -h), Vector2(WALL, CELL + WALL)), ink)
-			if _has_wall(c, 2):
-				draw_rect(Rect2(p + Vector2(-h, CELL - h), Vector2(CELL + WALL, WALL)), ink)
-	draw_circle(dot_screen, DOT_R, dot_color)
+			for d: int in [0, 3, 1, 2]:
+				if not _has_wall(c, d):
+					continue
+				var r := _wall_rect(c, d)
+				if bent and r.is_equal_approx(_hit_rect):
+					continue
+				draw_rect(Rect2(origin + r.position, r.size), ink)
+	if bent:
+		_draw_bent_wall(_hit_rect, ink)
+	if jelly:
+		_draw_trail(dot_color)
+	draw_set_transform(Vector2.ZERO)
+	if jelly and not jelly_dot.blob.points.is_empty():
+		jelly_dot.draw(self, dot_color)
+	else:
+		draw_circle(_dot_screen, DOT_R, dot_color)
 	# Лабиринты справа сверху, левее подпись режима: что сейчас двигается (внизу её закрывал
 	# бы лабиринт в режиме, где он едет).
 	var r := 7.0
 	var gap := 28.0
 	var x0 := size.x - 48.0 - (mazes_total - 1) * gap
-	var font := ThemeDB.fallback_font
+	var font := get_theme_default_font()
 	var caption := "двигается точка" if mode == Mode.DOT else "двигается лабиринт"
 	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY).x
 	draw_string(font, Vector2(x0 - r - 32.0 - w, 69.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY,

@@ -251,20 +251,26 @@ func _flag_shape(top: Vector2, time: float) -> PackedVector2Array:
 
 # --- Общие помощники ------------------------------------------------------------------------
 
-## Залить многоугольник; если контур сам себя пересёк, рисуется кругом по центру, без ошибки.
+## Залить многоугольник; если контур сам себя пересёк, заливается его выпуклая оболочка.
 static func fill(ci: CanvasItem, poly: PackedVector2Array, col: Color) -> void:
 	var idx := Geometry2D.triangulate_polygon(poly)
 	if idx.is_empty():
-		var c := Vector2.ZERO
-		for p in poly:
-			c += p
-		c /= maxf(poly.size(), 1)
-		ci.draw_circle(c, 10.0, col)
-		return
+		# Самопересечение (смятое тело, тонкий срез): заливается выпуклая оболочка, а не
+		# посторонний кружок; совсем вырожденное не рисуется.
+		poly = Geometry2D.convex_hull(poly)
+		if poly.size() > 1:
+			poly.remove_at(poly.size() - 1)
+		idx = Geometry2D.triangulate_polygon(poly)
+		if idx.is_empty():
+			return
 	var colors := PackedColorArray()
 	colors.resize(poly.size())
 	colors.fill(col)
 	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), idx, poly, colors)
+	# Треугольники без сглаживания: тонкий сглаженный контур убирает лесенку по краю.
+	var edge := PackedVector2Array(poly)
+	edge.append(poly[0])
+	ci.draw_polyline(edge, col, 1.0, true)
 
 
 ## Контур скруглённого прямоугольника от (0, 0) до `size` с частыми точками на сторонах, чтобы

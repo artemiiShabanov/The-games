@@ -150,10 +150,13 @@ func _build_chrome() -> void:
 	_timer_bar.position = Vector2.ZERO
 	_timer_bar.size = Vector2(size.x, TIMER_HEIGHT)
 	add_child(_timer_bar)
+	# Мармелад: полоса вздрагивает, уходя в `danger`; значок вминается под курсором.
+	Jelly.attach(_timer_bar, TIMER_HEIGHT / 2.0, 10.0, false, 0.0, false)
 
 	var icon := AspectIcon.for_def(def)
 	icon.position = Vector2(48, 40)
 	add_child(icon)
+	Jelly.attach(icon, AspectIcon.SIZE / 2.0, 14.0, false, 0.0, true, 1.5)
 
 	add_child(HintPill.bottom_bar(HintPill.for_inputs(def.inputs)))
 
@@ -223,4 +226,7 @@ func _update_timer_bar() -> void:
 		return
 	var frac := time_left / time_limit if time_limit > 0.0 else 0.0
 	_timer_bar.size = Vector2(size.x * frac, TIMER_HEIGHT)
-	_timer_bar.color = Style.DANGER if time_left <= DANGER_SECONDS else Style.accent(0)
+	var danger := time_left <= DANGER_SECONDS
+	if danger and _timer_bar.color != Style.DANGER:
+		Jelly.poke(_timer_bar, 3.0)
+	_timer_bar.color = Style.DANGER if danger else Style.accent(0)

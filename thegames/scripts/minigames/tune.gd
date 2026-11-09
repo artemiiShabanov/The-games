@@ -7,6 +7,10 @@ extends Minigame
 ## Параметры от `t` в `resources/minigames/tune.tres`: offset (на сколько шагов эталон дальше
 ## от стартового положения), two_axes (вероятность, что отличается и амплитуда), tolerance
 ## (допуск в шагах).
+## Мармелад: своя волна как мармеладная струна, рисуется по частоте и амплитуде на пружинах, так
+## что после шага догоняет новую форму с недолётом и коротким качанием и чуть выгибается
+## серединой; промах сплющивает и толкает её вбок, совпадение раздувает слитую волну. Точки волн
+## мягкие, текущая стоит на бортике, засчитанная вздрагивает с кругом. Геймплей на настоящих числах.
 
 const WAVES := 4
 const NEED := 3
@@ -25,6 +29,8 @@ const BOT_STEP := 0.14
 const HZ_BASE := 180.0
 const HZ_PER_CYCLE := 36.0
 const TONE_VOLUME := 0.18
+const DOT_R := 7.0
+const DOT_GAP := 28.0
 
 var offset_steps := 3
 var two_axes := 0.0
@@ -47,6 +53,15 @@ var _phase_ref := 0.0
 var _phase_own := 0.0
 var _ok_sound: AudioStreamPlayer
 var _miss_sound: AudioStreamPlayer
+# Мармелад: только рисование, геймплей на freq и amp.
+var _jelly_freq := JellySpring.new()
+var _jelly_amp := JellySpring.new()
+var _jelly_bend := JellySpring.new()
+var _jelly_swell := JellySpring.new()
+var _jelly_side := JellySpring.new()
+var _jelly_dots: Array[JellyShape] = []
+var _jelly_rings := RingFx.new()
+var _jelly_side_dir := 1.0
 
 
 func _on_start() -> void:
@@ -67,6 +82,8 @@ func _on_start() -> void:
 	_player.play()
 	_playback = _player.get_stream_playback() as AudioStreamGeneratorPlayback
 	_new_wave()
+	for j in WAVES:
+		_jelly_dots.append(JellyShape.circle(DOT_R, 20))
 	queue_redraw()
 
 
@@ -86,6 +103,13 @@ func _new_wave() -> void:
 		ref_amp = clampf(amp + adir * maxi(offset_steps - 1, 1) * AMP_STEP, AMP_MIN, AMP_MAX)
 		if is_equal_approx(ref_amp, amp):
 			ref_amp = clampf(amp - adir * maxi(offset_steps - 1, 1) * AMP_STEP, AMP_MIN, AMP_MAX)
+	# Новая волна не перетекает из прошлой, а встаёт сразу.
+	_jelly_freq.value = freq
+	_jelly_freq.velocity = 0.0
+	_jelly_amp.value = amp
+	_jelly_amp.velocity = 0.0
+	_jelly_bend.value = 0.0
+	_jelly_bend.velocity = 0.0
 
 
 func matched() -> bool:
@@ -113,8 +137,15 @@ func _unhandled_input(event: InputEvent) -> void:
 func _adjust(df: float, da: float) -> void:
 	if done_this:
 		return
+	var was_freq := freq
+	var was_amp := amp
 	freq = clampf(snappedf(freq + df, FREQ_STEP), FREQ_MIN, FREQ_MAX)
 	amp = clampf(snappedf(amp + da, AMP_STEP), AMP_MIN, AMP_MAX)
+	# Струна выгибается серединой в сторону шага; упёрлась в край — лёгкий вздрог.
+	if not is_equal_approx(was_freq, freq) or not is_equal_approx(was_amp, amp):
+		_jelly_bend.kick(140.0 * (signf(df) if df != 0.0 else -signf(da)))
+	else:
+		_jelly_swell.kick(-1.2)
 	queue_redraw()
 
 
@@ -126,10 +157,18 @@ func _fix() -> void:
 		matches += 1
 		merge = MERGE_SECONDS
 		_ok_sound.play()
+		_jelly_swell.kick(4.0)
+		if wave_index < _jelly_dots.size():
+			_jelly_dots[wave_index].poke(260.0)
+			_jelly_rings.add(_dot_pos(wave_index), DOT_R, DOT_R * 3.2, Color(Style.SUCCESS, 0.5), 1, 0.6)
 	else:
 		shake = SHAKE_SECONDS
 		lock = LOCK_SECONDS
 		_miss_sound.play()
+		# Сторона толчка чередуется: общий rng не трогаем, он геймплейный.
+		_jelly_side_dir = -_jelly_side_dir
+		_jelly_side.kick(320.0 * _jelly_side_dir)
+		_jelly_swell.kick(-3.0)
 
 
 func _on_tick(delta: float) -> void:
@@ -143,6 +182,7 @@ func _on_tick(delta: float) -> void:
 				finish(matches >= NEED)
 				return
 			_new_wave()
+			_jelly_dots[wave_index].poke(180.0)
 	_push_audio()
 	queue_redraw()
 
@@ -190,16 +230,52 @@ func _bot_step(delta: float) -> bool:
 	return false
 
 
+# --- Мармелад ----------------------------------------------------------------------------
+
+## Пружины рисования догоняют настоящие числа; живут и после финиша, на паузе стоят. Без
+## движения мармелада рисуются настоящие числа.
+func _process(delta: float) -> void:
+	super(delta)
+	if paused or _jelly_dots.is_empty():
+		return
+	var tu := Jelly.tuning()
+	# Плотнее предметов: шаг частоты сдвигает весь хвост волны, недолёт должен быть коротким.
+	var k := tu.spring_stiffness
+	var d := tu.spring_damping * 2.0
+	if Jelly.on():
+		_jelly_freq.step(delta, k, d, freq)
+		_jelly_amp.step(delta, k, d, amp)
+		_jelly_bend.step(delta, k, d)
+		_jelly_swell.step(delta, k, d)
+		_jelly_side.step(delta, k, d)
+	else:
+		for sp: JellySpring in [_jelly_freq, _jelly_amp, _jelly_bend, _jelly_swell, _jelly_side]:
+			sp.velocity = 0.0
+			sp.value = 0.0
+		_jelly_freq.value = freq
+		_jelly_amp.value = amp
+	_jelly_rings.step(delta)
+	for j in _jelly_dots.size():
+		_jelly_dots[j].follow(delta, _dot_pos(j))
+	if not running:
+		queue_redraw()
+
+
+func _dot_pos(j: int) -> Vector2:
+	return Vector2(size.x - 48.0 - (WAVES - 1) * DOT_GAP + j * DOT_GAP, 60.0)
+
+
 # --- Рисование ----------------------------------------------------------------------------
 
-func _wave_points(f: float, a: float, phase: float, dx: float) -> PackedVector2Array:
+## Точки волны; `bend` выгибает середину (концы на месте), как дёрнутую струну.
+func _wave_points(f: float, a: float, phase: float, dx: float, bend := 0.0) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	var left := 96.0
 	var width := size.x - 192.0
 	var mid := size.y * 0.5 + 10.0
 	for i in SEGMENTS + 1:
 		var u := float(i) / SEGMENTS
-		pts.append(Vector2(left + u * width + dx, mid + sin(u * f * TAU + phase) * a))
+		pts.append(Vector2(left + u * width + dx, mid + sin(u * f * TAU + phase) * a + sin(u * PI) * bend))
 	return pts
 
 
@@ -208,28 +284,42 @@ func _draw() -> void:
 		return
 	var is_match := matched()
 	var dx := sin(shake * 60.0) * 10.0 * shake / SHAKE_SECONDS if shake > 0.0 else 0.0
+	# Мармелад: своя волна по частоте и амплитуде на пружинах, промах толкает её пружиной вбок.
+	var swell := 1.0
+	var own_freq := freq
+	var own_amp := amp
+	var bend := 0.0
+	if Jelly.on() and not _jelly_dots.is_empty():
+		dx = _jelly_side.value
+		swell = maxf(1.0 + _jelly_swell.value, 0.3)
+		own_freq = _jelly_freq.value
+		own_amp = _jelly_amp.value
+		bend = _jelly_bend.value
 	# Эталон: тонкая вторая волна акцентом a2; своя: a1. При совпадении одна толстая success.
 	if done_this or is_match:
 		var k := clampf(merge / MERGE_SECONDS, 0.0, 1.0) if done_this else 0.0
 		var color := Style.SUCCESS if done_this else Style.accent(0)
-		draw_polyline(_wave_points(ref_freq, ref_amp, elapsed * 2.0, 0.0), Color(color, 0.35), LINE_WIDTH * (2.0 + 2.0 * k), true)
-		draw_polyline(_wave_points(ref_freq, ref_amp, elapsed * 2.0, 0.0), color, LINE_WIDTH, true)
+		var merged := _wave_points(ref_freq, ref_amp * swell, elapsed * 2.0, 0.0)
+		draw_polyline(merged, Color(color, 0.35), LINE_WIDTH * (2.0 + 2.0 * k), true)
+		draw_polyline(merged, color, LINE_WIDTH, true)
 	else:
 		draw_polyline(_wave_points(ref_freq, ref_amp, elapsed * 2.0, 0.0), Color(Style.accent(1), 0.8), LINE_WIDTH, true)
-		draw_polyline(_wave_points(freq, amp, elapsed * 2.0, dx), Style.accent(0), LINE_WIDTH, true)
+		draw_polyline(_wave_points(own_freq, own_amp * swell, elapsed * 2.0, dx, bend), Style.accent(0), LINE_WIDTH, true)
 	# Подписи осей снизу: частота и амплитуда своей волны против эталона не раскрываются.
-	var font := ThemeDB.fallback_font
+	var font := get_theme_default_font()
 	var caption := "частота ← →   амплитуда ↑ ↓"
 	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION).x
 	draw_string(font, Vector2(size.x / 2.0 - w / 2.0, size.y - 110.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION, Style.INK_3)
-	# Волны справа сверху.
-	var r := 7.0
-	var gap := 28.0
-	var x0 := size.x - 48.0 - (WAVES - 1) * gap
+	# Волны справа сверху: мягкие точки, текущая на бортике.
+	_jelly_rings.draw(self)
+	var lift := Jelly.tuning().lift_px * 0.4
 	for j in WAVES:
 		var c := Style.SURFACE_2
-		if j < wave_index:
+		if j < wave_index or (j == wave_index and done_this):
 			c = Style.SUCCESS
 		elif j == wave_index:
 			c = Style.INK
-		draw_circle(Vector2(x0 + j * gap, 60.0), r, c)
+		if j < _jelly_dots.size():
+			_jelly_dots[j].draw_lifted(self, c, lift if j == wave_index and not done_this else 0.0)
+		else:
+			draw_circle(_dot_pos(j), DOT_R, c)

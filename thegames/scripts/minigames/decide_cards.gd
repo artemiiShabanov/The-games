@@ -9,6 +9,10 @@ extends Minigame
 ## ≤ 30»), затем правило меняется посреди раунда. Параметры в
 ## `resources/minigames/decide_cards.tres`: cards, card_seconds, two (от 0.5 два условия),
 ## change (от 0.5 смена правила на середине).
+## Мармелад (STYLE «Мармелад»): карточка и фигура на ней мягкие тела, отстают на въезде,
+## качаются после остановки и наклоняются, улетая. Зона решения это серое гнездо без рамки;
+## карточка в нём поднята на бортик (выделение толщиной, теней нет), решение вдавливает её и
+## встряхивает, при смене правила оно вспухает.
 
 enum Kind { NUMBER_LE, NUMBER_GE, EVEN, ODD, COLOR, SIDES_LE, SIDES_GE }
 
@@ -30,6 +34,11 @@ class Card:
 	var correct := true
 	var age := 0.0
 	var spawn_i := 0
+	## Мармелад, только рисование: тело карточки, фигура на ней, высота бортика пружиной.
+	var body: JellyShape
+	var figure: JellyShape
+	var lift := JellySpring.new()
+	var landed := false
 
 
 const COLORS: Array[Color] = [Color("#E0457B"), Color("#2F5BFF"), Color("#2BB37A")]
@@ -44,6 +53,15 @@ const RULE_FLASH := 0.5
 const BOT_REACTION := 0.25
 ## Условия на число сторон появляются только при `t` выше этого.
 const SHAPES_FROM_T := 0.8
+const FIGURE_R := 92.0
+## Мармелад: точки контура карточки, наклон улетающей, бортик едущей (вместо тени), вздроги.
+const CARD_POINTS := 64
+const FLY_TILT := 0.14
+const BASE_LIFT := 4.0
+const LAND_POKE := 220.0
+const DECIDE_POKE := -260.0
+const WRONG_PUSH := 320.0
+const RULE_POP := 3.0
 
 var cards_total := 8
 var card_seconds := 2.4
@@ -64,6 +82,8 @@ var _bot_timer := 0.0
 var _ok: AudioStreamPlayer
 var _bad: AudioStreamPlayer
 var _swap: AudioStreamPlayer
+## Правило вспухает при смене: добавка к масштабу.
+var _rule_pop := JellySpring.new()
 
 
 func _on_start() -> void:
@@ -200,6 +220,7 @@ func _decide(accept: bool) -> void:
 	c.correct = accept == _fits(c)
 	c.age = 0.0
 	decided += 1
+	_jelly_decided(c)
 	if c.correct:
 		_ok.play()
 	else:
@@ -216,6 +237,7 @@ func _after_decision() -> void:
 		rule_changed = true
 		rule = _make_rule(rule[0].kind)
 		rule_flash = RULE_FLASH
+		_rule_pop.kick(RULE_POP)
 		_swap.play()
 	if decided >= cards_total:
 		finish(errors < FAIL_AT)
@@ -251,6 +273,7 @@ func _on_tick(delta: float) -> void:
 			c.age = 0.0
 			decided += 1
 			errors += 1
+			_jelly_decided(c)
 			_bad.play()
 			if errors >= FAIL_AT:
 				finish(false)
@@ -282,49 +305,124 @@ func _bot_step(delta: float) -> bool:
 	return false
 
 
+# --- Мармелад ------------------------------------------------------------------------------
+
+## Где карточка по игре: (центр x, y, непрозрачность, наклон). Решённая улетает вверх (принята)
+## или вниз (отклонена), просроченная уезжает вправо, и все гаснут.
+func _card_pose(c: Card) -> Vector4:
+	var at := Vector2(c.x + CARD_W / 2.0, size.y * 0.52)
+	if not c.decided:
+		return Vector4(at.x, at.y, 1.0, 0.0)
+	var k := clampf(c.age / FLY_SECONDS, 0.0, 1.0)
+	var e := ease(k, 0.5)
+	if c.correct or c.wait < card_seconds:
+		var dir := -1.0 if c.accepted else 1.0
+		return Vector4(at.x, at.y + dir * 260.0 * e, 1.0 - k, -dir * FLY_TILT * e)
+	return Vector4(at.x + 520.0 * e, at.y, 1.0 - k, FLY_TILT * e)
+
+
+## Решение: карточка вдавливается в бортик и сжимается; ошибка её ещё и встряхивает вбок.
+func _jelly_decided(c: Card) -> void:
+	c.lift.value = 0.0
+	c.lift.velocity = 0.0
+	if c.body == null:
+		return
+	c.body.poke(DECIDE_POKE)
+	c.figure.poke(DECIDE_POKE * 0.6)
+	if not c.correct:
+		var side := 1.0 if c.spawn_i % 2 == 0 else -1.0
+		c.body.push(Vector2(WRONG_PUSH * side, 0.0))
+		c.figure.push(Vector2(-WRONG_PUSH * 0.6 * side, 0.0))
+
+
+## Средняя точка контура: где тело на самом деле, с отставанием и качанием.
+static func _shape_center(shape: JellyShape) -> Vector2:
+	var sum := Vector2.ZERO
+	for p in shape.blob.points:
+		sum += p
+	return sum / maxf(shape.blob.points.size(), 1.0)
+
+
+## Вести фигуру к `at`; без движения мармелада (дебаг-меню) ставится на место.
+static func _lead(shape: JellyShape, delta: float, at: Vector2, angle: float) -> void:
+	# Тело садится вниз на долю радиуса: цель выше на столько же, контур стоит где игровая точка.
+	var target := at - Vector2(0.0, Jelly.tuning().blob_sit * shape.blob.radius)
+	if Jelly.on():
+		shape.follow(delta, target, angle)
+	else:
+		shape.blob.angle = angle
+		shape.snap(target)
+
+
+## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит.
+func _process(delta: float) -> void:
+	super(delta)
+	if paused or def == null:
+		return
+	var tu := Jelly.tuning()
+	_rule_pop.step(delta, tu.spring_stiffness, tu.spring_damping)
+	var active := _active()
+	for c in cards:
+		if c.body == null:
+			c.body = JellyShape.rect(Vector2(CARD_W, CARD_H), Style.R_CARD, CARD_POINTS)
+			c.figure = JellyShape.polygon(c.sides, FIGURE_R)
+			c.lift.value = BASE_LIFT
+		# Доехала до зоны и встала: вздрагивает и поднимается на бортик.
+		if c == active and not c.landed:
+			c.landed = true
+			c.body.poke(LAND_POKE)
+			c.figure.poke(LAND_POKE * 0.6)
+		if not c.decided:
+			c.lift.step(delta, tu.spring_stiffness, tu.spring_damping, tu.lift_px if c == active else BASE_LIFT)
+		var pose := _card_pose(c)
+		_lead(c.body, delta, Vector2(pose.x, pose.y), pose.w)
+		_lead(c.figure, delta, _shape_center(c.body), pose.w)
+	if not running:
+		queue_redraw()
+
+
 # --- Рисование ----------------------------------------------------------------------------
 
 func _draw() -> void:
 	if def == null:
 		return
-	var font := ThemeDB.fallback_font
+	var font := get_theme_default_font()
 	var mid := size.y * 0.52
-	# Зона решения.
+	# Зона решения: серое гнездо без рамки, карточка встаёт в него на бортике.
 	var zone := Rect2(_zone_x() - CARD_W / 2.0, mid - CARD_H / 2.0, CARD_W, CARD_H)
-	Style.focus_ring(Style.R_CARD).draw(get_canvas_item(), zone)
+	Style.flat(Style.SURFACE_2, Style.R_CARD).draw(get_canvas_item(), zone)
 	# Карточки.
 	for c in cards:
-		var pos := Vector2(c.x, mid - CARD_H / 2.0)
-		var alpha := 1.0
-		if c.decided:
-			var k := clampf(c.age / FLY_SECONDS, 0.0, 1.0)
-			alpha = 1.0 - k
-			# Решённая улетает вверх (принята) или вниз (отклонена), просроченная уезжает вправо.
-			if c.correct or c.wait < card_seconds:
-				pos += Vector2(0, (-1.0 if c.accepted else 1.0) * 260.0 * ease(k, 0.5))
-			else:
-				pos += Vector2(520.0 * ease(k, 0.5), 0)
-		else:
-			# Полоска ожидания под карточкой тает.
+		if c.body == null:
+			continue
+		var pose := _card_pose(c)
+		var alpha := pose.z
+		var lift := maxf(c.lift.value, 0.0)
+		if not c.decided:
+			# Полоска ожидания под бортиком карточки тает.
 			var left := 1.0 - clampf(c.wait / card_seconds, 0.0, 1.0)
-			draw_rect(Rect2(pos.x, pos.y + CARD_H + 14.0, CARD_W * left, 6.0), Style.accent(0) if left > 0.3 else Style.DANGER)
+			draw_rect(Rect2(c.x, mid + CARD_H / 2.0 + 14.0 + lift, CARD_W * left, 6.0), Style.accent(0) if left > 0.3 else Style.DANGER)
 		var card_color := Style.SURFACE_SOLID
 		if c.decided:
 			card_color = Style.SUCCESS if c.correct else Style.DANGER
-		var sb := Style.flat(Color(card_color, alpha), Style.R_CARD, Color.TRANSPARENT, 0)
-		sb.shadow_color = Color(0, 0, 0, 0.08 * alpha)
-		sb.shadow_size = 10
-		sb.draw(get_canvas_item(), Rect2(pos, Vector2(CARD_W, CARD_H)))
-		# Фигура по центру карточки, число внутри фигуры.
-		var center := pos + Vector2(CARD_W / 2.0, CARD_H / 2.0)
-		_draw_polygon(center, 92.0, c.sides, Color(COLORS[c.color], alpha))
+		# Бортик вместо тени; у решённой его нет: вдавлена и гаснет.
+		c.body.draw_lifted(self, Color(card_color, alpha), lift if not c.decided else 0.0)
+		# Фигура по центру карточки, число внутри фигуры: едет и наклоняется с ней, не гнётся.
+		c.figure.draw(self, Color(COLORS[c.color], alpha))
+		var center := _shape_center(c.figure)
 		var txt := str(c.number)
 		var fs := 40
 		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(font, Vector2(center.x - w / 2.0, center.y + fs * 0.36 + (10.0 if c.sides == 3 else 0.0)), txt,
+		draw_set_transform(center, pose.w)
+		draw_string(font, Vector2(-w / 2.0, fs * 0.36 + (10.0 if c.sides == 3 else 0.0)), txt,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(Style.SURFACE_SOLID, alpha))
-	# Правило сверху пиктограммами.
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+	# Правило сверху пиктограммами, при смене вспухает.
+	var pivot := Vector2(size.x / 2.0, 150.0)
+	var pop := 1.0 + maxf(_rule_pop.value, -0.5)
+	draw_set_transform(pivot * (1.0 - pop), 0.0, Vector2(pop, pop))
 	_draw_rule(font)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 	# Ошибки крестиками справа сверху, карточки точками.
 	var r := 7.0
 	var gap := 28.0
@@ -337,14 +435,6 @@ func _draw() -> void:
 	var dx := size.x - 48.0 - (cards_total - 1) * 20.0
 	for j in cards_total:
 		draw_circle(Vector2(dx + j * 20.0, 92.0), 5.0, Style.INK if j < decided else Style.SURFACE_2)
-
-
-func _draw_polygon(center: Vector2, radius: float, sides: int, color: Color) -> void:
-	var pts := PackedVector2Array()
-	for i in sides:
-		var a := -PI / 2.0 + TAU * i / sides
-		pts.append(center + Vector2(cos(a), sin(a)) * radius)
-	draw_colored_polygon(pts, color)
 
 
 ## Правило: условия пиктограммами в ряд, между двумя знак «+»; при смене вспышка цветом фокуса.
