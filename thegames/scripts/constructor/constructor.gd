@@ -66,6 +66,7 @@ var _remainder_label: Label
 var _remainder_value: Label
 var _button: PanelContainer
 var _button_label: Label
+var _button_lift: JellyLift
 var _shown: Dictionary[StringName, float] = {}
 var _ready_done := false
 
@@ -328,11 +329,13 @@ func regenerate_title() -> void:
 ## A на кнопке: конфигурация зафиксирована, назад нельзя. Если нельзя, кнопка трясётся.
 func confirm() -> void:
 	if estimate == null or not estimate.affordable or not selection_open():
+		_button_lift.press()
 		_shake(_button)
 		ShellSounds.play(&"miss")
 		return
 	ShellSounds.play(&"done")
 	Jelly.poke(_button, -2.0)
+	_button_lift.press()
 	game_configured.emit(current_config())
 
 
@@ -486,6 +489,7 @@ func _build_estimate(content: Control) -> void:
 	_button.add_child(_button_label)
 	column.add_child(_button)
 	Jelly.attach(_button, Style.R_CTL, 16.0)
+	_button_lift = JellyLift.add_to(_button, Style.R_CTL)
 
 
 func _row(column: VBoxContainer, caption: String) -> Label:
@@ -537,7 +541,10 @@ func _refresh(animate: bool) -> void:
 	var ink := Style.INK_3
 	if active:
 		ink = Style.SURFACE_SOLID if on_button else Style.INK
-	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if on_button and not active else Color.TRANSPARENT, 0))
+	# Прототип мармелада: при фокусе толщиной синей обводки у закрытой кнопки нет.
+	var ring := on_button and not active and not (Jelly.on() and Jelly.focus_lift())
+	_button.add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Style.FOCUS if ring else Color.TRANSPARENT, 0))
+	_button_lift.focused = on_button
 	_button_label.add_theme_color_override("font_color", ink)
 	for kind in ROWS:
 		_columns.set_caption(kind, ROW_LABELS[kind] + (" · как у оригинала" if is_locked_column(kind) else ""))

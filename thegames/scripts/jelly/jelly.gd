@@ -10,6 +10,9 @@ const PATHS: Array[String] = ["res://resources/jelly.tres", "res://resources/jel
 
 static var enabled := true
 static var material := 0
+## Чем показывать фокус: 0 толщиной (`JellyLift`), 1 упругой рамкой.
+const FOCUS_STYLES: Array[String] = ["толщина", "рамка"]
+static var focus_style := 0
 static var _tunings: Array[JellyTuning] = []
 
 
@@ -41,6 +44,10 @@ static func ui() -> JellyUi:
 	return _ui
 
 
+static func focus_lift() -> bool:
+	return focus_style == 0
+
+
 static func on() -> bool:
 	return enabled
 
@@ -60,7 +67,11 @@ static func register_debug() -> void:
 	Debug.add_choice(SECTION, "Материал (ручки ниже от него)", MATERIALS,
 			func() -> String: return MATERIALS[material],
 			func(v: String) -> void: material = maxi(MATERIALS.find(v), 0), true)
+	Debug.add_choice(SECTION, "Фокус", FOCUS_STYLES,
+			func() -> String: return FOCUS_STYLES[focus_style],
+			func(v: String) -> void: focus_style = maxi(FOCUS_STYLES.find(v), 0), true)
 	var tu := tuning()
+	_num("Фокус: высота бортика", tu, &"lift_px", 0.0, 20.0, 1.0)
 	_num("Жёсткость тела", tu, &"blob_stiffness", 100.0, 1200.0, 20.0)
 	_num("Затухание тела", tu, &"blob_damping", 1.0, 30.0, 1.0)
 	_num("Давление", tu, &"blob_pressure", 0.0, 4000.0, 100.0)

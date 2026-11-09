@@ -42,6 +42,7 @@ var _column_height := 0.0
 var _focus_ring: Panel
 var _poked := Vector2i(-1, -1)
 var _jelly_ring: JellyRing
+var _lifts: Array[Array] = []
 
 
 ## Построить колонки в области `area` (размер этого узла): подписи и карточки по колонкам.
@@ -87,8 +88,11 @@ func build(labels: Array[String], cards_: Array[Array], area: Vector2) -> void:
 		column.material = _mask
 		clip.add_child(column)
 		_rows.append(column)
+		var lifts: Array = []
+		_lifts.append(lifts)
 		for i in cards[col].size():
 			var c: Control = cards[col][i]
+			lifts.append(JellyLift.add_to(c, Style.R_CARD))
 			c.pivot_offset = Style.CARD_SIZE / 2.0
 			c.position = Vector2(card_x, _card_y(col, i))
 			column.add_child(c)
@@ -161,6 +165,14 @@ func refresh(animate: bool) -> void:
 
 ## Рамка фокуса только на карточках (плейтест 2026-11-07).
 func _place_focus_ring(animate: bool) -> void:
+	var lift := Jelly.on() and Jelly.focus_lift()
+	for col in _lifts.size():
+		for i in _lifts[col].size():
+			(_lifts[col][i] as JellyLift).focused = col == focus_col and i == index[col]
+	if lift:
+		_focus_ring.visible = false
+		_jelly_ring.visible = false
+		return
 	if focus_col < 0 or focus_col >= cards.size() or cards[focus_col].is_empty():
 		_focus_ring.visible = false
 		_jelly_ring.visible = false

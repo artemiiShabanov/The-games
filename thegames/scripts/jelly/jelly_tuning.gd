@@ -70,3 +70,10 @@ extends Resource
 ## Линза под курсором и наклон к нему (наклон выключен: карточка выглядела перекошенной).
 @export var ui_hover_lens := 0.06
 @export var ui_lean := 0.0
+
+@export_group("Фокус толщиной")
+## Подъём элемента в фокусе: высота бортика, вдавленный при нажатии, дыхание, затемнение.
+@export var lift_px := 8.0
+@export var lift_press := 1.5
+@export var lift_breathe := 0.8
+@export var lift_darken := 0.3
