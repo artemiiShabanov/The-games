@@ -19,7 +19,6 @@ const ITEM_GAP := 32
 const STREAM_HEIGHT := 408
 const ACCENT_BAR := 6
 const STAGGER_SECONDS := 0.08
-const DEMO_SCENE_PATH := "res://scenes/demos/platformer_bit8.tscn"
 
 var content: FeedContent
 var record: GameRecord
@@ -426,8 +425,10 @@ func _make_stream(item: FeedContent.Item) -> Control:
 func _start_stream() -> void:
 	if record == null or _stream_holder == null:
 		return
-	var scene := load(DEMO_SCENE_PATH) as PackedScene
-	_demo = scene.instantiate() as Demo
+	# Демка записи из каталога (#45); без неё кадр стрима остаётся фоном.
+	_demo = DemoCatalog.create(record)
+	if _demo == null:
+		return
 	_demo.setup(record, &"clip")
 	_demo.embed(Vector2(COLUMN_WIDTH, STREAM_HEIGHT))
 	_demo.demo_finished.connect(_on_stream_finished)

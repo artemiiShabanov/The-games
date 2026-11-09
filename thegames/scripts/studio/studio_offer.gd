@@ -3,7 +3,7 @@ extends RefCounted
 ## Состав предложения прокачки как чистая функция, спека `docs/specs/studio.md`: до трёх
 ## разных карточек, не больше одной технологии, не больше одного жанра, хотя бы одна
 ## возможность, если она осталась. Купленное, уже открытое и то, чьи `requires` не куплены,
-## не предлагается. Пул исчерпан: карточек меньше, пуст: ни одной. Порядок случайный от `rng`.
+## не предлагается; ремейки не предлагаются, пока открыта одна технология. Пул исчерпан: карточек меньше, пуст: ни одной. Порядок случайный от `rng`.
 
 
 static func compose(pool: Array[UpgradeDef], state: StudioState, unlocked_genres: Array[Game.Genre],
@@ -44,6 +44,9 @@ static func available(pool: Array[UpgradeDef], state: StudioState, unlocked_genr
 		if d.kind == UpgradeDef.Kind.TECH and unlocked_techs.has(d.tech):
 			continue
 		if d.kind == UpgradeDef.Kind.GENRE and unlocked_genres.has(d.genre):
+			continue
+		# Ремейк требует другую технологию: пока открыта одна, он не предлагается (#45).
+		if d.id == &"remakes" and unlocked_techs.size() < 2:
 			continue
 		var ok := true
 		for r in d.requires:

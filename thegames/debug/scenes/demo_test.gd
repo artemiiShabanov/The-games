@@ -5,7 +5,6 @@ extends Control
 ## прыжков и теряет жизни. `--no-checks` без проверок, `--pause` открывает меню паузы,
 ## `--bugs` все баги каталога, `--bug=<id>` один баг.
 
-const DEMO := preload("res://scenes/demos/platformer_bit8.tscn")
 
 var demo: Demo
 var record: GameRecord
@@ -52,7 +51,7 @@ func _launch() -> void:
 	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("bug"):
 		# `--bug=<id>`: один баг под скриншот.
 		record.add_bug(StringName(str(AutoTest.parse_args(OS.get_cmdline_user_args())["bug"])))
-	demo = DEMO.instantiate() as Demo
+	demo = DemoCatalog.create(record)
 	demo.setup(record, &"debug")
 	demo.demo_started.connect(func(_r: GameRecord, _s: StringName) -> void: _started += 1)
 	demo.demo_finished.connect(_on_finished)

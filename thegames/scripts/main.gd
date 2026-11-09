@@ -12,7 +12,6 @@ extends Control
 enum Stage { START, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, END }
 
 const SECTION: StringName = &"Состояние"
-const DEMO_PATH := "res://scenes/demos/platformer_bit8.tscn"
 const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
 const BASE_PATH := "res://scenes/base_chooser.tscn"
 const BUGFIX_PATH := "res://scenes/bugfix_offer.tscn"
@@ -171,10 +170,15 @@ func _begin_playtest() -> void:
 
 
 func _run_demo(source: StringName, caption: String) -> void:
+	_demo = DemoCatalog.create(record)
+	if _demo == null:
+		# Демки пары ещё нет (#45): петля идёт дальше без неё.
+		AutoTest.note("нет демки для %s × %s, этап пропущен" % [Game.genre_name(record.genre), Game.tech_name(record.tech)])
+		_on_demo_finished.call_deferred(record, false)
+		return
 	_demo_header = HintPill.header("Релиз %d · %s · %s" % [run.release, caption, record.title])
 	_demo_header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(_demo_header)
-	_demo = (load(DEMO_PATH) as PackedScene).instantiate() as Demo
 	_demo.setup(record, source)
 	_demo.demo_finished.connect(_on_demo_finished)
 	add_child(_demo)

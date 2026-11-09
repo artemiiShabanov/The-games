@@ -105,12 +105,15 @@ func setup(unlocked_genres: Array[Game.Genre], unlocked_techs: Array[Game.Tech],
 		for k in CatalogEntry.Kind.values():
 			catalogs.append(Catalog.load_kind(k))
 	# Стартовый выбор: первая открытая карточка каждого вида, у франшизы жанр и сеттинг оригинала.
+	# Два прохода: открытость жанра зависит от выбранной технологии (демка пары, #45) и наоборот.
 	for kind in ROWS:
 		index[kind] = 0
-		for i in catalogs[kind].entries.size():
-			if is_unlocked(kind, i):
-				index[kind] = i
-				break
+	for pass_i in 2:
+		for kind in ROWS:
+			for i in catalogs[kind].entries.size():
+				if is_unlocked(kind, i):
+					index[kind] = i
+					break
 	var p := franchise_parent()
 	if p != null:
 		index[0] = maxi(catalogs[0].index_of(int(p.genre)), 0)
@@ -193,7 +196,24 @@ func is_unlocked(kind: int, i: int) -> bool:
 		return false
 	if is_locked_column(kind) and i != index[kind]:
 		return false
+	if _demo_missing(kind, i):
+		return false
 	return true
+
+
+## Демки ещё нет (#45): жанр закрыт, если нет демки пары с выбранной технологией; технология,
+## если у неё нет ни одной демки. Так при недоступной паре закрыта одна карточка, жанра, а не
+## обе. Пока демки приходят по одной, такая карточка закрыта с пилюлей «демка в работе».
+func _demo_missing(kind: int, i: int) -> bool:
+	var v: int = catalogs[kind].entries[i].value
+	if kind == 0:
+		return not DemoCatalog.has_demo(v as Game.Genre, selected_entry(1).value as Game.Tech)
+	if kind == 1:
+		for g in Game.Genre.values():
+			if DemoCatalog.has_demo(g as Game.Genre, v as Game.Tech):
+				return false
+		return true
+	return false
 
 
 func selected_entry(kind: int) -> CatalogEntry:
@@ -412,6 +432,7 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	inner.add_child(caption)
 	inner.add_child(CardColumns.center_pill("придёт с прокачкой", &"upgrade"))
 	inner.add_child(CardColumns.center_pill("недоступно", &"franchise"))
+	inner.add_child(CardColumns.center_pill("демка в работе", &"demo"))
 	if with_origin_pill:
 		inner.add_child(CardColumns.center_pill("как у оригинала", &"origin"))
 	# Метка рынка сверху слева (STYLE: метка насыщения без чисел), текст ставит `_refresh`.
@@ -525,7 +546,13 @@ func _refresh(animate: bool) -> void:
 	_remainder_label.add_theme_color_override("font_color", Style.DANGER if danger else Style.INK_2)
 	var open := selection_open()
 	if not open:
-		_button_label.text = "Нужна другая технология" if _tech_blocked(selected_entry(1).value) else "Придёт с прокачкой"
+		if _tech_blocked(selected_entry(1).value):
+			_button_label.text = "Нужна другая технология"
+		elif unlocked[0].has(selected_entry(0).value) and unlocked[1].has(selected_entry(1).value) \
+				and not DemoCatalog.has_demo(selected_entry(0).value as Game.Genre, selected_entry(1).value as Game.Tech):
+			_button_label.text = "Демка в работе"
+		else:
+			_button_label.text = "Придёт с прокачкой"
 	elif danger:
 		_button_label.text = "Не хватает " + Style.format_money(estimate.shortfall())
 	else:
@@ -561,8 +588,8 @@ func _refresh_market_tag(kind: int, i: int, c: Control) -> void:
 			(child.get_child(0) as Label).text = text
 
 
-## Закрытая карточка затемнена, пилюля говорит почему: прокачка, франшиза или технология
-## оригинала.
+## Закрытая карточка затемнена, пилюля говорит почему: прокачка, франшиза, технология
+## оригинала или демка пары в работе (#45).
 func _refresh_card_lock(kind: int, i: int, c: Control) -> void:
 	var e := catalogs[kind].entries[i]
 	var meta: StringName = &""
@@ -572,6 +599,8 @@ func _refresh_card_lock(kind: int, i: int, c: Control) -> void:
 		meta = &"franchise"
 	elif kind == 1 and _tech_blocked(e.value):
 		meta = &"origin"
+	elif _demo_missing(kind, i):
+		meta = &"demo"
 	CardColumns.set_card_lock(c, meta)
 
 

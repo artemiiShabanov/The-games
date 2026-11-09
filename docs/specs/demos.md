@@ -76,6 +76,9 @@
   GameRecord, reached_goal: bool)`.
 - Состояние: `GameRecord` — конфигурация, `seed: int`, список `bug_ids`, результаты; `BugDef`
   в каталоге.
+- Каталог (#45): `DemoCatalog` берёт сцену пары `res://scenes/demos/<жанр>_<технология>.tscn`
+  (`platformer_bit8`); плейтест, «В демо» из ленты и стрим ленты берут демку записи. Нет сцены:
+  этап демки пропускается, стрим остаётся фоном, в конструкторе пара закрыта.
 - Тюнинг: `res://resources/bugs/catalog.tres` (`BugCatalog`); параметры проявлений в
   `res://resources/bugs/<id>.tres`; демки в `res://scenes/demos/<genre>_<tech>.tscn`.
 

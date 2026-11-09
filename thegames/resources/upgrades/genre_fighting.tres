@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_8otlo"]
+
+[resource]
+script = ExtResource("1_8otlo")
+id = &"genre_fighting"
+kind = 1
+title = "Файтинг"
+effect_line = "Новый жанр в конструкторе, своя мини-игра в каждом релизе"
+genre = 4
+prop = "плакат «файтинг» на стене"

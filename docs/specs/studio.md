@@ -99,3 +99,6 @@
   через `StudioState.replays/bugfix_offers/insider/discount`, переигровка в `SprintRunner`,
   второе предложение через `Bugfix.offers`, метки рынка `Constructor.set_market`); сиквелы и
   ремейки в спеке конструктора (#24); «новый сеттинг» в M2.
+- [x] Жанры в пуле M2 (#45): четыре `UpgradeDef` вида GENRE (`genre_racing`, `genre_shooter`,
+  `genre_sport`, `genre_fighting`, `debug/tools/bootstrap_genres.gd`), цена и надбавка общие
+  из `economy.tres`; ремейки не предлагаются, пока открыта одна технология.

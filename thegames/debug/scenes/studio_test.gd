@@ -295,9 +295,17 @@ func _run_checks() -> void:
 			"деньги %d" % report.cash)
 	_expect(report.stats != null and report.stats.valuation > report.cash, "оценка")
 	_expect(report.offer.size() == 3, "предложение %s" % [report.offer])
+	var genres_offered := 0
 	for d in report.offer:
-		_expect(d.kind == UpgradeDef.Kind.CAPABILITY and d.id != &"replay2", "в пуле v1 %s" % d.id)
-	_expect(pool.size() == 7, "пул v1 из %d" % pool.size())
+		_expect(d.id != &"replay2" and d.kind != UpgradeDef.Kind.TECH, "в предложении %s" % d.id)
+		genres_offered += 1 if d.kind == UpgradeDef.Kind.GENRE else 0
+	_expect(genres_offered <= 1, "жанров в предложении %d" % genres_offered)
+	# Пул M2 (#45): семь возможностей и четыре жанра.
+	_expect(pool.size() == 11, "пул из %d" % pool.size())
+	# Ремейки не предлагаются, пока открыта одна технология.
+	var one_tech: Array[Game.Tech] = [Game.Tech.BIT8]
+	var avail := StudioOffer.available(pool, StudioState.new(), unlocked_genres, one_tech)
+	_expect(not avail.any(func(d: UpgradeDef) -> bool: return d.id == &"remakes"), "ремейки при одной технологии")
 
 	# Аванс и конец забега: денег в минусе, доход фазы не вытягивает до дешёвого релиза.
 	_make_run(past_count)

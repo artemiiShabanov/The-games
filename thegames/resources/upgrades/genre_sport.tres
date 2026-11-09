@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_nigt0"]
+
+[resource]
+script = ExtResource("1_nigt0")
+id = &"genre_sport"
+kind = 1
+title = "Спорт"
+effect_line = "Новый жанр в конструкторе, своя мини-игра в каждом релизе"
+genre = 3
+prop = "плакат «спорт» на стене"

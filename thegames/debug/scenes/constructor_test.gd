@@ -236,9 +236,13 @@ func _run_checks() -> void:
 	_expect(q.sprints == 4 and q.sprint_cost == 1160 and q.title != "", "quick_config: %s" % q)
 	_expect(Style.format_money(12000) == "$ 12 000" and Style.format_money(-2600) == "− $ 2 600" and Style.format_money(900) == "$ 900",
 			"формат денег: %s / %s" % [Style.format_money(12000), Style.format_money(-2600)])
+	_check_demo_lock()
+	# Механика экрана проверяется так, будто демка есть у любой пары (#45).
+	DemoCatalog.pretend_all = true
 	await _check_franchise()
 	_check_effects()
 	_check_mouse()
+	DemoCatalog.pretend_all = false
 	AutoTest.fulfill("constructor checks")
 	AutoTest.note("constructor checks done")
 
@@ -331,6 +335,25 @@ func _check_effects() -> void:
 			and constructor.market_tag(2, Game.Setting.SPACE) == "в тренде", "метки с инсайдером: %s" % [constructor.market_tags])
 	manager = false
 	insider = false
+
+
+## Пара без демки (#45): при всём открытом жанр без демки на 8-bit закрыт пилюлей «демка в
+## работе», с ним кнопка закрыта и так и подписана; платформер на 8-bit открыт.
+func _check_demo_lock() -> void:
+	all_open = true
+	_launch()
+	var genres := constructor.catalogs[0]
+	var tech_i := constructor.catalogs[1].index_of(Game.Tech.BIT8)
+	constructor.index[1] = tech_i
+	var plat := genres.index_of(Game.Genre.PLATFORMER)
+	var racing := genres.index_of(Game.Genre.RACING)
+	_expect(constructor.is_unlocked(0, plat), "платформер × 8-bit открыт")
+	_expect(not constructor.is_unlocked(0, racing), "гонки × 8-bit закрыты без демки")
+	constructor.focus(0)
+	constructor.select(0, racing)
+	_expect(not constructor.selection_open() and constructor._button_label.text == "Демка в работе",
+			"кнопка без демки: «%s»" % constructor._button_label.text)
+	all_open = false
 
 
 ## Мышь (#43): клик по карточке выбирает её и колонку, колесо листает колонку под курсором,
