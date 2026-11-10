@@ -52,7 +52,7 @@ const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const HUD_DIM := Color(0.086, 0.078, 0.071, 0.55)
 const SEA := Color("#2F6FB5")
-## Направления взгляда по часовой от «вправо» (экран, y вниз), как кадры `shoot_hero_0..7`.
+## Направления взгляда по часовой от «вправо» (экран, y вниз); кадр героя `_hero_frame`.
 const DIRS: Array[Vector2] = [Vector2(1, 0), Vector2(0.70710678, 0.70710678), Vector2(0, 1),
 	Vector2(-0.70710678, 0.70710678), Vector2(-1, 0), Vector2(-0.70710678, -0.70710678),
 	Vector2(0, -1), Vector2(0.70710678, -0.70710678)]
@@ -80,8 +80,11 @@ var hud: Node2D
 ## Сеттинг записи: спрайты.
 var scene_set: SettingDef
 var hero := Vector2.ZERO
-## Взгляд героя: индекс в `DIRS`, кадр `shoot_hero_<facing>`.
+## Взгляд героя: индекс в `DIRS`.
 var facing := 6
+## Кадр героя `shoot_hero_0..3` (вправо, вниз, влево, вверх): по диагонали остаётся прежний
+## прямой, если он соседний, иначе боковой.
+var _hero_frame := 3
 var hp := 5
 var invuln := 0.0
 var foes: Array[Foe] = []
@@ -139,7 +142,7 @@ func _on_start() -> void:
 	scene_set = SettingDef.of(record.setting)
 	arena = ShooterArenaGen.generate(record.seed)
 	rng.seed = hash(str(record.seed, ":shooter"))
-	for i in 8:
+	for i in 4:
 		tex["shoot_hero_%d" % i] = scene_set.sprite("shoot_hero_%d" % i)
 	for name in SPRITES:
 		tex[name] = scene_set.sprite(name)
@@ -328,6 +331,7 @@ func _hero_step(delta: float) -> void:
 	hero_moving = false
 	if axis.length() > 0.3:
 		facing = _dir_index(axis.angle())
+		_update_hero_frame()
 		if not hold:
 			hero = _slide(hero, axis.limit_length(1.0) * tuning.hero_speed * delta, tuning.hero_radius, false)
 			hero_moving = true
@@ -750,6 +754,14 @@ func _path_dir(p: Vector2) -> Vector2:
 
 # --- Рисование виртуального экрана ---------------------------------------------------------
 
+## Прямой взгляд даёт свой кадр; диагональ оставляет прежний, если он соседний, иначе боковой.
+func _update_hero_frame() -> void:
+	if facing % 2 == 0:
+		_hero_frame = facing / 2
+	elif absi(wrapi(facing - _hero_frame * 2, -4, 4)) != 1:
+		_hero_frame = 0 if DIRS[facing].x > 0.0 else 2
+
+
 func _dir_index(angle: float) -> int:
 	return posmod(int(round(angle / (PI / 4.0))), 8)
 
@@ -794,7 +806,7 @@ func _draw_world_layer() -> void:
 		_sprite("shot" if s.hostile else "ball", "shoot_shot" if s.hostile else "shoot_ball", s.pos)
 	var blink := invuln > 0.0 and fmod(invuln, 0.2) < 0.1
 	if not blink:
-		_sprite("hero", "shoot_hero_%d" % facing, hero)
+		_sprite("hero", "shoot_hero_%d" % _hero_frame, hero)
 	if (_bot_hold if bot_driven() else _hold_b) and count_left <= 0.0:
 		# B зажата: прицел точками по взгляду.
 		for k: float in [13.0, 18.0, 23.0]:

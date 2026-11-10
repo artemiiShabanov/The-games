@@ -24,12 +24,12 @@ const PATH := "res://resources/demos/shooter_bit8.tres"
 @export var hit_radius := 7.0
 ## Ходок (скелет): скорость, жизни; идёт к герою по палубе в обход пропов.
 @export var walker_speed := 36.0
-@export var walker_hp := 1
+@export var walker_hp := 2
 ## Канонир: скорость, жизни, держится от героя на расстоянии от `keep_min` до `keep_max`,
 ## ходит вбок и меняет сторону раз в `strafe_flip` секунд (±40 % по сиду), стреляет медленной
 ## пулей раз в `fire_every` (±20 %), первый выстрел через `first_shot` после выхода на палубу.
 @export var gunner_speed := 28.0
-@export var gunner_hp := 2
+@export var gunner_hp := 1
 @export var keep_min := 70.0
 @export var keep_max := 120.0
 @export var strafe_flip := 2.0
