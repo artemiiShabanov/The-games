@@ -52,4 +52,5 @@ condition = &"reputation_rising"
 line = "Пишу материал о небольших студиях. {studio} растёт, читателям интересно, как у вас на самом деле. Расскажете?"
 line_warm = ""
 line_cold = ""
+cooldown = 3
 choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_6"), SubResource("Res_7")])

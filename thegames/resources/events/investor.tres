@@ -50,4 +50,5 @@ condition = &"investor_low_cash"
 line = "Вижу, с деньгами у вас туго. Вложусь, но технологию следующей игры выберу сама: {tech}. Или дам меньше, но заберу долю с двух следующих игр."
 line_warm = ""
 line_cold = ""
+cooldown = 3
 choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_6"), SubResource("Res_7")])

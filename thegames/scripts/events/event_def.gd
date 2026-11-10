@@ -18,6 +18,10 @@ enum Kind { RANDOM, ENDING, RESCUE }
 @export_multiline var line_warm := ""
 @export_multiline var line_cold := ""
 @export var choices: Array[ChoiceDef] = []
+## Не чаще раза в столько релизов (0 без ограничения); у концовки это повтор после отказа.
+@export var cooldown := 0
+## Один раз за забег.
+@export var once := false
 
 
 func line_for(mood: int) -> String:

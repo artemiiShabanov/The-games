@@ -49,4 +49,5 @@ condition = &"buyer"
 line = "{studio} стоит денег, и я готова их заплатить. Продадите студию? Предложение хорошее, второй раз может не прозвучать."
 line_warm = ""
 line_cold = ""
+cooldown = 3
 choices = Array[ExtResource("3_choice")]([SubResource("Res_2"), SubResource("Res_5"), SubResource("Res_6")])

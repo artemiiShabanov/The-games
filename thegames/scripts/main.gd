@@ -318,9 +318,24 @@ func _open_studio() -> void:
 	_expected_cash += report.first_week + report.tails_total - report.upkeep + report.rescue
 	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
+	var offer := run.plan_event(report)
+	if offer != null:
+		AutoTest.note("event: релиз %d, %s" % [run.release, offer.def.id])
+		screen.set_event(offer, _apply_event.bind(offer))
 	screen.upgrade_bought.connect(func(u: UpgradeDef) -> void: _expected_cash -= u.price(run.economy))
 	screen.finished.connect(_on_studio_finished)
 	_set_screen(screen)
+
+
+## Ответ на вставку: применить, пересчитать оценку для экрана, сверка денег петли.
+func _apply_event(index: int, offer: Events.Offer) -> String:
+	var before := run.wallet.cash
+	var outcome := run.apply_event(offer, index)
+	_expected_cash += run.wallet.cash - before
+	report.cash = run.wallet.cash
+	report.stats = run.stats_with(record)
+	AutoTest.note("event %s: ответ %d %s, %s" % [offer.def.id, index, outcome, run.event_state])
+	return outcome
 
 
 func _on_studio_finished() -> void:

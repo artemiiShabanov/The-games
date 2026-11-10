@@ -240,7 +240,7 @@ static func _effect_pills(effects: Array[Effect]) -> Array[Pill]:
 			EffectDef.Kind.RESTRICT_SEQUEL:
 				next.append("сиквел")
 			EffectDef.Kind.TAIL_SHARE:
-				var games := "" if e.games <= 1 else " %d игр" % e.games
+				var games := "" if e.games <= 1 else " %s игр" % (["двух", "трёх", "четырёх"][e.games - 2] if e.games <= 4 else str(e.games))
 				out.append(Pill.of("−%d %% с хвоста%s" % [roundi(e.share * 100.0), games], Tone.MINUS))
 			EffectDef.Kind.NEXT_BONUS:
 				var what: String = ["критики", "стримеры", "продажи"][e.stat]
@@ -315,7 +315,12 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 			EffectDef.Kind.FLAG:
 				state.flags[e.id] = release
 	if offer.character != null:
-		state.shift_mood(offer.character.id, c.mood_delta)
+		var ch := offer.character
+		state.shift_mood(ch.id, c.mood_delta)
+		# Отказы подряд: персонаж с лимитом уходит до конца забега.
+		state.refusals[ch.id] = state.refusals.get(ch.id, 0) + 1 if c.mood_delta < 0 else 0
+		if ch.leaves_after_refusals > 0 and state.refusals[ch.id] >= ch.leaves_after_refusals:
+			state.flags[StringName("left_" + String(ch.id))] = release
 	state.mark_shown(offer.def.id, release)
 	return outcome
 

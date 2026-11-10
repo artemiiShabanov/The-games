@@ -22,6 +22,8 @@ var upgrades: Array[UpgradeDef] = []
 var critics: PeopleSet
 var streamers: PeopleSet
 var texts: FeedTexts
+var meta: MetaTuning
+var events: Array[EventDef] = []
 
 var release := 1
 var cap := 12
@@ -44,6 +46,9 @@ var last_plan: SprintPlan
 var reputation_before := 0.0
 ## Покупатель уже приходил в этом забеге (ставят вставки, #64): на капе −1 не приходит снова.
 var buyer_came := false
+var event_state := EventState.new()
+## Репутация в конце каждого закрытого релиза: «выросла за два релиза» у вставок.
+var rep_log: Array[float] = []
 var finished := false
 var finish_reason := ""
 
@@ -62,6 +67,8 @@ static func start(seed_: int, deterministic_market := false) -> RunState:
 	r.critics = PeopleSet.load_critics()
 	r.streamers = PeopleSet.load_streamers()
 	r.texts = FeedTexts.load_default()
+	r.meta = MetaTuning.load_default()
+	r.events = Events.load_all()
 	r.rng.seed = seed_
 	r.cap = r.rng.randi_range(r.tuning.cap_min, r.tuning.cap_max)
 	r.start_genre = r.tuning.genre
@@ -208,9 +215,55 @@ func settle(record: GameRecord) -> StudioPhase.Report:
 			upgrades, unlocked_genres(), unlocked_techs(), unlocked_settings(), rng)
 
 
+# --- Вставки (#64) --------------------------------------------------------------------------------
+
+## Шаг 5 фазы студии: вставка этого релиза или null. Зовётся после `settle`.
+func plan_event(report: StudioPhase.Report) -> Events.Offer:
+	if report != null and report.game_over:
+		return null
+	var ctx := EventPlanner.Context.new()
+	ctx.release = release
+	ctx.cap = cap
+	ctx.cash = wallet.cash
+	ctx.cheapest = report.cheapest if report != null else 0
+	ctx.reputation = market.reputation
+	ctx.reputation_before = rep_log[rep_log.size() - 2] if rep_log.size() >= 2 else 0.0
+	ctx.records = records
+	ctx.genres = unlocked_genres().size()
+	ctx.sequels = studio.sequels_unlocked()
+	ctx.buyer_due = buyer_due()
+	var def := EventPlanner.plan(events, ctx, event_state, meta, rng)
+	if def == null:
+		return null
+	if def.condition == &"buyer":
+		buyer_came = true
+	var mood := event_state.mood(def.character.id) if def.character != null else 0
+	return Events.resolve(def, mood, event_context(), meta)
+
+
+func event_context() -> Events.Context:
+	var ctx := Events.Context.new()
+	for g in unlocked_genres():
+		ctx.genres.append(int(g))
+	for t in unlocked_techs():
+		ctx.techs.append(int(t))
+	for s in unlocked_settings():
+		ctx.settings.append(int(s))
+	ctx.records = records
+	ctx.studio = studio_name
+	ctx.rng = rng
+	return ctx
+
+
+## Ответ на вставку: деньги и репутация сразу, остальное в `event_state`; исход монетки.
+func apply_event(offer: Events.Offer, index: int) -> String:
+	return Events.apply(offer, index, wallet, market, event_state, meta, rng, release)
+
+
 ## Релиз закрыт: запись в историю, следующий номер; конец забега по капу.
 func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
 	records.append(record)
+	rep_log.append(market.reputation)
 	if report != null and report.game_over:
 		finished = true
 		finish_reason = "банкротство"
@@ -223,6 +276,14 @@ func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
 
 func stats() -> RunStats:
 	return Success.run_stats(records, market, wallet.cash, success)
+
+
+## Как в фазе студии: закрытые релизы плюс текущий, ещё не закрытый.
+func stats_with(current: GameRecord) -> RunStats:
+	var all: Array[GameRecord] = records.duplicate()
+	if current != null and not all.has(current):
+		all.append(current)
+	return Success.run_stats(all, market, wallet.cash, success)
 
 
 func _to_string() -> String:

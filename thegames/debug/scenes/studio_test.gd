@@ -2,7 +2,7 @@ extends Control
 ## Тестовая сцена фазы студии (#28): забег модели «хорошие руки» из `success_test` до нужного
 ## релиза, затем фаза: ведомость, содержание, банкротство, оценка, предложение прокачки.
 ## Раздел «Студия» дебаг-меню: сколько релизов уже было, деньги на входе, сид, спасение было,
-## всё куплено; «Новая фаза». Под ботом сверяет состав предложения на синтетическом пуле,
+## всё куплено; «Новая фаза». `--event=<id>` ставит вставку шагом 5 (#64). Под ботом сверяет состав предложения на синтетическом пуле,
 ## расчёт `settle` с таблицей модели, аванс и конец забега, покупку, затем гоняет экран:
 ## WIN покупает первое доступное, LOSE отказывается, банкрот без аванса, пустой пул.
 
@@ -35,6 +35,8 @@ var cash := 20000
 var seed_value := 1
 var rescued := false
 var bought_all := false
+## `--event=<id>`: шаг 5 с этой вставкой (#64).
+var event_id := ""
 
 var economy: EconomyTuning
 var success: SuccessTuning
@@ -91,6 +93,8 @@ func _ready() -> void:
 		rescued = true
 	if args.has("all-bought"):
 		bought_all = true
+	if args.has("event"):
+		event_id = str(args["event"])
 	if AutoTest.enabled:
 		Debug.skip_cards = true
 		if args.has("no-checks"):
@@ -169,6 +173,21 @@ func _launch() -> void:
 func _show_screen() -> void:
 	screen = (load(SCREEN_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, wallet, upkeep, state, economy)
+	var def := Events.find(Events.load_all(), StringName(event_id)) if event_id != "" else null
+	if def != null:
+		var meta := MetaTuning.load_default()
+		var rng := RandomNumberGenerator.new()
+		var ctx := Events.Context.new()
+		ctx.genres = [int(G.PLATFORMER), int(G.SHOOTER), int(G.RACING)]
+		ctx.techs = [int(T.BIT8)]
+		ctx.settings = [int(S.PIRATES), int(S.SPACE), int(S.CASTLES)]
+		ctx.records = records
+		ctx.studio = "Тихая Лампа"
+		ctx.rng = rng
+		var offer := Events.resolve(def, 0, ctx, meta)
+		var st := EventState.new()
+		screen.set_event(offer, func(i: int) -> String:
+			return Events.apply(offer, i, wallet, market, st, meta, rng, past_count + 1))
 	screen.offer_shown.connect(func(options: Array[UpgradeDef]) -> void: _signals.append("shown %d" % options.size()))
 	screen.upgrade_bought.connect(func(u: UpgradeDef) -> void: _signals.append("bought " + String(u.id)))
 	screen.offer_skipped.connect(func() -> void: _signals.append("skipped"))

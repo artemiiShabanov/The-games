@@ -26,6 +26,10 @@ const MAX_TAIL_ROWS := 4
 const LIFT_PX := 6
 
 var report: StudioPhase.Report
+## Шаг 5: вставка этого релиза (#64) и как её применить (хозяин: `(index) -> String`).
+var event_offer: Events.Offer
+var event_apply: Callable
+var event_card: EventCard
 var wallet: Wallet
 var upkeep: Upkeep
 var state: StudioState
@@ -58,6 +62,13 @@ func setup(report_: StudioPhase.Report, wallet_: Wallet, upkeep_: Upkeep, state_
 	upkeep = upkeep_
 	state = state_
 	economy = economy_
+
+
+## Вставка между оценкой и предложением; хозяин применяет ответ и пересчитывает оценку в
+## `report.stats`.
+func set_event(offer_: Events.Offer, apply_: Callable) -> void:
+	event_offer = offer_
+	event_apply = apply_
 
 
 func _ready() -> void:
@@ -253,13 +264,31 @@ func _run() -> void:
 		elif report.game_over:
 			await _add_row("Второго аванса нет: банкротство", 0, Style.DANGER, money)
 	_fade_in(_valuation_block)
-	_roll_label(_valuation_label, float(report.cash), float(report.stats.valuation if report.stats else report.cash))
+	var valuation := float(report.stats.valuation if report.stats else report.cash)
+	_roll_label(_valuation_label, float(report.cash), valuation)
 	await _step()
+	if event_offer != null:
+		await _show_event(valuation)
 	_show_offer()
 	ready_for_input = true
 	_fade_in(_hints)
 	if not report.game_over:
 		offer_shown.emit(report.offer)
+
+
+## Шаг 5 (#64): карточка вставки поверх фазы; после ответа деньги и оценка докручиваются.
+func _show_event(valuation_before: float) -> void:
+	event_card = EventCard.new()
+	event_card.dim = true
+	event_card.setup(event_offer, report.release, wallet, event_apply)
+	add_child(event_card)
+	await event_card.finished
+	event_card.queue_free()
+	event_card = null
+	_roll_money(wallet.cash)
+	if report.stats != null:
+		_roll_label(_valuation_label, valuation_before, float(report.stats.valuation))
+	await _step()
 
 
 func _step() -> void:

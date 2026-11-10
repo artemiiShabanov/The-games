@@ -17,6 +17,8 @@ extends Resource
 @export var person_id: StringName = &""
 ## Как упомянуть в пилюлях: «по договору с Виктором», «Виктор обидится».
 @export var short_name := ""
+## Уходит до конца забега после стольких отказов подряд (ответ с `mood_delta` < 0); 0 никогда.
+@export var leaves_after_refusals := 0
 
 
 func short() -> String:

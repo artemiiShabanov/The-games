@@ -37,6 +37,8 @@ var last_event_release := -100
 var shown: Dictionary[StringName, int] = {}
 var last_shown: Dictionary[StringName, int] = {}
 var moods: Dictionary[StringName, int] = {}
+## Отказы подряд по персонажам; ушедшие в `flags` как `left_<id>`.
+var refusals: Dictionary[StringName, int] = {}
 ## Флаг и релиз, когда поставлен.
 var flags: Dictionary[StringName, int] = {}
 var restrictions: Array[Restriction] = []
@@ -51,6 +53,10 @@ func mood(character: StringName) -> int:
 
 func shift_mood(character: StringName, delta: int) -> void:
 	moods[character] = clampi(mood(character) + delta, -1, 1)
+
+
+func left(character: StringName) -> bool:
+	return flags.has(StringName("left_" + String(character)))
 
 
 func mark_shown(id: StringName, release: int) -> void:

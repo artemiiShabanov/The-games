@@ -71,6 +71,7 @@ func _ready() -> void:
 			Debug.skip_cards = true
 			AutoTest.require("event checks")
 			_static_checks()
+			_planner_checks()
 			for e in defs.size():
 				for c in defs[e].choices.size():
 					_queue.append(Vector2i(e, c))
@@ -140,6 +141,77 @@ func _on_finished(i: int) -> void:
 func _expect(ok: bool, what: String) -> void:
 	if not ok:
 		AutoTest.fail("event: " + what)
+
+
+## Планировщик (#64) без экрана: частота за забег на синтетических вставках («always», без
+## давности), ни одной до третьего релиза и подряд, концовка гарантирована, издатель уходит
+## после двух отказов, покупатель на капе −1.
+func _planner_checks() -> void:
+	var always: Array[EventDef] = []
+	for i in 6:
+		var d := EventDef.new()
+		d.id = StringName("synthetic_%d" % i)
+		d.condition = &"always"
+		always.append(d)
+	var prng := RandomNumberGenerator.new()
+	prng.seed = 11
+	var runs := 400
+	var total := 0
+	var min_n := 99
+	var max_n := 0
+	for r in runs:
+		var st := EventState.new()
+		var n := 0
+		var last := -10
+		for release in range(1, 13):
+			var ctx := EventPlanner.Context.new()
+			ctx.release = release
+			ctx.cap = 12
+			var d := EventPlanner.plan(always, ctx, st, meta, prng)
+			if d == null:
+				continue
+			_expect(release >= meta.first_release, "вставка на релизе %d" % release)
+			_expect(release - last >= 2, "вставки подряд: %d и %d" % [last, release])
+			last = release
+			st.mark_shown(d.id, release)
+			n += 1
+		total += n
+		min_n = mini(min_n, n)
+		max_n = maxi(max_n, n)
+	var avg := float(total) / runs
+	_expect(avg >= 3.5 and avg <= 5.0, "вставок за забег в среднем %.2f" % avg)
+	AutoTest.note("planner: за забег из 12 релизов в среднем %.2f вставки (%d-%d)" % [avg, min_n, max_n])
+	# Концовка приходит сразу, без шанса по давности.
+	var buyer := Events.find(defs, &"buyer")
+	if buyer != null:
+		var st := EventState.new()
+		st.mark_shown(&"interview", 5)
+		var ctx := EventPlanner.Context.new()
+		ctx.release = 6
+		ctx.cap = 12
+		ctx.reputation = meta.sale_reputation + 1.0
+		_expect(EventPlanner.plan(defs, ctx, st, meta, prng) == buyer, "покупатель с середины при высокой репутации")
+		ctx.release = 4
+		ctx.reputation = 0.0
+		ctx.buyer_due = true
+		_expect(EventPlanner.plan(defs, ctx, st, meta, prng) == buyer, "покупатель на капе −1")
+		st.mark_shown(&"buyer", 4)
+		ctx.release = 5
+		_expect(EventPlanner.plan(defs, ctx, st, meta, prng) != buyer, "покупатель после отказа не сразу")
+	# Издатель уходит после двух отказов подряд.
+	var pub := Events.find(defs, &"publisher_offer")
+	if pub != null:
+		var st := EventState.new()
+		var w := Wallet.new(0)
+		var m := MarketState.create(success, prng, true)
+		for k in 2:
+			var o := Events.resolve(pub, st.mood(&"publisher"), _context(), meta)
+			Events.apply(o, o.choices.size() - 1, w, m, st, meta, prng, 3 + k * 4)
+		var ctx := EventPlanner.Context.new()
+		ctx.release = 20
+		ctx.genres = 3
+		_expect(st.left(&"publisher") and not EventPlanner.available(pub, ctx, st, meta), "издатель не ушёл после двух отказов")
+		_expect(st.mood(&"publisher") == -1, "настроение после отказов %d" % st.mood(&"publisher"))
 
 
 ## Без экрана: суммы по настроению, «хочу X» не как прошлая игра, пилюли у каждого варианта

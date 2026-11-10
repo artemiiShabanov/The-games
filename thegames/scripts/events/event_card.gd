@@ -29,6 +29,9 @@ var apply: Callable
 var meta: MetaTuning
 var index := 0
 var done := false
+## Подложка `bg` под карточкой: поверх другого экрана (фаза студии).
+var dim := false
+var _bot_timer := 0.0
 
 var _panel: PanelContainer
 var _face: PixelFace
@@ -57,6 +60,18 @@ func _ready() -> void:
 		_panel.modulate.a = 0.0
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tw.tween_property(_panel, "modulate:a", 1.0, Style.SWITCH_SECONDS)
+
+
+## Бот автотеста: WIN первый вариант, LOSE последний (обычно отказ).
+func _process(delta: float) -> void:
+	if done or not AutoTest.bot_active():
+		return
+	_bot_timer += delta
+	if _bot_timer < 0.4:
+		return
+	index = 0 if AutoTest.bot_mode == AutoTest.BotMode.WIN else _rows.size() - 1
+	_refresh_focus()
+	confirm()
 
 
 # --- Ввод ---------------------------------------------------------------------------------------
@@ -139,6 +154,12 @@ func confirm() -> void:
 # --- Построение -----------------------------------------------------------------------------------
 
 func _build() -> void:
+	if dim:
+		var shade := ColorRect.new()
+		shade.color = Color(Style.BG, 0.9)
+		shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(shade)
 	var header := HintPill.header(ShellHeader.release(release, "Вставка"))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)

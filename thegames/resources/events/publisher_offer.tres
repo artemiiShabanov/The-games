@@ -67,4 +67,5 @@ condition = &"publisher_offer"
 line = "Ваши игры заметили. Хочу {genre} в сеттинге «{setting}» к следующему кварталу. Аванс дам сейчас, долю возьму с хвоста. Ну или не дам, и делайте дальше что хотите."
 line_warm = "Снова я, и снова с деньгами. Хочу {genre} в сеттинге «{setting}». Аванс щедрый, доля с хвоста как обычно."
 line_cold = "Прошлый раз вы отказали, но я не гордый. {genre}, сеттинг «{setting}». Аванс, доля с хвоста. Последний раз спрашиваю."
+cooldown = 4
 choices = Array[ExtResource("3_choice")]([SubResource("Res_5"), SubResource("Res_9"), SubResource("Res_10")])
