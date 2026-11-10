@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/journalist.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 0
+amount = -1
+key = &"festival_price"
+mood_scaled = false
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("2_eff")
+kind = 1
+steps = 2
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("2_eff")
+kind = 7
+stat = 0
+bonus = 1.0
+key = &"festival_critics"
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("3_choice")
+text = "Поехать"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2"), SubResource("Res_3")])
+mood_delta = 1
+
+[sub_resource type="Resource" id="Res_5"]
+script = ExtResource("3_choice")
+text = "Не ехать"
+
+[resource]
+script = ExtResource("1_event")
+id = &"festival"
+title = "Фестиваль"
+kind = 0
+character = ExtResource("4_char")
+condition = &"festival"
+line = "Меня позвали в жюри фестиваля инди-игр, и я назвала «{game}». Приедете? Дорога за ваш счёт, зато вас увидят все."
+line_warm = "Фестиваль снова зовёт, и я снова за вас. Приезжайте, без вас там скучно."
+line_cold = "Фестиваль, жюри, «{game}» в списке. Я знаю, вы не любите публичность. Но вдруг?"
+choices = Array[ExtResource("3_choice")]([SubResource("Res_4"), SubResource("Res_5")])
+cooldown = 6
+once = false
+priority = 0

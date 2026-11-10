@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/publisher.tres" id="4_char"]
+[ext_resource type="Resource" path="res://resources/characters/investor.tres" id="5_alt"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 0
+amount = -1
+key = &"lawyers_price"
+mood_scaled = false
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("3_choice")
+text = "Нанять юристов"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1")])
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("2_eff")
+kind = 1
+steps = -1
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("3_choice")
+text = "Не обращать внимания"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_3")])
+
+[sub_resource type="Resource" id="Res_5"]
+script = ExtResource("2_eff")
+kind = 1
+steps = 2
+
+[sub_resource type="Resource" id="Res_6"]
+script = ExtResource("2_eff")
+kind = 1
+steps = -2
+
+[sub_resource type="Resource" id="Res_7"]
+script = ExtResource("3_choice")
+text = "Ответить публично"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_5")])
+coin = true
+lose_effects = Array[ExtResource("2_eff")]([SubResource("Res_6")])
+
+[resource]
+script = ExtResource("1_event")
+id = &"clone_scandal"
+title = "Скандал: клон"
+kind = 0
+character = ExtResource("4_char")
+alt_character = ExtResource("5_alt")
+condition = &"clone_scandal"
+line = "Видели? Кто-то выпустил клон вашей последней игры, один в один, даже баги. Можно нанять юристов, можно промолчать, можно ответить публично. Что делаем?"
+line_warm = "Клон вашей последней игры, представляете? Помогу с юристами по старой дружбе, но решать вам."
+line_cold = "Ваш хит склонировали. Я бы помог, но мы не в лучших отношениях. Решайте сами."
+choices = Array[ExtResource("3_choice")]([SubResource("Res_2"), SubResource("Res_4"), SubResource("Res_7")])
+cooldown = 5
+once = false
+priority = 0

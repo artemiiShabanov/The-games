@@ -44,6 +44,8 @@ var flags: Dictionary[StringName, int] = {}
 var restrictions: Array[Restriction] = []
 var tail_shares: Array[TailShare] = []
 var bonuses: Array[Bonus] = []
+## Индексы игр забега, чьи хвосты проданы: больше не платят.
+var sold_tails: Array[int] = []
 var ending: StringName = &""
 
 

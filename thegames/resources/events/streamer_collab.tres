@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/kraken.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 0
+amount = -1
+key = &"collab_price"
+mood_scaled = true
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("2_eff")
+kind = 7
+stat = 1
+bonus = 1.0
+key = &"collab_streamers"
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("3_choice")
+text = "Заплатить за эфир"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2")])
+mood_delta = 1
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("3_choice")
+text = "Обойдёмся"
+mood_delta = -1
+
+[resource]
+script = ExtResource("1_event")
+id = &"streamer_collab"
+title = "Коллаб со стримером"
+kind = 0
+character = ExtResource("4_char")
+condition = &"viral_game"
+line = "Ваша вирусная штука у меня в чате до сих пор. Давайте следующую игру я покажу первым. Эфир стоит денег, но мои зрители того стоят."
+line_warm = "После прошлого эфира чат требует ещё. Давайте снова: следующую игру первым у меня, цена прежняя."
+line_cold = "Прошлый раз вы мне отказали, но я не злопамятный. Эфир со следующей игрой?"
+choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_4")])
+cooldown = 4
+once = false
+priority = 0

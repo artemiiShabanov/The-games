@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/publisher.tres" id="4_char"]
+[ext_resource type="Resource" path="res://resources/characters/investor.tres" id="5_alt"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 0
+amount = 1
+key = &"rescue_amount"
+mood_scaled = false
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("2_eff")
+kind = 2
+value = -1
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("2_eff")
+kind = 3
+value = -1
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("2_eff")
+kind = 6
+key = &"rescue_share"
+games = 1
+
+[sub_resource type="Resource" id="Res_5"]
+script = ExtResource("3_choice")
+text = "Взять аванс"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2"), SubResource("Res_3"), SubResource("Res_4")])
+mood_delta = 1
+
+[sub_resource type="Resource" id="Res_6"]
+script = ExtResource("2_eff")
+kind = 10
+
+[sub_resource type="Resource" id="Res_7"]
+script = ExtResource("3_choice")
+text = "Продать хвост «{tail_game}»"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_6")])
+
+[sub_resource type="Resource" id="Res_8"]
+script = ExtResource("2_eff")
+kind = 8
+id = &"bankruptcy"
+text = "банкротство"
+
+[sub_resource type="Resource" id="Res_9"]
+script = ExtResource("3_choice")
+text = "Закрыть студию"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_8")])
+
+[resource]
+script = ExtResource("1_event")
+id = &"rescue"
+title = "Спасение"
+kind = 2
+character = ExtResource("4_char")
+alt_character = ExtResource("5_alt")
+condition = &"rescue"
+line = "Денег у студии «{studio}» не осталось, я знаю. Дам аванс, но следующая игра будет моя: {genre}, сеттинг «{setting}», и долю с неё я заберу. Или продайте хвост «{tail_game}», это ваше дело."
+line_warm = "Не люблю, когда хорошие студии закрываются. Аванс, следующая игра: {genre}, сеттинг «{setting}», доля с её хвоста. Или продайте хвост «{tail_game}»."
+line_cold = "Вы мне не раз отказывали, но закрываться из-за гордости глупо. Аванс за следующую игру: {genre}, «{setting}», доля моя. Или продайте хвост «{tail_game}»."
+choices = Array[ExtResource("3_choice")]([SubResource("Res_5"), SubResource("Res_7"), SubResource("Res_9")])
+cooldown = 0
+once = true
+priority = 0

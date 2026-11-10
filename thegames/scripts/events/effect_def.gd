@@ -4,8 +4,10 @@ extends Resource
 ## применяются сразу (`Events.apply`), остальное копится в `EventState` и читается следующим
 ## релизом (ограничения и бонусы #66), экономикой (доли с хвоста #66) и забегом (концовка #68).
 ## У каждого последствия пилюля на карточке; `text` её переписывает, пустая у флага скрыта.
+## Продажа хвоста (`SELL_TAIL`, спасение): деньги за `MetaTuning.sell_tail_ticks` тиков лучшего
+## хвоста, игра перестаёт платить (`EventState.sold_tails`, экономика в #66/#67).
 
-enum Kind { MONEY, REPUTATION, RESTRICT_GENRE, RESTRICT_SETTING, RESTRICT_TECH, RESTRICT_SEQUEL, TAIL_SHARE, NEXT_BONUS, ENDING, FLAG }
+enum Kind { MONEY, REPUTATION, RESTRICT_GENRE, RESTRICT_SETTING, RESTRICT_TECH, RESTRICT_SEQUEL, TAIL_SHARE, NEXT_BONUS, ENDING, FLAG, SELL_TAIL }
 enum Stat { CRITICS, STREAMERS, SALES }
 
 ## Значение ограничения «выбрать при показе» и «как у прошлой игры».
@@ -31,6 +33,9 @@ const LAST := -2
 @export var id: StringName = &""
 ## Текст пилюли вместо собранного.
 @export var text := ""
+## Число из `MetaTuning` по имени свойства (#65): деньги (знак берётся из `amount`, по
+## умолчанию плюс), доля или бонус (знак из `bonus`). Так суммы вставок живут в `meta.tres`.
+@export var key: StringName = &""
 
 
 static func money(amount_: int, scaled := true) -> EffectDef:

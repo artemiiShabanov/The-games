@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/journalist.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 8
+id = &"legend"
+text = "концовка: легенда"
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("3_choice")
+text = "Закрыться на пике"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1")])
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("3_choice")
+text = "Продолжить"
+
+[resource]
+script = ExtResource("1_event")
+id = &"legend"
+title = "Легенда"
+kind = 1
+character = ExtResource("4_char")
+condition = &"legend"
+line = "Я пишу о студии «{studio}» книгу. Последняя глава может быть красивой: студия, которая закрылась на пике. Или продолжите, и посмотрим, чем кончится."
+line_warm = "Ваши игры уже в учебниках. Закрыться на пике или писать ещё одну главу?"
+line_cold = "Знаю, вы меня недолюбливаете. Но легенды так и заканчиваются: вовремя. Закроетесь на пике?"
+choices = Array[ExtResource("3_choice")]([SubResource("Res_2"), SubResource("Res_3")])
+cooldown = 3
+once = false
+priority = 2

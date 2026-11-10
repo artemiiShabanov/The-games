@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/character_def.gd" id="1_char"]
+
+[resource]
+script = ExtResource("1_char")
+id = &"kraken"
+name = "KrakenPlays"
+role = "Стример"
+subtitle = "48 тыс. онлайн"
+accent = Color(0.9412, 0.4784, 0.1098, 1)
+person_id = &"kraken"
+short_name = "Kraken"

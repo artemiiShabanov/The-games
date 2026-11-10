@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/retro_streamer.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 5
+value = -1
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("2_eff")
+kind = 7
+stat = 2
+bonus = 1.0
+key = &"fans_sales"
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("3_choice")
+text = "Делаем сиквел «{game}»"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2")])
+mood_delta = 1
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("3_choice")
+text = "Не сейчас"
+mood_delta = -1
+
+[resource]
+script = ExtResource("1_event")
+id = &"fans_sequel"
+title = "Фанаты просят сиквел"
+kind = 0
+character = ExtResource("4_char")
+condition = &"fans_sequel"
+line = "Чат третий день пишет одно и то же: где вторая часть «{game}»? Сделаете, я покажу на стриме, обещаю."
+line_warm = "Мы с чатом прошли «{game}» дважды. Сделайте вторую часть, и я буду первым в очереди."
+line_cold = "Ладно, вы не любите просьбы чата. Но про «{game}» спрашивают снова. Вторая часть?"
+choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_4")])
+cooldown = 4
+once = false
+priority = 0

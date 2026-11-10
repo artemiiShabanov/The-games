@@ -24,6 +24,14 @@ const PATH := "res://resources/run.tres"
 @export var veteran_left := 3
 @export var how_long_left := 2
 @export var buyer_left := 1
+## Пороги концовок (`docs/specs/run.md`, #65; черновые до сверки моделью в #72).
+## Корпорация: сиквелов не меньше, игр с живым хвостом не меньше, суммарный тик хвостов от.
+@export var corp_sequels := 2
+@export var corp_live_tails := 4
+@export var corp_tick := 3500
+## Легенда: средняя критиков трёх лучших от или вирусных игр не меньше.
+@export var legend_critics := 9.0
+@export var legend_viral := 3
 ## Сколько переигровок в релизе (M0: ноль).
 @export var replays := 0
 

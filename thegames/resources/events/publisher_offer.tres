@@ -8,7 +8,9 @@
 [sub_resource type="Resource" id="Res_1"]
 script = ExtResource("2_eff")
 kind = 0
-amount = 12000
+amount = 1
+key = &"publisher_advance"
+mood_scaled = true
 
 [sub_resource type="Resource" id="Res_2"]
 script = ExtResource("2_eff")
@@ -23,7 +25,7 @@ value = -1
 [sub_resource type="Resource" id="Res_4"]
 script = ExtResource("2_eff")
 kind = 6
-share = 0.3
+key = &"publisher_share"
 games = 1
 
 [sub_resource type="Resource" id="Res_5"]
@@ -64,8 +66,10 @@ title = "Оффер издателя"
 kind = 0
 character = ExtResource("4_char")
 condition = &"publisher_offer"
-line = "Ваши игры заметили. Хочу {genre} в сеттинге «{setting}» к следующему кварталу. Аванс дам сейчас, долю возьму с хвоста. Ну или не дам, и делайте дальше что хотите."
-line_warm = "Снова я, и снова с деньгами. Хочу {genre} в сеттинге «{setting}». Аванс щедрый, доля с хвоста как обычно."
-line_cold = "Прошлый раз вы отказали, но я не гордый. {genre}, сеттинг «{setting}». Аванс, доля с хвоста. Последний раз спрашиваю."
-cooldown = 4
+line = "Ваши игры заметили. Хочу у вас игру: {genre}, сеттинг «{setting}», к следующему кварталу. Аванс дам сейчас, долю возьму с хвоста. Ну или не дам, и делайте дальше что хотите."
+line_warm = "Снова я, и снова с деньгами. Хочу {genre}, сеттинг «{setting}». Аванс щедрый, доля с хвоста как обычно, мы же друзья."
+line_cold = "Прошлый раз вы отказали, но я не гордый. {genre}, сеттинг «{setting}». Аванс, доля с хвоста. Второй раз спрашивать не буду."
 choices = Array[ExtResource("3_choice")]([SubResource("Res_5"), SubResource("Res_9"), SubResource("Res_10")])
+cooldown = 4
+once = false
+priority = 0

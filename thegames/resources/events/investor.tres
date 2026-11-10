@@ -8,7 +8,9 @@
 [sub_resource type="Resource" id="Res_1"]
 script = ExtResource("2_eff")
 kind = 0
-amount = 15000
+amount = 1
+key = &"investor_big"
+mood_scaled = true
 
 [sub_resource type="Resource" id="Res_2"]
 script = ExtResource("2_eff")
@@ -19,16 +21,19 @@ value = -1
 script = ExtResource("3_choice")
 text = "Деньги сейчас, технология ваша"
 effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2")])
+mood_delta = 1
 
 [sub_resource type="Resource" id="Res_4"]
 script = ExtResource("2_eff")
 kind = 0
-amount = 8000
+amount = 1
+key = &"investor_small"
+mood_scaled = true
 
 [sub_resource type="Resource" id="Res_5"]
 script = ExtResource("2_eff")
 kind = 6
-share = 0.2
+key = &"investor_share"
 games = 2
 
 [sub_resource type="Resource" id="Res_6"]
@@ -39,6 +44,7 @@ effects = Array[ExtResource("2_eff")]([SubResource("Res_4"), SubResource("Res_5"
 [sub_resource type="Resource" id="Res_7"]
 script = ExtResource("3_choice")
 text = "Справимся сами"
+mood_delta = -1
 
 [resource]
 script = ExtResource("1_event")
@@ -47,8 +53,10 @@ title = "Инвестор"
 kind = 0
 character = ExtResource("4_char")
 condition = &"investor_low_cash"
-line = "Вижу, с деньгами у вас туго. Вложусь, но технологию следующей игры выберу сама: {tech}. Или дам меньше, но заберу долю с двух следующих игр."
-line_warm = ""
-line_cold = ""
-cooldown = 3
+line = "Вижу, с деньгами у студии «{studio}» туго. Вложусь, но технологию следующей игры выберу сама: {tech}. Или дам меньше, но заберу долю с двух следующих игр."
+line_warm = "Мне нравится, как вы работаете. Денег дам сейчас, просьба одна: следующая игра на технологии {tech}. Или поменьше, но с долей с двух игр."
+line_cold = "Вы мне в прошлый раз не обрадовались, но деньги всё ещё нужны, верно? Технология {tech} на следующую игру. Или меньше и доля с двух игр."
 choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_6"), SubResource("Res_7")])
+cooldown = 3
+once = false
+priority = 0

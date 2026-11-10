@@ -12,6 +12,8 @@ enum Kind { RANDOM, ENDING, RESCUE }
 @export var title := ""
 @export var kind: Kind = Kind.RANDOM
 @export var character: CharacterDef
+## Кто приходит, если `character` ушёл (скандал: издатель или инвестор).
+@export var alt_character: CharacterDef
 ## Ключ условия для планировщика (#64): см. `docs/specs/meta.md`, таблица вставок.
 @export var condition: StringName = &""
 @export_multiline var line := ""
@@ -22,6 +24,8 @@ enum Kind { RANDOM, ENDING, RESCUE }
 @export var cooldown := 0
 ## Один раз за забег.
 @export var once := false
+## Среди концовок с выполненным условием приходит та, у кого больше (легенда, корпорация, продажа).
+@export var priority := 0
 
 
 func line_for(mood: int) -> String:

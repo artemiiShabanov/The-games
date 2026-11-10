@@ -72,6 +72,7 @@ func _ready() -> void:
 			AutoTest.require("event checks")
 			_static_checks()
 			_planner_checks()
+			_condition_checks()
 			for e in defs.size():
 				for c in defs[e].choices.size():
 					_queue.append(Vector2i(e, c))
@@ -94,9 +95,13 @@ func _context() -> Events.Context:
 	var a := GameRecord.create(G.PLATFORMER, T.BIT8, 1, "Пираты на платформах", Game.Setting.PIRATES)
 	a.score = ReleaseScore.new()
 	a.score.critics = 8.4
+	a.score.last_tick = 900
+	a.score.sales_first = 6000
 	var b := GameRecord.create(G.SHOOTER, T.BIT8, 2, "Корсары в прицеле", Game.Setting.SPACE)
 	b.score = ReleaseScore.new()
 	b.score.critics = 6.1
+	b.score.last_tick = 600
+	b.score.sales_first = 8000
 	ctx.records = [a, b]
 	return ctx
 
@@ -141,6 +146,73 @@ func _on_finished(i: int) -> void:
 func _expect(ok: bool, what: String) -> void:
 	if not ok:
 		AutoTest.fail("event: " + what)
+
+
+## Каждая вставка выпадает при своём условии (#65): забег, где выполнено только оно, даёт
+## именно её; без условий вставки нет.
+func _condition_checks() -> void:
+	var prng := RandomNumberGenerator.new()
+	var run_tuning := RunTuning.load_default()
+	var base := _plain_ctx(run_tuning)
+	_expect(EventPlanner.plan(defs, base, EventState.new(), meta, prng) == null, "без условий пришла вставка")
+	var seen := 0
+	for d in defs:
+		var ctx := _plain_ctx(run_tuning)
+		match d.condition:
+			&"publisher_offer":
+				ctx.genres = 2
+			&"investor_low_cash":
+				ctx.cash = ctx.cheapest
+			&"reputation_rising":
+				ctx.reputation = meta.rep_rising + 1.0
+			&"fans_sequel":
+				ctx.sequels = true
+				ctx.records[0].score.critics = meta.fans_min_critics + 0.5
+			&"viral_game":
+				ctx.records[1].score.viral = true
+			&"clone_scandal":
+				ctx.records[-1].score.sales_first = 20000
+			&"festival":
+				ctx.records[0].score.critics = meta.festival_min_critics + 0.2
+			&"rescue":
+				ctx.bankrupt = true
+			&"buyer":
+				ctx.reputation = meta.sale_reputation + 1.0
+				ctx.reputation_before = ctx.reputation
+			&"corporation":
+				for i in ctx.records.size():
+					ctx.records[i].score.last_tick = run_tuning.corp_tick / run_tuning.corp_live_tails + 100
+					ctx.records[i].part = 2 if i < run_tuning.corp_sequels else 1
+			&"legend":
+				for r in ctx.records:
+					r.score.critics = run_tuning.legend_critics + 0.5
+			_:
+				_expect(false, "%s: условие %s без проверки" % [d.id, d.condition])
+				continue
+		var got := EventPlanner.plan(defs, ctx, EventState.new(), meta, prng)
+		_expect(got == d, "%s при своём условии, пришла %s" % [d.id, got.id if got else "никакая"])
+		if got == d:
+			seen += 1
+	AutoTest.note("conditions: при своём условии выпали %d из %d" % [seen, defs.size()])
+
+
+## Забег без выполненных условий: релиз 8 из 12, деньги есть, репутация 0, четыре обычные игры.
+func _plain_ctx(t: RunTuning) -> EventPlanner.Context:
+	var ctx := EventPlanner.Context.new()
+	ctx.release = 8
+	ctx.cap = 12
+	ctx.cash = 50000
+	ctx.cheapest = 7000
+	ctx.genres = 1
+	ctx.run = t
+	for i in 4:
+		var r := GameRecord.create(G.PLATFORMER, T.BIT8, i, "Игра %d" % (i + 1), Game.Setting.PIRATES)
+		r.score = ReleaseScore.new()
+		r.score.critics = 6.0
+		r.score.sales_first = 6000
+		r.score.last_tick = 300
+		ctx.records.append(r)
+	return ctx
 
 
 ## Планировщик (#64) без экрана: частота за забег на синтетических вставках («always», без
@@ -258,7 +330,8 @@ func _next_check() -> void:
 	state = EventState.new()
 	event_id = String(defs[q.x].id)
 	_launch()
-	card.index = q.y
+	_expect(q.y < offer.choices.size(), "%s: вариант %d пропал при показе" % [event_id, q.y])
+	card.index = mini(q.y, offer.choices.size() - 1)
 	card.confirm()
 
 
@@ -276,7 +349,7 @@ func _check_choice(i: int) -> void:
 	var ending: StringName = &""
 	for e in effects:
 		match e.kind:
-			EffectDef.Kind.MONEY:
+			EffectDef.Kind.MONEY, EffectDef.Kind.SELL_TAIL:
 				money += e.amount
 			EffectDef.Kind.REPUTATION:
 				rep += e.steps * meta.rep_step

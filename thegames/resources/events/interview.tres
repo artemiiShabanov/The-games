@@ -14,12 +14,14 @@ steps = 1
 script = ExtResource("2_eff")
 kind = 7
 stat = 1
-bonus = -10.0
+bonus = -1.0
+key = &"interview_streamers"
 
 [sub_resource type="Resource" id="Res_3"]
 script = ExtResource("3_choice")
 text = "Честно, и про баги тоже"
 effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2")])
+mood_delta = 1
 
 [sub_resource type="Resource" id="Res_4"]
 script = ExtResource("2_eff")
@@ -41,6 +43,7 @@ lose_effects = Array[ExtResource("2_eff")]([SubResource("Res_5")])
 [sub_resource type="Resource" id="Res_7"]
 script = ExtResource("3_choice")
 text = "Без интервью"
+mood_delta = -1
 
 [resource]
 script = ExtResource("1_event")
@@ -49,8 +52,10 @@ title = "Интервью"
 kind = 0
 character = ExtResource("4_char")
 condition = &"reputation_rising"
-line = "Пишу материал о небольших студиях. {studio} растёт, читателям интересно, как у вас на самом деле. Расскажете?"
-line_warm = ""
-line_cold = ""
-cooldown = 3
+line = "Пишу материал о небольших студиях. «{studio}» растёт, читателям интересно, как у вас на самом деле. Расскажете?"
+line_warm = "Мои читатели вас полюбили. Ещё одно интервью? Обещаю не вырезать самое интересное."
+line_cold = "В прошлый раз не вышло поговорить. Попробуем ещё? Материал выйдет в любом случае, лучше с вашими словами."
 choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_6"), SubResource("Res_7")])
+cooldown = 3
+once = false
+priority = 0

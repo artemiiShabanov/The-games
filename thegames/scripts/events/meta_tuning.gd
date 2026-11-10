@@ -16,6 +16,34 @@ const PATH := "res://resources/meta.tres"
 ## Пауза с исходом на карточке после решения, с.
 @export var outcome_seconds := 1.0
 
+# Суммы вставок (#65), на них ссылаются последствия ключом `EffectDef.key`.
+@export var publisher_advance := 12000
+@export var publisher_share := 0.3
+@export var investor_big := 15000
+@export var investor_small := 8000
+@export var investor_share := 0.2
+## Интервью честно: стримеры следующей игры минус.
+@export var interview_streamers := 10.0
+## Фанаты просят сиквел: продажи сиквела плюс доля.
+@export var fans_sales := 0.2
+@export var collab_price := 4000
+@export var collab_streamers := 15.0
+@export var lawyers_price := 5000
+@export var festival_price := 3000
+@export var festival_critics := 0.5
+## Спасение: аванс издателя и его доля с хвоста; продажа лучшего хвоста за столько тиков.
+@export var rescue_amount := 12000
+@export var rescue_share := 0.3
+@export var sell_tail_ticks := 6
+
+# Условия (#65).
+## Фанаты просят сиквел: есть игра с критиками от.
+@export var fans_min_critics := 7.0
+## Скандал: последняя игра продалась лучше средней прошлых во столько раз.
+@export var clone_sales_mult := 1.2
+## Фестиваль: лучшая игра с критиками от.
+@export var festival_min_critics := 8.5
+
 # Планировщик (#64).
 ## Вставки с этого релиза.
 @export var first_release := 3

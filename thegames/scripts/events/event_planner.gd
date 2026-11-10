@@ -24,6 +24,8 @@ class Context:
 	var bankrupt := false
 	## Кап −1 и покупателя ещё не было (#62).
 	var buyer_due := false
+	## Пороги концовок.
+	var run: RunTuning
 
 
 static func plan(defs: Array[EventDef], ctx: Context, state: EventState, meta: MetaTuning,
@@ -60,15 +62,26 @@ static func random_chance(gap: int, meta: MetaTuning) -> float:
 
 
 static func _first(defs: Array[EventDef], kind: EventDef.Kind, ctx: Context, state: EventState, meta: MetaTuning) -> EventDef:
+	var best: EventDef = null
 	for d in defs:
-		if d.kind == kind and available(d, ctx, state, meta):
-			return d
+		if d.kind == kind and available(d, ctx, state, meta) and (best == null or d.priority > best.priority):
+			best = d
+	return best
+
+
+## Кто придёт со вставкой: основной персонаж или запасной, если основной ушёл; null, если
+## ушли оба.
+static func who(d: EventDef, state: EventState) -> CharacterDef:
+	if d.character == null or not state.left(d.character.id):
+		return d.character
+	if d.alt_character != null and not state.left(d.alt_character.id):
+		return d.alt_character
 	return null
 
 
 ## Может ли вставка прийти сейчас: персонаж на месте, давность, условие.
 static func available(d: EventDef, ctx: Context, state: EventState, meta: MetaTuning) -> bool:
-	if d.character != null and state.left(d.character.id):
+	if d.character != null and who(d, state) == null:
 		return false
 	if d.once and state.shown.has(d.id):
 		return false
@@ -93,4 +106,70 @@ static func met(key: StringName, ctx: Context, state: EventState, meta: MetaTuni
 			return ctx.buyer_due or (ctx.release * 2 >= ctx.cap and ctx.reputation >= meta.sale_reputation)
 		&"rescue":
 			return ctx.bankrupt
+		&"fans_sequel":
+			return ctx.sequels and best_critics(ctx.records) >= meta.fans_min_critics
+		&"viral_game":
+			return ctx.records.any(func(r: GameRecord) -> bool: return r.score != null and r.score.viral)
+		&"clone_scandal":
+			return _hit(ctx.records, meta.clone_sales_mult)
+		&"festival":
+			return best_critics(ctx.records) >= meta.festival_min_critics
+		&"corporation":
+			return corporation(ctx.records, ctx.run)
+		&"legend":
+			return legend(ctx.records, ctx.run)
 	return false
+
+
+static func best_critics(records: Array[GameRecord]) -> float:
+	var best := 0.0
+	for r in records:
+		if r.score != null:
+			best = maxf(best, r.score.critics)
+	return best
+
+
+## Последняя игра продалась лучше средней прошлых в `mult` раз (есть что клонировать).
+static func _hit(records: Array[GameRecord], mult: float) -> bool:
+	if records.size() < 2 or records.back().score == null:
+		return false
+	var sum := 0.0
+	for i in records.size() - 1:
+		sum += records[i].score.sales_first if records[i].score != null else 0
+	var avg := sum / (records.size() - 1)
+	return records.back().score.sales_first >= avg * mult
+
+
+## Условие корпорации (`docs/specs/run.md`): сиквелы, живые хвосты, суммарный тик.
+static func corporation(records: Array[GameRecord], t: RunTuning) -> bool:
+	if t == null:
+		return false
+	var sequels := 0
+	var live := 0
+	var tick := 0
+	for r in records:
+		if r.part > 1:
+			sequels += 1
+		if r.score != null and r.score.last_tick > 0:
+			live += 1
+			tick += r.score.last_tick
+	return sequels >= t.corp_sequels and live >= t.corp_live_tails and tick >= t.corp_tick
+
+
+## Условие легенды: средняя критиков трёх лучших или число вирусных.
+static func legend(records: Array[GameRecord], t: RunTuning) -> bool:
+	if t == null:
+		return false
+	var cs: Array[float] = []
+	var viral := 0
+	for r in records:
+		if r.score != null:
+			cs.append(r.score.critics)
+			if r.score.viral:
+				viral += 1
+	if viral >= t.legend_viral:
+		return true
+	if cs.size() < 3:
+		return false
+	cs.sort()
+	return (cs[-1] + cs[-2] + cs[-3]) / 3.0 >= t.legend_critics

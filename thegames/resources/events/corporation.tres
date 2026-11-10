@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/investor.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 8
+id = &"corporation"
+text = "концовка: корпорация"
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("3_choice")
+text = "Стать корпорацией"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1")])
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("2_eff")
+kind = 9
+id = &"corporation_later"
+text = "вернётся через два релиза"
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("3_choice")
+text = "Отложить"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_3")])
+
+[resource]
+script = ExtResource("1_event")
+id = &"corporation"
+title = "Корпорация"
+kind = 1
+character = ExtResource("4_char")
+condition = &"corporation"
+line = "У студии «{studio}» сиквелы, хвосты платят, оборот как у взрослых. Предлагаю стать корпорацией: я вкладываю, вы растёте, игры делают другие."
+line_warm = "Вы доказали всё, что можно. Корпорация, мои деньги, ваше имя на вывеске. Соглашайтесь."
+line_cold = "Не люблю повторять, но цифры говорят сами. Корпорация: да или нет?"
+choices = Array[ExtResource("3_choice")]([SubResource("Res_2"), SubResource("Res_4")])
+cooldown = 2
+once = false
+priority = 1

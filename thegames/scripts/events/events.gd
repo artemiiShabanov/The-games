@@ -88,14 +88,23 @@ static func find(defs: Array[EventDef], id: StringName) -> EventDef:
 	return null
 
 
-static func resolve(def: EventDef, mood: int, ctx: Context, meta: MetaTuning) -> Offer:
+## `who`: кто приходит, если не основной персонаж (`EventPlanner.who`).
+static func resolve(def: EventDef, mood: int, ctx: Context, meta: MetaTuning, who: CharacterDef = null) -> Offer:
 	var o := Offer.new()
 	o.def = def
-	o.character = def.character
+	o.character = who if who != null else def.character
 	o.mood = mood
 	# Выбор при показе один на вставку: «гонки» в реплике и во всех вариантах одни и те же.
 	var picks: Dictionary = {}
 	var vars := {"studio": ctx.studio}
+	# Игры для реплик по умолчанию: лучшая по критикам и с самым большим хвостом.
+	var best := _best_game(ctx.records)
+	if best >= 0:
+		vars["game"] = ctx.records[best].title
+	var tail := _best_tail(ctx.records)
+	if tail >= 0:
+		vars["tail_game"] = ctx.records[tail].title
+	var texts: Array[String] = []
 	for c in def.choices:
 		var oc := Choice.new()
 		oc.coin = c.coin
@@ -108,9 +117,13 @@ static func resolve(def: EventDef, mood: int, ctx: Context, meta: MetaTuning) ->
 			var r := _resolve_effect(e, mood, ctx, meta, picks, vars)
 			if r != null:
 				oc.lose_effects.append(r)
+		# Вариант, чьи последствия некуда применить (нет хвоста на продажу), не предлагается.
+		if not c.effects.is_empty() and oc.effects.is_empty() and not c.coin:
+			continue
 		o.choices.append(oc)
-	for i in def.choices.size():
-		o.choices[i].text = _fill(def.choices[i].text, vars)
+		texts.append(c.text)
+	for i in o.choices.size():
+		o.choices[i].text = _fill(texts[i], vars)
 		o.choices[i].pills = _pills(o.choices[i], o.character)
 	o.line = _fill(def.line_for(mood), vars)
 	return o
@@ -127,10 +140,21 @@ static func _resolve_effect(e: EffectDef, mood: int, ctx: Context, meta: MetaTun
 	r.stat = e.stat
 	r.bonus = e.bonus
 	r.id = e.id
+	# Число из `meta.tres` по ключу: деньги со знаком `amount`, доля, бонус со знаком `bonus`.
+	var amount := e.amount
+	if e.key != &"" and e.key in meta:
+		var v := float(meta.get(e.key))
+		match e.kind:
+			EffectDef.Kind.MONEY:
+				amount = int(v) * (-1 if e.amount < 0 else 1)
+			EffectDef.Kind.TAIL_SHARE:
+				r.share = v
+			EffectDef.Kind.NEXT_BONUS:
+				r.bonus = v * (-1.0 if e.bonus < 0.0 else 1.0)
 	match e.kind:
 		EffectDef.Kind.MONEY:
-			var a := float(e.amount)
-			if e.mood_scaled and e.amount > 0:
+			var a := float(amount)
+			if e.mood_scaled and amount > 0:
 				a *= 1.0 + mood * meta.mood_offer
 			r.amount = int(roundf(a / 100.0)) * 100
 			if not vars.has("money") and r.amount > 0:
@@ -152,6 +176,12 @@ static func _resolve_effect(e: EffectDef, mood: int, ctx: Context, meta: MetaTun
 			if r.value < 0 or r.value >= ctx.records.size():
 				return null
 			vars["game"] = ctx.records[r.value].title
+		EffectDef.Kind.SELL_TAIL:
+			r.value = _best_tail(ctx.records)
+			if r.value < 0:
+				return null
+			r.amount = ctx.records[r.value].score.last_tick * meta.sell_tail_ticks
+			vars["tail_game"] = ctx.records[r.value].title
 	return r
 
 
@@ -190,6 +220,18 @@ static func _best_game(records: Array[GameRecord]) -> int:
 		var c := records[i].score.critics if records[i].score != null else 0.0
 		if c > best_c:
 			best_c = c
+			best = i
+	return best
+
+
+## Игра с самым большим тиком хвоста, −1 если хвостов нет.
+static func _best_tail(records: Array[GameRecord]) -> int:
+	var best := -1
+	var best_tick := 0
+	for i in records.size():
+		var tick := records[i].score.last_tick if records[i].score != null else 0
+		if tick > best_tick:
+			best_tick = tick
 			best = i
 	return best
 
@@ -248,6 +290,9 @@ static func _effect_pills(effects: Array[Effect]) -> Array[Pill]:
 				out.append(Pill.of("%s следующей игры %s" % [what, v.replace("-", "−")], _tone(e)))
 			EffectDef.Kind.ENDING:
 				out.append(Pill.of("концовка", Tone.ENDING))
+			EffectDef.Kind.SELL_TAIL:
+				out.append(Pill.of("+" + Style.format_money(e.amount), Tone.PLUS))
+				out.append(Pill.of("хвост перестанет платить", Tone.MINUS))
 	if not next.is_empty():
 		out.insert(mini(1, out.size()), Pill.of("следующая игра: " + " · ".join(next), Tone.LOCK))
 	return out
@@ -314,6 +359,10 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 				state.ending = e.id
 			EffectDef.Kind.FLAG:
 				state.flags[e.id] = release
+			EffectDef.Kind.SELL_TAIL:
+				wallet.earn(e.amount, &"event")
+				if not state.sold_tails.has(e.value):
+					state.sold_tails.append(e.value)
 	if offer.character != null:
 		var ch := offer.character
 		state.shift_mood(ch.id, c.mood_delta)

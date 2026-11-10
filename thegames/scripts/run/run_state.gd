@@ -228,7 +228,8 @@ func plan_event(report: StudioPhase.Report) -> Events.Offer:
 	ctx.cheapest = report.cheapest if report != null else 0
 	ctx.reputation = market.reputation
 	ctx.reputation_before = rep_log[rep_log.size() - 2] if rep_log.size() >= 2 else 0.0
-	ctx.records = records
+	ctx.records = _with_current(report.current if report != null else null)
+	ctx.run = tuning
 	ctx.genres = unlocked_genres().size()
 	ctx.sequels = studio.sequels_unlocked()
 	ctx.buyer_due = buyer_due()
@@ -237,8 +238,19 @@ func plan_event(report: StudioPhase.Report) -> Events.Offer:
 		return null
 	if def.condition == &"buyer":
 		buyer_came = true
-	var mood := event_state.mood(def.character.id) if def.character != null else 0
-	return Events.resolve(def, mood, event_context(), meta)
+	var who := EventPlanner.who(def, event_state)
+	var mood := event_state.mood(who.id) if who != null else 0
+	var ectx := event_context()
+	ectx.records = ctx.records
+	return Events.resolve(def, mood, ectx, meta, who)
+
+
+## Закрытые релизы и текущий, ещё не закрытый (на его месте он и встанет при закрытии).
+func _with_current(current: GameRecord) -> Array[GameRecord]:
+	var all: Array[GameRecord] = records.duplicate()
+	if current != null and not all.has(current):
+		all.append(current)
+	return all
 
 
 func event_context() -> Events.Context:
