@@ -8,8 +8,9 @@ extends RefCounted
 ##   score_release → (лента) → settle → close_release.
 ## Старт (#61): стартовая пара разыгрывается `draw_start` (не та же, что в прошлом забеге из
 ## `Profile`), под автотестом берётся из `RunTuning`; название студии и логотип даёт экран «Новая студия».
-## Кап из тюнинга, конец только по банкротству (`StudioPhase.Report.game_over`) и по капу
-## коротким экраном.
+## Кап разыгрывается в 11-13 релизов и не показывается (#62), сигналы капа функциями ниже:
+## их читают лента (`veteran`) и вставки (`how_long`, `buyer_due`, #64). Конец только по
+## банкротству (`StudioPhase.Report.game_over`) и по капу коротким экраном «Итоги года».
 
 var tuning: RunTuning
 var economy: EconomyTuning
@@ -41,6 +42,8 @@ var last_first: StringName = &""
 var last_plan: SprintPlan
 ## Репутация до текущего релиза: лента читает сдвиг тона.
 var reputation_before := 0.0
+## Покупатель уже приходил в этом забеге (ставят вставки, #64): на капе −1 не приходит снова.
+var buyer_came := false
 var finished := false
 var finish_reason := ""
 
@@ -60,7 +63,7 @@ static func start(seed_: int, deterministic_market := false) -> RunState:
 	r.streamers = PeopleSet.load_streamers()
 	r.texts = FeedTexts.load_default()
 	r.rng.seed = seed_
-	r.cap = r.tuning.cap
+	r.cap = r.rng.randi_range(r.tuning.cap_min, r.tuning.cap_max)
 	r.start_genre = r.tuning.genre
 	r.start_tech = r.tuning.tech
 	r.market = MarketState.create(r.success, r.rng, deterministic_market)
@@ -92,6 +95,32 @@ func draw_start(last_genre := -1, last_tech := -1) -> void:
 ## Сложность релиза по спеке мини-игр.
 func t_value() -> float:
 	return clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
+
+
+# --- Кап и его сигналы (#62) --------------------------------------------------------------------
+
+## Сколько релизов осталось после текущего: на последнем 0.
+func cap_left() -> int:
+	return cap - release
+
+
+func _signals() -> bool:
+	return release >= tuning.signals_from
+
+
+## Критики пишут «студия-ветеран»: с капа −3.
+func veteran() -> bool:
+	return _signals() and cap_left() <= tuning.veteran_left
+
+
+## Во вставках реплики «сколько ещё»: с капа −2.
+func how_long() -> bool:
+	return _signals() and cap_left() <= tuning.how_long_left
+
+
+## Покупатель приходит на капе −1, если его ещё не было (вставка «Покупатель», #64).
+func buyer_due() -> bool:
+	return _signals() and cap_left() == tuning.buyer_left and not buyer_came
 
 
 # --- Открытое ---------------------------------------------------------------------------------
@@ -166,7 +195,7 @@ func score_release(record: GameRecord) -> ReleaseScore:
 
 func build_feed(record: GameRecord) -> FeedContent:
 	return Feed.build(record, record.score, critics, streamers, texts, success, catalog, rng,
-			market.reputation - reputation_before)
+			market.reputation - reputation_before, veteran(), studio_name)
 
 
 func bugfix_price(record: GameRecord) -> int:

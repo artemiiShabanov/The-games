@@ -23,6 +23,8 @@ var critics_avg := 0.0
 var sales_first := 0
 var streamers_word := ""
 var viral := false
+## Один из критиков назвал студию ветераном (сигнал капа, #62).
+var veteran := false
 var clip_person: PersonDef
 ## Просмотры клипов всего и онлайн на стриме клипа: из охвата с разбросом (плейтест 2026-11-07).
 var views := 0

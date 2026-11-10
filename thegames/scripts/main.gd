@@ -52,6 +52,8 @@ func _ready() -> void:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		if args.has("draw"):
 			run.draw_start()
+		if args.has("cap"):
+			run.cap = int(str(args["cap"]))
 		_loop_check = args.has("loop")
 		if args.has("releases"):
 			_loop_releases = int(str(args["releases"]))
@@ -69,6 +71,11 @@ func _ready() -> void:
 			func(v: float) -> void: run.wallet.cash = int(v), -20000, 200000, 1000)
 	Debug.add_number(SECTION, "Релиз (со следующего)", func() -> int: return run.release,
 			func(v: float) -> void: run.release = int(v), 1, 13, 1)
+	Debug.add_number(SECTION, "Кап (игроку не виден)", func() -> int: return run.cap,
+			func(v: float) -> void: run.cap = int(v), 1, 20, 1)
+	Debug.watch("кап", func() -> String: return "кап %d, осталось %d%s%s%s" % [run.cap, run.cap_left(),
+			", ветеран" if run.veteran() else "", ", сколько ещё" if run.how_long() else "",
+			", покупатель" if run.buyer_due() else ""])
 	Debug.add_number(SECTION, "Репутация", func() -> float: return run.market.reputation,
 			func(v: float) -> void: run.market.reputation = v, -10.0, 30.0, 0.5)
 	var ids: Array[String] = []

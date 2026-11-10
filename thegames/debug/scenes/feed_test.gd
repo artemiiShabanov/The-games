@@ -183,6 +183,32 @@ func _run_checks() -> void:
 	var clean_feed := Feed.build(clean, clean.score, critics, streamers, texts, tuning, catalog, rng)
 	_expect(clean_feed.clip_person.id != &"kraken", "чистая сборка: клип у %s" % clean_feed.clip_person.id)
 	_expect(Feed.critic_score(critics.people[1], clean.score, clean, tuning) > clean.score.critics, "ненавистник багов без багов")
+	# Сигнал капа (#62): с `veteran` ровно один критик называет студию ветераном.
+	var vet := Feed.build(clean, clean.score, critics, streamers, texts, tuning, catalog, rng, 0.0, true, "Тихая Лампа")
+	var vet_lines := 0
+	for item in vet.items:
+		if item.kind == FeedContent.Kind.CRITIC and item.text.find("ветеран") >= 0:
+			vet_lines += 1
+			_expect(item.text.find("{studio}") < 0, "подстановка студии: %s" % item.text)
+	_expect(vet.veteran and vet_lines == 1, "ветеран у одного критика: %d" % vet_lines)
+	var plain := Feed.build(clean, clean.score, critics, streamers, texts, tuning, catalog, rng)
+	_expect(not plain.veteran, "без капа ветерана нет")
+	# Кап и его сигналы.
+	var rs := RunState.start(3, true)
+	_expect(rs.cap >= rs.tuning.cap_min and rs.cap <= rs.tuning.cap_max, "кап %d" % rs.cap)
+	rs.release = rs.cap - 4
+	_expect(not rs.veteran() and not rs.how_long() and not rs.buyer_due(), "кап −4 без сигналов")
+	rs.release = rs.cap - 3
+	_expect(rs.veteran() and not rs.how_long(), "кап −3: ветеран")
+	rs.release = rs.cap - 2
+	_expect(rs.veteran() and rs.how_long() and not rs.buyer_due(), "кап −2: сколько ещё")
+	rs.release = rs.cap - 1
+	_expect(rs.buyer_due(), "кап −1: покупатель")
+	rs.buyer_came = true
+	_expect(not rs.buyer_due(), "покупатель второй раз не приходит")
+	rs.cap = 4
+	rs.release = 2
+	_expect(not rs.veteran(), "сигналы не раньше третьего релиза")
 	bugs = 2
 	# Кнопки.
 	var got: Array[String] = []

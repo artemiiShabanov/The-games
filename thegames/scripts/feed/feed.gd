@@ -88,7 +88,8 @@ static func views_for(reach: int, t: SuccessTuning, rng: RandomNumberGenerator) 
 ## Лента целиком: четыре твита, три критика и клип вперемешку, в конце цифры (плейтест
 ## 2026-11-07: порядок перемешан). `rep_delta` сдвигает тон.
 static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, streamers: PeopleSet,
-		texts: FeedTexts, t: SuccessTuning, catalog: BugCatalog, rng: RandomNumberGenerator, rep_delta := 0.0) -> FeedContent:
+		texts: FeedTexts, t: SuccessTuning, catalog: BugCatalog, rng: RandomNumberGenerator, rep_delta := 0.0,
+		veteran := false, studio := "") -> FeedContent:
 	var c := FeedContent.new()
 	c.tag = hashtag(record.title)
 	c.sales_first = score.sales_first
@@ -97,7 +98,8 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var bug := clip_bug(record, catalog)
 	var vars := {
 		"title": record.title, "genre": Game.genre_name(record.genre), "setting": Game.setting_name(record.setting),
-		"tech": Game.tech_name(record.tech), "bug": bug.manifestation_for(record.genre).to_lower() if bug != null else "", "tag": c.tag}
+		"tech": Game.tech_name(record.tech), "bug": bug.manifestation_for(record.genre).to_lower() if bug != null else "", "tag": c.tag,
+		"studio": studio if studio != "" else "студия"}
 	seed(rng.seed + rng.state)  # Array.shuffle использует глобальный генератор: сидим его от rng.
 	var handles := texts.handles.duplicate()
 	handles.shuffle()
@@ -152,6 +154,16 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 			item.text += " " + _fill(texts.critic_nature_remarks[p.nature], vars)
 		mixed.append(item)
 	c.critics_avg = snappedf(sum / maxi(critics.people.size(), 1), 0.1) if not critics.people.is_empty() else score.critics
+	# Сигнал капа (#62): один критик называет студию ветераном.
+	if veteran and not texts.critic_veteran.is_empty():
+		var critic_items: Array[FeedContent.Item] = []
+		for it in mixed:
+			if it.kind == FeedContent.Kind.CRITIC:
+				critic_items.append(it)
+		if not critic_items.is_empty():
+			var vi := critic_items[rng.randi_range(0, critic_items.size() - 1)]
+			vi.text += " " + _fill(_pick(texts.critic_veteran, rng), vars)
+			c.veteran = true
 
 	# Клип стримера с самым зрелищным багом или лучшим моментом.
 	var streamer := pick_streamer(streamers, score, record, t)
