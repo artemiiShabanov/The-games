@@ -166,11 +166,11 @@ func _run_checks() -> void:
 	for item in content.items:
 		if item.kind == K.CLIP:
 			clip = item
-	# Штамп клипа по жанру записи (#51): у платформера «ПРЫЖОК ×3», у гонок, шутера и спорта (#53)
-	# свой.
+	# Штамп клипа по жанру записи (#51): у платформера «ПРЫЖОК ×3», у гонок, шутера, спорта (#53)
+	# и файтинга (#55) свой.
 	var want_stamp := "ПРЫЖОК ×3" if genre == Game.Genre.PLATFORMER else Feed.clip_bug(record, catalog).stamp_for(genre)
 	_expect(clip != null and clip.stamp == want_stamp, "штамп клипа %s, ждали %s" % [clip.stamp if clip else "", want_stamp])
-	_expect(genre not in [Game.Genre.RACING, Game.Genre.SHOOTER, Game.Genre.SPORT] or want_stamp != "ПРЫЖОК ×3", "штамп платформера в клипе жанра %d" % genre)
+	_expect(genre not in [Game.Genre.RACING, Game.Genre.SHOOTER, Game.Genre.SPORT, Game.Genre.FIGHTING] or want_stamp != "ПРЫЖОК ×3", "штамп платформера в клипе жанра %d" % genre)
 	for item in content.items:
 		if item.kind == K.TWEET:
 			_expect(item.text.find(content.tag) >= 0, "твит без тега: %s" % item.text)

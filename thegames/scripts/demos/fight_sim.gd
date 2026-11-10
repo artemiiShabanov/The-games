@@ -16,6 +16,9 @@ extends RefCounted
 ## (`strike_move` в начале, к концу удара ноль), вверх прыжок по дуге с ударом ногой в воздухе
 ## (держит блок стоя, достаёт присевшего на снижении), удары героя под капотом длиннее
 ## (`hero_reach_mult`), кадры те же.
+##
+## Баги жанра и баланса (#55) тоже правила боя (`Bugs`): демка задаёт их один раз из ресурсов
+## багов, проверка без окна и дамп тем же `Bugs.from_catalog`, так что бой с багами тот же до бита.
 
 enum State { IDLE, WALK, CROUCH, BLOCK, STRIKE, HIT, GUARD, KO, JUMP }
 enum Move { NONE, HIGH, LOW, AIR }
@@ -59,6 +62,11 @@ class Fighter:
 	var blocks := 0
 	var dodges := 0
 	var damage := 0
+	## «Мимо хитбокса» (#55): удар уже прошёл сквозь, его хитбокс смещён за спину до конца удара;
+	## касаний ударами и сколько из них прошло сквозь.
+	var ghost := false
+	var contacts := 0
+	var ghosts := 0
 
 
 ## Ввод бойца на шаг: ось по экрану (−1, 0, 1), прыжок, присед, A нажата в этот шаг, B зажата.
@@ -78,6 +86,52 @@ class Event:
 	var by_hero := true
 
 
+## Баги жанра и баланса в правилах боя (#55), спека `docs/specs/demos.md`. Демка заполняет
+## один раз в `_setup_bugs`, проверка и дамп тем же `from_catalog`; по умолчанию всё выключено.
+class Bugs:
+	## «Мимо хитбокса» (`ghost_hits`, жанровый баг файтинга): у каждого бойца каждое
+	## `pass_every`-е касание удара с телом соперника, начиная с первого, проходит сквозь: хитбокс
+	## удара до его конца смещён за спину бьющего на `ghost_shift` px. 0 без бага.
+	var pass_every := 0
+	var ghost_shift := 0.0
+	## Чих (`sneeze_enemies`): любое касание удара героя с капитаном, и в блок, нокаут с отбросом
+	## `sneeze_push` px.
+	var sneeze := false
+	var sneeze_push := 0.0
+	## «Не достать» (`unreachable_coins`): капитан бессмертен, удары по нему без урона.
+	var immortal := false
+	## Дикая физика (`wild_physics`): тяжесть в `jump_mult` раз меньше (прыжок во столько же выше
+	## и дольше), чистое попадание подбрасывает на `launch_speed` и уносит на `fling_speed` от
+	## бьющего, px/с. 0 без бага.
+	var jump_mult := 1.0
+	var launch_speed := 0.0
+	var fling_speed := 0.0
+
+	func any() -> bool:
+		return pass_every > 0 or sneeze or immortal or launch_speed > 0.0 or jump_mult != 1.0
+
+	## Правила по списку багов записи и параметрам из каталога (`resources/bugs/<id>.tres`).
+	static func from_catalog(ids: Array[StringName], catalog: BugCatalog) -> Bugs:
+		var b := Bugs.new()
+		if catalog == null:
+			return b
+		var ghost := catalog.by_id(&"ghost_hits")
+		if ids.has(&"ghost_hits") and ghost != null:
+			b.pass_every = maxi(int(ghost.param(&"pass_every", 2.0)), 1)
+			b.ghost_shift = ghost.param(&"ghost_shift", 32.0)
+		var sneeze := catalog.by_id(&"sneeze_enemies")
+		if ids.has(&"sneeze_enemies") and sneeze != null:
+			b.sneeze = true
+			b.sneeze_push = sneeze.param(&"fight_ko_push", 72.0)
+		b.immortal = ids.has(&"unreachable_coins")
+		var wild := catalog.by_id(&"wild_physics")
+		if ids.has(&"wild_physics") and wild != null:
+			b.jump_mult = maxf(wild.param(&"jump_mult", 3.0), 0.1)
+			b.launch_speed = wild.param(&"fight_launch_speed", 120.0)
+			b.fling_speed = wild.param(&"fight_fling_speed", 70.0)
+		return b
+
+
 var t: FightDemoTuning
 var hero := Fighter.new()
 var rival := Fighter.new()
@@ -91,10 +145,19 @@ var stopped := false
 var ticks := 0
 var hitstop := 0
 var events: Array[Event] = []
+var bugs := Bugs.new()
+## Счёт багов для заметок: капитан упал от первого касания, удары по бессмертному, подбросы,
+## самый высокий полёт над палубой, px.
+var sneezes := 0
+var shrugged := 0
+var flings := 0
+var max_air := 0.0
 
 
-func _init(tuning: FightDemoTuning, center: float) -> void:
+func _init(tuning: FightDemoTuning, center: float, bugs_: Bugs = null) -> void:
 	t = tuning
+	if bugs_ != null:
+		bugs = bugs_
 	left = center - t.arena_width / 2.0 + t.push_half
 	right = center + t.arena_width / 2.0 - t.push_half
 	hero.x = center - t.start_gap / 2.0
@@ -172,6 +235,9 @@ func hit_rect(f: Fighter) -> Rect2:
 	if f == hero:
 		# Удар героя длиннее, чем нарисован: дальний край дальше в `hero_reach_mult` раз.
 		r.size.x = (r.position.x + r.size.x) * t.hero_reach_mult - r.position.x
+	if f.ghost:
+		# «Мимо хитбокса»: удар прошёл сквозь, его хитбокс за спиной бьющего.
+		r.position.x -= bugs.ghost_shift
 	return _world(f, r)
 
 
@@ -263,6 +329,7 @@ func _start_strike(f: Fighter, move: Move) -> void:
 	f.t = 0
 	f.connected = false
 	f.dodge_counted = false
+	f.ghost = false
 	f.move_id += 1
 	f.walk_t = 0
 	if f.move == Move.LOW:
@@ -277,9 +344,10 @@ func _air(f: Fighter) -> void:
 	if not airborne(f):
 		return
 	f.x = clampf(f.x + f.vx / t.physics_hz, left, right)
-	f.vy -= t.jump_gravity / t.physics_hz
+	f.vy -= t.jump_gravity / bugs.jump_mult / t.physics_hz
 	f.y += f.vy / t.physics_hz
 	if f.y > 0.0:
+		max_air = maxf(max_air, f.y)
 		return
 	f.y = 0.0
 	f.vy = 0.0
@@ -347,8 +415,18 @@ func _strikes() -> void:
 		if hb.size == Vector2.ZERO:
 			continue
 		if hb.intersects(hurt_rect(def)):
+			var at := hb.intersection(hurt_rect(def)).get_center()
+			if bugs.pass_every > 0:
+				# «Мимо хитбокса»: каждое `pass_every`-е касание, начиная с первого, сквозь.
+				var through := att.contacts % bugs.pass_every == 0
+				att.contacts += 1
+				if through:
+					att.ghost = true
+					att.ghosts += 1
+					_event(&"ghost", at, att == hero)
+					continue
 			landed.append(att)
-			points.append(hb.intersection(hurt_rect(def)).get_center())
+			points.append(at)
 		elif att.move == Move.HIGH and crouched(def) and not att.dodge_counted \
 				and hb.intersects(_world(def, t.stand_hurt)):
 			# Кулак прошёл над головой присевшего.
@@ -363,7 +441,10 @@ func _apply(att: Fighter, def: Fighter, at: Vector2) -> void:
 	att.connected = true
 	var low := att.move == Move.LOW
 	var air := att.move == Move.AIR
-	var blocked := not low and (def.state == State.BLOCK or def.state == State.GUARD)
+	# Чих: любое касание удара героя валит капитана, и в блок.
+	var fragile := bugs.sneeze and def == rival
+	var blocked := not low and (def.state == State.BLOCK or def.state == State.GUARD) and not fragile
+	var dir := 1.0 if def.x >= att.x else -1.0
 	var push: float
 	if blocked:
 		def.state = State.GUARD
@@ -375,6 +456,13 @@ func _apply(att: Fighter, def: Fighter, at: Vector2) -> void:
 		_event(&"guard", at, def == hero)
 	else:
 		var dmg := t.low_damage if low else (t.air_damage if air else t.high_damage)
+		if fragile:
+			dmg = def.health
+			sneezes += 1
+		if bugs.immortal and def == rival:
+			# «Не достать»: удар засчитан, урона нет.
+			dmg = 0
+			shrugged += 1
 		def.health = maxi(def.health - dmg, 0)
 		att.landed += 1
 		att.damage += dmg
@@ -390,8 +478,17 @@ func _apply(att: Fighter, def: Fighter, at: Vector2) -> void:
 			_event(&"ko", at, att == hero)
 		else:
 			_event(&"hit", at, att == hero)
+		if fragile:
+			push = bugs.sneeze_push
+		if bugs.launch_speed > 0.0:
+			# Дикая физика: попадание подбрасывает и уносит по дуге вместо отброса.
+			def.vy = bugs.launch_speed
+			def.vx = dir * bugs.fling_speed
+			def.slide = 0.0
+			flings += 1
+			hitstop = t.hitstop
+			return
 	# Отброс от бьющего; что не влезло до борта, отъезжает бьющий.
-	var dir := 1.0 if def.x >= att.x else -1.0
 	var room := (right - def.x) if dir > 0.0 else (def.x - left)
 	def.slide = dir * minf(push, room)
 	if push > room:
@@ -409,8 +506,9 @@ func _event(kind: StringName, pos: Vector2, by_hero: bool) -> void:
 
 ## Раунд без окна: бот героя в режиме `mode` против соперника по плану до нокаута или конца
 ## времени. Для проверки в `demo_test` и дампа `dump_fight.gd`.
-static func simulate(plan: FightPlan, tuning: FightDemoTuning, gen: FightGenTuning, mode: AutoTest.BotMode) -> FightSim:
-	var sim := FightSim.new(tuning, 0.0)
+static func simulate(plan: FightPlan, tuning: FightDemoTuning, gen: FightGenTuning, mode: AutoTest.BotMode,
+		bugs_: Bugs = null) -> FightSim:
+	var sim := FightSim.new(tuning, 0.0, bugs_)
 	var ai := FightAi.new(sim, plan, gen)
 	var bot := FightBot.new(sim, mode, plan.seed)
 	var limit := int(round(tuning.round_seconds * tuning.physics_hz))
@@ -432,3 +530,11 @@ func summary() -> String:
 			hero.health, rival.health, "нокаут" if knocked_out() else "время", seconds(),
 			hero.highs + hero.lows, hero.highs, hero.lows, hero.landed, hero.guarded, hero.blocks, hero.dodges,
 			rival.highs + rival.lows, rival.landed, rival.guarded, rival.blocks, rival.dodges]
+
+
+## Счёт багов одной строкой (#55), пусто без багов правил боя.
+func bug_summary() -> String:
+	if not bugs.any():
+		return ""
+	return "сквозь хитбокс у героя %d из %d касаний, у капитана %d из %d; от чиха %d; ударов без урона %d; подбросов %d, выше всего %.0f px" % [
+			hero.ghosts, hero.contacts, rival.ghosts, rival.contacts, sneezes, shrugged, flings, max_air]

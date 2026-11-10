@@ -19,7 +19,14 @@ extends Demo
 ## `pink_placeholders` капитан, пушка, сундук или искры розовыми прямоугольниками (герой и
 ## палуба никогда); `alien_palette` фон и бойцы в сдвинутых цветах; `sprite_flicker` на строке
 ## ног четыре спрайта (пушка, сундук, два бойца), нижняя половина капитана мерцает через кадр.
-## Баги жанра и баланса у файтинга отдельной задачей (#55).
+## Свои проявления (#55) это правила боя (`FightSim.Bugs`, числа в `resources/bugs/<id>.tres`,
+## читаются один раз в `_setup_bugs`, бой без окна тот же): `ghost_hits` (жанровый баг файтинга)
+## у каждого бойца каждое второе касание удара, начиная с первого, проходит сквозь соперника без
+## урона и искры, хитбокс удара рамкой мигает за спиной бьющего; `sneeze_enemies` любое касание
+## удара героя, и в блок, валит капитана нокаутом с отлётом; `unreachable_coins` капитан
+## бессмертен: попадания с искрой и оглушением, а полоса только вспыхивает белым, итог по времени
+## «поражение» или «ничья»; `wild_physics` тяжесть втрое меньше (прыжок втрое выше), попадание
+## подбрасывает и уносит бойца по дуге через палубу.
 
 enum Phase { COUNT, FIGHT, OVER }
 
@@ -36,6 +43,11 @@ const HUD_DIM := Color(0.086, 0.078, 0.071, 0.45)
 const BAR_FILL := Color("#F2C85A")
 const WOOD := Color("#A85A2A")
 const SPARK_LIFE := 0.22
+## Рамка хитбокса, прошедшего сквозь (`ghost_hits`): цвет отладочной рамки и жизнь, с.
+const GHOST_INK := Color("#5CFF6A")
+const GHOST_LIFE := 0.5
+## Вспышка полосы бессмертного капитана при попадании, с.
+const FLASH_LIFE := 0.25
 ## Что может стать розовой заглушкой; герой и палуба никогда.
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "cannon", "chest", "spark"]
 const FRAMES: Array[String] = ["idle_0", "idle_1", "walk", "high_0", "high_1", "crouch", "low_1", "block", "hit", "ko"]
@@ -79,6 +91,14 @@ var _bot_b := false
 var _stick_strike := false
 var stuck_strikes := 0
 var flicker_frames := 0
+## Баги правил боя (#55) один раз из ресурсов багов; рамки хитбоксов, прошедших сквозь
+## (`ghost_hits`): прямоугольник в мире боя и остаток жизни; вспышка полосы бессмертного
+## капитана; первое проявление каждого бага уже в заметках.
+var bugs: FightSim.Bugs
+var _ghost_boxes: Array[Rect2] = []
+var _ghost_life: Array[float] = []
+var _bar_flash := 0.0
+var _noted := {}
 var _music: AudioStreamPlayer
 var _sfx := {}
 
@@ -101,7 +121,8 @@ func _on_start() -> void:
 	center_x = floorf(view.x / 2.0)
 	# Бой в своих координатах с серединой арены в нуле (как у проверки без окна, бой тот же
 	# до бита), рисуется со сдвигом `center_x`.
-	sim = FightSim.new(tuning, 0.0)
+	_setup_bugs()
+	sim = FightSim.new(tuning, 0.0, bugs)
 	ai = FightAi.new(sim, plan, gen)
 	if bot_driven():
 		bot = FightBot.new(sim, active_bot_mode(), record.seed)
@@ -130,6 +151,12 @@ func _on_start() -> void:
 	stage.add_child(hud)
 	count_left = tuning.countdown
 	_setup_audio()
+
+
+## Баги жанра и баланса (#55): правила боя с багами один раз из каталога (тем же
+## `FightSim.Bugs.from_catalog` бой гоняет проверка без окна и дамп).
+func _setup_bugs() -> void:
+	bugs = FightSim.Bugs.from_catalog(record.bug_ids, BugCatalog.load_default())
 
 
 func _setup_audio() -> void:
@@ -171,8 +198,9 @@ func _on_end(goal_: bool) -> void:
 				"цель" if goal_ else "провал", sim.summary(), record.seed, plan.reaction, plan.miss, plan.attempts,
 				plan.describe(gen)])
 		if not record.bug_ids.is_empty():
-			AutoTest.note("fighting bugs: розовые %s, залипших ударов %d, кадров с мерцанием %d" % [
-					PLACEHOLDER_SLOTS.filter(func(s: String) -> bool: return is_pink(s)), stuck_strikes, flicker_frames])
+			AutoTest.note("fighting bugs: розовые %s, залипших ударов %d, кадров с мерцанием %d%s" % [
+					PLACEHOLDER_SLOTS.filter(func(s: String) -> bool: return is_pink(s)), stuck_strikes, flicker_frames,
+					"; " + sim.bug_summary() if bugs.any() else ""])
 
 
 func _result_title(goal: bool) -> String:
@@ -225,6 +253,12 @@ func _step(delta: float) -> void:
 		if _sparks[i].z <= 0.0:
 			_sparks.remove_at(i)
 			_spark_flip.remove_at(i)
+	for i in range(_ghost_life.size() - 1, -1, -1):
+		_ghost_life[i] -= delta
+		if _ghost_life[i] <= 0.0:
+			_ghost_life.remove_at(i)
+			_ghost_boxes.remove_at(i)
+	_bar_flash = maxf(_bar_flash - delta, 0.0)
 	if phase == Phase.COUNT:
 		count_left -= delta
 		var shown := _count_digit()
@@ -316,11 +350,42 @@ func _on_event(e: FightSim.Event) -> void:
 		&"hit", &"ko":
 			_play("hit" if e.kind == &"hit" else "ko")
 			_add_spark(e.pos, 0, false)
+			if e.by_hero and bugs.immortal:
+				_bar_flash = FLASH_LIFE
+			_note_bug_hit(e)
+		&"ghost":
+			# «Мимо хитбокса»: искры и звука удара нет, хитбокс рамкой за спиной бьющего.
+			var f := sim.hero if e.by_hero else sim.rival
+			_ghost_boxes.append(sim.hit_rect(f))
+			_ghost_life.append(GHOST_LIFE)
+			_note_once(&"ghost_hits", "fighting bug: удар %s прошёл сквозь %s на %.1f с, хитбокс за спиной на %.0f px" % [
+					"матроса" if e.by_hero else "капитана", "капитана" if e.by_hero else "матроса", sim.seconds(), bugs.ghost_shift])
 		&"guard":
 			_play("guard")
 			# Дуга щита к бьющему: блокирует герой, бьёт соперник, и наоборот.
 			var blocker := sim.hero if e.by_hero else sim.rival
 			_add_spark(e.pos, 1, blocker.face < 0)
+
+
+## Первые проявления багов правил боя в заметках автотеста.
+func _note_bug_hit(e: FightSim.Event) -> void:
+	if e.by_hero and bugs.sneeze and sim.sneezes > 0:
+		_note_once(&"sneeze_enemies", "fighting bug: капитан от первого касания %s на %.1f с, здоровье %d:%d, отлёт %.0f px" % [
+				"нокаутом" if sim.rival.health <= 0 else "отлетел (бессмертен)", sim.seconds(), sim.hero.health, sim.rival.health,
+				bugs.sneeze_push])
+	if e.by_hero and bugs.immortal:
+		_note_once(&"unreachable_coins", "fighting bug: капитан бессмертен, попадание на %.1f с без урона, здоровье %d" % [
+				sim.seconds(), sim.rival.health])
+	if bugs.launch_speed > 0.0:
+		_note_once(&"wild_physics", "fighting bug: %s подброшен попаданием на %.1f с (%.0f px/с вверх, %.0f вбок)" % [
+				"капитан" if e.by_hero else "матрос", sim.seconds(), bugs.launch_speed, bugs.fling_speed])
+
+
+func _note_once(id: StringName, text: String) -> void:
+	if _noted.has(id) or not AutoTest.enabled or embedded:
+		return
+	_noted[id] = true
+	AutoTest.note(text)
 
 
 func _add_spark(pos: Vector2, kind: int, flip: bool) -> void:
@@ -345,7 +410,8 @@ func _frame_name(f: FightSim.Fighter) -> String:
 		FightSim.State.HIT:
 			return "hit"
 		FightSim.State.KO:
-			return "hit" if f.t < 8 else "ko"
+			# Летит после нокаута (дикая физика): лёжа только на палубе.
+			return "hit" if f.t < 8 or FightSim.airborne(f) else "ko"
 		FightSim.State.STRIKE:
 			var fr := sim.frames(f.move)
 			if f.move == FightSim.Move.AIR:
@@ -379,7 +445,7 @@ func _draw_world() -> void:
 	# Мерцание считается героем, потом капитаном: лишним на строке оказывается капитан.
 	for who in 2:
 		var f := sim.hero if who == 0 else sim.rival
-		var halves := 1 if f.state == FightSim.State.KO and f.t >= 8 else 2
+		var halves := 1 if _frame_name(f) == "ko" else 2
 		for half in halves:
 			var top := ground_y - roundf(f.y) - 32.0 + half * 16.0 if halves == 2 else ground_y - 14.0
 			hide[who * 2 + half] = flicker_hidden(int(floor((top + 8.0) / TILE)))
@@ -400,6 +466,13 @@ func _draw_world() -> void:
 			world.draw_texture_rect(tex[name], Rect2(at, Vector2(-16, 16)), false)
 		else:
 			world.draw_texture(tex[name], at)
+	# «Мимо хитбокса»: рамка хитбокса за спиной бьющего мигает через 4 шага.
+	for i in _ghost_boxes.size():
+		if int((GHOST_LIFE - _ghost_life[i]) * 15.0) % 2 == 1:
+			continue
+		var r := _ghost_boxes[i]
+		var box := Rect2(roundf(center_x + r.position.x) + 0.5, ground_y + roundf(r.position.y) + 0.5, r.size.x - 1.0, r.size.y - 1.0)
+		world.draw_rect(box, GHOST_INK, false, 1.0)
 
 
 ## Боец ногами на палубе, лицом по взгляду (влево отражён), двумя половинами 16 строк: у каждой
@@ -533,6 +606,9 @@ func _draw_hud() -> void:
 	_draw_face("fight_rival_idle_0", Vector2(view.x - 20.0, top - 2.0), true, is_pink("rival"))
 	_draw_bar(Vector2(22, top), bar_w, sim.hero.health, _ghost.x, false)
 	_draw_bar(Vector2(view.x - 22.0 - bar_w, top), bar_w, sim.rival.health, _ghost.y, true)
+	if _bar_flash > 0.0:
+		# Бессмертный капитан: попадание засчитано, полоса вспыхивает белым и не убывает.
+		hud.draw_rect(Rect2(view.x - 21.0 - bar_w, top + 1.0, bar_w - 2.0, 7.0), HUD_INK)
 	var left := ceili(maxf(tuning.round_seconds - sim.seconds(), 0.0))
 	var t := "%02d" % left
 	draw_pixel_text(hud, Vector2(center_x - 7.0, top), t, HUD_INK, HUD_SHADOW)

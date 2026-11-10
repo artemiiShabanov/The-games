@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_ghost"]
+
+[resource]
+script = ExtResource("1_ghost")
+id = &"ghost_hits"
+kind = 1
+genre = 4
+stamp = "МИМО ХИТБОКСА"
+manifestation = "Удары через раз проходят сквозь соперника: хитбокс удара сидит за спиной бьющего"
+tweet = "Врезал капитану прямо в нос, а он даже не моргнул. Хитбоксы уровня «и так сойдёт»"
+clip = "Кулак матроса торчит в лице капитана, тот стоит как ни в чём не бывало, за спиной матроса мигает рамка"
+params = Dictionary[StringName, float]({
+&"pass_every": 2.0,
+&"ghost_shift": 32.0
+})
