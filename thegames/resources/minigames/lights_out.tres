@@ -1,6 +1,32 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_kyjxa"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/lights_out.tscn" id="2_lo"]
+
+[sub_resource type="Curve" id="Curve_hmin"]
+_limits = [0.3, 0.5, 0.0, 1.0]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_hmax"]
+_limits = [1.4, 2.2, 0.0, 1.0]
+_data = [Vector2(0, 1.4), 0.0, 0.0, 0, 0, Vector2(1, 2.2), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_slow"]
+_limits = [0.32, 0.4, 0.0, 1.0]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 0.32), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_bchance"]
+_limits = [0.0, 0.8, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.2, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.8), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_blinks"]
+_limits = [1.0, 2.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(1, 2), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_kyjxa")
@@ -8,5 +34,14 @@ id = &"lights_out"
 kind = 2
 genre = 1
 verb = "Старт"
-hint = "Огни погасли: жми A, раньше фальстарт"
+hint = "Огни погасли: жми ␣, раньше фальстарт"
+time_seconds = 24.0
+scene = ExtResource("2_lo")
 inputs = Array[StringName]([&"action_a"])
+params = Dictionary[StringName, Curve]({
+&"blink_chance": SubResource("Curve_bchance"),
+&"blinks": SubResource("Curve_blinks"),
+&"hold_max": SubResource("Curve_hmax"),
+&"hold_min": SubResource("Curve_hmin"),
+&"slow": SubResource("Curve_slow")
+})
