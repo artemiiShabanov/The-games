@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MetaTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/meta_tuning.gd" id="1_meta"]
+
+[resource]
+script = ExtResource("1_meta")
+rep_step = 1.5
+mood_offer = 0.2
+coin_chance = 0.5
+max_tail_share = 0.5
+outcome_seconds = 1.0

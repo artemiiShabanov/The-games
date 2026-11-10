@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/publisher.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 0
+amount = 12000
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("2_eff")
+kind = 2
+value = -1
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("2_eff")
+kind = 3
+value = -1
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("2_eff")
+kind = 6
+share = 0.3
+games = 1
+
+[sub_resource type="Resource" id="Res_5"]
+script = ExtResource("3_choice")
+text = "Берём аванс и делаем"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2"), SubResource("Res_3"), SubResource("Res_4")])
+mood_delta = 1
+
+[sub_resource type="Resource" id="Res_6"]
+script = ExtResource("2_eff")
+kind = 2
+value = -1
+
+[sub_resource type="Resource" id="Res_7"]
+script = ExtResource("2_eff")
+kind = 3
+value = -1
+
+[sub_resource type="Resource" id="Res_8"]
+script = ExtResource("2_eff")
+kind = 1
+steps = 1
+
+[sub_resource type="Resource" id="Res_9"]
+script = ExtResource("3_choice")
+text = "Сделаем, но без аванса и без доли"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_6"), SubResource("Res_7"), SubResource("Res_8")])
+
+[sub_resource type="Resource" id="Res_10"]
+script = ExtResource("3_choice")
+text = "Своё нас устраивает"
+mood_delta = -1
+
+[resource]
+script = ExtResource("1_event")
+id = &"publisher_offer"
+title = "Оффер издателя"
+kind = 0
+character = ExtResource("4_char")
+condition = &"publisher_offer"
+line = "Ваши игры заметили. Хочу {genre} в сеттинге «{setting}» к следующему кварталу. Аванс дам сейчас, долю возьму с хвоста. Ну или не дам, и делайте дальше что хотите."
+line_warm = "Снова я, и снова с деньгами. Хочу {genre} в сеттинге «{setting}». Аванс щедрый, доля с хвоста как обычно."
+line_cold = "Прошлый раз вы отказали, но я не гордый. {genre}, сеттинг «{setting}». Аванс, доля с хвоста. Последний раз спрашиваю."
+choices = Array[ExtResource("3_choice")]([SubResource("Res_5"), SubResource("Res_9"), SubResource("Res_10")])

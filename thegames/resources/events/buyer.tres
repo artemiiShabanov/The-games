@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/investor.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 8
+id = &"sale"
+text = "концовка: продажа"
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("3_choice")
+text = "Продать студию"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1")])
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("2_eff")
+kind = 9
+id = &"buyer_more"
+text = "+10 % к цене"
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("2_eff")
+kind = 9
+id = &"buyer_gone"
+text = "уйдёт на два релиза"
+
+[sub_resource type="Resource" id="Res_5"]
+script = ExtResource("3_choice")
+text = "Попросить больше"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_3")])
+coin = true
+lose_effects = Array[ExtResource("2_eff")]([SubResource("Res_4")])
+
+[sub_resource type="Resource" id="Res_6"]
+script = ExtResource("3_choice")
+text = "Не продаём"
+
+[resource]
+script = ExtResource("1_event")
+id = &"buyer"
+title = "Покупатель"
+kind = 1
+character = ExtResource("4_char")
+condition = &"buyer"
+line = "{studio} стоит денег, и я готова их заплатить. Продадите студию? Предложение хорошее, второй раз может не прозвучать."
+line_warm = ""
+line_cold = ""
+choices = Array[ExtResource("3_choice")]([SubResource("Res_2"), SubResource("Res_5"), SubResource("Res_6")])

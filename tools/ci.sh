@@ -21,6 +21,7 @@ step "economy_test" sh tools/autotest.sh --scene=economy_test --frames=200
 step "success_test" sh tools/autotest.sh --scene=success_test --frames=200
 step "constructor_test" sh tools/autotest.sh --scene=constructor_test --frames=400
 step "feed_test" sh tools/autotest.sh --scene=feed_test --frames=400
+step "event_test" sh tools/autotest.sh --scene=event_test --frames=600
 step "studio_test" sh tools/autotest.sh --scene=studio_test --frames=600
 step "bugfix_test" sh tools/autotest.sh --scene=bugfix_test --time-scale=4 --frames=3000
 step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=4 --frames=4500

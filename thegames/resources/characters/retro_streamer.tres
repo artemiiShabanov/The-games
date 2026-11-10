@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/character_def.gd" id="1_char"]
+
+[resource]
+script = ExtResource("1_char")
+id = &"retro_streamer"
+name = "ДедушкаДжойстик"
+role = "Стример"
+subtitle = "9 тыс. онлайн"
+accent = Color(0.1216, 0.5412, 0.2980, 1)
+person_id = &"grandpa"
+short_name = "Дедушка"

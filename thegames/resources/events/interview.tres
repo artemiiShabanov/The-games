@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="EventDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/event_def.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/effect_def.gd" id="2_eff"]
+[ext_resource type="Script" path="res://scripts/events/choice_def.gd" id="3_choice"]
+[ext_resource type="Resource" path="res://resources/characters/journalist.tres" id="4_char"]
+
+[sub_resource type="Resource" id="Res_1"]
+script = ExtResource("2_eff")
+kind = 1
+steps = 1
+
+[sub_resource type="Resource" id="Res_2"]
+script = ExtResource("2_eff")
+kind = 7
+stat = 1
+bonus = -10.0
+
+[sub_resource type="Resource" id="Res_3"]
+script = ExtResource("3_choice")
+text = "Честно, и про баги тоже"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_1"), SubResource("Res_2")])
+
+[sub_resource type="Resource" id="Res_4"]
+script = ExtResource("2_eff")
+kind = 1
+steps = 2
+
+[sub_resource type="Resource" id="Res_5"]
+script = ExtResource("2_eff")
+kind = 1
+steps = -1
+
+[sub_resource type="Resource" id="Res_6"]
+script = ExtResource("3_choice")
+text = "Похвастаться"
+effects = Array[ExtResource("2_eff")]([SubResource("Res_4")])
+coin = true
+lose_effects = Array[ExtResource("2_eff")]([SubResource("Res_5")])
+
+[sub_resource type="Resource" id="Res_7"]
+script = ExtResource("3_choice")
+text = "Без интервью"
+
+[resource]
+script = ExtResource("1_event")
+id = &"interview"
+title = "Интервью"
+kind = 0
+character = ExtResource("4_char")
+condition = &"reputation_rising"
+line = "Пишу материал о небольших студиях. {studio} растёт, читателям интересно, как у вас на самом деле. Расскажете?"
+line_warm = ""
+line_cold = ""
+choices = Array[ExtResource("3_choice")]([SubResource("Res_3"), SubResource("Res_6"), SubResource("Res_7")])

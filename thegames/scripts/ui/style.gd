@@ -19,6 +19,10 @@ const MONEY := Color("#1F8A4C")
 const SUCCESS := Color("#2BB37A")
 const DANGER := Color("#D93A2B")
 const BUG := Color("#F07A1C")
+## Подложки пилюль последствий (концепт `06-meta-event`, #63): плюс, минус, ограничение.
+const TINT_PLUS := Color("#E3F4EA")
+const TINT_MINUS := Color("#FBE5E2")
+const TINT_LOCK := Color("#E6ECFF")
 
 ## Акценты мини-игр a1..a4; палитру выбирает игрок в настройках, стартовая здесь.
 static var accents: Array[Color] = [Color("#2F5BFF"), Color("#F07A1C"), Color("#2BB37A"), Color("#E0457B")]

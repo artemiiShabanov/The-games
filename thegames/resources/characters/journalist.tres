@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/character_def.gd" id="1_char"]
+
+[resource]
+script = ExtResource("1_char")
+id = &"journalist"
+name = "Марта Гринвуд"
+role = "Журналист"
+subtitle = "Pixel Gazette"
+accent = Color(0.8784, 0.2706, 0.4824, 1)
+person_id = &"marta"
+short_name = "Марта"

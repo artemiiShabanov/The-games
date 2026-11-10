@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/character_def.gd" id="1_char"]
+
+[resource]
+script = ExtResource("1_char")
+id = &"publisher"
+name = "Виктор Холл"
+role = "Издатель"
+subtitle = "Holl & Sons"
+accent = Color(0.1843, 0.3569, 1.0000, 1)
+person_id = &""
+short_name = "Виктор"
