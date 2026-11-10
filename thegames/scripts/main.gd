@@ -415,11 +415,15 @@ func _show_ending(id: Endings.Id) -> void:
 	_bot_timer = 0.0
 
 
-## «В галерею»: галерея в #70, пока новый забег. Петля автотеста стоит на концовке.
+## «В галерею» (#70): галерея профиля, из неё новый забег (главное меню в #71). Петля
+## автотеста стоит на концовке.
 func _on_ending_closed() -> void:
 	if _loop_check:
 		return
-	_restart()
+	var g := GalleryScreen.new()
+	g.setup(_profile.gallery)
+	g.closed.connect(_restart)
+	_set_screen(g)
 
 
 func _restart() -> void:
