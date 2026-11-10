@@ -46,6 +46,10 @@ func _ready() -> void:
 	if AutoTest.enabled:
 		# `--cards` оставляет карточки для скриншотов, `--lose` даёт штампы багов.
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
+		# Под автотестом `t` и сид не из сохранённого дебаг-меню (там то, что игралось руками),
+		# а `--t=<0..1>` и `--seed=<n>`, по умолчанию 0 и 1: проверка не зависит от плейтеста.
+		Debug.minigame_t = float(str(args["t"])) if args.has("t") else 0.0
+		Debug.minigame_seed = int(str(args["seed"])) if args.has("seed") else 1
 		Debug.skip_cards = not args.has("cards")
 		if args.has("lose"):
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE
