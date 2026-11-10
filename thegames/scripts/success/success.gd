@@ -50,6 +50,7 @@ static func score_release(record: GameRecord, past: Array[GameRecord], market: M
 			+ t.tech_critics[record.tech] + t.critics_synergy * (s.synergy - 1.0) - t.critics_bug * s.bugs - fatigue
 	if noise:
 		c += rng.randf_range(-t.critics_noise, t.critics_noise)
+	c += record.bonus_critics
 	s.critics = clampf(c, 0.0, 10.0)
 
 	var franchise := t.franchise_boost(record.part)
@@ -69,11 +70,13 @@ static func score_release(record: GameRecord, past: Array[GameRecord], market: M
 			+ t.streamers_spectacular_bug * s.spectacular_bugs
 	if noise:
 		v *= 1.0 + rng.randf_range(-t.streamers_noise, t.streamers_noise)
+	v += record.bonus_streamers
 	v = clampf(v, 0.0, 100.0)
 	s.streamers = int(round(v))
 	s.viral = v >= t.viral_threshold
 	if s.viral:
 		p0 *= t.viral_mult
+	p0 *= 1.0 + record.bonus_sales
 	s.sales_first = int(round(p0))
 	s.tail_decay = t.tail_base + t.tail_quality * s.quality - t.tail_bug * mini(s.bugs, t.tail_bug_cap)
 	s.tail_ticks = 0

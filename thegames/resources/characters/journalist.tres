@@ -11,3 +11,4 @@ subtitle = "Pixel Gazette"
 accent = Color(0.8784, 0.2706, 0.4824, 1)
 person_id = &"marta"
 short_name = "Марта"
+name_with = "Мартой"

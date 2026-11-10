@@ -111,6 +111,13 @@ func _start_release() -> void:
 	base = null
 	if run.release == 1 and run.studio_name == "":
 		_open_new_studio()
+	elif run.contract_sequel() != null:
+		# Обещанный во вставке сиквел (#66): основа задана, экрана основы нет.
+		base = BaseOption.sequel_of(run.contract_sequel())
+		_open_constructor()
+	elif not run.contracts().is_empty():
+		# Договор на жанр, сеттинг или технологию: новая игра, экрана основы нет.
+		_open_constructor()
 	elif run.studio.sequels_unlocked() or run.studio.remakes_unlocked():
 		_open_base()
 	else:
@@ -163,6 +170,7 @@ func _open_constructor() -> void:
 	c.setup(run.unlocked_genres(), run.unlocked_techs(), run.unlocked_settings(), run.wallet.cash, run.release,
 			run.rng.randi(), run.discount(), base)
 	c.set_market(run.market, run.success, run.studio.insider())
+	c.set_contracts(run.contracts())
 	c.game_configured.connect(_on_configured)
 	_set_screen(c)
 	_bot_timer = 0.0
@@ -315,7 +323,7 @@ func _open_studio() -> void:
 	_clear_all()
 	stage = Stage.STUDIO
 	report = run.settle(record)
-	_expected_cash += report.first_week + report.tails_total - report.upkeep + report.rescue
+	_expected_cash += report.first_week + report.tails_total - report.shares_total - report.upkeep + report.rescue
 	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
 	var offer := run.plan_event(report)
@@ -330,7 +338,7 @@ func _open_studio() -> void:
 ## Ответ на вставку: применить, пересчитать оценку для экрана, сверка денег петли.
 func _apply_event(index: int, offer: Events.Offer) -> String:
 	var before := run.wallet.cash
-	var outcome := run.apply_event(offer, index)
+	var outcome := run.apply_event(offer, index, record)
 	_expected_cash += run.wallet.cash - before
 	report.cash = run.wallet.cash
 	report.stats = run.stats_with(record)

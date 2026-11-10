@@ -5,13 +5,18 @@ extends RefCounted
 ## для анимации: продажи первой недели нового релиза (его P0, плейтест ленты 2026-11-07), тики
 ## хвостов прошлых игр, содержание, проверка банкротства, оценка студии, состав предложения.
 ## Банкротство в M1 без карточки издателя: первый раз приходит аванс `rescue_amount` строкой,
-## второй раз за забег (`StudioState.rescued`) забег окончен (`game_over`). Покупка отдельно:
+## второй раз за забег (`StudioState.rescued`) забег окончен (`game_over`). Хвосты по
+## договорам вставок (#66): тик целиком, доля отдельной суммой `shares_total`; проданный хвост
+## не тикает. Покупка отдельно:
 ## `buy`, хозяин зовёт по сигналу экрана.
 
 
 class Tail:
 	var record: GameRecord
 	var tick := 0
+	## Доля с этого тика по договору из вставки (#66) и кому.
+	var share := 0
+	var to := ""
 
 
 class Report:
@@ -20,6 +25,8 @@ class Report:
 	var first_week := 0
 	var tails: Array[Tail] = []
 	var tails_total := 0
+	## Доли с хвостов по договорам, уходят отдельными строками (#66).
+	var shares_total := 0
 	var cash_start := 0
 	var upkeep := 0
 	var cheapest := 0
@@ -54,12 +61,21 @@ static func settle(release: int, past: Array[GameRecord], current: GameRecord, m
 	for p in past:
 		if p.score == null:
 			continue
+		if p.tail_sold:
+			# Хвост продан во вставке: игра больше не платит.
+			p.score.last_tick = 0
+			p.score.tail_alive = false
+			continue
 		var t := Tail.new()
 		t.record = p
 		t.tick = Success.tick_tail(p.score, success)
+		t.share = int(roundf(t.tick * p.tail_share))
+		t.to = " и ".join(p.share_to)
 		r.tails.append(t)
 		r.tails_total += t.tick
+		r.shares_total += t.share
 	wallet.earn(r.tails_total, &"tail")
+	wallet.spend(r.shares_total, &"share")
 	# 2. Содержание списывается всегда.
 	r.upkeep = upkeep.total()
 	wallet.spend(r.upkeep, &"upkeep")

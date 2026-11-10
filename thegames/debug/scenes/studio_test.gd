@@ -37,6 +37,8 @@ var rescued := false
 var bought_all := false
 ## `--event=<id>`: шаг 5 с этой вставкой (#64).
 var event_id := ""
+## `--share=0.3`: доля с хвоста последней прошлой игры «по договору с Виктором» (#66).
+var share := 0.0
 
 var economy: EconomyTuning
 var success: SuccessTuning
@@ -95,6 +97,8 @@ func _ready() -> void:
 		bought_all = true
 	if args.has("event"):
 		event_id = str(args["event"])
+	if args.has("share"):
+		share = float(str(args["share"]))
 	if AutoTest.enabled:
 		Debug.skip_cards = true
 		if args.has("no-checks"):
@@ -163,6 +167,9 @@ func _launch() -> void:
 			upkeep.add(d.id, d.upkeep(economy))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
+	if share > 0.0 and not records.is_empty():
+		records.back().tail_share = share
+		records.back().share_to = PackedStringArray(["Виктором"])
 	report = StudioPhase.settle(past_count + 1, records, current, market, wallet, upkeep, state, economy, success,
 			pool, unlocked_genres, unlocked_techs, unlocked_settings, rng)
 	if AutoTest.enabled:

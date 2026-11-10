@@ -17,6 +17,14 @@ extends Resource
 @export var parent: GameRecord
 ## Отклик на релиз (спека успеха); хвост тикает между релизами.
 @export var score: ReleaseScore
+## Из вставок (#66): доля с хвоста (сумма долей, не больше `MetaTuning.max_tail_share`) и кому,
+## хвост продан (больше не платит), бонусы к отклику этой игры.
+@export var tail_share := 0.0
+@export var share_to: PackedStringArray = []
+@export var tail_sold := false
+@export var bonus_critics := 0.0
+@export var bonus_streamers := 0.0
+@export var bonus_sales := 0.0
 
 
 static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "", setting_ := Game.Setting.PIRATES) -> GameRecord:

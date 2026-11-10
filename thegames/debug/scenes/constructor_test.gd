@@ -24,6 +24,8 @@ var remakes := false
 var past_count := 2
 var manager := false
 var insider := false
+## `--contract`: договор вставки на жанр гонок и сеттинг космос «с Виктором» (#66).
+var contract := false
 var constructor: Constructor
 var chooser: BaseChooser
 var wallet: Wallet
@@ -70,6 +72,7 @@ func _ready() -> void:
 		if args.has("franchise"):
 			sequels = true
 			remakes = true
+		contract = args.has("contract")
 		if args.has("no-checks"):
 			_checked = true
 		else:
@@ -138,6 +141,9 @@ func _open_constructor(o: BaseOption) -> void:
 	var u := _unlocked()
 	constructor.setup(u[0], u[1], u[2], wallet.cash, release, seed_value, economy.manager_discount if manager else 0.0, o)
 	constructor.set_market(_make_market(), SuccessTuning.load_default(), insider)
+	if contract:
+		constructor.set_contracts({0: {"value": int(Game.Genre.RACING), "by": "Виктором"},
+				2: {"value": int(Game.Setting.SPACE), "by": "Виктором"}})
 	constructor.game_configured.connect(_on_configured)
 	add_child(constructor)
 

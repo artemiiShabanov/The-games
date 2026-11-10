@@ -11,3 +11,4 @@ subtitle = "9 тыс. онлайн"
 accent = Color(0.1216, 0.5412, 0.2980, 1)
 person_id = &"dedushka"
 short_name = "Дедушка"
+name_with = "Дедушкой"

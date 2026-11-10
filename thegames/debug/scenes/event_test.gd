@@ -73,6 +73,7 @@ func _ready() -> void:
 			_static_checks()
 			_planner_checks()
 			_condition_checks()
+			_contract_checks()
 			for e in defs.size():
 				for c in defs[e].choices.size():
 					_queue.append(Vector2i(e, c))
@@ -146,6 +147,61 @@ func _on_finished(i: int) -> void:
 func _expect(ok: bool, what: String) -> void:
 	if not ok:
 		AutoTest.fail("event: " + what)
+
+
+## Договоры вставок в забеге (#66): ограничения в конструктор, доля в запись и строкой в
+## фазе студии, потолок долей 50 %, бонус продаж в отклик, проданный хвост не платит, сиквел.
+func _contract_checks() -> void:
+	var rs := RunState.start(5, true)
+	rs.studio_name = "Тихая Лампа"
+	var pub := Events.find(defs, &"publisher_offer")
+	var offer_ := Events.resolve(pub, 0, rs.event_context(), meta)
+	rs.apply_event(offer_, 0)
+	var cs := rs.contracts()
+	_expect(cs.has(0) and cs.has(2) and str(cs[0]["by"]) == "Виктором", "договор издателя: %s" % cs)
+	var config := Constructor.quick_config(int(cs[0]["value"]) as Game.Genre, rs.start_tech, int(cs[2]["value"]) as Game.Setting,
+			rs.economy, 1)
+	var rec := rs.start_development(config)
+	_expect(is_equal_approx(rec.tail_share, meta.publisher_share) and rec.share_to.has("Виктором"), "доля в записи %.2f %s" % [rec.tail_share, rec.share_to])
+	_expect(rs.contracts().is_empty() and rs.event_state.tail_shares.is_empty(), "договор не снят после старта")
+	rs.score_release(rec)
+	var before := rs.wallet.cash
+	var report := StudioPhase.settle(rs.release, [rec], null, rs.market, rs.wallet, rs.upkeep, rs.studio, rs.economy,
+			rs.success, rs.upgrades, rs.unlocked_genres(), rs.unlocked_techs(), rs.unlocked_settings(), rs.rng)
+	var tick := report.tails[0].tick
+	_expect(report.shares_total == int(roundf(tick * meta.publisher_share)) and report.shares_total > 0,
+			"доля в фазе %d при тике %d" % [report.shares_total, tick])
+	_expect(rs.wallet.cash - before == report.tails_total - report.shares_total - report.upkeep, "деньги фазы с долей")
+	# Потолок долей с одной игры.
+	for k in 2:
+		var t := EventState.TailShare.new()
+		t.share = 0.3
+		t.by = "Ирмой"
+		rs.event_state.tail_shares.append(t)
+	var capped := rs.start_development(config)
+	_expect(is_equal_approx(capped.tail_share, meta.max_tail_share), "потолок долей %.2f" % capped.tail_share)
+	# Бонус продаж следующей игре.
+	var b := EventState.Bonus.new()
+	b.stat = EffectDef.Stat.SALES
+	b.value = 0.2
+	rs.event_state.bonuses.append(b)
+	var boosted := rs.start_development(config)
+	var plain := rs.start_development(config)
+	var sb := Success.score_release(boosted, [], rs.market, rs.success, rs.catalog, rs.rng, false)
+	var sp := Success.score_release(plain, [], rs.market, rs.success, rs.catalog, rs.rng, false)
+	_expect(absf(float(sb.sales_first) / sp.sales_first - 1.2) < 0.01, "бонус продаж %d против %d" % [sb.sales_first, sp.sales_first])
+	# Проданный хвост больше не платит.
+	rec.tail_sold = true
+	var r2 := StudioPhase.settle(rs.release, [rec], null, rs.market, rs.wallet, rs.upkeep, rs.studio, rs.economy,
+			rs.success, rs.upgrades, rs.unlocked_genres(), rs.unlocked_techs(), rs.unlocked_settings(), rs.rng)
+	_expect(r2.tails.is_empty() and r2.tails_total == 0 and rec.score.last_tick == 0, "проданный хвост платит")
+	# Сиквел по просьбе фанатов.
+	rs.records.append(rec)
+	rec.score.critics = 9.0
+	var fans := Events.find(defs, &"fans_sequel")
+	var fo := Events.resolve(fans, 0, rs.event_context(), meta)
+	rs.apply_event(fo, 0)
+	_expect(rs.contract_sequel() == rec, "сиквел по договору")
 
 
 ## Каждая вставка выпадает при своём условии (#65): забег, где выполнено только оно, даёт

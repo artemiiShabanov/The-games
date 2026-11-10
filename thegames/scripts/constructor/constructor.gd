@@ -19,6 +19,8 @@ extends Control
 ## насыщения на карточках жанра и сеттинга («недавно было», «надоело») и, только с
 ## «Инсайдером», метка «в тренде»; конструктор их не считает, а читает из `MarketState`.
 ## Карточки каруселей пока с крупной буквой вместо иллюстрации.
+## Договор из вставки (#66, `set_contracts`): колонка залочена на одной карточке, подпись
+## «Жанр · по договору с Виктором», остальные карточки серые с пилюлей «по договору».
 
 signal game_configured(config: GameConfig)
 signal estimate_changed(estimate: Estimate)
@@ -42,6 +44,8 @@ var release := 1
 var rng := RandomNumberGenerator.new()
 ## Основа следующей игры (#24); null и новая игра равнозначны.
 var base: BaseOption
+## Договоры вставок: колонка → {"value", "by"} (#66).
+var contract := {}
 ## Подсказки рынка: метки по значениям жанра и сеттинга (#29).
 var market_tags: Array[Dictionary] = [{}, {}, {}]
 
@@ -126,6 +130,20 @@ func setup(unlocked_genres: Array[Game.Genre], unlocked_techs: Array[Game.Tech],
 		_refresh(false)
 
 
+## Договоры вставок (`RunState.contracts`): колонка встаёт на значение договора и залочена.
+func set_contracts(contracts: Dictionary) -> void:
+	contract = contracts
+	for kind in contract:
+		var i := catalogs[kind].index_of(int(contract[kind]["value"]))
+		if i >= 0:
+			index[kind] = i
+	if franchise_parent() == null:
+		title = TitleGen.make(selected_entry(2), selected_entry(0), rng)
+	if _ready_done:
+		_columns.index = index
+		_refresh(false)
+
+
 ## Подсказки рынка на карточках: насыщение всегда, тренд только с «Инсайдером». Зовётся до
 ## или после `setup`, до добавления в дерево или в любой момент.
 func set_market(market: MarketState, success: SuccessTuning, insider: bool) -> void:
@@ -183,6 +201,8 @@ func _tech_blocked(value: int) -> bool:
 
 ## Колонка залочена основой: жанр и сеттинг у сиквела и ремейка.
 func is_locked_column(kind: int) -> bool:
+	if contract.has(kind):
+		return true
 	return (kind == 0 or kind == 2) and franchise_parent() != null
 
 
@@ -424,6 +444,7 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	inner.add_child(CardColumns.center_pill("придёт с прокачкой", &"upgrade"))
 	inner.add_child(CardColumns.center_pill("недоступно", &"franchise"))
 	inner.add_child(CardColumns.center_pill("демка в работе", &"demo"))
+	inner.add_child(CardColumns.center_pill("по договору", &"contract"))
 	if with_origin_pill:
 		inner.add_child(CardColumns.center_pill("как у оригинала", &"origin"))
 	# Метка рынка сверху слева (STYLE: метка насыщения без чисел), текст ставит `_refresh`.
@@ -580,7 +601,12 @@ func _refresh(animate: bool) -> void:
 	_button_lift.focused = on_button
 	_button_label.add_theme_color_override("font_color", ink)
 	for kind in ROWS:
-		_columns.set_caption(kind, ROW_LABELS[kind] + (" · как у оригинала" if is_locked_column(kind) else ""))
+		var caption := ROW_LABELS[kind]
+		if contract.has(kind):
+			caption += " · по договору с " + str(contract[kind]["by"])
+		elif is_locked_column(kind):
+			caption += " · как у оригинала"
+		_columns.set_caption(kind, caption)
 		for i in _cards[kind].size():
 			_refresh_card_lock(kind, i, _cards[kind][i])
 			_refresh_market_tag(kind, i, _cards[kind][i])
@@ -603,6 +629,8 @@ func _refresh_card_lock(kind: int, i: int, c: Control) -> void:
 	var meta: StringName = &""
 	if not unlocked[kind].has(e.value):
 		meta = &"upgrade"
+	elif contract.has(kind) and i != index[kind]:
+		meta = &"contract"
 	elif is_locked_column(kind) and i != index[kind]:
 		meta = &"franchise"
 	elif kind == 1 and _tech_blocked(e.value):

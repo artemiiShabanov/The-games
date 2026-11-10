@@ -254,6 +254,11 @@ func _run() -> void:
 	if rest > 0:
 		money += rest_sum
 		await _add_row("Ещё хвостов: %d" % rest, rest_sum, Style.MONEY, money)
+	# Доли по договорам вставок (#66): отдельной строкой на игру.
+	for t in report.tails:
+		if t.share > 0:
+			money -= t.share
+			await _add_row("Доля %s · %s" % [_share_to(t.to), t.record.title], -t.share, Style.INK, money)
 	money -= report.upkeep
 	await _add_row("Содержание студии", -report.upkeep, Style.INK, money)
 	if report.bankrupt:
@@ -289,6 +294,11 @@ func _show_event(valuation_before: float) -> void:
 	if report.stats != null:
 		_roll_label(_valuation_label, valuation_before, float(report.stats.valuation))
 	await _step()
+
+
+## Строка доли: «Доля по договору с Виктором · Игра» (в записи имя в творительном).
+func _share_to(to: String) -> String:
+	return "по договору с " + to if to != "" else "по договору"
 
 
 func _step() -> void:

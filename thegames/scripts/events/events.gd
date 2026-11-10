@@ -328,7 +328,7 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 		outcome = "Монетка: повезло" if win else "Монетка: не повезло"
 		if not win:
 			effects = c.lose_effects
-	var who := offer.character.short() if offer.character != null else ""
+	var who := offer.character.with_name() if offer.character != null else ""
 	for e in effects:
 		match e.kind:
 			EffectDef.Kind.MONEY:

@@ -11,3 +11,4 @@ subtitle = "48 тыс. онлайн"
 accent = Color(0.9412, 0.4784, 0.1098, 1)
 person_id = &"kraken"
 short_name = "Kraken"
+name_with = "Kraken"

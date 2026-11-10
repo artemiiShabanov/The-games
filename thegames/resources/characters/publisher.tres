@@ -12,3 +12,4 @@ accent = Color(0.1843, 0.3569, 1.0000, 1)
 person_id = &""
 short_name = "Виктор"
 leaves_after_refusals = 2
+name_with = "Виктором"

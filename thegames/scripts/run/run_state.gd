@@ -180,10 +180,13 @@ func first_config() -> GameConfig:
 	return Constructor.quick_config(start_genre, start_tech, unlocked_settings()[0], economy, rng.randi(), discount())
 
 
-## Старт разработки: стоимость релиза списана целиком, запись и план спринтов.
+## Старт разработки: стоимость релиза списана целиком, запись и план спринтов. Что вставки
+## оставили следующей игре (#66), переходит в запись: доли с хвоста (сумма не выше
+## `meta.max_tail_share`), бонусы к отклику; ограничения отработали в конструкторе и снимаются.
 func start_development(config: GameConfig) -> GameRecord:
 	wallet.spend(config.total_cost(), &"release")
 	var record := config.to_record(rng.randi())
+	_apply_contracts(record)
 	last_plan = SprintPlanner.plan(economy.sprints(record.tech), record.genre, record.tech, minigames,
 			sprint_tuning, rng, last_first, studio.replays())
 	if last_plan.size() > 0:
@@ -268,8 +271,65 @@ func event_context() -> Events.Context:
 
 
 ## Ответ на вставку: деньги и репутация сразу, остальное в `event_state`; исход монетки.
-func apply_event(offer: Events.Offer, index: int) -> String:
-	return Events.apply(offer, index, wallet, market, event_state, meta, rng, release)
+## Проданный хвост помечается в записи игры (индекс по списку вставки: закрытые и текущая).
+func apply_event(offer: Events.Offer, index: int, current: GameRecord = null) -> String:
+	var outcome := Events.apply(offer, index, wallet, market, event_state, meta, rng, release)
+	var all := _with_current(current)
+	for i in event_state.sold_tails:
+		if i >= 0 and i < all.size():
+			all[i].tail_sold = true
+	return outcome
+
+
+## Ограничения следующего релиза по видам: жанр 0, технология 1, сеттинг 2 (как колонки
+## конструктора) → {"value", "by"}; сиквел отдельно `contract_sequel`.
+func contracts() -> Dictionary:
+	var out := {}
+	for r in event_state.restrictions:
+		var col := -1
+		match r.kind:
+			EffectDef.Kind.RESTRICT_GENRE:
+				col = 0
+			EffectDef.Kind.RESTRICT_TECH:
+				col = 1
+			EffectDef.Kind.RESTRICT_SETTING:
+				col = 2
+		if col >= 0:
+			out[col] = {"value": r.value, "by": r.by}
+	return out
+
+
+## Игра, сиквел которой обещан во вставке, или null.
+func contract_sequel() -> GameRecord:
+	for r in event_state.restrictions:
+		if r.kind == EffectDef.Kind.RESTRICT_SEQUEL and r.value >= 0 and r.value < records.size():
+			return records[r.value]
+	return null
+
+
+func _apply_contracts(record: GameRecord) -> void:
+	var keep: Array[EventState.TailShare] = []
+	for t in event_state.tail_shares:
+		var room := maxf(meta.max_tail_share - record.tail_share, 0.0)
+		var add := minf(t.share, room)
+		if add > 0.0:
+			record.tail_share += add
+			if t.by != "" and not record.share_to.has(t.by):
+				record.share_to.append(t.by)
+		t.games -= 1
+		if t.games > 0:
+			keep.append(t)
+	event_state.tail_shares = keep
+	for b in event_state.bonuses:
+		match b.stat:
+			EffectDef.Stat.CRITICS:
+				record.bonus_critics += b.value
+			EffectDef.Stat.STREAMERS:
+				record.bonus_streamers += b.value
+			EffectDef.Stat.SALES:
+				record.bonus_sales += b.value
+	event_state.bonuses.clear()
+	event_state.restrictions.clear()
 
 
 ## Релиз закрыт: запись в историю, следующий номер; конец забега по капу.
