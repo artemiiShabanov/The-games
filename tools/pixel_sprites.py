@@ -3,9 +3,11 @@
 pixel_sets_extra.py (#47). Тайлы 16×16, палитра сеттинга 4 цвета плюс чёрный. Слоты платформера
 есть у каждого набора; слоты гонок (#48, шлюпки в 8 направлениях, вода, отмель, берег, риф, бочка,
 буй, финиш) и шутера (#50, матрос сверху в 4 направлениях, канонир, ядро, пуля, ром, палуба,
-борт, трап, бочка, сундук, пушка, дымок) и гольфа (#52, матрос с клюшкой сбоку, бочонок, люк, флаг,
-песок, палуба, море, брызги, пушка, сундук) пока только у пиратов, другие сеттинги берут их у пиратов.
-Пишет PNG в thegames/assets/settings/<сеттинг>/8bit/ и превью-лист (×8) всех наборов в --preview.
+борт, трап, бочка, сундук, пушка, дымок), гольфа (#52, матрос с клюшкой сбоку, бочонок, люк, флаг,
+песок, палуба, море, брызги, пушка, сундук) и файтинга (#54, бойцы 16×32 сбоку: матрос и капитан
+в стойке, шаге, ударах, приседе, блоке, KO; искры удара и блока) пока только у пиратов, другие
+сеттинги берут их у пиратов. Пишет PNG в thegames/assets/settings/<сеттинг>/8bit/ и превью-лист
+(×6) всех наборов в --preview.
 
     python3 tools/pixel_sprites.py                 # сгенерировать все наборы
     python3 tools/pixel_sprites.py --preview out.png
@@ -1083,9 +1085,302 @@ for _name, _rows in GOLF.items():
     assert all(len(r) == len(_rows[0]) for r in _rows), "строки разной длины в " + _name
 SPRITES.update(GOLF)
 
-# Слоты платформера обязательны у каждого сеттинга; без слота гонок, шутера и гольфа сеттинг берёт пиратский
-# (`SettingDef.sprite`), пока у него нет своего арта.
-PLATFORMER_SLOTS = set(SPRITES) - set(RACING) - set(SHOOTER) - set(GOLF)
+# --- Файтинг × 8-bit (#54), вид сбоку -------------------------------------------------------
+# Бойцы 16×32 лицом вправо, ноги на нижней строке, середина тела между колонками 7 и 8 (демка
+# отражает влево). Кадры собираются из частей: голова (10 строк), торс (11), ноги (11); присед
+# ниже на 12 строк. Активные кадры ударов 24×32: рука или нога уходит вправо за 16 колонок.
+# KO 32×16, лёжа на спине головой назад. Матрос (герой): бандана, тельняшка, штаны, босиком.
+# Капитан (соперник, слот противника «второй боец»): треуголка с черепом, борода, красный
+# кафтан с пуговицами, белые бриджи, сапоги. Искры: удар `fight_spark`, блок `fight_guard`.
+
+F_HEAD_SAILOR = [
+    "................",
+    "......KKKKK.....",
+    ".....KRRRRRK....",
+    "....KRRRRRRRK...",
+    "...KRRRRRRRRK...",
+    "..KRKKSSSSSSK...",
+    "..KK.KSSSSKSK...",
+    ".....KSSSSSSSK..",
+    ".....KSSSSKKK...",
+    "......KKSSSK....",
+]
+F_HEAD_CAPTAIN = [
+    "....KKKKKKK.....",
+    "...KKKKWWKKK....",
+    "..KKKKWKKWKKK...",
+    ".KKKKKKWWKKKKK..",
+    "KKKKKKKKKKKKKKKK",
+    "....KKSSSSSSK...",
+    "....KKSSSSKSK...",
+    "....KKSSSSSSSK..",
+    "....KKKKKKKKK...",
+    "......KKKKKK....",
+]
+# Торс в стойке: передний кулак у подбородка, задний у груди.
+F_TORSO_GUARD = [
+    ".....KKWWWKKKK..",
+    "....KWWWWWKSSSK.",
+    "....KBBBBBKSSSK.",
+    "....KWWWWKSSKKK.",
+    "....KBBBBKSSK...",
+    "....KWWWWWKK....",
+    "....KBBBBBBK....",
+    "....KWWWWWWK....",
+    "....KKKKKKKK....",
+    "....KBBBBBBK....",
+    "....KBBBBBBK....",
+]
+# Замах верхнего: передний кулак отведён за плечо.
+F_TORSO_WIND = [
+    "..KKKKKWWWKKKK..",
+    ".KSSSKWWWWKSSSK.",
+    ".KSSSKBBBBKSSSK.",
+    "..KKKKWWWWKKKK..",
+    "....KBBBBBK.....",
+    "....KWWWWWWK....",
+    "....KBBBBBBK....",
+    "....KWWWWWWK....",
+    "....KKKKKKKK....",
+    "....KBBBBBBK....",
+    "....KBBBBBBK....",
+]
+# Торс без переднего кулака: под вытянутую руку удара и под руки блока.
+F_TORSO_OPEN = [
+    ".....KKWWWK.....",
+    "....KWWWWWK.....",
+    "....KBBBBBK.....",
+    "....KWWWWKSSK...",
+    "....KBBBBKSSK...",
+    "....KWWWWWKK....",
+    "....KBBBBBBK....",
+    "....KWWWWWWK....",
+    "....KKKKKKKK....",
+    "....KBBBBBBK....",
+    "....KBBBBBBK....",
+]
+# Пропустил удар: корпус назад, задняя рука отброшена, передняя повисла.
+F_TORSO_HIT = [
+    "....KKWWWK......",
+    "...KWWWWWWK.....",
+    "..KSKBBBBBK.....",
+    ".KSSKWWWWWK.....",
+    ".KKKKBBBBBK.....",
+    "....KWWWWWWK....",
+    "....KBBBBBBKK...",
+    "....KWWWWWKSSK..",
+    "....KKKKKKKSSK..",
+    "....KBBBBBBKK...",
+    "....KBBBBBBK....",
+]
+# Вытянутая рука верхнего удара (кладётся на колонку 9, строку 8): рукав, предплечье, кулак.
+F_ARM_PUNCH = [
+    "..........KKKK.",
+    ".KKKKKKKKKSSSSK",
+    "KWWWWSSSSSSSSSK",
+    "KWWWWSSSSSSSSSK",
+    ".KKKKKKKKKSSSSK",
+    "..........KKKK.",
+]
+# Руки блока перед лицом (колонка 9, строка 3).
+F_ARM_BLOCK = [
+    ".KKKK.",
+    "KSSSSK",
+    "KSSSSK",
+    "KKSSKK",
+    ".KWWK.",
+    ".KWWK.",
+    ".KWWK.",
+    ".KWWK.",
+    "..KK..",
+]
+F_LEGS_STAND = [
+    "....KBBKKBBK....",
+    "...KBBK..KBBK...",
+    "...KBBK..KBBK...",
+    "..KBBK....KBBK..",
+    "..KBBK....KBBK..",
+    "..KBBK....KBBK..",
+    "..KKKK....KKKK..",
+    "..KSSK....KSSK..",
+    "..KSSK....KSSK..",
+    "..KSSSK...KSSSK.",
+    "..KKKKK...KKKKK.",
+]
+F_LEGS_WALK = [
+    "....KBBKKBBK....",
+    "....KBBKKBBK....",
+    "....KBBKKBBK....",
+    "....KBBKKBBK....",
+    "....KBBKKBBK....",
+    "....KBBKKBBK....",
+    "....KKKKKKKK....",
+    "....KSSKKSSK....",
+    "....KSSKKSSK....",
+    "....KSSSKSSSK...",
+    "....KKKKKKKKK...",
+]
+F_LEGS_CROUCH = [
+    "....KBBBBBBK....",
+    "...KBBBBBBBBKK..",
+    "..KBBKKKKKKBBBK.",
+    "..KSSK....KSSK..",
+    ".KSSSK...KSSSK..",
+]
+# Нижний удар: присед, передняя нога выброшена вперёд у самой палубы (24 колонки).
+F_LEGS_KICK = [
+    "....KBBBBBBK............",
+    "...KBBBBBBBBKKKKKKKKKK..",
+    "..KBBKKBBBBBBBBBBBBBKSK.",
+    "..KSSK.KKKKKKKKKKKKKSSSK",
+    ".KSSSK..............KKKK",
+]
+F_KO_SAILOR = [
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    ".KKKK...........................",
+    "KRRRRK...KKKKK..................",
+    "KRSSSKKKKWWWWKK.........KKK.KKK.",
+    "KRSKSSKWBWBWBWBKKKKKKKKKKSSKKSSK",
+    "KRSSSSKWBWBWBWBKBBBBBBBBKSSKKSSK",
+    "KRSSSKKWBWBWBWBKBBBBBBBBKSSKKSSK",
+    ".KKKK.KKKKKKKKKKKKKKKKKKKKKKKKKK",
+    "................................",
+    "................................",
+]
+F_KO_CAPTAIN = [
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "..KKK...........................",
+    ".KKWKK..........................",
+    "KKWKWKKKKKKKKKK.................",
+    "KKKWKKKKKRRRRKK.........KKK.KKK.",
+    "KKSKSSKRRSRRSRKKKKKKKKKKRRRKRRRK",
+    "KKSSSSKRRRRRRRKWWWWWWWWKRRRKRRRK",
+    "KKKKKKKRRSRRSRKWWWWWWWWKRRRKRRRK",
+    ".KKKK.KKKKKKKKKKKKKKKKKKKKKKKKKK",
+    "................................",
+    "................................",
+]
+
+
+def _blank(w, h):
+    return [["."] * w for _ in range(h)]
+
+
+def _paste(canvas, rows, x, y):
+    for dy, row in enumerate(rows):
+        for dx, ch in enumerate(row):
+            if ch != "." and 0 <= y + dy < len(canvas) and 0 <= x + dx < len(canvas[0]):
+                canvas[y + dy][x + dx] = ch
+
+
+def _rows(canvas):
+    return ["".join(r) for r in canvas]
+
+
+def _recolor(rows, mapping):
+    return ["".join(mapping.get(ch, ch) for ch in row) for row in rows]
+
+
+def _captain_torso(rows):
+    """Кафтан капитана: тельняшка красным с пуговицами песком по колонке 7, штаны белые."""
+    out = []
+    for i, row in enumerate(rows):
+        row = _recolor([row], {"B": "W"} if i >= 9 else {"W": "R", "B": "R"})[0]
+        if 1 <= i <= 7 and i % 2 == 0 and row[7] == "R":
+            row = row[:7] + "S" + row[8:]
+        out.append(row)
+    return out
+
+
+def fighter_frames(prefix, head, torso, legs, arm, ko):
+    """Кадры бойца: стойка 2 (`idle_0`, `idle_1` выдох), шаг (`idle_0` и `walk` через кадр),
+    верхний удар (`high_0` замах, `high_1` удар 24×32), нижний (`crouch` и `low_1` удар 24×32),
+    присед, блок, пропустил, KO 32×16."""
+    def frame(w, parts):
+        c = _blank(w, 32)
+        for rows, x, y in parts:
+            _paste(c, rows, x, y)
+        return _rows(c)
+
+    h = head
+    t = torso
+    crouch_top = [(h, 0, 12), (t(F_TORSO_GUARD)[:5], 0, 22)]
+    return {
+        prefix + "idle_0": frame(16, [(legs(F_LEGS_STAND), 0, 21), (t(F_TORSO_GUARD), 0, 10), (h, 0, 0)]),
+        prefix + "idle_1": frame(16, [(legs(F_LEGS_STAND), 0, 21), (t(F_TORSO_GUARD)[:10], 0, 11), (h, 0, 1)]),
+        prefix + "walk": frame(16, [(legs(F_LEGS_WALK), 0, 21), (t(F_TORSO_GUARD)[:10], 0, 11), (h, 0, 1)]),
+        prefix + "high_0": frame(16, [(legs(F_LEGS_STAND), 0, 21), (t(F_TORSO_WIND), 0, 10), (h, -1, 0)]),
+        prefix + "high_1": frame(24, [(legs(F_LEGS_STAND), 0, 21), (t(F_TORSO_OPEN), 0, 10), (h, 1, 0), (arm(F_ARM_PUNCH), 9, 8)]),
+        prefix + "crouch": frame(16, [(legs(F_LEGS_CROUCH), 0, 27)] + crouch_top),
+        prefix + "low_1": frame(24, [(legs(F_LEGS_KICK), 0, 27), (h, -1, 12), (t(F_TORSO_GUARD)[:5], -1, 22)]),
+        prefix + "block": frame(16, [(legs(F_LEGS_STAND), 0, 21), (t(F_TORSO_OPEN), 0, 10), (h, -1, 0), (arm(F_ARM_BLOCK), 9, 3)]),
+        prefix + "hit": frame(16, [(legs(F_LEGS_STAND), 0, 21), (t(F_TORSO_HIT), 0, 10), (h, -2, 1)]),
+        prefix + "ko": ko,
+    }
+
+
+FIGHT = {}
+FIGHT.update(fighter_frames("fight_hero_", F_HEAD_SAILOR, lambda r: r, lambda r: r, lambda r: r, F_KO_SAILOR))
+FIGHT.update(fighter_frames("fight_rival_", F_HEAD_CAPTAIN, _captain_torso,
+                            lambda r: _recolor(r, {"B": "W", "S": "R"}), lambda r: _recolor(r, {"W": "R"}), F_KO_CAPTAIN))
+FIGHT.update({
+    # Искра удара: звезда, сердце песком.
+    "fight_spark": [
+        "................",
+        ".......W........",
+        ".......W........",
+        "..W....W....W...",
+        "...W..SWS..W....",
+        "....W.SWS.W.....",
+        ".....SSWSS......",
+        ".WWWWWWWWWWWWW..",
+        ".....SSWSS......",
+        "....W.SWS.W.....",
+        "...W..SWS..W....",
+        "..W....W....W...",
+        ".......W........",
+        ".......W........",
+        "................",
+        "................",
+    ],
+    # Искра блока: дуга щита морем с бликом.
+    "fight_guard": [
+        "................",
+        "......KKK.......",
+        ".......KWK......",
+        "........KBK.....",
+        ".........KBK....",
+        ".........KWBK...",
+        "..........KBK...",
+        "..........KWK...",
+        "..........KBK...",
+        "..........KWK...",
+        ".........KWBK...",
+        ".........KBK....",
+        "........KBK.....",
+        ".......KWK......",
+        "......KKK.......",
+        "................",
+    ],
+})
+for _name, _rows in FIGHT.items():
+    assert all(len(r) == len(_rows[0]) for r in _rows), "строки разной длины в " + _name
+SPRITES.update(FIGHT)
+
+# Слоты платформера обязательны у каждого сеттинга; без слота гонок, шутера, гольфа и файтинга
+# сеттинг берёт пиратский (`SettingDef.sprite`), пока у него нет своего арта.
+PLATFORMER_SLOTS = set(SPRITES) - set(RACING) - set(SHOOTER) - set(GOLF) - set(FIGHT)
 
 
 def png_bytes(width, height, rgba_rows):
@@ -1141,21 +1436,23 @@ def main():
         path = sys.argv[sys.argv.index("--preview") + 1]
         scale = 6
         names = list(SPRITES)
-        # Лист переносится по `per_line` клеток; у сеттинга без слота клетка пустая.
+        # Лист переносится по `per_line` клеток; высота строки по самому высокому спрайту в ней
+        # (бойцы 16×32, KO 32×16); у сеттинга без слота клетка пустая.
         per_line = 17
-        lines = (len(names) + per_line - 1) // per_line
-        cell_h = 16 * scale + 8
-        width = per_line * (16 * scale + 8) + 16 * scale
-        height = len(all_sets) * lines * cell_h
+        chunks = [names[i:i + per_line] for i in range(0, len(names), per_line)]
+        line_h = [max(len(SPRITES[n]) for n in chunk) * scale + 8 for chunk in chunks]
+        width = max(sum(len(SPRITES[n][0]) * scale + 8 for n in chunk) for chunk in chunks) + 8
+        height = len(all_sets) * sum(line_h)
         bg = (0xF4, 0xF1, 0xEC, 255)
         canvas = [list(bg) * width for _ in range(height)]
+        oy0 = 0
         for row, (set_name, (palette, sprites)) in enumerate(all_sets.items()):
-            for line in range(lines):
+            for line, chunk in enumerate(chunks):
                 ox = 4
-                oy = (row * lines + line) * cell_h + 4
-                for name in names[line * per_line:(line + 1) * per_line]:
+                oy = oy0 + 4
+                for name in chunk:
                     if name not in sprites:
-                        ox += 16 * scale + 8
+                        ox += len(SPRITES[name][0]) * scale + 8
                         continue
                     w, h, px = render(sprites[name], scale, palette)
                     for y in range(h):
@@ -1164,6 +1461,7 @@ def main():
                             if p[3]:
                                 canvas[oy + y][(ox + x) * 4:(ox + x) * 4 + 4] = p
                     ox += w + 8
+                oy0 += line_h[line]
         with open(path, "wb") as f:
             f.write(png_bytes(width, height, canvas))
         print("превью:", path)

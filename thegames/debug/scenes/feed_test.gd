@@ -3,8 +3,8 @@ extends Control
 ## сдвигом репутации из раздела «Лента» дебаг-меню, счёт по формулам успеха без шума. После
 ## «Дальше» или «В демо» показывает, что нажали, A запускает снова. Под ботом: состав ленты по
 ## спеке, сдвиги критиков, выбор стримера, сигналы кнопок. Флаги `--no-checks`, `--quality=`,
-## `--bugs=`, `--end` (пролистать в конец), `--genre=racing`, `--genre=shooter` или `--genre=sport`
-## (стрим крутит демку гонок, шутера или гольфа).
+## `--bugs=`, `--end` (пролистать в конец), `--genre=racing`, `--genre=shooter`, `--genre=sport` или
+## `--genre=fighting` (стрим крутит демку гонок, шутера, гольфа или файтинга).
 
 const SECTION: StringName = &"Лента"
 ## Сцена грузится при запуске, не `preload`: константная ссылка на сцену с вложенным классом
@@ -12,14 +12,15 @@ const SECTION: StringName = &"Лента"
 const SCENE_PATH := "res://scenes/feed.tscn"
 ## Название записи по жанру; хэштег ленты из него.
 const TITLES := {Game.Genre.PLATFORMER: "Пираты на платформах", Game.Genre.RACING: "Пираты на шлюпках",
-	Game.Genre.SHOOTER: "Пираты на абордаже", Game.Genre.SPORT: "Пиратский гольф"}
+	Game.Genre.SHOOTER: "Пираты на абордаже", Game.Genre.SPORT: "Пиратский гольф",
+	Game.Genre.FIGHTING: "Пираты на кулаках"}
 
 var quality := 0.6
 var bugs := 2
 var rep_delta := 0.0
 var seed_value := 1
 ## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50;
-## `--genre=sport`, #52).
+## `--genre=sport`, #52; `--genre=fighting`, #54).
 var genre := Game.Genre.PLATFORMER
 var tuning: SuccessTuning
 var catalog: BugCatalog

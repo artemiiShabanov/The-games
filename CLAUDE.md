@@ -33,7 +33,10 @@
   гольф `--genre=sport --frames=9000`, поле текстом `debug/tools/dump_course.gd -- <seed>`;
   кадр гольфа в нужный момент даёт и `--fixed-fps`: `SHOT=debug/playtest/x.png sh
   tools/autotest.sh --scene=demo_test --genre=sport --setting=0 --no-checks --frames=N`, без
-  него окно крутит кадры быстрее 60 в секунду и `--frames` не равны времени),
+  него окно крутит кадры быстрее 60 в секунду и `--frames` не равны времени); файтинг
+  `--genre=fighting --frames=7000`, план соперника и бой ботами без окна текстом
+  `debug/tools/dump_fight.gd -- <seed> [count]`; момент боя под скриншот `--no-checks
+  --freeze=<с от запуска, с отсчётом>` (демка встаёт на этой секунде, работает у любой демки),
   скриншот паузы `--scene=demo_test --no-checks --pause --frames=240`. Уровень платформера по
   сиду текстом: `Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=3000` (с переигровками `--replays=2 --frames=4500`). Багфикс:

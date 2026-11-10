@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="FightDemoTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/fight_demo_tuning.gd" id="1_demo"]
+
+[resource]
+script = ExtResource("1_demo")
+physics_hz = 60
+health = 100
+round_seconds = 60.0
+countdown = 2.4
+end_pause = 1.8
+arena_width = 240.0
+start_gap = 80.0
+walk_forward = 48.0
+walk_back = 36.0
+push_half = 6.0
+stand_hurt = Rect2(-5, -31, 10, 31)
+crouch_hurt = Rect2(-5, -19, 10, 19)
+high_startup = 6
+high_active = 3
+high_recovery = 16
+high_damage = 7
+high_hitstun = 16
+high_blockstun = 9
+high_hit = Rect2(4, -26, 14, 6)
+low_startup = 9
+low_active = 3
+low_recovery = 20
+low_damage = 6
+low_hitstun = 14
+low_hit = Rect2(4, -5, 11, 5)
+hit_push = 10.0
+block_push = 7.0
+ko_push = 24.0
+hitstop = 4
+buffer = 6
+strike_hold = 5
+bot_react = 2
+bot_gap = 24.0
+bot_crouch_wait = 50
+bot_pause_min = 50
+bot_pause_max = 130
+bot_lose_every = 40
+bot_lose_far = 34.0
+music_db = -14.0
+sfx_db = -8.0

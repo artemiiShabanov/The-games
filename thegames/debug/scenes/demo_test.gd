@@ -2,15 +2,17 @@ extends Control
 ## Тестовая сцена демки: запускает демку 8-bit жанра, сида и набора багов из раздела «Демки»
 ## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
 ## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
-## финиширует первым; шутер: уничтожает 30; гольф: укладывается в пар), LOSE теряет жизни
-## (гонки: едет вполгаза, соперники финишируют раньше; шутер: идёт на врагов, не стреляя;
-## гольф: бьёт слабо и коротко, лунки подобраны сверх пара).
-## `--genre=racing` гонки, `--genre=shooter` шутер, `--genre=sport` гольф (или `platformer`, или
-## номер `Game.Genre`), `--seed=<n>` сид,
+## финиширует первым; шутер: уничтожает 30; гольф: укладывается в пар; файтинг: здоровья
+## больше, чем у капитана), LOSE теряет жизни (гонки: едет вполгаза, соперники финишируют
+## раньше; шутер: идёт на врагов, не стреляя; гольф: бьёт слабо и коротко, лунки подобраны сверх
+## пара; файтинг: машет издалека и не блокирует).
+## `--genre=racing` гонки, `--genre=shooter` шутер, `--genre=sport` гольф, `--genre=fighting`
+## файтинг (или `platformer`, или номер `Game.Genre`), `--seed=<n>` сид,
 ## `--no-checks` без проверок, `--pause` открывает меню паузы, `--bugs` все баги каталога,
-## `--bug=<id>` один баг.
+## `--bug=<id>` один баг, `--freeze=<с>` замораживает демку на этой секунде с запуска (с
+## отсчётом), для скриншота момента.
 ## У гонок до заезда проверяется генератор трассы на сотне сидов, у шутера генератор арены, у
-## гольфа генератор поля.
+## гольфа генератор поля, у файтинга генератор плана соперника и бой ботами без окна.
 
 
 var demo: Demo
@@ -44,6 +46,8 @@ func _ready() -> void:
 			_check_arenas()
 		elif _genre() == Game.Genre.SPORT:
 			_check_courses()
+		elif _genre() == Game.Genre.FIGHTING:
+			_check_fights()
 	_launch()
 	if args.has("pause"):
 		# `--pause`: через полторы секунды открыть меню паузы, для скриншота.
@@ -95,6 +99,15 @@ func _launch() -> void:
 	demo.demo_finished.connect(_on_finished)
 	add_child(demo)
 	demo.start()
+
+
+func _process(_delta: float) -> void:
+	if demo == null or not AutoTest.enabled:
+		return
+	var args := AutoTest.parse_args(OS.get_cmdline_user_args())
+	if args.has("freeze") and demo.is_processing() and demo.elapsed >= float(args["freeze"]):
+		# `--freeze=<с>`: демка встаёт на этом кадре, скриншот ловит момент боя.
+		demo.set_process(false)
 
 
 func _on_finished(r: GameRecord, reached: bool) -> void:
@@ -202,3 +215,41 @@ func _check_courses() -> void:
 	_expect(same, "поле сида 7 не повторяется")
 	AutoTest.note("golf courses: 100 сидов прошли проверку, запасное поле %d, лунок %d (с проливом %d, пар 3 у %d)" % [
 			fallbacks, holes, water, par3])
+
+
+## Файтинг: сто сидов дают план соперника, который проходит проверку генератора (фазы покрывают
+## раунд, профили разные, паттерны, реакция, пропы), генерация детерминирована; раунд без окна
+## (`FightSim.simulate`) на сидах 1-20: бот WIN побеждает, LOSE проигрывает, сид 7 дважды даёт
+## тот же бой.
+func _check_fights() -> void:
+	var t := FightDemoTuning.load_default()
+	var gen := FightGenTuning.load_default()
+	var fallbacks := 0
+	var phases := 0
+	for s in range(1, 101):
+		var p := FightPlanGen.generate(s, gen, t.round_seconds)
+		var why := FightPlanGen.validate(p, gen, t.round_seconds)
+		_expect(why == "", "план сида %d: %s" % [s, why])
+		fallbacks += 1 if p.fallback else 0
+		phases += p.phases.size()
+	var a := FightPlanGen.generate(7, gen, t.round_seconds)
+	var b := FightPlanGen.generate(7, gen, t.round_seconds)
+	_expect(a.describe(gen) == b.describe(gen) and a.reaction == b.reaction and a.miss == b.miss and a.mast_x == b.mast_x,
+			"план сида 7 не повторяется")
+	var r1 := FightSim.simulate(a, t, gen, AutoTest.BotMode.WIN).summary()
+	var r2 := FightSim.simulate(b, t, gen, AutoTest.BotMode.WIN).summary()
+	_expect(r1 == r2, "бой сида 7 не повторяется: %s / %s" % [r1, r2])
+	var win_hp := 0
+	var win_s := 0.0
+	var kos := 0
+	for s in range(1, 21):
+		var p := FightPlanGen.generate(s, gen, t.round_seconds)
+		var w := FightSim.simulate(p, t, gen, AutoTest.BotMode.WIN)
+		_expect(w.hero_won(), "WIN без окна проиграл на сиде %d: %s" % [s, w.summary()])
+		var l := FightSim.simulate(p, t, gen, AutoTest.BotMode.LOSE)
+		_expect(not l.hero_won(), "LOSE без окна выиграл на сиде %d: %s" % [s, l.summary()])
+		win_hp += w.hero.health
+		win_s += w.seconds()
+		kos += 1 if w.knocked_out() else 0
+	AutoTest.note("fighting plans: 100 сидов прошли проверку, запасной план %d, фаз в среднем %.1f; без окна на сидах 1-20 WIN побеждает (здоровья в среднем %.0f, %.1f с, нокаутов %d), LOSE проигрывает" % [
+			fallbacks, phases / 100.0, win_hp / 20.0, win_s / 20.0, kos])

@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="FightGenTuning" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/fight_profile.gd" id="1_profile"]
+[ext_resource type="Script" path="res://scripts/demos/fight_gen_tuning.gd" id="2_gen"]
+
+[sub_resource type="Resource" id="Profile_rusher"]
+script = ExtResource("1_profile")
+title = "напор"
+gap = 18.0
+attack_min = 18
+attack_max = 40
+block_chance = 0.15
+crouch_chance = 0.05
+stance_min = 20
+stance_max = 40
+punish_chance = 0.3
+retreat_chance = 0.0
+retreat_steps = 24
+crouch_idle = false
+low_share = 0.3
+
+[sub_resource type="Resource" id="Profile_turtle"]
+script = ExtResource("1_profile")
+title = "стена"
+gap = 26.0
+attack_min = 50
+attack_max = 90
+block_chance = 0.7
+crouch_chance = 0.1
+stance_min = 30
+stance_max = 60
+punish_chance = 0.6
+retreat_chance = 0.2
+retreat_steps = 24
+crouch_idle = false
+low_share = 0.2
+
+[sub_resource type="Resource" id="Profile_poker"]
+script = ExtResource("1_profile")
+title = "подсечка"
+gap = 22.0
+attack_min = 30
+attack_max = 60
+block_chance = 0.1
+crouch_chance = 0.5
+stance_min = 20
+stance_max = 40
+punish_chance = 0.3
+retreat_chance = 0.5
+retreat_steps = 24
+crouch_idle = true
+low_share = 0.75
+
+[sub_resource type="Resource" id="Profile_counter"]
+script = ExtResource("1_profile")
+title = "контра"
+gap = 30.0
+attack_min = 70
+attack_max = 120
+block_chance = 0.3
+crouch_chance = 0.4
+stance_min = 25
+stance_max = 50
+punish_chance = 0.8
+retreat_chance = 0.6
+retreat_steps = 30
+crouch_idle = false
+low_share = 0.4
+
+[resource]
+script = ExtResource("2_gen")
+profiles = Array[ExtResource("1_profile")]([SubResource("Profile_rusher"), SubResource("Profile_turtle"), SubResource("Profile_poker"), SubResource("Profile_counter")])
+phase_min = 8.0
+phase_max = 16.0
+distinct_min = 3
+pattern_min = 2
+pattern_max = 4
+reaction_min = 12
+reaction_max = 20
+miss_min = 0.25
+miss_max = 0.45
+mast_shift = 40.0
+prop_from_rail = 12.0
+prop_spread = 40.0
