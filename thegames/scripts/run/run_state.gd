@@ -6,8 +6,10 @@ extends RefCounted
 ## порядке, в каком их зовёт главная сцена:
 ##   prepare_release → (конструктор) start_development → (спринты, плейтест, багфикс) →
 ##   score_release → (лента) → settle → close_release.
-## M1: стартовая пара из `RunTuning`, один сеттинг, кап из тюнинга, конец только по
-## банкротству (`StudioPhase.Report.game_over`) и по капу коротким экраном.
+## Старт (#61): стартовая пара разыгрывается `draw_start` (не та же, что в прошлом забеге из
+## `Profile`), под автотестом берётся из `RunTuning`; название студии даёт экран «Новая студия».
+## Кап из тюнинга, конец только по банкротству (`StudioPhase.Report.game_over`) и по капу
+## коротким экраном.
 
 var tuning: RunTuning
 var economy: EconomyTuning
@@ -22,6 +24,10 @@ var texts: FeedTexts
 
 var release := 1
 var cap := 12
+## Стартовая пара забега: открыта с первого релиза, на ней идёт первый релиз.
+var start_genre := Game.Genre.PLATFORMER
+var start_tech := Game.Tech.BIT8
+var studio_name := ""
 var records: Array[GameRecord] = []
 var market: MarketState
 var wallet: Wallet
@@ -54,11 +60,32 @@ static func start(seed_: int, deterministic_market := false) -> RunState:
 	r.texts = FeedTexts.load_default()
 	r.rng.seed = seed_
 	r.cap = r.tuning.cap
+	r.start_genre = r.tuning.genre
+	r.start_tech = r.tuning.tech
 	r.market = MarketState.create(r.success, r.rng, deterministic_market)
 	r.wallet = Wallet.new(r.economy.start_cash)
 	r.upkeep = Upkeep.new(r.economy.upkeep_base)
 	r.studio = StudioState.new()
 	return r
+
+
+## Розыгрыш стартовой пары: технология из `start_techs`, жанр из тех, у кого есть демка на
+## ней; прошлый жанр (и технология, когда их больше одной) не выпадает, если есть другой.
+func draw_start(last_genre := -1, last_tech := -1) -> void:
+	var techs: Array[Game.Tech] = []
+	for t in tuning.start_techs:
+		if int(t) != last_tech or tuning.start_techs.size() == 1:
+			techs.append(t)
+	if techs.is_empty():
+		techs = [tuning.tech]
+	start_tech = techs[rng.randi_range(0, techs.size() - 1)]
+	var genres: Array[Game.Genre] = []
+	for g in Game.Genre.values():
+		if DemoCatalog.has_demo(g, start_tech) and int(g) != last_genre:
+			genres.append(g as Game.Genre)
+	if genres.is_empty():
+		genres = [tuning.genre]
+	start_genre = genres[rng.randi_range(0, genres.size() - 1)]
 
 
 ## Сложность релиза по спеке мини-игр.
@@ -69,7 +96,7 @@ func t_value() -> float:
 # --- Открытое ---------------------------------------------------------------------------------
 
 func unlocked_genres() -> Array[Game.Genre]:
-	var out: Array[Game.Genre] = [tuning.genre]
+	var out: Array[Game.Genre] = [start_genre]
 	for d in _bought():
 		if d.kind == UpgradeDef.Kind.GENRE and not out.has(d.genre):
 			out.append(d.genre)
@@ -77,7 +104,7 @@ func unlocked_genres() -> Array[Game.Genre]:
 
 
 func unlocked_techs() -> Array[Game.Tech]:
-	var out: Array[Game.Tech] = [tuning.tech]
+	var out: Array[Game.Tech] = [start_tech]
 	for d in _bought():
 		if d.kind == UpgradeDef.Kind.TECH and not out.has(d.tech):
 			out.append(d.tech)
@@ -111,9 +138,9 @@ func prepare_release() -> void:
 	reputation_before = market.reputation
 
 
-## Первый релиз без конструктора: стартовая пара, единственный сеттинг.
+## Первый релиз без экрана (дебаг): стартовая пара, первый сеттинг.
 func first_config() -> GameConfig:
-	return Constructor.quick_config(tuning.genre, tuning.tech, unlocked_settings()[0], economy, rng.randi(), discount())
+	return Constructor.quick_config(start_genre, start_tech, unlocked_settings()[0], economy, rng.randi(), discount())
 
 
 ## Старт разработки: стоимость релиза списана целиком, запись и план спринтов.

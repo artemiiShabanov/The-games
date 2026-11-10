@@ -19,6 +19,11 @@ extends Control
 ## насыщения на карточках жанра и сеттинга («недавно было», «надоело») и, только с
 ## «Инсайдером», метка «в тренде»; конструктор их не считает, а читает из `MarketState`.
 ## Карточки каруселей пока с крупной буквой вместо иллюстрации.
+## Экран «Новая студия» (#61, `setup_first`): тот же конструктор первого релиза. Жанр и
+## технология выпали и залочены («Жанр · выпал», остальные карточки с пилюлей «не выпало»),
+## фокус только на карусели сеттинга и кнопке «Основать студию». Вместо названия игры в смете
+## название студии из `StudioNames`, R перегенерирует его, название первой игры строкой ниже
+## (по сеттингу и жанру, без R). Шапка «Новая студия».
 
 signal game_configured(config: GameConfig)
 signal estimate_changed(estimate: Estimate)
@@ -42,6 +47,10 @@ var release := 1
 var rng := RandomNumberGenerator.new()
 ## Основа следующей игры (#24); null и новая игра равнозначны.
 var base: BaseOption
+## Экран «Новая студия»: первый релиз на выпавшей паре.
+var first := false
+var studio_name := ""
+var studio_names: StudioNames
 ## Подсказки рынка: метки по значениям жанра и сеттинга (#29).
 var market_tags: Array[Dictionary] = [{}, {}, {}]
 
@@ -57,6 +66,7 @@ var _columns: CardColumns
 var _cards: Array[Array] = [[], [], []]
 var _title_label: Label
 var _title_hint: Label
+var _first_game: Label
 var _money_label: Label
 var _header_label: Label
 var _sprints_value: Label
@@ -126,6 +136,19 @@ func setup(unlocked_genres: Array[Game.Genre], unlocked_techs: Array[Game.Tech],
 		_refresh(false)
 
 
+## «Новая студия»: выпавшая пара залочена, выбирается только сеттинг; название студии из
+## генератора. Хозяин зовёт до добавления в дерево.
+func setup_first(genre: Game.Genre, tech: Game.Tech, settings: Array[Game.Setting], cash_: int, seed_: int,
+		discount_ := 0.0) -> void:
+	first = true
+	setup([genre], [tech], settings, cash_, 1, seed_, discount_)
+	studio_names = StudioNames.load_default()
+	studio_name = studio_names.make(rng)
+	focus_row = 2
+	if _ready_done:
+		_refresh(false)
+
+
 ## Подсказки рынка на карточках: насыщение всегда, тренд только с «Инсайдером». Зовётся до
 ## или после `setup`, до добавления в дерево или в любой момент.
 func set_market(market: MarketState, success: SuccessTuning, insider: bool) -> void:
@@ -183,6 +206,8 @@ func _tech_blocked(value: int) -> bool:
 
 ## Колонка залочена основой: жанр и сеттинг у сиквела и ремейка.
 func is_locked_column(kind: int) -> bool:
+	if first:
+		return kind == 0 or kind == 1
 	return (kind == 0 or kind == 2) and franchise_parent() != null
 
 
@@ -194,7 +219,8 @@ func is_unlocked(kind: int, i: int) -> bool:
 		return false
 	if kind == 1 and _tech_blocked(e.value):
 		return false
-	if is_locked_column(kind) and i != index[kind]:
+	# На «Новой студии» открыта только выпавшая карточка, это уже дали `unlocked`.
+	if is_locked_column(kind) and i != index[kind] and not first:
 		return false
 	if _demo_missing(kind, i):
 		return false
@@ -327,7 +353,7 @@ func move(dir: int) -> void:
 
 
 func focus(row: int) -> void:
-	row = clampi(row, 0, ROW_BUTTON)
+	row = clampi(row, 2 if first else 0, ROW_BUTTON)
 	if row == focus_row:
 		return
 	focus_row = row
@@ -338,6 +364,11 @@ func focus(row: int) -> void:
 
 
 func regenerate_title() -> void:
+	if first:
+		studio_name = studio_names.another(studio_name, rng)
+		ShellSounds.play(&"tick")
+		_refresh(false)
+		return
 	if franchise_parent() != null:
 		ShellSounds.play(&"miss")
 		return
@@ -407,10 +438,16 @@ func _build() -> void:
 	hints.offset_top = -(Style.PILL_HEIGHT + 16)
 	hints.offset_bottom = -16
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hints.add_child(HintPill.make("↑ ↓ листать"))
-	hints.add_child(HintPill.make("← → колонка и кнопка"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
-	hints.add_child(HintPill.make("R название"))
+	if first:
+		hints.add_child(HintPill.make("↑ ↓ сеттинг"))
+		hints.add_child(HintPill.make("← → сеттинг и кнопка"))
+		hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "основать студию")))
+		hints.add_child(HintPill.make("R название студии"))
+	else:
+		hints.add_child(HintPill.make("↑ ↓ листать"))
+		hints.add_child(HintPill.make("← → колонка и кнопка"))
+		hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
+		hints.add_child(HintPill.make("R название"))
 	add_child(hints)
 	MouseUi.pass_through(self)
 
@@ -433,6 +470,7 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	inner.add_child(CardColumns.center_pill("придёт с прокачкой", &"upgrade"))
 	inner.add_child(CardColumns.center_pill("недоступно", &"franchise"))
 	inner.add_child(CardColumns.center_pill("демка в работе", &"demo"))
+	inner.add_child(CardColumns.center_pill("не выпало", &"drawn"))
 	if with_origin_pill:
 		inner.add_child(CardColumns.center_pill("как у оригинала", &"origin"))
 	# Метка рынка сверху слева (STYLE: метка насыщения без чисел), текст ставит `_refresh`.
@@ -457,7 +495,7 @@ func _build_estimate(content: Control) -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
-	column.add_child(_label("Смета", Style.FONT_H2, Style.INK_2))
+	column.add_child(_label("Новая студия" if first else "Смета", Style.FONT_H2, Style.INK_2))
 	_title_label = _label("", TITLE_FONT, Style.INK)
 	_title_label.add_theme_font_override("font", Jelly.fun_font(800))
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -470,6 +508,11 @@ func _build_estimate(content: Control) -> void:
 	column.add_child(_title_label)
 	_title_hint = _label("R другое название", Style.FONT_CAPTION, Style.INK_3)
 	column.add_child(_title_hint)
+	# Первая игра студии строкой под названием студии («Новая студия»).
+	_first_game = _label("", Style.FONT_BODY, Style.INK_2)
+	_first_game.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_first_game.visible = first
+	column.add_child(_first_game)
 	column.add_child(_spacer(16))
 	_sprints_value = _row(column, "Спринтов")
 	_price_value = _row(column, "Цена спринта")
@@ -530,13 +573,15 @@ func _refresh(animate: bool) -> void:
 	var s := selected_entry(2).value as Game.Setting
 	estimate = Estimate.compute(g, t, s, economy, cash, discount)
 	estimate_changed.emit(estimate)
-	_header_label.text = "Релиз %d · Следующая игра" % release
+	_header_label.text = ShellHeader.text("Новая студия") if first else ShellHeader.release(release, "Следующая игра")
 	_money_label.text = Style.format_money(cash)
-	_title_label.text = title
+	var shown_title := studio_name if first else title
+	_title_label.text = shown_title
 	# Длинное название (ремейк сиквела) мельче, чтобы уместиться в две строки.
-	_title_label.add_theme_font_size_override("font_size", TITLE_FONT if title.length() <= TITLE_LONG else TITLE_FONT_LONG)
+	_title_label.add_theme_font_size_override("font_size", TITLE_FONT if shown_title.length() <= TITLE_LONG else TITLE_FONT_LONG)
 	var franchise := franchise_parent() != null
 	_title_hint.text = "название по франшизе" if franchise else "R другое название"
+	_first_game.text = "Первая игра: «%s»" % title
 	_roll(&"sprints", _sprints_value, estimate.sprints, animate, func(v: float) -> String: return str(int(round(v))))
 	_roll(&"price", _price_value, estimate.sprint_price, animate, _money_text)
 	_roll(&"total", _total_value, estimate.total, animate, _money_text)
@@ -556,7 +601,7 @@ func _refresh(animate: bool) -> void:
 	elif danger:
 		_button_label.text = "Не хватает " + Style.format_money(estimate.shortfall())
 	else:
-		_button_label.text = "В разработку"
+		_button_label.text = "Основать студию" if first else "В разработку"
 	var active := open and not danger
 	var on_button := focus_row == ROW_BUTTON
 	# Активная: тёмная в фокусе, `surface-2` с чернилами без фокуса; закрытая: `surface-2` с `ink-3`.
@@ -572,12 +617,21 @@ func _refresh(animate: bool) -> void:
 	_button_lift.focused = on_button
 	_button_label.add_theme_color_override("font_color", ink)
 	for kind in ROWS:
-		_columns.set_caption(kind, ROW_LABELS[kind] + (" · как у оригинала" if is_locked_column(kind) else ""))
+		_columns.set_caption(kind, _caption(kind))
 		for i in _cards[kind].size():
 			_refresh_card_lock(kind, i, _cards[kind][i])
 			_refresh_market_tag(kind, i, _cards[kind][i])
 	_columns.focus_col = focus_row if focus_row < ROWS else -1
 	_columns.refresh(animate)
+
+
+## Подпись колонки: у франшизы «как у оригинала», на «Новой студии» «выпал».
+func _caption(kind: int) -> String:
+	if not is_locked_column(kind):
+		return ROW_LABELS[kind]
+	if first:
+		return ROW_LABELS[kind] + (" · выпал" if kind == 0 else " · выпала")
+	return ROW_LABELS[kind] + " · как у оригинала"
 
 
 func _refresh_market_tag(kind: int, i: int, c: Control) -> void:
@@ -593,7 +647,9 @@ func _refresh_market_tag(kind: int, i: int, c: Control) -> void:
 func _refresh_card_lock(kind: int, i: int, c: Control) -> void:
 	var e := catalogs[kind].entries[i]
 	var meta: StringName = &""
-	if not unlocked[kind].has(e.value):
+	if first and is_locked_column(kind):
+		meta = &"drawn" if i != index[kind] else &""
+	elif not unlocked[kind].has(e.value):
 		meta = &"upgrade"
 	elif is_locked_column(kind) and i != index[kind]:
 		meta = &"franchise"

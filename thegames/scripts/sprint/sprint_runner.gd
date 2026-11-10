@@ -123,7 +123,7 @@ func _next() -> void:
 		_dots.queue_redraw()
 		plan_finished.emit(results.duplicate())
 		return
-	_header.text = "Спринт %d из %d" % [index + 1, plan.size()] + (" · " + game_title if game_title != "" else "")
+	_header.text = ShellHeader.text("Спринт %d из %d" % [index + 1, plan.size()] + (" · " + game_title if game_title != "" else ""))
 	_header_pill.visible = true
 	_dots.queue_redraw()
 	_run_sprint(plan.defs[index])

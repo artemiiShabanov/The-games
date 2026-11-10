@@ -6,6 +6,7 @@
 script = ExtResource("1_run")
 genre = 0
 tech = 1
+start_techs = Array[int]([1])
 title = "Пираты на платформах"
 sprints = 5
 cap = 12

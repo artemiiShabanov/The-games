@@ -1,7 +1,9 @@
 class_name Main
 extends Control
-## Петля M1 (#30), спека `docs/specs/run.md`: релиз 1 на стартовой паре без конструктора,
-## дальше основа (если открыты сиквелы или ремейки) → конструктор → спринты → плейтест →
+## Петля M1 (#30), спека `docs/specs/run.md`: старт экраном «Новая студия» (#61): пара
+## разыгрывается (не та же, что в прошлом забеге из `Profile`), конструктор первого релиза с
+## одной каруселью сеттинга и названием студии, оно же в шапке оболочки. Под автотестом пара из
+## `RunTuning` и профиль не трогается (`--draw` разыгрывает и под ним). Дальше основа (если открыты сиквелы или ремейки) → конструктор → спринты → плейтест →
 ## багфикс (одно или два предложения) → лента (из неё можно в демо и обратно) → фаза студии →
 ## следующий релиз. Конец забега: банкротство из фазы студии или кап, короткий экран, A
 ## начинает новый забег. Состояние в `RunState`, экраны грузятся по месту. Фон пока цвет
@@ -38,13 +40,17 @@ var _loop_check := false
 var _loop_releases := 3
 var _expected_cash := 0
 var _debug_upgrade := ""
+var _profile: Profile
 
 
 func _ready() -> void:
 	var seed_ := 1 if AutoTest.enabled else randi()
 	run = RunState.start(seed_, AutoTest.enabled)
+	ShellHeader.studio = ""
 	if AutoTest.enabled:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
+		if args.has("draw"):
+			run.draw_start()
 		_loop_check = args.has("loop")
 		if args.has("releases"):
 			_loop_releases = int(str(args["releases"]))
@@ -73,9 +79,17 @@ func _ready() -> void:
 			func(v: String) -> void: _debug_upgrade = v)
 	Debug.add_action(SECTION, "Купить прокачку бесплатно", _debug_buy)
 	Debug.add_action(SECTION, "Пропустить этап", _skip_stage)
-	Debug.watch("забег", func() -> String: return "%s, этап %s" % [run, Stage.keys()[stage]])
+	Debug.add_action(SECTION, "Забыть стартовый жанр прошлого забега", func() -> void:
+		if _profile != null:
+			_profile.last_start_genre = -1
+			_profile.last_start_tech = -1
+			_profile.save())
+	Debug.watch("забег", func() -> String: return "%s, %s, этап %s" % [run.studio_name, run, Stage.keys()[stage]])
 	Debug.watch("запись", func() -> String: return str(record) if record else "")
 
+	if not AutoTest.enabled:
+		_profile = Profile.load_saved()
+		run.draw_start(_profile.last_start_genre, _profile.last_start_tech)
 	if AutoTest.enabled:
 		AutoTest.note("main scene ready")
 	_start_release()
@@ -88,18 +102,35 @@ func _start_release() -> void:
 	run.prepare_release()
 	base = null
 	if run.release == 1:
-		stage = Stage.START
-		var config := run.first_config()
-		_show_card("Новая студия", ["Релиз 1 · %s" % config.title,
-				"%s × %s × %s" % [Game.genre_name(config.genre), Game.tech_name(config.tech), Game.setting_name(config.setting)],
-				"%d спринтов по %s, итого %s" % [config.sprints, Style.format_money(config.sprint_cost), Style.format_money(config.total_cost())]],
-				GameInput.hint(GameInput.A, "начать разработку"))
-		set_meta(&"first_config", config)
-		_bot_timer = 0.0
+		_open_new_studio()
 	elif run.studio.sequels_unlocked() or run.studio.remakes_unlocked():
 		_open_base()
 	else:
 		_open_constructor()
+
+
+## «Новая студия»: конструктор первого релиза на выпавшей паре, выбор сеттинга и название.
+func _open_new_studio() -> void:
+	stage = Stage.START
+	var c := (load(CONSTRUCTOR_PATH) as PackedScene).instantiate() as Constructor
+	c.setup_first(run.start_genre, run.start_tech, run.unlocked_settings(), run.wallet.cash, run.rng.randi(), run.discount())
+	c.set_market(run.market, run.success, run.studio.insider())
+	c.game_configured.connect(_on_studio_founded.bind(c))
+	_set_screen(c)
+	_bot_timer = 0.0
+
+
+func _on_studio_founded(config: GameConfig, c: Constructor) -> void:
+	run.studio_name = c.studio_name
+	ShellHeader.studio = c.studio_name
+	if _profile != null:
+		_profile.last_start_genre = int(run.start_genre)
+		_profile.last_start_tech = int(run.start_tech)
+		_profile.save()
+	if AutoTest.enabled:
+		AutoTest.note("studio founded: %s, %s × %s × %s" % [c.studio_name, Game.genre_name(config.genre),
+				Game.tech_name(config.tech), Game.setting_name(config.setting)])
+	_on_configured(config)
 
 
 func _open_base() -> void:
@@ -176,7 +207,7 @@ func _run_demo(source: StringName, caption: String) -> void:
 		AutoTest.note("нет демки для %s × %s, этап пропущен" % [Game.genre_name(record.genre), Game.tech_name(record.tech)])
 		_on_demo_finished.call_deferred(record, false)
 		return
-	_demo_header = HintPill.header("Релиз %d · %s · %s" % [run.release, caption, record.title])
+	_demo_header = HintPill.header(ShellHeader.release(run.release, "%s · %s" % [caption, record.title]))
 	_demo_header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(_demo_header)
 	_demo.setup(record, source)
@@ -317,11 +348,7 @@ func _restart() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not GameInput.is_a(event) and not MouseUi.is_click(event):
 		return
-	if stage == Stage.START:
-		_begin_development(get_meta(&"first_config"))
-		_clear_card()
-		get_viewport().set_input_as_handled()
-	elif stage == Stage.END:
+	if stage == Stage.END:
 		_restart()
 		get_viewport().set_input_as_handled()
 
@@ -333,16 +360,12 @@ func _process(delta: float) -> void:
 	if _bot_timer < BOT_PAUSE:
 		return
 	match stage:
-		Stage.START:
-			_bot_timer = -INF
-			_clear_card()
-			_begin_development(get_meta(&"first_config"))
 		Stage.BASE:
 			_bot_timer = -INF
 			var chooser := _screen as BaseChooser
 			if chooser != null:
 				chooser.confirm(chooser.options[0][0])
-		Stage.CONSTRUCTOR:
+		Stage.START, Stage.CONSTRUCTOR:
 			_bot_timer = -INF
 			var c := _screen as Constructor
 			if c != null:
@@ -402,14 +425,11 @@ func _debug_buy() -> void:
 func _skip_stage() -> void:
 	Debug.close_menu()
 	match stage:
-		Stage.START:
-			_clear_card()
-			_begin_development(get_meta(&"first_config"))
 		Stage.BASE:
 			var chooser := _screen as BaseChooser
 			if chooser != null:
 				chooser.confirm(chooser.options[0][0])
-		Stage.CONSTRUCTOR:
+		Stage.START, Stage.CONSTRUCTOR:
 			var c := _screen as Constructor
 			if c != null:
 				c.focus(Constructor.ROW_BUTTON)

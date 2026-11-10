@@ -153,7 +153,7 @@ func confirm() -> void:
 # --- Построение ---------------------------------------------------------------------------------
 
 func _build() -> void:
-	var header := HintPill.header("Релиз %d · Отклик · %s" % [release, content.tag])
+	var header := HintPill.header(ShellHeader.release(release, "Отклик · %s" % content.tag))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()

@@ -324,7 +324,7 @@ func _show_offer() -> void:
 # --- Построение ---------------------------------------------------------------------------------
 
 func _build() -> void:
-	var header := HintPill.header("Релиз %d · Студия" % report.release)
+	var header := HintPill.header(ShellHeader.release(report.release, "Студия"))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
