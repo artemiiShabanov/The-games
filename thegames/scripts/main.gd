@@ -239,7 +239,7 @@ func _on_bugfix_sprint(_def: MinigameDef, success: bool) -> void:
 	var names: PackedStringArray = []
 	for id in fixed:
 		var b := run.catalog.by_id(id)
-		names.append(b.stamp if b != null else String(id))
+		names.append(b.stamp_for(record.genre) if b != null else String(id))
 	_show_card("Багфикс", ["Починено: %s" % ", ".join(names) if success else "Провал: ничего не починено",
 			"осталось багов: %d" % record.bug_ids.size()], "")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout

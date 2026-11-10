@@ -160,7 +160,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		clip.kind = FeedContent.Kind.CLIP
 		clip.person = streamer
 		clip.reach = streamer_reach(streamer, score, record, t)
-		clip.stamp = bug.stamp if bug != null else ""
+		clip.stamp = bug.stamp_for(record.genre) if bug != null else ""
 		clip.text = _fill(_pick(texts.clip_bug if bug != null else texts.clip_clean, rng), vars)
 		c.views = views_for(score.streamers, t, rng)
 		c.online = int(round(c.views / t.online_divisor / 100.0)) * 100

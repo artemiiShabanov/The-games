@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_foes"]
+
+[resource]
+script = ExtResource("1_foes")
+id = &"through_enemies"
+kind = 1
+genre = 2
+stamp = "СКВОЗЬ ВРАГОВ"
+manifestation = "Ядра через раз пролетают сквозь врагов, попадание не засчитано"
+tweet = "Ядро прошло сквозь скелета и улетело за борт. Хитбоксы уровня «и так сойдёт»"
+clip = "Ядро пролетает сквозь скелета, тот идёт дальше как ни в чём не бывало"
+spectacular = true
+params = Dictionary[StringName, float]({
+&"pass_every": 2.0
+})

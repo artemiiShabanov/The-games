@@ -133,7 +133,7 @@ func _build() -> void:
 		sb.content_margin_top = 6
 		sb.content_margin_bottom = 6
 		pill.add_theme_stylebox_override("panel", sb)
-		var l := _label(bug.stamp if bug != null else String(id), Style.FONT_CAPTION + 2, Style.SURFACE_SOLID, false)
+		var l := _label(bug.stamp_for(record.genre) if bug != null else String(id), Style.FONT_CAPTION + 2, Style.SURFACE_SOLID, false)
 		pill.add_child(l)
 		row.add_child(pill)
 	column.add_child(_label("Цена обычного спринта: %s · у вас %s" % [Style.format_money(cost), Style.format_money(cash)],

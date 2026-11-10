@@ -13,6 +13,9 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var tech: Game.Tech = Game.Tech.ASCII
 ## Крупно на штампе карточки результата: «15 FPS», «ПРЫЖОК ×3».
 @export var stamp: String
+## Штамп под жанр записи (#51): ключ `Game.Genre`, без записи общий `stamp`. Нужен багам, чьё
+## проявление в жанре другое («ПРЫЖОК ×3» у гонок и шутера это лёд).
+@export var stamp_by_genre: Dictionary[int, String] = {}
 ## Проявление в демке, одной строкой: для карточки результата и ленты.
 @export var manifestation: String
 ## Текст твита в ленте отклика.
@@ -31,6 +34,10 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var weight := 1.0
 ## Параметры проявления: демка читает `param(&"freeze_ms_max", 400.0)`.
 @export var params: Dictionary[StringName, float] = {}
+
+
+func stamp_for(genre: Game.Genre) -> String:
+	return stamp_by_genre.get(int(genre), stamp)
 
 
 func manifestation_for(genre: Game.Genre) -> String:

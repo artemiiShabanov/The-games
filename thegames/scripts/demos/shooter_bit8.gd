@@ -18,8 +18,13 @@ extends Demo
 ## в `Demo`: `frame_drops` фризы в бою; `audio_stutter` заикание музыки и звуки с задержкой;
 ## `sticky_input` ход и кнопки с опозданием, отпущенная A ещё стреляет; `pink_placeholders`
 ## враги, снаряды, ром или пропы розовыми квадратами; `alien_palette` весь слой мира в
-## сдвинутых цветах; `sprite_flicker` спрайты сверх лимита на строке тайлов через кадр. Баги
-## жанра и баланса шутера: #51.
+## сдвинутых цветах; `sprite_flicker` спрайты сверх лимита на строке тайлов через кадр. Свои
+## проявления (#51): `through_enemies` (жанровый баг шутера) каждое второе касание ядра с врагом
+## не засчитывается, ядро пролетает сквозь и летит дальше; `sneeze_enemies` враги гибнут с
+## одного ядра и от ветра ядра, пролетевшего рядом (ядро летит дальше); `unreachable_coins`
+## каждое убийство зовёт на трап лишнего врага и двигает цель на единицу: «1/31», «2/32», цель
+## не достать, демку кончают жизни или страховка; `wild_physics` палуба как каток: герой
+## разгоняется и тормозит с заносом, враги быстрее.
 
 class Foe:
 	var kind := ShooterArena.Enemy.WALKER
@@ -41,6 +46,8 @@ class Shot:
 	var pos := Vector2.ZERO
 	var vel := Vector2.ZERO
 	var hostile := false
+	## Баг «сквозь врагов»: враг, сквозь которого ядро сейчас пролетает, его не бьёт.
+	var ghost: Foe = null
 
 
 const SCALE := 4
@@ -90,6 +97,8 @@ var invuln := 0.0
 var foes: Array[Foe] = []
 var shots: Array[Shot] = []
 var kills := 0
+## Цель по убийствам: `kills_goal`, с багом «не достать» растёт с каждым убийством.
+var goal := 30
 var count_left := 0.0
 var fight_time := 0.0
 var hero_moving := false
@@ -128,6 +137,24 @@ var _last_count := -1
 var _bot_move := Vector2.ZERO
 var _bot_fire := false
 var _bot_hold := false
+## Баги жанра и баланса (#51), числа из ресурсов багов читаются один раз в `_setup_bugs`.
+## «Сквозь врагов»: каждое `_pass_every`-е касание ядра с врагом сквозь (0 без бага), счёт касаний.
+var _pass_every := 0
+var _contacts := 0
+var passes := 0
+## «Чих»: ядро валит врагов ближе `_sneeze_px` к себе (0 без бага); убитых так.
+var _sneeze_px := 0.0
+var sneeze_kills := 0
+## «Не достать»: лишних врагов и прибавки цели на убийство, накопитель и очередь на трап.
+var _extra_per_kill := 0.0
+var _extra_acc := 0.0
+var _extra_left := 0
+var _extra_cd := 0.0
+var extras := 0
+## «Дикая физика»: отклик скорости героя на палубе-катке, 1/с (0 без бага), множитель врагов.
+var _ice := 0.0
+var _foe_mult := 1.0
+var _hero_vel := Vector2.ZERO
 ## Замеры времени под автотестом: ключ → (сумма, максимум, число) в микросекундах.
 var _perf: Dictionary[String, Vector3i] = {}
 var _perf_last := 0
@@ -179,9 +206,24 @@ func _on_start() -> void:
 	_perf_add("bake", Time.get_ticks_usec() - t0)
 	hero = arena.center_of(arena.start_cell())
 	hp = tuning.hero_hp
+	goal = tuning.kills_goal
 	count_left = tuning.countdown
 	_rum_timer = tuning.rum_every
+	_setup_bugs()
 	_setup_audio()
+
+
+## Баги жанра и баланса шутера: числа из ресурсов багов один раз; общие ставит `Demo`.
+func _setup_bugs() -> void:
+	if has_bug(&"through_enemies"):
+		_pass_every = maxi(int(bug_param(&"through_enemies", &"pass_every", 2.0)), 1)
+	if has_bug(&"sneeze_enemies"):
+		_sneeze_px = bug_param(&"sneeze_enemies", &"near_miss_px", 18.0)
+	if has_bug(&"unreachable_coins"):
+		_extra_per_kill = bug_param(&"unreachable_coins", &"extra_per_kill", 1.0)
+	if has_bug(&"wild_physics"):
+		_ice = bug_param(&"wild_physics", &"ice_response", 2.5)
+		_foe_mult = bug_param(&"wild_physics", &"foe_speed_mult", 1.5)
 
 
 func _setup_audio() -> void:
@@ -213,13 +255,15 @@ func _play(name: String) -> void:
 	bug_play(_sfx[name])
 
 
-func _on_end(goal: bool) -> void:
+func _on_end(goal_: bool) -> void:
 	_music.stop()
-	_play("finish" if goal else "lose")
+	_play("finish" if goal_ else "lose")
 	if AutoTest.enabled and not embedded:
 		AutoTest.note("shooter: %s, уничтожено %d/%d (скелетов %d, канониров %d), жизней %d/%d, урона %d, выстрелов %d, попаданий %d, рома %d, волна %d, %.1f с, сид %d, пропов %d, попыток генератора %d" % [
-				"цель" if goal else "провал", kills, tuning.kills_goal, kills_walkers, kills_gunners, hp, tuning.hero_hp,
+				"цель" if goal_ else "провал", kills, goal, kills_walkers, kills_gunners, hp, tuning.hero_hp,
 				damage, shots_fired, hits, rums, _wave + 1, fight_time, record.seed, arena.props.size(), arena.attempts])
+		if not record.bug_ids.is_empty():
+			AutoTest.note("shooter bugs: сквозь %d из %d касаний, от чиха %d, лишних врагов %d" % [passes, _contacts, sneeze_kills, extras])
 		AutoTest.note("shooter perf (среднее/максимум): " + _perf_text())
 
 
@@ -229,11 +273,11 @@ func _result_title(goal: bool) -> String:
 
 func _result_caption() -> String:
 	var t := int(round(fight_time))
-	if kills >= tuning.kills_goal:
+	if kills >= goal:
 		return "уничтожено %d · жизней %d из %d · %d с" % [kills, hp, tuning.hero_hp, t]
 	if hp <= 0:
-		return "уничтожено %d из %d · %d с" % [kills, tuning.kills_goal, t]
-	return "уничтожено %d из %d · время вышло" % [kills, tuning.kills_goal]
+		return "уничтожено %d из %d · %d с" % [kills, goal, t]
+	return "уничтожено %d из %d · время вышло" % [kills, goal]
 
 
 # --- Ввод ------------------------------------------------------------------------------------
@@ -329,12 +373,25 @@ func _hero_step(delta: float) -> void:
 	var hold := _bot_hold if bot_driven() else _hold_b
 	var fire := _bot_fire if bot_driven() else _fire_a
 	hero_moving = false
+	var want := Vector2.ZERO
 	if axis.length() > 0.3:
 		facing = _dir_index(axis.angle())
 		_update_hero_frame()
 		if not hold:
-			hero = _slide(hero, axis.limit_length(1.0) * tuning.hero_speed * delta, tuning.hero_radius, false)
-			hero_moving = true
+			want = axis.limit_length(1.0) * tuning.hero_speed
+	if _ice > 0.0:
+		# Палуба-каток: скорость догоняет желаемую с откликом `_ice`, в борт и проп гаснет по оси.
+		_hero_vel = _hero_vel.lerp(want, 1.0 - exp(-_ice * delta))
+		var before := hero
+		hero = _slide(hero, _hero_vel * delta, tuning.hero_radius, false)
+		if hero.x == before.x:
+			_hero_vel.x = 0.0
+		if hero.y == before.y:
+			_hero_vel.y = 0.0
+		hero_moving = _hero_vel.length() > 4.0
+	elif want != Vector2.ZERO:
+		hero = _slide(hero, want * delta, tuning.hero_radius, false)
+		hero_moving = true
 	invuln = maxf(invuln - delta, 0.0)
 	_fire_cd -= delta
 	# Залипание A: отпустил, и ещё пара выстрелов (`Demo.bug_stick`).
@@ -399,6 +456,17 @@ func _update_flow() -> void:
 ## `max_alive`; следующая волна, когда врагов осталось мало или волна затянулась. Волны
 ## кончились: повторяется последняя.
 func _spawn_step(delta: float) -> void:
+	if _extra_left > 0:
+		# «Не достать»: лишние враги лезут на палубу мимо волн, своим темпом.
+		_extra_cd -= delta
+		if _extra_cd <= 0.0 and foes.size() < tuning.max_alive:
+			var e := ShooterArena.Spawn.new()
+			e.kind = ShooterArena.Enemy.GUNNER if rng.randf() < 0.3 else ShooterArena.Enemy.WALKER
+			e.door = rng.randi_range(0, arena.doors.size() - 1)
+			_spawn(e)
+			_extra_left -= 1
+			extras += 1
+			_extra_cd = tuning.spawn_gap
 	if _wave_pause > 0.0:
 		_wave_pause -= delta
 		return
@@ -425,6 +493,8 @@ func _spawn(s: ShooterArena.Spawn) -> void:
 	f.pos = arena.center_of(arena.doors[s.door])
 	var gunner := s.kind == ShooterArena.Enemy.GUNNER
 	f.hp = tuning.gunner_hp if gunner else tuning.walker_hp
+	if _sneeze_px > 0.0:
+		f.hp = 1
 	f.fire_cd = tuning.first_shot
 	f.strafe = 1.0 if rng.randf() < 0.5 else -1.0
 	f.strafe_cd = tuning.strafe_flip * rng.randf_range(0.6, 1.4)
@@ -483,7 +553,7 @@ func _foes_step(delta: float) -> void:
 
 
 func _speed(f: Foe) -> float:
-	return tuning.gunner_speed if f.kind == ShooterArena.Enemy.GUNNER else tuning.walker_speed
+	return (tuning.gunner_speed if f.kind == ShooterArena.Enemy.GUNNER else tuning.walker_speed) * _foe_mult
 
 
 ## Направление к герою: напрямую, если широкая прямая свободна; иначе на соседнюю клетку
@@ -550,18 +620,42 @@ func _shots_step(delta: float) -> void:
 				if not running:
 					return
 			continue
+		var target: Foe = null
 		for f in foes:
-			if f.aboard and s.pos.distance_to(f.pos) < tuning.hit_radius:
-				shots.remove_at(i)
-				hits += 1
-				f.hp -= 1
-				if f.hp <= 0:
+			if not f.aboard or f == s.ghost or s.pos.distance_to(f.pos) >= tuning.hit_radius:
+				continue
+			if _pass_every > 0:
+				# «Сквозь врагов»: каждое `_pass_every`-е касание, начиная с первого, не засчитано.
+				var through := _contacts % _pass_every == 0
+				_contacts += 1
+				if through:
+					s.ghost = f
+					passes += 1
+					if passes == 1 and AutoTest.enabled and not embedded:
+						AutoTest.note("shooter bug: ядро прошло сквозь врага на %.1f с" % fight_time)
+					continue
+			target = f
+			break
+		if target != null:
+			shots.remove_at(i)
+			hits += 1
+			target.hp -= 1
+			if target.hp <= 0:
+				_kill(target)
+				if not running:
+					return
+			else:
+				_play("hit")
+		elif _sneeze_px > 0.0:
+			# «Чих»: ядро валит врагов от ветра, пролетая рядом, и летит дальше.
+			for f in foes.duplicate():
+				if f.aboard and f != s.ghost and s.pos.distance_to(f.pos) < _sneeze_px:
+					sneeze_kills += 1
+					if sneeze_kills == 1 and AutoTest.enabled and not embedded:
+						AutoTest.note("shooter bug: враг погиб от ветра ядра на %.1f с" % fight_time)
 					_kill(f)
 					if not running:
 						return
-				else:
-					_play("hit")
-				break
 
 
 func _kill(f: Foe) -> void:
@@ -573,7 +667,14 @@ func _kill(f: Foe) -> void:
 		kills_walkers += 1
 	_puffs.append(Vector3(f.pos.x, f.pos.y, PUFF_LIFE))
 	_play("kill")
-	if kills >= tuning.kills_goal:
+	if _extra_per_kill > 0.0:
+		# «Не достать»: за убийство лишний враг на трап и цель на единицу дальше.
+		_extra_acc += _extra_per_kill
+		while _extra_acc >= 1.0:
+			_extra_acc -= 1.0
+			goal += 1
+			_extra_left += 1
+	if kills >= goal:
 		end_demo(true)
 
 
@@ -881,7 +982,7 @@ func _draw_hud_layer() -> void:
 	var left := maxf(_origin.x, 0.0) + 4.0
 	for i in tuning.hero_hp:
 		_draw_heart(Vector2(left + i * 12.0, top), i < hp)
-	var text := "%d/%d" % [mini(kills, tuning.kills_goal), tuning.kills_goal]
+	var text := "%d/%d" % [mini(kills, goal), goal]
 	var right := minf(_origin.x + arena.size_px().x, view.x) - 4.0
 	draw_pixel_text(hud, Vector2(right - text.length() * 8.0, top), text, HUD_INK, HUD_SHADOW)
 	if count_left > 0.0 and _count_digit() > 0:
