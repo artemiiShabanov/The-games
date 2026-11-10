@@ -349,12 +349,14 @@ func _check_demo_lock() -> void:
 	var racing := genres.index_of(Game.Genre.RACING)
 	var shooter := genres.index_of(Game.Genre.SHOOTER)
 	var sport := genres.index_of(Game.Genre.SPORT)
+	var fighting := genres.index_of(Game.Genre.FIGHTING)
 	_expect(constructor.is_unlocked(0, plat), "платформер × 8-bit открыт")
 	_expect(constructor.is_unlocked(0, racing), "гонки × 8-bit открыты с демкой (#48)")
 	_expect(constructor.is_unlocked(0, shooter), "шутер × 8-bit открыт с демкой (#50)")
-	_expect(not constructor.is_unlocked(0, sport), "спорт × 8-bit закрыт без демки")
+	_expect(constructor.is_unlocked(0, sport), "спорт × 8-bit открыт с демкой (#52)")
+	_expect(not constructor.is_unlocked(0, fighting), "файтинг × 8-bit закрыт без демки")
 	constructor.focus(0)
-	constructor.select(0, sport)
+	constructor.select(0, fighting)
 	_expect(not constructor.selection_open() and constructor._button_label.text == "Демка в работе",
 			"кнопка без демки: «%s»" % constructor._button_label.text)
 	all_open = false

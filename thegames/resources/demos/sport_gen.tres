@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="GolfGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/golf_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+holes_min = 2
+holes_max = 3
+length_min = 640
+length_max = 1000
+step = 8
+ground_top = 100.0
+ground_bottom = 172.0
+hills_min = 3
+hills_max = 5
+max_rise = 10.0
+tee_from = 16
+tee_width = 40
+green_min = 112
+green_max = 152
+deck_lift_min = 4.0
+deck_lift_max = 12.0
+cup_margin = 28
+stern_width = 40
+stern_height = 72.0
+water_chance = 0.6
+water_min = 48
+water_max = 104
+water_gap = 96
+sea_y = 150.0
+sea_floor = 260.0
+bank_above = 12.0
+par4_from = 640.0
+wind_max = 3
+props_min = 0
+props_max = 2
+prop_gap = 40

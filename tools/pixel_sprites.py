@@ -3,7 +3,8 @@
 pixel_sets_extra.py (#47). Тайлы 16×16, палитра сеттинга 4 цвета плюс чёрный. Слоты платформера
 есть у каждого набора; слоты гонок (#48, шлюпки в 8 направлениях, вода, отмель, берег, риф, бочка,
 буй, финиш) и шутера (#50, матрос сверху в 4 направлениях, канонир, ядро, пуля, ром, палуба,
-борт, трап, бочка, сундук, пушка, дымок) пока только у пиратов, другие сеттинги берут их у пиратов.
+борт, трап, бочка, сундук, пушка, дымок) и гольфа (#52, матрос с клюшкой сбоку, бочонок, люк, флаг,
+песок, палуба, море, брызги, пушка, сундук) пока только у пиратов, другие сеттинги берут их у пиратов.
 Пишет PNG в thegames/assets/settings/<сеттинг>/8bit/ и превью-лист (×8) всех наборов в --preview.
 
     python3 tools/pixel_sprites.py                 # сгенерировать все наборы
@@ -882,9 +883,209 @@ SHOOTER.update({
 })
 SPRITES.update(SHOOTER)
 
-# Слоты платформера обязательны у каждого сеттинга; без слота гонок и шутера сеттинг берёт пиратский
+# --- Гольф × 8-bit (#52), вид сбоку --------------------------------------------------------
+# Матрос с клюшкой лицом вправо в трёх кадрах: 0 стойка у мяча, 1 замах (клюшка за головой),
+# 2 проводка (клюшка над передним плечом); влево демка отражает. Мяч бочонок 8×8 (демка крутит
+# его поворотами на 90°, пока катится). Лунка люк в палубе 16×8 (верх на 2 px над палубой,
+# проём с трапом вниз), флаг 16×24 древком в лунку. Земля: песок острова (`golf_sand` верхний
+# тайл от поверхности, `golf_sand_inner` толща), палуба грина и ти (`golf_deck`, `golf_hull`
+# борт корабля под ней, на 24 px, дальше песок), море в проливах `golf_sea` (гребни сверху), брызги `golf_splash`.
+# Пропы сбоку: пушка `golf_cannon`, сундук `golf_chest`.
+
+GOLF_SAND = [
+    "KKKKKKKKKKKKKKKK",
+    "SSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSS",
+    "SSSRSSSSSSSSSSSS",
+    "SSSSSSSSSSKSSSSS",
+    "SSSSSSSSSSSSSSSS",
+    "SSSSSSSRSSSSSSSS",
+    "SSSSSSSSSSSSSSSS",
+    "SKSSSSSSSSSSSSRS",
+    "SSSSSSSSSSSSSSSS",
+    "SSSSSSSSKSSSSSSS",
+    "SSSSRSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSRSSS",
+    "SSKSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSS",
+]
+
+GOLF_HULL = [
+    "RRRRRRRRRRRRRRRR",
+    "RRSRRRRRRRRRRRRR",
+    "RRRRRRRRRRRRRRRR",
+    "KKKKKKKKKKKKKKKK",
+    "RRRRRRRRRKRRRRRR",
+    "RRRRRRRRRKRRRRRR",
+    "RRRRRRRRRKRRRRRR",
+    "KKKKKKKKKKKKKKKK",
+    "RRRRRRRRRRRRRRRR",
+    "RRRRRRRRRRRRRSRR",
+    "RRRRRRRRRRRRRRRR",
+    "KKKKKKKKKKKKKKKK",
+    "RRRKRRRRRRRRRRRR",
+    "RRRKRRRRRRRRRRRR",
+    "RRRKRRRRRRRRRRRR",
+    "KKKKKKKKKKKKKKKK",
+]
+
+GOLF = {
+    "golf_hero_0": [
+        "................",
+        "....KKKKK.......",
+        "...KRRRRRK......",
+        "..KRRRRRRRK.....",
+        "...KSSSSKSK.....",
+        "...KSSSSSSK.....",
+        "....KSSSSK......",
+        "...KWWWWWKK.....",
+        "...KBBBBBSSK....",
+        "...KWWWWWKKK....",
+        "...KBBBBBK.K....",
+        "....KBBBBK..K...",
+        "....KBBBBK...K..",
+        "....KBKKBK...K..",
+        "...KKKKKKKK.KRK.",
+        "...KKKK.KKK.KKK.",
+    ],
+    "golf_hero_1": [
+        "KRK.............",
+        "KKK.KKKKK.......",
+        ".K.KRRRRRK......",
+        ".KKRRRRRRRK.....",
+        "..KKSSSSKSK.....",
+        "..KKSSSSSSK.....",
+        "...KKSSSSK......",
+        "...KSSWWWWK.....",
+        "...KKBBBBBK.....",
+        "...KWWWWWWK.....",
+        "...KBBBBBBK.....",
+        "....KBBBBK......",
+        "....KBBBBK......",
+        "....KBKKBK......",
+        "...KKKKKKKK.....",
+        "...KKKK.KKK.....",
+    ],
+    "golf_hero_2": [
+        ".............KRK",
+        "....KKKKK....KKK",
+        "...KRRRRRK..K...",
+        "..KRRRRRRRKK....",
+        "...KSSSSKSKK....",
+        "...KSSSSSSKK....",
+        "....KSSSSKK.....",
+        "...KWWWWSSK.....",
+        "...KBBBBBBK.....",
+        "...KWWWWWWK.....",
+        "...KBBBBBBK.....",
+        "....KBBBBK......",
+        "....KBBBBK......",
+        "...KBK..KBK.....",
+        "...KKK..KKKK....",
+        "...KK....KKK....",
+    ],
+    # Мяч: бочонок 8×8, обручи K, клёпка-блик S.
+    "golf_ball": [
+        ".KKKKKK.",
+        "KRSRRRRK",
+        "KKKKKKKK",
+        "KRSRRRRK",
+        "KRSRRRRK",
+        "KKKKKKKK",
+        "KRSRRRRK",
+        ".KKKKKK.",
+    ],
+    # Лунка: люк в палубе сбоку, комингс над палубой, проём с трапом вниз.
+    "golf_cup": [
+        "..KKK......KKK..",
+        "..KRK......KRK..",
+        "..KRKKKKKKKKRK..",
+        "..KRKSKKKKSKRK..",
+        "..KRKSSSSSSKRK..",
+        "..KRKSKKKKSKRK..",
+        "..KRKSSSSSSKRK..",
+        "..KKKSKKKKSKKK..",
+    ],
+    # Флаг лунки: древко R в колонке 3 до низа, вымпел с черепом.
+    "golf_flag": [
+        "...SKKKKKKKKK...",
+        "...RKKWWWKKKK...",
+        "...RKKWKWKKKKK..",
+        "...RKKWWWKKKKKK.",
+        "...RKKKWKKKKKK..",
+        "...RKKWKWKKKK...",
+        "...RKKKKKKKK....",
+    ] + ["...R............"] * 17,
+    "golf_sand": GOLF_SAND,
+    "golf_sand_inner": GOLF_SAND[1:] + [GOLF_SAND[4]],
+    # Палуба и борт под ней длинными досками: стык один на тайл, гвозди S (кирпичом не читается).
+    "golf_deck": ["KKKKKKKKKKKKKKKK", "SSSSSSSSSSSSSSSS"] + GOLF_HULL[2:],
+    "golf_hull": GOLF_HULL,
+    # Море в проливе: гребни сверху (прозрачное над волной), блики ниже.
+    "golf_sea": [
+        "....WW......WW..",
+        "..WWBBWW..WWBBWW",
+        "WWBBBBBBWWBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBWWBBBBBBBB",
+        "BBBBBBBBWBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBWWBB",
+        "BBBWBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+        "BBBBBBBBBBBBBBBB",
+    ],
+    "golf_splash": [
+        "................",
+        "................",
+        "......W...W.....",
+        "....W..W.W..W...",
+        "......WWWWW.....",
+        "...W.WWBBBWW.W..",
+        ".....WBBBBBW....",
+        "..W.WWBBBBBWW.W.",
+        "....WBBBBBBBW...",
+        "...WWBBBBBBBWW..",
+        "..WBBBBBBBBBBBW.",
+        ".WWWWWWWWWWWWWWW",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "golf_cannon": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "....KKKKKKKKKK..",
+        "...KWWKKKKKKKKKK",
+        "...KKKKKKKKKKKKK",
+        "....KKKKKKKKKK..",
+        "...KRRRRRRRK....",
+        "..KRRRRRRRRRK...",
+        "..KKKKRRRKKKK...",
+        ".KSSSKKKKSSSK...",
+        ".KSKSKRRKSKSK...",
+        ".KSSSK..KSSSK...",
+        "..KKK....KKK....",
+    ],
+    "golf_chest": ["................"] * 2 + SPRITES["shoot_chest"][:14],
+}
+for _name, _rows in GOLF.items():
+    assert all(len(r) == len(_rows[0]) for r in _rows), "строки разной длины в " + _name
+SPRITES.update(GOLF)
+
+# Слоты платформера обязательны у каждого сеттинга; без слота гонок, шутера и гольфа сеттинг берёт пиратский
 # (`SettingDef.sprite`), пока у него нет своего арта.
-PLATFORMER_SLOTS = set(SPRITES) - set(RACING) - set(SHOOTER)
+PLATFORMER_SLOTS = set(SPRITES) - set(RACING) - set(SHOOTER) - set(GOLF)
 
 
 def png_bytes(width, height, rgba_rows):

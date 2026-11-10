@@ -31,6 +31,9 @@ step "feed racing" sh tools/autotest.sh --scene=feed_test --genre=racing --frame
 step "demo shooter" sh tools/autotest.sh --scene=demo_test --genre=shooter --frames=6000
 step "demo shooter bugs" sh tools/autotest.sh --scene=demo_test --genre=shooter --bugs --frames=9000
 step "feed shooter" sh tools/autotest.sh --scene=feed_test --genre=shooter --frames=400
+step "demo sport" sh tools/autotest.sh --scene=demo_test --genre=sport --frames=9000
+step "demo sport bugs" sh tools/autotest.sh --scene=demo_test --genre=sport --bugs --frames=9000
+step "feed sport" sh tools/autotest.sh --scene=feed_test --genre=sport --frames=400
 step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
 [ $status -eq 0 ] && echo "ci: зелёный" || echo "ci: есть красные шаги"
 exit $status

@@ -2,12 +2,15 @@ extends Control
 ## Тестовая сцена демки: запускает демку 8-bit жанра, сида и набора багов из раздела «Демки»
 ## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
 ## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
-## финиширует первым; шутер: уничтожает 30), LOSE теряет жизни (гонки: едет вполгаза,
-## соперники финишируют раньше; шутер: идёт на врагов, не стреляя).
-## `--genre=racing` гонки, `--genre=shooter` шутер (или `platformer`, или номер `Game.Genre`), `--seed=<n>` сид,
+## финиширует первым; шутер: уничтожает 30; гольф: укладывается в пар), LOSE теряет жизни
+## (гонки: едет вполгаза, соперники финишируют раньше; шутер: идёт на врагов, не стреляя;
+## гольф: бьёт слабо и коротко, лунки подобраны сверх пара).
+## `--genre=racing` гонки, `--genre=shooter` шутер, `--genre=sport` гольф (или `platformer`, или
+## номер `Game.Genre`), `--seed=<n>` сид,
 ## `--no-checks` без проверок, `--pause` открывает меню паузы, `--bugs` все баги каталога,
 ## `--bug=<id>` один баг.
-## У гонок до заезда проверяется генератор трассы на сотне сидов, у шутера генератор арены.
+## У гонок до заезда проверяется генератор трассы на сотне сидов, у шутера генератор арены, у
+## гольфа генератор поля.
 
 
 var demo: Demo
@@ -39,6 +42,8 @@ func _ready() -> void:
 			_check_tracks()
 		elif _genre() == Game.Genre.SHOOTER:
 			_check_arenas()
+		elif _genre() == Game.Genre.SPORT:
+			_check_courses()
 	_launch()
 	if args.has("pause"):
 		# `--pause`: через полторы секунды открыть меню паузы, для скриншота.
@@ -161,3 +166,39 @@ func _check_arenas() -> void:
 	var b := ShooterArenaGen.generate(7, t)
 	_expect(a.tiles == b.tiles and a.total_enemies() == b.total_enemies() and a.doors == b.doors, "арена сида 7 не повторяется")
 	AutoTest.note("shooter arenas: 100 сидов прошли проверку, запасная арена %d, врагов в волнах в среднем %.1f" % [fallbacks, enemies / 100.0])
+
+
+## Гольф: сто сидов дают поле, которое проходит проверку генератора (ровные ти и палуба, люк
+## на палубе, склоны, пролив, пар), и генерация детерминирована; мяч, пущенный с ти слабо,
+## останавливается на поле (физика не роняет его сквозь землю).
+func _check_courses() -> void:
+	var t := GolfGenTuning.load_default()
+	var dt := GolfDemoTuning.load_default()
+	var fallbacks := 0
+	var holes := 0
+	var water := 0
+	var par3 := 0
+	for s in range(1, 101):
+		var c := GolfCourseGen.generate(s, t)
+		var why := GolfCourseGen.validate(c, t)
+		_expect(why == "", "поле сида %d: %s" % [s, why])
+		fallbacks += 1 if c.fallback else 0
+		for h in c.holes:
+			holes += 1
+			water += 1 if h.has_water() else 0
+			par3 += 1 if h.par == 3 else 0
+			var b := GolfBall.new()
+			b.launch(Vector2(h.tee_x, h.height_at(h.tee_x) - dt.ball_radius), 30.0, 1, 0.2, dt)
+			while b.moving():
+				b.step(h, dt, c.sea_y, h.wind, 1.0 / dt.physics_hz)
+			_expect(b.mode == GolfBall.Mode.REST and absf(b.pos.y + dt.ball_radius - h.height_at(b.pos.x)) < 1.0,
+					"мяч с ти сида %d лёг не на поле: %s %s" % [s, b.mode, b.pos])
+	var a := GolfCourseGen.generate(7, t)
+	var b2 := GolfCourseGen.generate(7, t)
+	var same := a.holes.size() == b2.holes.size()
+	for i in mini(a.holes.size(), b2.holes.size()):
+		same = same and a.holes[i].heights == b2.holes[i].heights and a.holes[i].cup_x == b2.holes[i].cup_x \
+				and a.holes[i].wind == b2.holes[i].wind
+	_expect(same, "поле сида 7 не повторяется")
+	AutoTest.note("golf courses: 100 сидов прошли проверку, запасное поле %d, лунок %d (с проливом %d, пар 3 у %d)" % [
+			fallbacks, holes, water, par3])

@@ -60,7 +60,8 @@ var minigame_single := false
 var demo_seed := 1
 ## Сеттинг записи тестовой демки (#46): 0 пираты, 1 космос, 2 замки.
 var demo_setting := 0
-## Жанр тестовой демки (#48, #50): `Game.Genre`, 0 платформер, 1 гонки, 2 шутер; технология всегда 8-bit.
+## Жанр тестовой демки (#48, #50, #52): `Game.Genre`, 0 платформер, 1 гонки, 2 шутер, 3 спорт
+## (гольф); технология всегда 8-bit.
 var demo_genre := 0
 var demo_bugs: Array[StringName] = []
 var active := false
@@ -312,7 +313,7 @@ func _register_builtin() -> void:
 		run_test_scene(MINIGAME_SCENE))
 	add_number(SECTION_DEMOS, "Сид", func() -> int: return demo_seed,
 			func(v: float) -> void: demo_seed = int(v), 1, 999, 1, true)
-	var genre_names: Array[String] = ["платформер", "гонки", "шутер"]
+	var genre_names: Array[String] = ["платформер", "гонки", "шутер", "спорт"]
 	add_choice(SECTION_DEMOS, "Жанр", genre_names, func() -> String: return genre_names[clampi(demo_genre, 0, genre_names.size() - 1)],
 			func(v: String) -> void: demo_genre = maxi(genre_names.find(v), 0), true)
 	var setting_names: Array[String] = ["пираты", "космос", "замки"]

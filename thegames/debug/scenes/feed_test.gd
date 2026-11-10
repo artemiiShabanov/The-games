@@ -3,8 +3,8 @@ extends Control
 ## сдвигом репутации из раздела «Лента» дебаг-меню, счёт по формулам успеха без шума. После
 ## «Дальше» или «В демо» показывает, что нажали, A запускает снова. Под ботом: состав ленты по
 ## спеке, сдвиги критиков, выбор стримера, сигналы кнопок. Флаги `--no-checks`, `--quality=`,
-## `--bugs=`, `--end` (пролистать в конец), `--genre=racing` или `--genre=shooter` (стрим крутит
-## демку гонок или шутера).
+## `--bugs=`, `--end` (пролистать в конец), `--genre=racing`, `--genre=shooter` или `--genre=sport`
+## (стрим крутит демку гонок, шутера или гольфа).
 
 const SECTION: StringName = &"Лента"
 ## Сцена грузится при запуске, не `preload`: константная ссылка на сцену с вложенным классом
@@ -12,13 +12,14 @@ const SECTION: StringName = &"Лента"
 const SCENE_PATH := "res://scenes/feed.tscn"
 ## Название записи по жанру; хэштег ленты из него.
 const TITLES := {Game.Genre.PLATFORMER: "Пираты на платформах", Game.Genre.RACING: "Пираты на шлюпках",
-	Game.Genre.SHOOTER: "Пираты на абордаже"}
+	Game.Genre.SHOOTER: "Пираты на абордаже", Game.Genre.SPORT: "Пиратский гольф"}
 
 var quality := 0.6
 var bugs := 2
 var rep_delta := 0.0
 var seed_value := 1
-## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50).
+## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50;
+## `--genre=sport`, #52).
 var genre := Game.Genre.PLATFORMER
 var tuning: SuccessTuning
 var catalog: BugCatalog
@@ -164,10 +165,11 @@ func _run_checks() -> void:
 	for item in content.items:
 		if item.kind == K.CLIP:
 			clip = item
-	# Штамп клипа по жанру записи (#51): у платформера «ПРЫЖОК ×3», у гонок и шутера свой.
+	# Штамп клипа по жанру записи (#51): у платформера «ПРЫЖОК ×3», у гонок и шутера свой; строки
+	# багов гольфа приходят с #53, пока у спорта общий штамп.
 	var want_stamp := "ПРЫЖОК ×3" if genre == Game.Genre.PLATFORMER else Feed.clip_bug(record, catalog).stamp_for(genre)
 	_expect(clip != null and clip.stamp == want_stamp, "штамп клипа %s, ждали %s" % [clip.stamp if clip else "", want_stamp])
-	_expect(genre == Game.Genre.PLATFORMER or want_stamp != "ПРЫЖОК ×3", "штамп платформера в клипе жанра %d" % genre)
+	_expect(genre not in [Game.Genre.RACING, Game.Genre.SHOOTER] or want_stamp != "ПРЫЖОК ×3", "штамп платформера в клипе жанра %d" % genre)
 	for item in content.items:
 		if item.kind == K.TWEET:
 			_expect(item.text.find(content.tag) >= 0, "твит без тега: %s" % item.text)

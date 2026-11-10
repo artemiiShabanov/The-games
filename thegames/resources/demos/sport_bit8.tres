@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="GolfDemoTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/golf_demo_tuning.gd" id="1_demo"]
+
+[resource]
+script = ExtResource("1_demo")
+physics_hz = 120
+ball_radius = 4.0
+gravity = 240.0
+max_speed = 280.0
+wind_accel = 12.0
+sand_bounce = 0.3
+sand_keep = 0.6
+sand_friction = 160.0
+deck_bounce = 0.45
+deck_keep = 0.85
+deck_friction = 50.0
+hull_bounce = 0.5
+hull_keep = 0.7
+hull_friction = 80.0
+roll_threshold = 30.0
+stop_speed = 5.0
+cup_half = 5.0
+cup_capture_roll = 110.0
+cup_capture_air = 160.0
+ball_max_time = 12.0
+meter_fill = 1.0
+min_power = 0.03
+angle_min = 0
+angle_max = 80
+angle_rate = 40.0
+angle_start = 40
+angle_deck = 0
+max_over_par = 3
+penalty = 1
+intro_time = 1.6
+rest_pause = 0.5
+penalty_pause = 1.0
+holed_pause = 1.6
+max_seconds = 150.0
+cam_follow = 5.0
+bot_angle_step = 5
+bot_power_step = 6
+bot_refine_angle = 3
+bot_refine_power = 5
+bot_sims_per_frame = 16
+bot_off_deck = 30.0
+bot_think = 0.5
+bot_turn_max = 2.5
+bot_putt_range = 96.0
+bot_miss_min = 12.0
+bot_miss_max = 36.0
+bot_lose_angle = 20
+bot_lose_power = 0.15
+music_db = -14.0
+sfx_db = -8.0
