@@ -20,7 +20,6 @@ const PATH := "res://resources/economy.tres"
 ## Возможности из спеки студии: id → цена и надбавка к содержанию.
 @export var capability_prices: Dictionary[StringName, int] = {}
 @export var capability_upkeeps: Dictionary[StringName, int] = {}
-@export var rescue_amount := 12000
 ## Спринт багфикса стоит обычный спринт × это.
 @export var bugfix_price_mult := 1.0
 ## Скидка «Менеджера» на цену спринта.

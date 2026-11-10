@@ -29,6 +29,8 @@ var apply: Callable
 var meta: MetaTuning
 var index := 0
 var done := false
+## Автотест `--refuse-events`: бот отвечает последним вариантом и в режиме WIN.
+static var bot_last := false
 ## Подложка `bg` под карточкой: поверх другого экрана (фаза студии).
 var dim := false
 var _bot_timer := 0.0
@@ -69,7 +71,7 @@ func _process(delta: float) -> void:
 	_bot_timer += delta
 	if _bot_timer < 0.4:
 		return
-	index = 0 if AutoTest.bot_mode == AutoTest.BotMode.WIN else _rows.size() - 1
+	index = 0 if AutoTest.bot_mode == AutoTest.BotMode.WIN and not bot_last else _rows.size() - 1
 	_refresh_focus()
 	confirm()
 
@@ -178,7 +180,7 @@ func _build() -> void:
 	_money_label.add_theme_color_override("font_color", Style.MONEY)
 	right.add_child(money)
 	_shown_money = float(wallet.cash) if wallet != null else 0.0
-	_money_label.text = Style.format_money(int(_shown_money))
+	_set_money_text(int(_shown_money))
 	money.visible = wallet != null
 
 	var center := CenterContainer.new()
@@ -351,11 +353,17 @@ func _roll_money(to: int) -> void:
 	var from := _shown_money
 	_shown_money = float(to)
 	if Debug.skip_cards or is_equal_approx(from, float(to)):
-		_money_label.text = Style.format_money(to)
+		_set_money_text(to)
 		return
 	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.tween_method(func(v: float) -> void: _money_label.text = Style.format_money(int(roundf(v))),
+	tw.tween_method(func(v: float) -> void: _set_money_text(int(roundf(v))),
 			from, float(to), Style.SWITCH_SECONDS * 2.0)
+
+
+## Деньги в пилюле: в минусе `danger`.
+func _set_money_text(v: int) -> void:
+	_money_label.text = Style.format_money(v)
+	_money_label.add_theme_color_override("font_color", Style.DANGER if v < 0 else Style.MONEY)
 
 
 func _label(text: String, font_size: int, color: Color) -> Label:

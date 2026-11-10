@@ -38,7 +38,7 @@
 - Тюнинг: `res://resources/economy.tres` (`EconomyTuning`): `start_cash`, `upkeep_base`,
   `sprint_base_by_tech`, `sprints_by_tech`, `genre_cost_mult`, `setting_cost_mult`,
   `unlock_price_by_tech`, `unlock_upkeep_by_tech`, `genre_unlock_price`, `genre_unlock_upkeep`,
-  `capability_prices`, `capability_upkeeps`, `rescue_amount`, `bugfix_price_mult`.
+  `capability_prices`, `capability_upkeeps`, `bugfix_price_mult` (`rescue_amount` в `meta.tres` с #67).
 
 ## Крайние случаи и вне скоупа
 
@@ -55,9 +55,10 @@
   `Game.Setting` с тремя стартовыми сеттингами).
 - [x] Порядок фазы студии: продажи первой недели нового релиза, тики, содержание, проверка
   банкротства, предложение (#28: `StudioPhase.settle`).
-- [ ] Вставка спасения и банкротство как завершение забега. В M1 (#28) спасение это строка
-  «аванс издателя» на `rescue_amount` без условий, одно на забег; второе банкротство даёт
-  `game_over`, экран конца забега в #30. Карточка издателя с условиями в M2.
+- [x] Вставка спасения и банкротство как завершение забега (#67): первое банкротство ведёт к
+  вставке «Спасение» (аванс `meta.tres: rescue_amount` на условиях издателя, продать лучший
+  хвост, закрыть студию), второе даёт `game_over`. Прокачка не покупается, если после неё не
+  хватит на самый дешёвый следующий релиз с учётом договоров.
 - [x] `tools/model_run.py` держать в согласии с тюнингом (#39): читает `economy.tres` и
   `success.tres`, формулы как в `Success` и `EconomyTuning`; `--check` требует, чтобы хорошие
   руки не уходили в минус и не банкротились, а средние банкротились на 6-8 релизе; запускается

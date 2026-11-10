@@ -42,6 +42,8 @@ var _loop_releases := 3
 var _expected_cash := 0
 var _debug_upgrade := ""
 var _profile: Profile
+## Автотест `--broke-at=N`: перед фазой студии релиза N денег −10 000 (банкротство, #67).
+var _broke_at := -1
 
 
 func _ready() -> void:
@@ -54,6 +56,11 @@ func _ready() -> void:
 			run.draw_start()
 		if args.has("cap"):
 			run.cap = int(str(args["cap"]))
+		if args.has("cash"):
+			run.wallet.cash = int(str(args["cash"]))
+		EventCard.bot_last = args.has("refuse-events")
+		if args.has("broke-at"):
+			_broke_at = int(str(args["broke-at"]))
 		_loop_check = args.has("loop")
 		if args.has("releases"):
 			_loop_releases = int(str(args["releases"]))
@@ -322,11 +329,19 @@ func _on_feed_demo() -> void:
 func _open_studio() -> void:
 	_clear_all()
 	stage = Stage.STUDIO
+	if run.release == _broke_at:
+		run.wallet.cash = -10000
+		_expected_cash = run.wallet.cash
 	report = run.settle(record)
-	_expected_cash += report.first_week + report.tails_total - report.shares_total - report.upkeep + report.rescue
+	_expected_cash += report.first_week + report.tails_total - report.shares_total - report.upkeep
 	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
+	screen.reserve_fn = run.cheapest_next
 	var offer := run.plan_event(report)
+	if report.rescue_due and (offer == null or offer.def.kind != EventDef.Kind.RESCUE):
+		# Спасти некому: банкротство сразу.
+		StudioPhase.after_rescue(report, run.wallet, run.studio, true)
+		offer = null
 	if offer != null:
 		AutoTest.note("event: релиз %d, %s" % [run.release, offer.def.id])
 		screen.set_event(offer, _apply_event.bind(offer))
@@ -341,6 +356,8 @@ func _apply_event(index: int, offer: Events.Offer) -> String:
 	var outcome := run.apply_event(offer, index, record)
 	_expected_cash += run.wallet.cash - before
 	report.cash = run.wallet.cash
+	if offer.def.kind == EventDef.Kind.RESCUE:
+		StudioPhase.after_rescue(report, run.wallet, run.studio, run.event_state.ending == &"bankruptcy")
 	report.stats = run.stats_with(record)
 	AutoTest.note("event %s: ответ %d %s, %s" % [offer.def.id, index, outcome, run.event_state])
 	return outcome

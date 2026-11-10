@@ -30,6 +30,8 @@ var report: StudioPhase.Report
 var event_offer: Events.Offer
 var event_apply: Callable
 var event_card: EventCard
+## Самый дешёвый следующий релиз с учётом договоров вставок (#67); пусто: `report.cheapest`.
+var reserve_fn: Callable
 var wallet: Wallet
 var upkeep: Upkeep
 var state: StudioState
@@ -83,8 +85,17 @@ func offer() -> Array[UpgradeDef]:
 	return report.offer
 
 
+## Купить можно, если после покупки хватит на самый дешёвый следующий релиз (#67): иначе
+## покупка сама загоняет в банкротство, а с договором вставки и выбрать дешевле нельзя.
 func affordable(i: int) -> bool:
-	return i >= 0 and i < report.offer.size() and wallet.can_afford(report.offer[i].price(economy))
+	return i >= 0 and i < report.offer.size() and wallet.can_afford(report.offer[i].price(economy) + reserve())
+
+
+## Сколько оставить на следующий релиз: хозяин (`reserve_fn`) или самый дешёвый из отчёта.
+func reserve() -> int:
+	if reserve_fn.is_valid():
+		return int(reserve_fn.call())
+	return report.cheapest if report != null else 0
 
 
 # --- Ввод ----------------------------------------------------------------------------------
@@ -160,7 +171,7 @@ func confirm() -> void:
 		return
 	var def := report.offer[index]
 	_lifts[index].press()
-	if not StudioPhase.buy(def, wallet, upkeep, state, economy):
+	if not affordable(index) or not StudioPhase.buy(def, wallet, upkeep, state, economy):
 		_shake(_cards[index])
 		ShellSounds.play(&"miss")
 		return
@@ -263,11 +274,8 @@ func _run() -> void:
 	await _add_row("Содержание студии", -report.upkeep, Style.INK, money)
 	if report.bankrupt:
 		await _add_row("Меньше, чем дешёвый релиз (%s)" % Style.format_money(report.cheapest), 0, Style.DANGER, money)
-		if report.rescue > 0:
-			money += report.rescue
-			await _add_row("Аванс издателя, второго не будет", report.rescue, Style.MONEY, money)
-		elif report.game_over:
-			await _add_row("Второго аванса нет: банкротство", 0, Style.DANGER, money)
+		if report.game_over:
+			await _add_row("Второго спасения нет: банкротство", 0, Style.DANGER, money)
 	_fade_in(_valuation_block)
 	var valuation := float(report.stats.valuation if report.stats else report.cash)
 	_roll_label(_valuation_label, float(report.cash), valuation)
@@ -332,7 +340,8 @@ func _show_offer() -> void:
 	if report.game_over:
 		_offer_title.text = "Студия закрывается"
 		_offer_title.add_theme_color_override("font_color", Style.DANGER)
-		_offer_caption.text = "Денег на самый дешёвый релиз нет, и издатель уже помогал. Забег окончен."
+		_offer_caption.text = report.close_reason if report.close_reason != "" \
+				else "Денег на самый дешёвый релиз нет, и спасение уже было. Забег окончен."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
@@ -506,7 +515,7 @@ func _refresh_prices() -> void:
 			note.text = "+ %s к содержанию за релиз" % Style.format_money(def.upkeep(economy))
 			note.add_theme_color_override("font_color", Style.INK_2)
 		else:
-			note.text = "не хватает %s" % Style.format_money(def.price(economy) - wallet.cash)
+			note.text = "не хватит на игру: нужно ещё %s" % Style.format_money(def.price(economy) + reserve() - wallet.cash)
 			note.add_theme_color_override("font_color", Style.DANGER)
 
 
@@ -533,6 +542,7 @@ func _refresh_focus(animate: bool) -> void:
 func _set_money(v: int) -> void:
 	_shown_money = float(v)
 	_money_label.text = Style.format_money(v)
+	_money_label.add_theme_color_override("font_color", Style.DANGER if v < 0 else Style.MONEY)
 
 
 func _roll_money(to: int) -> void:
@@ -542,7 +552,7 @@ func _roll_money(to: int) -> void:
 	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tw.tween_method(func(v: float) -> void:
 		_shown_money = v
-		_money_label.text = Style.format_money(int(round(v))), _shown_money, float(to), Style.SWITCH_SECONDS)
+		_set_money(int(round(v))), _shown_money, float(to), Style.SWITCH_SECONDS)
 
 
 func _roll_label(label: Label, from: float, to: float) -> void:

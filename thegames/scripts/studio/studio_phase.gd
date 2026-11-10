@@ -4,8 +4,9 @@ extends RefCounted
 ## (#28). `settle` делает всё, что происходит с деньгами до предложения, и возвращает отчёт
 ## для анимации: продажи первой недели нового релиза (его P0, плейтест ленты 2026-11-07), тики
 ## хвостов прошлых игр, содержание, проверка банкротства, оценка студии, состав предложения.
-## Банкротство в M1 без карточки издателя: первый раз приходит аванс `rescue_amount` строкой,
-## второй раз за забег (`StudioState.rescued`) забег окончен (`game_over`). Хвосты по
+## Банкротство (#67): первый раз за забег фаза только помечает `rescue_due`, спасение приходит
+## вставкой «Спасение» (шаг 5) и решается `after_rescue`; второй раз (`StudioState.rescued`)
+## забег окончен (`game_over`). Хвосты по
 ## договорам вставок (#66): тик целиком, доля отдельной суммой `shares_total`; проданный хвост
 ## не тикает. Покупка отдельно:
 ## `buy`, хозяин зовёт по сигналу экрана.
@@ -32,8 +33,10 @@ class Report:
 	var cheapest := 0
 	## Сработало условие банкротства после содержания.
 	var bankrupt := false
-	## Аванс издателя в этой фазе (сумма), 0 если не было.
-	var rescue := 0
+	## Первое банкротство: нужна вставка «Спасение» (#67).
+	var rescue_due := false
+	## Почему студия закрывается после спасения: подпись на экране фазы.
+	var close_reason := ""
 	var game_over := false
 	## Деньги после всех шагов, до покупки.
 	var cash := 0
@@ -43,8 +46,23 @@ class Report:
 	func _to_string() -> String:
 		return "релиз %d: неделя %d, хвосты %d, содержание %d, %d → %d%s%s, оценка %d, предложение %s" % [
 			release, first_week, tails_total, upkeep, cash_start, cash,
-			" (банкрот)" if bankrupt else "", ", аванс %d" % rescue if rescue > 0 else "",
+			" (банкрот)" if bankrupt else "", ", ждёт спасения" if rescue_due else "",
 			stats.valuation if stats else 0, offer]
+
+
+## После вставки «Спасение» (#67): спасение использовано; закрыть студию выбрали сами или денег
+## и после ответа меньше дешёвого релиза (продажа хвоста не вытянула): забег окончен, без
+## предложения прокачки. true, если студия закрывается.
+static func after_rescue(r: Report, wallet: Wallet, state: StudioState, closed: bool) -> bool:
+	state.rescued = true
+	r.rescue_due = false
+	r.cash = wallet.cash
+	if closed or wallet.cash < r.cheapest:
+		r.game_over = true
+		r.offer.clear()
+		r.close_reason = "Студию закрыли сами. Забег окончен." if closed \
+				else "Даже после спасения денег на самый дешёвый релиз нет. Забег окончен."
+	return r.game_over
 
 
 static func settle(release: int, past: Array[GameRecord], current: GameRecord, market: MarketState,
@@ -86,9 +104,7 @@ static func settle(release: int, past: Array[GameRecord], current: GameRecord, m
 		if state.rescued:
 			r.game_over = true
 		else:
-			state.rescued = true
-			r.rescue = economy.rescue_amount
-			wallet.earn(r.rescue, &"rescue")
+			r.rescue_due = true
 	r.cash = wallet.cash
 	# 4. Оценка студии по всем играм, включая новую.
 	var all: Array[GameRecord] = past.duplicate()

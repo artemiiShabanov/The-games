@@ -39,5 +39,7 @@ step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --f
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400
 step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
+step "loop rescue" sh tools/autotest.sh --loop --broke-at=2 --releases=3 --time-scale=4 --frames=9000
+step "loop refuse rescue" sh tools/autotest.sh --loop --broke-at=2 --refuse-events --releases=3 --time-scale=4 --frames=9000
 [ $status -eq 0 ] && echo "ci: зелёный" || echo "ci: есть красные шаги"
 exit $status

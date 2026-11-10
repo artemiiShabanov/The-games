@@ -43,7 +43,8 @@
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks
   --past=4 --event=<id> --frames=20`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop
-  --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап). Фаза студии: `--scene=studio_test --frames=600`; скриншот
+  --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--refuse-events`
+  бот отвечает на вставки последним вариантом). Фаза студии: `--scene=studio_test --frames=600`; скриншот
   состояния: `--scene=studio_test --no-checks --past=4 [--cash=-16000] [--rescued]
   [--all-bought] --frames=240` (под `--fixed-fps` снимок отстаёт от сцены, поэтому экран
   без `--animate` стоит с первого кадра). Кривые параметров и сцена в ресурс мини-игры:

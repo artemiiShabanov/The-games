@@ -31,10 +31,11 @@ const PATH := "res://resources/meta.tres"
 @export var lawyers_price := 5000
 @export var festival_price := 3000
 @export var festival_critics := 0.5
-## Спасение: аванс издателя и его доля с хвоста; продажа лучшего хвоста за столько тиков.
+## Спасение: аванс издателя и его доля с хвоста; продажа лучшего хвоста за столько тиков (#67:
+## 3, а не 6 из спеки: хвост затухает ×0,7 за релиз, весь остаток около 2,3 тика).
 @export var rescue_amount := 12000
 @export var rescue_share := 0.3
-@export var sell_tail_ticks := 6
+@export var sell_tail_ticks := 3
 
 # Условия (#65).
 ## Фанаты просят сиквел: есть игра с критиками от.

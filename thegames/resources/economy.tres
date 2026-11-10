@@ -34,6 +34,5 @@ capability_upkeeps = Dictionary[StringName, int]({
 &"replay2": 150,
 &"sequels": 150
 })
-rescue_amount = 12000
 bugfix_price_mult = 1.0
 manager_discount = 0.1

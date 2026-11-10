@@ -236,6 +236,7 @@ func plan_event(report: StudioPhase.Report) -> Events.Offer:
 	ctx.genres = unlocked_genres().size()
 	ctx.sequels = studio.sequels_unlocked()
 	ctx.buyer_due = buyer_due()
+	ctx.bankrupt = report != null and report.rescue_due
 	var def := EventPlanner.plan(events, ctx, event_state, meta, rng)
 	if def == null:
 		return null
@@ -297,6 +298,26 @@ func contracts() -> Dictionary:
 		if col >= 0:
 			out[col] = {"value": r.value, "by": r.by}
 	return out
+
+
+## Самый дешёвый следующий релиз с учётом договоров вставок: запас, который нельзя тратить на
+## прокачку (#67).
+func cheapest_next() -> int:
+	var genres := unlocked_genres()
+	var techs := unlocked_techs()
+	var settings := unlocked_settings()
+	var cs := contracts()
+	var parent := contract_sequel()
+	if cs.has(0):
+		genres = [int(cs[0]["value"]) as Game.Genre]
+	if cs.has(1):
+		techs = [int(cs[1]["value"]) as Game.Tech]
+	if cs.has(2):
+		settings = [int(cs[2]["value"]) as Game.Setting]
+	if parent != null:
+		genres = [parent.genre]
+		settings = [parent.setting]
+	return economy.cheapest_release(genres, techs, settings, discount())
 
 
 ## Игра, сиквел которой обещан во вставке, или null.

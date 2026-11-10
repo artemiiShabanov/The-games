@@ -316,7 +316,7 @@ func _run_checks() -> void:
 	_expect(sum == report.tails_total and report.tails.size() == 2, "сумма хвостов")
 	_expect(report.upkeep == 800, "содержание %d" % report.upkeep)
 	_expect(report.cheapest == 4000, "дешёвый релиз %d" % report.cheapest)
-	_expect(not report.bankrupt and report.rescue == 0 and not report.game_over, "банкрот без причины")
+	_expect(not report.bankrupt and not report.rescue_due and not report.game_over, "банкрот без причины")
 	_expect(report.cash == 20000 + report.first_week + report.tails_total - 800 and wallet.cash == report.cash,
 			"деньги %d" % report.cash)
 	_expect(report.stats != null and report.stats.valuation > report.cash, "оценка")
@@ -333,20 +333,43 @@ func _run_checks() -> void:
 	var avail := StudioOffer.available(pool, StudioState.new(), unlocked_genres, one_tech)
 	_expect(not avail.any(func(d: UpgradeDef) -> bool: return d.id == &"remakes"), "ремейки при одной технологии")
 
-	# Аванс и конец забега: денег в минусе, доход фазы не вытягивает до дешёвого релиза.
+	# Спасение (#67) и конец забега: денег в минусе, доход фазы не вытягивает до дешёвого релиза.
+	# Первое банкротство ждёт вставку «Спасение», денег фаза не даёт.
 	_make_run(past_count)
 	var poor := Wallet.new(-8000)
 	var st2 := StudioState.new()
 	var r2 := StudioPhase.settle(3, records, current, market, poor, Upkeep.new(800), st2, economy, success,
 			pool, unlocked_genres, unlocked_techs, unlocked_settings, rng)
-	_expect(r2.bankrupt and r2.rescue == 12000 and not r2.game_over and st2.rescued, "аванс: %s" % r2)
-	_expect(poor.cash == -8000 + r2.first_week + r2.tails_total - 800 + 12000, "деньги после аванса %d" % poor.cash)
-	_expect(r2.offer.size() == 3, "предложение после аванса")
+	_expect(r2.bankrupt and r2.rescue_due and not r2.game_over and not st2.rescued, "ждёт спасения: %s" % r2)
+	_expect(poor.cash == -8000 + r2.first_week + r2.tails_total - 800, "деньги до спасения %d" % poor.cash)
+	_expect(r2.offer.size() == 3, "предложение при спасении")
+	# Аванс издателя через вставку: студия живёт, спасение потрачено.
+	var meta := MetaTuning.load_default()
+	var rescue := Events.find(Events.load_all(), &"rescue")
+	var ctx := Events.Context.new()
+	ctx.genres = [int(G.PLATFORMER)]
+	ctx.techs = [int(T.BIT8)]
+	ctx.settings = [int(S.PIRATES)]
+	ctx.records = records
+	ctx.rng = rng
+	var es := EventState.new()
+	var offer := Events.resolve(rescue, 0, ctx, meta)
+	var before := poor.cash
+	Events.apply(offer, 0, poor, market, es, meta, rng, 3)
+	_expect(poor.cash - before == meta.rescue_amount, "аванс спасения %d" % (poor.cash - before))
+	_expect(not StudioPhase.after_rescue(r2, poor, st2, false) and st2.rescued and r2.offer.size() == 3, "после аванса: %s" % r2)
+	# Отказ от спасения: банкротство, без предложения.
+	_make_run(past_count)
+	var r4 := StudioPhase.settle(3, records, current, market, Wallet.new(-8000), Upkeep.new(800), StudioState.new(),
+			economy, success, pool, unlocked_genres, unlocked_techs, unlocked_settings, rng)
+	_expect(StudioPhase.after_rescue(r4, Wallet.new(-8000), StudioState.new(), true) and r4.offer.is_empty(), "отказ от спасения")
+	# Продажа хвоста, которой не хватило: тоже конец.
+	_expect(StudioPhase.after_rescue(r4, Wallet.new(r4.cheapest - 1), StudioState.new(), false), "мало после продажи хвоста")
 	var poor2 := Wallet.new(-8000)
 	_make_run(past_count)
 	var r3 := StudioPhase.settle(3, records, current, market, poor2, Upkeep.new(800), st2, economy, success,
 			pool, unlocked_genres, unlocked_techs, unlocked_settings, rng)
-	_expect(r3.bankrupt and r3.rescue == 0 and r3.game_over and r3.offer.is_empty(), "конец: %s" % r3)
+	_expect(r3.bankrupt and not r3.rescue_due and r3.game_over and r3.offer.is_empty(), "конец: %s" % r3)
 
 	# Покупка.
 	var w := Wallet.new(20000)
