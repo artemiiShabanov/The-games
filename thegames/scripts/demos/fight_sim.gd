@@ -11,15 +11,26 @@ extends RefCounted
 ## разбит на замах, активные шаги и восстановление; попадание даёт урон, оглушение и отброс,
 ## блок оглушение в блоке и отброс без урона. Боец у борта не отъезжает: отъезжает бьющий.
 ## Бойцы всегда лицом друг к другу, пока свободны; ближе `2 * push_half` не сходятся.
+##
+## Плейтест #54: в приседе можно идти (медленнее), во время удара ход сохраняется затухающе
+## (`strike_move` в начале, к концу удара ноль), вверх прыжок по дуге с ударом ногой в воздухе
+## (держит блок стоя, достаёт присевшего на снижении), удары героя под капотом длиннее
+## (`hero_reach_mult`), кадры те же.
 
-enum State { IDLE, WALK, CROUCH, BLOCK, STRIKE, HIT, GUARD, KO }
-enum Move { NONE, HIGH, LOW }
+enum State { IDLE, WALK, CROUCH, BLOCK, STRIKE, HIT, GUARD, KO, JUMP }
+enum Move { NONE, HIGH, LOW, AIR }
 ## Фаза удара: замах, активные шаги (бьёт), восстановление.
 enum Part { STARTUP, ACTIVE, RECOVERY }
 
 
 class Fighter:
 	var x := 0.0
+	## Высота над палубой (вверх положительная) и скорости прыжка, px/с.
+	var y := 0.0
+	var vy := 0.0
+	var vx := 0.0
+	## Удар ногой в этом прыжке уже был: один на прыжок.
+	var air_used := false
 	## Взгляд: 1 вправо, −1 влево.
 	var face := 1
 	var state := State.IDLE
@@ -50,9 +61,10 @@ class Fighter:
 	var damage := 0
 
 
-## Ввод бойца на шаг: ось по экрану (−1, 0, 1), присед, A нажата в этот шаг, B зажата.
+## Ввод бойца на шаг: ось по экрану (−1, 0, 1), прыжок, присед, A нажата в этот шаг, B зажата.
 class Controls:
 	var x := 0
+	var up := false
 	var down := false
 	var a := false
 	var b := false
@@ -101,8 +113,10 @@ func knocked_out() -> bool:
 	return hero.state == State.KO or rival.state == State.KO
 
 
+## Свободен для нового действия: стоит, идёт, сидит или в блоке и на палубе.
 static func actionable(f: Fighter) -> bool:
-	return f.state == State.IDLE or f.state == State.WALK or f.state == State.CROUCH or f.state == State.BLOCK
+	return (f.state == State.IDLE or f.state == State.WALK or f.state == State.CROUCH or f.state == State.BLOCK) \
+			and not airborne(f)
 
 
 static func crouched(f: Fighter) -> bool:
@@ -113,6 +127,8 @@ static func crouched(f: Fighter) -> bool:
 func frames(move: Move) -> Vector3i:
 	if move == Move.LOW:
 		return Vector3i(t.low_startup, t.low_active, t.low_recovery)
+	if move == Move.AIR:
+		return Vector3i(t.air_startup, t.air_active, t.air_recovery)
 	return Vector3i(t.high_startup, t.high_active, t.high_recovery)
 
 
@@ -133,11 +149,15 @@ func part(f: Fighter) -> Part:
 	return part_of(f, frames(f.move))
 
 
-## Прямоугольник по взгляду бойца в мир: `r` задан для взгляда вправо.
+## Прямоугольник по взгляду бойца в мир: `r` задан для взгляда вправо, в прыжке поднят на `y`.
 static func _world(f: Fighter, r: Rect2) -> Rect2:
 	if f.face > 0:
-		return Rect2(f.x + r.position.x, r.position.y, r.size.x, r.size.y)
-	return Rect2(f.x - r.position.x - r.size.x, r.position.y, r.size.x, r.size.y)
+		return Rect2(f.x + r.position.x, r.position.y - f.y, r.size.x, r.size.y)
+	return Rect2(f.x - r.position.x - r.size.x, r.position.y - f.y, r.size.x, r.size.y)
+
+
+static func airborne(f: Fighter) -> bool:
+	return f.y > 0.0 or f.vy > 0.0
 
 
 func hurt_rect(f: Fighter) -> Rect2:
@@ -148,7 +168,11 @@ func hurt_rect(f: Fighter) -> Rect2:
 func hit_rect(f: Fighter) -> Rect2:
 	if f.state != State.STRIKE or part(f) != Part.ACTIVE:
 		return Rect2()
-	return _world(f, t.low_hit if f.move == Move.LOW else t.high_hit)
+	var r := t.strike_rect(f.move)
+	if f == hero:
+		# Удар героя длиннее, чем нарисован: дальний край дальше в `hero_reach_mult` раз.
+		r.size.x = (r.position.x + r.size.x) * t.hero_reach_mult - r.position.x
+	return _world(f, r)
 
 
 func other(f: Fighter) -> Fighter:
@@ -166,6 +190,8 @@ func step(hero_in: Controls, rival_in: Controls) -> void:
 		frame += 1
 	_control(hero, hero_in)
 	_control(rival, rival_in)
+	_air(hero)
+	_air(rival)
 	_slide(hero)
 	_slide(rival)
 	_separate()
@@ -186,38 +212,81 @@ func _control(f: Fighter, inp: Controls) -> void:
 		f.buffer = t.buffer
 	elif f.buffer > 0:
 		f.buffer -= 1
+	if f.state == State.STRIKE and not airborne(f) and inp.x != 0:
+		# Ход во время удара затухает к его концу.
+		var k := 1.0 - float(f.t) / float(total(f.move))
+		f.x = clampf(f.x + inp.x * _walk_speed(f, inp.x) * t.strike_move * k / t.physics_hz, left, right)
+	if f.state == State.JUMP and f.buffer > 0 and not f.air_used:
+		f.air_used = true
+		_start_strike(f, Move.AIR)
+		return
 	if not actionable(f):
 		return
 	var was := f.state
 	if f.buffer > 0:
-		f.buffer = 0
-		f.state = State.STRIKE
-		f.move = Move.LOW if inp.down else Move.HIGH
+		_start_strike(f, Move.LOW if inp.down else Move.HIGH)
+		return
+	if inp.up and not inp.down:
+		f.state = State.JUMP
 		f.t = 0
-		f.connected = false
-		f.dodge_counted = false
-		f.move_id += 1
 		f.walk_t = 0
-		if f.move == Move.LOW:
-			f.lows += 1
-		else:
-			f.highs += 1
-		_event(&"swing", Vector2(f.x, -16.0), f == hero)
+		f.vy = t.jump_speed
+		f.vx = inp.x * t.jump_drift
+		f.air_used = false
 		return
 	if inp.down:
 		f.state = State.CROUCH
+		if inp.x != 0:
+			f.x = clampf(f.x + inp.x * t.crouch_walk / t.physics_hz, left, right)
 	elif inp.b:
 		f.state = State.BLOCK
 	elif inp.x != 0:
 		f.state = State.WALK
-		var speed := t.walk_forward if inp.x == f.face else t.walk_back
-		f.x = clampf(f.x + inp.x * speed / t.physics_hz, left, right)
+		f.x = clampf(f.x + inp.x * _walk_speed(f, inp.x) / t.physics_hz, left, right)
 		f.walk_t += 1
 	else:
 		f.state = State.IDLE
 	if f.state != State.WALK:
 		f.walk_t = 0
 	if f.state != was:
+		f.t = 0
+
+
+func _walk_speed(f: Fighter, dir: int) -> float:
+	return t.walk_forward if dir == f.face else t.walk_back
+
+
+func _start_strike(f: Fighter, move: Move) -> void:
+	f.buffer = 0
+	f.state = State.STRIKE
+	f.move = move
+	f.t = 0
+	f.connected = false
+	f.dodge_counted = false
+	f.move_id += 1
+	f.walk_t = 0
+	if f.move == Move.LOW:
+		f.lows += 1
+	else:
+		f.highs += 1
+	_event(&"swing", Vector2(f.x, -16.0 - f.y), f == hero)
+
+
+## Прыжок по дуге: снос вбок задан при отрыве, на палубе прыжок и удар в воздухе кончаются.
+func _air(f: Fighter) -> void:
+	if not airborne(f):
+		return
+	f.x = clampf(f.x + f.vx / t.physics_hz, left, right)
+	f.vy -= t.jump_gravity / t.physics_hz
+	f.y += f.vy / t.physics_hz
+	if f.y > 0.0:
+		return
+	f.y = 0.0
+	f.vy = 0.0
+	f.vx = 0.0
+	if f.state == State.JUMP or (f.state == State.STRIKE and f.move == Move.AIR):
+		f.state = State.IDLE
+		f.move = Move.NONE
 		f.t = 0
 
 
@@ -248,14 +317,19 @@ func _tick(f: Fighter) -> void:
 		State.STRIKE:
 			f.t += 1
 			if f.t > total(f.move):
-				f.state = State.CROUCH if f.move == Move.LOW else State.IDLE
+				if f.move == Move.AIR:
+					f.state = State.JUMP if airborne(f) else State.IDLE
+				else:
+					f.state = State.CROUCH if f.move == Move.LOW else State.IDLE
 				f.move = Move.NONE
 				f.t = 0
 		State.HIT, State.GUARD:
 			f.stun -= 1
 			f.t += 1
 			if f.stun <= 0:
-				f.state = State.IDLE
+				# Оглушили в прыжке: падает дальше в позе прыжка, без удара ногой.
+				f.state = State.JUMP if airborne(f) else State.IDLE
+				f.air_used = true
 				f.t = 0
 		_:
 			f.t += 1
@@ -288,23 +362,24 @@ func _strikes() -> void:
 func _apply(att: Fighter, def: Fighter, at: Vector2) -> void:
 	att.connected = true
 	var low := att.move == Move.LOW
+	var air := att.move == Move.AIR
 	var blocked := not low and (def.state == State.BLOCK or def.state == State.GUARD)
 	var push: float
 	if blocked:
 		def.state = State.GUARD
-		def.stun = t.high_blockstun
+		def.stun = t.air_blockstun if air else t.high_blockstun
 		def.t = 0
 		def.blocks += 1
 		att.guarded += 1
 		push = t.block_push
 		_event(&"guard", at, def == hero)
 	else:
-		var dmg := t.low_damage if low else t.high_damage
+		var dmg := t.low_damage if low else (t.air_damage if air else t.high_damage)
 		def.health = maxi(def.health - dmg, 0)
 		att.landed += 1
 		att.damage += dmg
 		def.state = State.HIT
-		def.stun = t.low_hitstun if low else t.high_hitstun
+		def.stun = t.low_hitstun if low else (t.air_hitstun if air else t.high_hitstun)
 		def.move = Move.NONE
 		def.t = 0
 		def.buffer = 0

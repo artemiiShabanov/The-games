@@ -2,7 +2,8 @@ extends Demo
 ## Демка файтинг × 8-bit (#54), каталог `docs/specs/demos_catalog.md`: вид сбоку, один на один
 ## на палубе пиратского корабля, матрос против капитана, бойцы 16×32. Влево, вправо шаг, вниз
 ## присед, B блок стоя, A удар: стоя верхний, в приседе нижний. Блок держит верхний, присед
-## уходит от верхнего, нижний не держит ничто, кроме дистанции. Раунд один на `round_seconds`:
+## уходит от верхнего, нижний не держит ничто, кроме дистанции. Вверх прыжок с ударом ногой,
+## в приседе и во время удара можно двигаться (плейтест, `FightSim`). Раунд один на `round_seconds`:
 ## нокаут раньше, иначе побеждает тот, у кого больше здоровья; поровну ничья, итог не цель.
 ## Правила боя в `FightSim` ровным шагом, соперник по плану из сида (`FightPlanGen`, `FightAi`:
 ## фазы профилей напор, стена, подсечка, контра с паттернами ударов), бот героя `FightBot`.
@@ -278,7 +279,7 @@ func _hero_controls() -> FightSim.Controls:
 	var raw := GameInput.axis()
 	if bot != null:
 		var want := bot.think()
-		raw = Vector2(want.x, 1.0 if want.down else 0.0)
+		raw = Vector2(want.x, 1.0 if want.down else (-1.0 if want.up else 0.0))
 		if want.a:
 			bug_press(func() -> void: _a_req = true)
 		if want.b != _bot_b:
@@ -289,6 +290,7 @@ func _hero_controls() -> FightSim.Controls:
 	var c := FightSim.Controls.new()
 	c.x = 1 if ax.x > 0.5 else (-1 if ax.x < -0.5 else 0)
 	c.down = ax.y > 0.5
+	c.up = ax.y < -0.5
 	c.b = _hold_b
 	if FightSim.actionable(sim.hero) and not _a_req and bug_take_stick():
 		# Залипшая A: удар повторяется сам, как только герой свободен.
@@ -334,6 +336,8 @@ func _frame_name(f: FightSim.Fighter) -> String:
 	match f.state:
 		FightSim.State.WALK:
 			return "walk" if int(sim.ticks / 8.0) % 2 == 1 else "idle_0"
+		FightSim.State.JUMP:
+			return "walk"
 		FightSim.State.CROUCH:
 			return "crouch"
 		FightSim.State.BLOCK, FightSim.State.GUARD:
@@ -344,6 +348,9 @@ func _frame_name(f: FightSim.Fighter) -> String:
 			return "hit" if f.t < 8 else "ko"
 		FightSim.State.STRIKE:
 			var fr := sim.frames(f.move)
+			if f.move == FightSim.Move.AIR:
+				# Удар в прыжке: нога вперёд кадром подсечки.
+				return "walk" if f.t <= fr.x else "low_1"
 			var low := f.move == FightSim.Move.LOW
 			if f.t <= fr.x:
 				return "crouch" if low else "high_0"
@@ -374,7 +381,7 @@ func _draw_world() -> void:
 		var f := sim.hero if who == 0 else sim.rival
 		var halves := 1 if f.state == FightSim.State.KO and f.t >= 8 else 2
 		for half in halves:
-			var top := ground_y - 32.0 + half * 16.0 if halves == 2 else ground_y - 14.0
+			var top := ground_y - roundf(f.y) - 32.0 + half * 16.0 if halves == 2 else ground_y - 14.0
 			hide[who * 2 + half] = flicker_hidden(int(floor((top + 8.0) / TILE)))
 	if hide.values().has(true):
 		flicker_frames += 1
@@ -404,12 +411,14 @@ func _draw_fighter(f: FightSim.Fighter, prefix: String, slot: String, hide_top: 
 	var w := float(tx.get_width())
 	var h := float(tx.get_height())
 	var x := roundf(center_x + f.x)
+	# Прыжок: весь боец выше палубы на `y`.
+	var gy := ground_y - roundf(f.y)
 	if is_pink(slot):
 		if name == "ko":
 			world.draw_rect(Rect2(x - 12.0, ground_y - 7.0, 24.0, 6.0), PINK)
 		else:
 			var r := sim.hurt_rect(f)
-			world.draw_rect(Rect2(roundf(center_x + r.position.x), ground_y + r.position.y + 1.0, r.size.x, r.size.y - 1.0), PINK)
+			world.draw_rect(Rect2(roundf(center_x + r.position.x), ground_y + roundf(r.position.y) + 1.0, r.size.x, r.size.y - 1.0), PINK)
 		return
 	var flip := f.face < 0
 	if name == "ko":
@@ -423,7 +432,7 @@ func _draw_fighter(f: FightSim.Fighter, prefix: String, slot: String, hide_top: 
 	for half in 2:
 		if (hide_top if half == 0 else hide_bottom):
 			continue
-		var dst := Rect2(left, ground_y - h + half * 16.0, -w if flip else w, 16.0)
+		var dst := Rect2(left, gy - h + half * 16.0, -w if flip else w, 16.0)
 		world.draw_texture_rect_region(tx, dst, Rect2(0.0, half * 16.0, w, 16.0))
 
 

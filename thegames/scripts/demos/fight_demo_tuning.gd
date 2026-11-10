@@ -24,6 +24,18 @@ const PATH := "res://resources/demos/fighting_bit8.tres"
 ## Шаг вперёд и назад, px/с.
 @export var walk_forward := 48.0
 @export var walk_back := 36.0
+## Ход в приседе, px/с, в обе стороны.
+@export var crouch_walk := 24.0
+## Ход во время удара: доля обычного шага в начале удара, к концу удара линейно до нуля.
+@export var strike_move := 0.8
+## Прыжок на «вверх»: скорость отрыва и тяжесть, px/с и px/с²; снос вбок, если при отрыве
+## зажата сторона, px/с. Вершина `jump_speed² / (2 · jump_gravity)`.
+@export var jump_speed := 170.0
+@export var jump_gravity := 600.0
+@export var jump_drift := 60.0
+## Удары героя под капотом длиннее нарисованных: дальний край кулака и ноги в столько раз
+## дальше от ступней (плейтест #54).
+@export var hero_reach_mult := 1.5
 ## Полуширина тела для расталкивания: ближе `2 * push_half` бойцы не сходятся.
 @export var push_half := 6.0
 ## Тело стоя и в приседе. Присед ниже верхнего удара: верхний проходит над головой.
@@ -46,6 +58,15 @@ const PATH := "res://resources/demos/fighting_bit8.tres"
 @export var low_damage := 6
 @export var low_hitstun := 14
 @export var low_hit := Rect2(4, -5, 11, 5)
+## Удар ногой в прыжке (A в воздухе, один на прыжок): сверху вниз, блок стоя держит, присед
+## нет, достаёт присевшего на снижении. Кончается с приземлением.
+@export var air_startup := 3
+@export var air_active := 10
+@export var air_recovery := 4
+@export var air_damage := 6
+@export var air_hitstun := 14
+@export var air_blockstun := 9
+@export var air_hit := Rect2(2, -12, 14, 8)
 ## Отброс при попадании и в блоке, px; упёрся в борт: отъезжает бьющий. Нокаут отбрасывает дальше.
 @export var hit_push := 10.0
 @export var block_push := 7.0
@@ -74,10 +95,23 @@ const PATH := "res://resources/demos/fighting_bit8.tres"
 @export var sfx_db := -8.0
 
 
-## Длина удара: от ступней бьющего до дальнего края тела стоящего соперника.
-func reach(low: bool) -> float:
+## Прямоугольник удара по приёму (`FightSim.Move`): верхний, нижний, в прыжке.
+func strike_rect(move: int) -> Rect2:
+	match move:
+		FightSim.Move.LOW:
+			return low_hit
+		FightSim.Move.AIR:
+			return air_hit
+	return high_hit
+
+
+## Длина удара: от ступней бьющего до дальнего края тела стоящего соперника; у героя длиннее.
+func reach(low: bool, hero := false) -> float:
 	var hit := low_hit if low else high_hit
-	return hit.position.x + hit.size.x - stand_hurt.position.x
+	var tip := hit.position.x + hit.size.x
+	if hero:
+		tip *= hero_reach_mult
+	return tip - stand_hurt.position.x
 
 
 static func load_default() -> FightDemoTuning:

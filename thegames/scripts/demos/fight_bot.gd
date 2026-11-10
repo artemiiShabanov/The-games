@@ -64,17 +64,19 @@ func think() -> FightSim.Controls:
 			var left := fr.x + fr.y + fr.z - ft
 			var my_low := low
 			var startup := t.low_startup if my_low else t.high_startup
-			if dist <= t.reach(my_low) - 1.0 and left > startup:
+			if dist <= t.reach(my_low, true) - 1.0 and left > startup:
 				_strike(inp, my_low)
 				return inp
-			if dist > t.reach(my_low) - 1.0 and left > startup + 8:
+			if dist > t.reach(my_low, true) - 1.0 and left > startup + 8:
 				inp.x = toward
 				return inp
 		return inp
 	if state == FightSim.State.KO:
 		return inp
+	# Свои удары героя длиннее (`hero_reach_mult`), нижний соперника обычный.
 	var low_reach := t.reach(true)
-	var high_reach := t.reach(false)
+	var my_low_reach := t.reach(true, true)
+	var high_reach := t.reach(false, true)
 	var back_room := (me.x - sim.left) if toward > 0 else (sim.right - me.x)
 	var ready := _pause <= 0
 	match state:
@@ -88,7 +90,7 @@ func think() -> FightSim.Controls:
 		FightSim.State.BLOCK, FightSim.State.GUARD:
 			# Блок держит только верхний.
 			if ready:
-				if dist <= low_reach - 1.0:
+				if dist <= my_low_reach - 1.0:
 					_strike(inp, true)
 				else:
 					inp.x = toward
@@ -96,7 +98,7 @@ func think() -> FightSim.Controls:
 		FightSim.State.CROUCH:
 			# Присевший ждёт с нижним: бот стоит вне его длины, засиделся: нижний первым.
 			if ready and ft > t.bot_crouch_wait:
-				if dist <= low_reach - 1.0:
+				if dist <= my_low_reach - 1.0:
 					_strike(inp, true)
 				else:
 					inp.x = toward
