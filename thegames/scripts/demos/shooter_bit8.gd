@@ -59,7 +59,7 @@ const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const HUD_DIM := Color(0.086, 0.078, 0.071, 0.55)
 const SEA := Color("#2F6FB5")
-## Направления взгляда по часовой от «вправо» (экран, y вниз); кадр героя `_hero_frame`.
+## Направления взгляда по часовой от «вправо» (экран, y вниз); кадр героя `_draw_hero`.
 const DIRS: Array[Vector2] = [Vector2(1, 0), Vector2(0.70710678, 0.70710678), Vector2(0, 1),
 	Vector2(-0.70710678, 0.70710678), Vector2(-1, 0), Vector2(-0.70710678, -0.70710678),
 	Vector2(0, -1), Vector2(0.70710678, -0.70710678)]
@@ -89,9 +89,6 @@ var scene_set: SettingDef
 var hero := Vector2.ZERO
 ## Взгляд героя: индекс в `DIRS`.
 var facing := 6
-## Кадр героя `shoot_hero_0..3` (вправо, вниз, влево, вверх): по диагонали остаётся прежний
-## прямой, если он соседний, иначе боковой.
-var _hero_frame := 3
 var hp := 5
 var invuln := 0.0
 var foes: Array[Foe] = []
@@ -376,7 +373,6 @@ func _hero_step(delta: float) -> void:
 	var want := Vector2.ZERO
 	if axis.length() > 0.3:
 		facing = _dir_index(axis.angle())
-		_update_hero_frame()
 		if not hold:
 			want = axis.limit_length(1.0) * tuning.hero_speed
 	if _ice > 0.0:
@@ -855,14 +851,6 @@ func _path_dir(p: Vector2) -> Vector2:
 
 # --- Рисование виртуального экрана ---------------------------------------------------------
 
-## Прямой взгляд даёт свой кадр; диагональ оставляет прежний, если он соседний, иначе боковой.
-func _update_hero_frame() -> void:
-	if facing % 2 == 0:
-		_hero_frame = facing / 2
-	elif absi(wrapi(facing - _hero_frame * 2, -4, 4)) != 1:
-		_hero_frame = 0 if DIRS[facing].x > 0.0 else 2
-
-
 func _dir_index(angle: float) -> int:
 	return posmod(int(round(angle / (PI / 4.0))), 8)
 
@@ -883,6 +871,19 @@ func _sprite(slot: String, name: String, p: Vector2, flip := false, tint := Colo
 		world.draw_texture_rect(tex[name], Rect2(at, Vector2(-TILE, TILE)), false, tint)
 	else:
 		world.draw_texture(tex[name], at, tint)
+
+
+## Герой: прямой взгляд своим кадром `shoot_hero_0..3` (вправо, вниз, влево, вверх),
+## диагональ кадром предыдущего по часовой, повёрнутым на 45°.
+func _draw_hero() -> void:
+	if facing % 2 == 0 or is_pink("hero"):
+		_sprite("hero", "shoot_hero_%d" % (facing / 2), hero)
+		return
+	if flicker_hidden(int(floor(hero.y / TILE))):
+		return
+	world.draw_set_transform(_snap(hero), PI / 4.0)
+	world.draw_texture(tex["shoot_hero_%d" % ((facing - 1) / 2)], Vector2(-8, -8))
+	world.draw_set_transform(Vector2.ZERO)
 
 
 func _draw_world() -> void:
@@ -907,7 +908,7 @@ func _draw_world_layer() -> void:
 		_sprite("shot" if s.hostile else "ball", "shoot_shot" if s.hostile else "shoot_ball", s.pos)
 	var blink := invuln > 0.0 and fmod(invuln, 0.2) < 0.1
 	if not blink:
-		_sprite("hero", "shoot_hero_%d" % _hero_frame, hero)
+		_draw_hero()
 	if (_bot_hold if bot_driven() else _hold_b) and count_left <= 0.0:
 		# B зажата: прицел точками по взгляду.
 		for k: float in [13.0, 18.0, 23.0]:
