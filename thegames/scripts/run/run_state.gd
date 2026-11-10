@@ -361,6 +361,11 @@ func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
 		finished = true
 		finish_reason = "банкротство"
 		return
+	# Концовка, выбранная во вставке (#68): забег кончается после этой фазы.
+	if event_state.ending in [&"sale", &"corporation", &"legend"]:
+		finished = true
+		finish_reason = "концовка"
+		return
 	release += 1
 	if release > cap:
 		finished = true

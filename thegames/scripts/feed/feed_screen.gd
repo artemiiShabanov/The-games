@@ -429,6 +429,7 @@ func _start_stream() -> void:
 	_demo = DemoCatalog.create(record)
 	if _demo == null:
 		return
+	_demo.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_demo.setup(record, &"clip")
 	_demo.embed(Vector2(COLUMN_WIDTH, STREAM_HEIGHT))
 	_demo.demo_finished.connect(_on_stream_finished)

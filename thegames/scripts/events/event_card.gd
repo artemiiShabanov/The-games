@@ -29,6 +29,10 @@ var apply: Callable
 var meta: MetaTuning
 var index := 0
 var done := false
+## Закрыть карточку (Esc, B) значит выбрать этот вариант (−1: закрыть нельзя). «Итоги года»:
+## молчание это продажа (#68).
+var cancel_index := -1
+var cancel_hint := ""
 ## Автотест `--refuse-events`: бот отвечает последним вариантом и в режиме WIN.
 static var bot_last := false
 ## Подложка `bg` под карточкой: поверх другого экрана (фаза студии).
@@ -96,6 +100,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if event.is_echo():
+		return
+	var key := event as InputEventKey
+	var esc := key != null and key.pressed and key.keycode == KEY_ESCAPE
+	if cancel_index >= 0 and (esc or GameInput.is_b(event)):
+		index = cancel_index
+		_refresh_focus()
+		confirm()
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(GameInput.UP):
 		move(-1)
@@ -238,6 +250,8 @@ func _build() -> void:
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("↑ ↓ выбрать"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "решить")))
+	if cancel_index >= 0 and cancel_hint != "":
+		hints.add_child(HintPill.make("Esc " + cancel_hint))
 	add_child(hints)
 	MouseUi.pass_through(self)
 

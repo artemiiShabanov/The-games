@@ -12,7 +12,7 @@ extends Control
 ## покупка прокачки, пропуск этапа. Под ботом с `--loop` проходит `--releases=N` релизов
 ## (по умолчанию три) и сверяет деньги с ведомостью.
 
-enum Stage { START, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, END }
+enum Stage { START, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, YEAR, END }
 
 const SECTION: StringName = &"Состояние"
 const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
@@ -20,6 +20,7 @@ const BASE_PATH := "res://scenes/base_chooser.tscn"
 const BUGFIX_PATH := "res://scenes/bugfix_offer.tscn"
 const FEED_PATH := "res://scenes/feed.tscn"
 const STUDIO_PATH := "res://scenes/studio_screen.tscn"
+const JOURNALIST_PATH := "res://resources/characters/journalist.tres"
 const BOT_PAUSE := 0.5
 const CARD_SECONDS := 1.2
 
@@ -374,17 +375,48 @@ func _on_studio_finished() -> void:
 		_start_release()
 
 
+## Конец забега (#68): банкротство, концовка из вставки или «Итоги года» на капе.
 func _show_end() -> void:
-	stage = Stage.END
-	var st := run.stats()
-	var lines: Array[String] = ["%d релизов" % run.records.size()]
 	if run.finish_reason == "банкротство":
-		lines.append("Денег на дешёвый релиз нет, издатель уже помогал.")
+		_show_ending(Endings.Id.BANKRUPTCY)
+	elif run.finish_reason == "концовка":
+		_show_ending(Endings.from_key(run.event_state.ending))
 	else:
-		lines.append("Оценка студии %s" % Style.format_money(st.valuation))
-	_show_card("Банкротство" if run.finish_reason == "банкротство" else "Итоги года", lines, GameInput.hint(GameInput.A, "новый забег"))
-	ShellSounds.play(&"bug" if run.finish_reason == "банкротство" else &"done")
+		_show_year()
+
+
+## «Итоги года»: выполненные концовки и продажа, закрыть карточку значит продать.
+func _show_year() -> void:
+	stage = Stage.YEAR
+	var who := load(JOURNALIST_PATH) as CharacterDef
+	var offer := Endings.year_offer(run.records, run.stats(), run.event_state.flags, run.tuning, who, run.studio_name)
+	var c := EventCard.new()
+	c.cancel_index = 0
+	c.cancel_hint = "продать студию"
+	c.setup(offer, run.release - 1, run.wallet, func(i: int) -> String:
+		return Events.apply(offer, i, run.wallet, run.market, run.event_state, run.meta, run.rng, run.release - 1))
+	c.finished.connect(func(_i: int) -> void: _show_ending(Endings.from_key(run.event_state.ending)))
+	_set_screen(c)
+	AutoTest.note("year: концовки %s" % [offer.choices.map(func(ch: Events.Choice) -> String: return ch.text)])
+
+
+func _show_ending(id: Endings.Id) -> void:
+	stage = Stage.END
+	var result := Endings.compute(id, run.records, run.stats(), run.event_state.flags)
+	result.studio = run.studio_name
+	AutoTest.note("ending: %s" % result)
+	var screen := EndingScreen.new()
+	screen.setup(result)
+	screen.to_gallery.connect(_on_ending_closed)
+	_set_screen(screen)
 	_bot_timer = 0.0
+
+
+## «В галерею»: галерея в #70, пока новый забег. Петля автотеста стоит на концовке.
+func _on_ending_closed() -> void:
+	if _loop_check:
+		return
+	_restart()
 
 
 func _restart() -> void:
@@ -393,14 +425,6 @@ func _restart() -> void:
 
 
 # --- Ввод, бот, дебаг -------------------------------------------------------------------------
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not GameInput.is_a(event) and not MouseUi.is_click(event):
-		return
-	if stage == Stage.END:
-		_restart()
-		get_viewport().set_input_as_handled()
-
 
 func _process(delta: float) -> void:
 	if not AutoTest.bot_active():
@@ -440,11 +464,10 @@ func _process(delta: float) -> void:
 				feed.confirm()
 		Stage.END:
 			_bot_timer = -INF
+			# Экран концовки ведёт бот сам; петля автотеста засчитывает конец.
 			if _loop_check:
 				AutoTest.note("loop: run finished early: %s" % run.finish_reason)
 				AutoTest.fulfill("loop releases")
-			else:
-				_restart()
 
 
 ## Сверка после фазы студии: деньги сходятся с ведомостью, хвосты с записями.
