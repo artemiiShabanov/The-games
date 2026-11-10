@@ -20,10 +20,16 @@ extends Demo
 ## A и B с опозданием (отпущенная A ещё качает шкалу, удар сильнее), после удара A залипает:
 ## следующий удар срывается сам слабым тычком; `pink_placeholders` мяч, люк, флаг, брызги или
 ## пропы розовыми квадратами; `alien_palette` небо и лунка в сдвинутых цветах;
-## `sprite_flicker` спрайты сверх лимита на строке тайлов через кадр. Баги жанра и баланса у
-## гольфа (#53) пока не проявляются.
+## `sprite_flicker` спрайты сверх лимита на строке тайлов через кадр. Свои проявления (#53,
+## числа в `resources/bugs/<id>.tres`, читаются один раз в `_setup_bugs`): `ball_to_space`
+## (жанровый баг спорта) каждый третий удар, коснувшийся песка, залипает: мяч уходит в песок
+## наполовину, дрожит и выстреливает в небо, за верхом экрана потерян, штраф в удар и мяч на
+## прежнее место; `unreachable_coins` люк на остром пике над палубой грина, склоны круче
+## стены, на наклоне мяч в люк не падает: лунку кончает лимит ударов; `sneeze_enemies` посреди
+## полёта налетает порыв ветра в случайную сторону и сносит мяч; `wild_physics` мяч-попрыгунчик:
+## упругие отскоки от всех поверхностей (бот считает той же физикой).
 
-enum Phase { INTRO, AIM, FLIGHT, REST, PENALTY, HOLED }
+enum Phase { INTRO, AIM, FLIGHT, REST, PENALTY, HOLED, STUCK }
 
 const SCALE := 4
 ## Увеличение во встроенном режиме (запись стрима в ленте).
@@ -125,6 +131,44 @@ var _bot_rng := RandomNumberGenerator.new()
 var bot_sims := 0
 var bot_shots := 0
 var bot_usec := 0
+## Баги жанра и баланса (#53), числа из ресурсов багов читаются один раз в `_setup_bugs`.
+var _bug_rng := RandomNumberGenerator.new()
+## «Мяч в космос»: каждый `_stick_every`-й удар, коснувшийся песка, залипает (0 без бага); мяч
+## тонет за `_sink_s`, дрожит `_stuck_s`, вылетает вверх со скоростью `_eject_speed`, разгоняясь
+## на `_eject_accel`, и потерян выше экрана на `_space_px`. Счёт ударов по песку, удар уже
+## проверен, залипший мяч.
+var _stick_every := 0
+var _sink_s := 0.3
+var _stuck_s := 1.2
+var _eject_speed := 150.0
+var _eject_accel := 200.0
+var _eject_drift := 40.0
+var _space_px := 80.0
+var _sand_shots := 0
+var _sand_checked := false
+var _stuck_t := 0.0
+var _stuck_at := Vector2.ZERO
+var _eject_vel := Vector2.ZERO
+var stuck_balls := 0
+var space_lost := 0
+## «Чих»: порыв ветра `_gust_wind` делений (0 без бага) через `_gust_after` (от, до) с
+## удара; порыв этого удара и сколько он дует.
+var _gust_wind := 0
+var _gust_after := Vector2(0.25, 0.6)
+var _gust_at := 0.0
+var _gust := 0
+var _gust_t := 0.0
+var gusts := 0
+## «Не достать»: люк на пике (`_raise_peak`): высота над палубой, полуширина, вершина не выше y.
+var _peak := false
+var _peak_rise := 96.0
+var _peak_half := 24.0
+var _peak_top_min := 40.0
+## «Дикая физика»: мяч-попрыгунчик (тюнинг мяча подменён копией), больше всего отскоков за удар,
+## первый удар уже в заметках автотеста.
+var _rubber := false
+var max_bounces := 0
+var _rubber_noted := false
 
 # Звук.
 var _music: AudioStreamPlayer
@@ -134,7 +178,14 @@ var _sfx := {}
 func _on_start() -> void:
 	tuning = GolfDemoTuning.load_default()
 	scene_set = SettingDef.of(record.setting)
+	_setup_bugs()
 	course = GolfCourseGen.generate(record.seed)
+	if _peak:
+		for h in course.holes:
+			_raise_peak(h)
+		if AutoTest.enabled and not embedded:
+			var h0 := course.holes[0]
+			AutoTest.note("golf bug: люк на пике в %.0f px над палубой грина с первого кадра" % [h0.height_at(h0.green_from) - h0.height_at(h0.cup_x)])
 	_bot_rng.seed = hash(str(record.seed, ":golf_bot"))
 	_dt = 1.0 / tuning.physics_hz
 	_fill_steps = maxi(int(round(tuning.meter_fill * tuning.physics_hz)), 1)
@@ -168,6 +219,61 @@ func _on_start() -> void:
 	stage.add_child(hud)
 	_setup_audio()
 	_start_hole(0)
+
+
+## Баги жанра и баланса (#53): параметры из ресурсов багов один раз (`Demo.bug_param` грузит
+## каталог на каждый вызов).
+func _setup_bugs() -> void:
+	_bug_rng.seed = hash(str(record.seed, ":golf_bugs"))
+	if has_bug(&"ball_to_space"):
+		_stick_every = maxi(int(bug_param(&"ball_to_space", &"stick_every", 3.0)), 1)
+		_sink_s = bug_param(&"ball_to_space", &"sink_s", 0.3)
+		_stuck_s = bug_param(&"ball_to_space", &"stuck_s", 1.2)
+		_eject_speed = bug_param(&"ball_to_space", &"eject_speed", 150.0)
+		_eject_accel = bug_param(&"ball_to_space", &"eject_accel", 200.0)
+		_eject_drift = bug_param(&"ball_to_space", &"eject_drift", 40.0)
+		_space_px = bug_param(&"ball_to_space", &"space_px", 80.0)
+	if has_bug(&"sneeze_enemies"):
+		_gust_wind = maxi(int(bug_param(&"sneeze_enemies", &"gust_wind", 9.0)), 1)
+		_gust_after = Vector2(bug_param(&"sneeze_enemies", &"gust_after_min", 0.25),
+				bug_param(&"sneeze_enemies", &"gust_after_max", 0.6))
+	if has_bug(&"unreachable_coins"):
+		_peak = true
+		_peak_rise = bug_param(&"unreachable_coins", &"peak_rise", 96.0)
+		_peak_half = bug_param(&"unreachable_coins", &"peak_half", 24.0)
+		_peak_top_min = bug_param(&"unreachable_coins", &"peak_top_min", 40.0)
+	if has_bug(&"wild_physics"):
+		# Попрыгунчик: своя копия тюнинга мяча, бот считает удар ей же.
+		_rubber = true
+		tuning = tuning.duplicate() as GolfDemoTuning
+		var bounce := bug_param(&"wild_physics", &"ball_bounce", 0.75)
+		var keep := bug_param(&"wild_physics", &"ball_keep", 0.95)
+		tuning.sand_bounce = maxf(tuning.sand_bounce, bounce)
+		tuning.deck_bounce = maxf(tuning.deck_bounce, bounce)
+		tuning.hull_bounce = maxf(tuning.hull_bounce, bounce)
+		tuning.sand_keep = maxf(tuning.sand_keep, keep)
+		tuning.deck_keep = maxf(tuning.deck_keep, keep)
+		tuning.hull_keep = maxf(tuning.hull_keep, keep)
+		tuning.gravity *= bug_param(&"wild_physics", &"ball_gravity_mult", 1.0)
+
+
+## «Не достать» (#53): люк на острый пик посреди палубы грина. Пик треугольником на
+## `_peak_rise` над палубой (вершина не выше `_peak_top_min`), полушириной `_peak_half`, склоны
+## песком круче стены; люк ровно на вершине, на наклоне мяч в него не падает (`cup_max_slope`).
+func _raise_peak(h: GolfCourse.Hole) -> void:
+	var ci := int(round(h.cup_x / h.step))
+	h.cup_x = ci * h.step
+	var half := maxi(int(round(_peak_half / h.step)), 1)
+	var heights := h.heights
+	var kinds := h.kinds
+	var deck := heights[ci]
+	var top := maxf(deck - _peak_rise, _peak_top_min)
+	for k in range(-half + 1, half):
+		heights[ci + k] = roundf(lerpf(deck, top, 1.0 - float(absi(k)) / half))
+	for i in range(ci - half, ci + half):
+		kinds[i] = GolfCourse.Kind.SAND
+	h.heights = heights
+	h.kinds = kinds
 
 
 func _setup_audio() -> void:
@@ -244,7 +350,8 @@ func _on_end(goal_: bool) -> void:
 			AutoTest.note("golf bot: траекторий на удар %.0f, расчёт удара %.1f мс в среднем" % [
 					float(bot_sims) / bot_shots, bot_usec / 1000.0 / bot_shots])
 		if not record.bug_ids.is_empty():
-			AutoTest.note("golf bugs: сорвалось ударов от залипшей A %d" % stuck_shots)
+			AutoTest.note("golf bugs: сорвалось ударов от залипшей A %d, залипло в песке %d, в космос %d, порывов %d, отскоков за удар до %d" % [
+					stuck_shots, stuck_balls, space_lost, gusts, max_bounces])
 
 
 func _result_title(goal: bool) -> String:
@@ -308,6 +415,7 @@ func _step(delta: float) -> void:
 
 func _fixed() -> void:
 	swing_left = maxf(swing_left - _dt, 0.0)
+	_gust_t += _dt
 	_splash.z = maxf(_splash.z - _dt, 0.0)
 	match phase:
 		Phase.INTRO:
@@ -321,6 +429,8 @@ func _fixed() -> void:
 			_aim_step()
 		Phase.FLIGHT:
 			_flight_step()
+		Phase.STUCK:
+			_stuck_step()
 		Phase.REST:
 			phase_left -= _dt
 			if phase_left <= 0.0:
@@ -381,6 +491,7 @@ func _enter_aim() -> void:
 	golfer_x = ball.pos.x - 10.0 * dir
 	var on_deck := hole.kind_at(ball.pos.x) == GolfCourse.Kind.DECK and ball.pos.x >= hole.green_from
 	angle = tuning.angle_deck if on_deck else tuning.angle_start
+	_gust = 0
 	_bot_reset()
 	if bug_take_stick():
 		# Залипшая A: удар срывается сам, слабым тычком.
@@ -450,6 +561,10 @@ func _release() -> void:
 	last_power = power
 	ball.launch(ball.pos, angle, dir, power, tuning)
 	_bounces_heard = 0
+	_sand_checked = false
+	_gust = 0
+	if _gust_wind > 0:
+		_gust_at = _bug_rng.randf_range(_gust_after.x, _gust_after.y)
 	phase = Phase.FLIGHT
 	swing_left = 0.45
 	_play("swing")
@@ -458,14 +573,32 @@ func _release() -> void:
 
 
 func _flight_step() -> void:
-	ball.step(hole, tuning, course.sea_y, hole.wind, _dt)
+	if _gust_wind > 0 and _gust == 0 and ball.mode == GolfBall.Mode.AIR and ball.time >= _gust_at:
+		# Чих: порыв ветра посреди полёта в случайную сторону.
+		_gust = _gust_wind * (1 if _bug_rng.randf() < 0.5 else -1)
+		_gust_t = 0.0
+		gusts += 1
+		if gusts == 1 and AutoTest.enabled and not embedded:
+			AutoTest.note("golf bug: порыв ветра %+d посреди полёта на %.1f с" % [_gust, play_time])
+	var before := ball.bounces
+	ball.step(hole, tuning, course.sea_y, _wind_now(), _dt)
 	if ball.bounces > _bounces_heard:
 		_bounces_heard = ball.bounces
 		_play("bounce")
+	if _stick_every > 0 and not _sand_checked and _sand_touch(before):
+		_sand_checked = true
+		_sand_shots += 1
+		if (_sand_shots - 1) % _stick_every == 0:
+			_stick_ball()
+			return
 	match ball.mode:
 		GolfBall.Mode.REST:
 			phase = Phase.REST
 			phase_left = tuning.rest_pause
+			max_bounces = maxi(max_bounces, ball.bounces)
+			if _rubber and not _rubber_noted and AutoTest.enabled and not embedded:
+				_rubber_noted = true
+				AutoTest.note("golf bug: мяч-попрыгунчик, отскоков за первый удар %d, лёг на %.1f с" % [ball.bounces, play_time])
 		GolfBall.Mode.CUP:
 			_play("cup")
 			_finish_hole(true)
@@ -478,6 +611,67 @@ func _flight_step() -> void:
 			penalties += 1
 			phase = Phase.PENALTY
 			phase_left = tuning.penalty_pause
+
+
+## Ветер, который сейчас дует на мяч: порыв чиха или ветер лунки.
+func _wind_now() -> int:
+	return _gust if _gust != 0 else hole.wind
+
+
+## Мяч этого шага коснулся песка: отскочил от него или катится, лежит на нём.
+func _sand_touch(bounces_before: int) -> bool:
+	if ball.mode != GolfBall.Mode.AIR and ball.mode != GolfBall.Mode.ROLL and ball.mode != GolfBall.Mode.REST:
+		return false
+	if ball.mode == GolfBall.Mode.AIR and ball.bounces == bounces_before:
+		return false
+	return hole.kind_at(ball.pos.x) == GolfCourse.Kind.SAND
+
+
+## «Мяч в космос»: мяч встал в песок, дальше `_stuck_step`.
+func _stick_ball() -> void:
+	phase = Phase.STUCK
+	_stuck_t = 0.0
+	_stuck_at = Vector2(ball.pos.x, hole.height_at(ball.pos.x) - tuning.ball_radius)
+	_eject_vel = Vector2.ZERO
+	ball.pos = _stuck_at
+	ball.vel = Vector2.ZERO
+	ball.roll = 0.0
+	ball.mode = GolfBall.Mode.REST
+	stuck_balls += 1
+	if stuck_balls == 1 and AutoTest.enabled and not embedded:
+		AutoTest.note("golf bug: мяч залип в песке на %.1f с" % play_time)
+
+
+## Залипший мяч: тонет в песок наполовину, дрожит, выстреливает вверх с разгоном; выше экрана
+## на `_space_px` потерян: штраф в удар и мяч на прежнее место, как за аут.
+func _stuck_step() -> void:
+	_stuck_t += _dt
+	var r := tuning.ball_radius
+	if _stuck_t < _sink_s:
+		ball.pos = _stuck_at + Vector2(0.0, r * _stuck_t / _sink_s)
+		return
+	if _stuck_t < _sink_s + _stuck_s:
+		var shake := 1.0 if int(_stuck_t * 16.0) % 2 == 0 else -1.0
+		ball.pos = _stuck_at + Vector2(shake, r)
+		return
+	if _eject_vel == Vector2.ZERO:
+		_eject_vel = Vector2(_bug_rng.randf_range(-_eject_drift, _eject_drift), -_eject_speed)
+		ball.pos = _stuck_at + Vector2(0.0, r)
+		ball.mode = GolfBall.Mode.AIR
+		_play("swing")
+	_eject_vel.y -= _eject_accel * _dt
+	ball.pos += _eject_vel * _dt
+	ball.spin -= _eject_vel.y * _dt
+	if ball.pos.y < -_space_px:
+		ball.mode = GolfBall.Mode.OUT
+		_play("out")
+		strokes += tuning.penalty
+		penalties += 1
+		space_lost += 1
+		if space_lost == 1 and AutoTest.enabled and not embedded:
+			AutoTest.note("golf bug: мяч улетел в космос на %.1f с" % play_time)
+		phase = Phase.PENALTY
+		phase_left = tuning.penalty_pause
 
 
 func _finish_hole(holed: bool) -> void:
@@ -558,6 +752,8 @@ func _bot_step(delta: float) -> void:
 ## Перебор ударов по кадрам: грубо по сетке углов и делений шкалы, затем точнее вокруг лучшего.
 func _bot_search() -> void:
 	var t0 := Time.get_ticks_usec()
+	# Слабее `min_power` удара нет: такие деления шкалы бот не берёт.
+	var k_min := maxi(ceili(tuning.min_power * _fill_steps), 1)
 	if _bot_cands.is_empty():
 		if _bot_stage == 0:
 			_bot_target = hole.cup_x
@@ -566,11 +762,11 @@ func _bot_search() -> void:
 				_bot_target += miss if _bot_rng.randf() < 0.5 else -miss
 			for a in range(tuning.angle_min, tuning.angle_max + 1, tuning.bot_angle_step):
 				for k in range(tuning.bot_power_step / 2, _fill_steps + 1, tuning.bot_power_step):
-					_bot_cands.append(Vector2i(a, maxi(k, 1)))
+					_bot_cands.append(Vector2i(a, maxi(k, k_min)))
 		else:
 			for a in range(_bot_best.x - tuning.bot_refine_angle, _bot_best.x + tuning.bot_refine_angle + 1):
 				for k in range(_bot_best.y - tuning.bot_refine_power, _bot_best.y + tuning.bot_refine_power + 1):
-					if a >= tuning.angle_min and a <= tuning.angle_max and k >= 1 and k <= _fill_steps:
+					if a >= tuning.angle_min and a <= tuning.angle_max and k >= k_min and k <= _fill_steps:
 						_bot_cands.append(Vector2i(a, k))
 	var n := 0
 	while _bot_ci < _bot_cands.size() and n < tuning.bot_sims_per_frame:
@@ -658,6 +854,19 @@ func _draw_world() -> void:
 			or (phase == Phase.PENALTY and ball.mode == GolfBall.Mode.OUT)
 	if not hidden:
 		_draw_ball()
+	if phase == Phase.STUCK and ball.mode == GolfBall.Mode.AIR:
+		# Улетает в космос: след точками за мячом.
+		for k in 3:
+			var at := (_snap(ball.pos - _eject_vel.normalized() * (7.0 + k * 5.0))).floor()
+			world.draw_rect(Rect2(at, Vector2.ONE * (2 if k == 0 else 1)), HUD_INK)
+	if _gust != 0 and _gust_t < 1.0 and not hidden:
+		# Порыв чиха: черты ветра у мяча бегут по ветру.
+		var sx := signf(_gust)
+		for i in 3:
+			var run := fmod(_gust_t * 90.0 + i * 11.0, 30.0)
+			var at := (_snap(ball.pos + Vector2(sx * (run - 18.0) - 3.0, -7.0 + i * 5.0))).floor()
+			world.draw_rect(Rect2(at + Vector2(0.5, 0.5), Vector2(6, 1)), HUD_SHADOW)
+			world.draw_rect(Rect2(at, Vector2(6, 1)), HUD_INK)
 	if phase == Phase.AIM:
 		# Прицел точками по углу удара.
 		var d := Vector2(cos(deg_to_rad(angle)) * dir, -sin(deg_to_rad(angle)))
@@ -673,6 +882,14 @@ func _draw_world() -> void:
 func _draw_ball() -> void:
 	var p := _snap(ball.pos)
 	if flicker_hidden(int(floor(p.y / TILE))):
+		return
+	if phase == Phase.STUCK and ball.mode == GolfBall.Mode.REST:
+		# Залип: над песком видна только верхняя часть бочонка.
+		var vis := clampf(roundf(hole.height_at(_stuck_at.x) - (p.y - 4.0)), 0.0, 8.0)
+		if is_pink("ball"):
+			world.draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, maxf(vis - 1.0, 0.0))), PINK)
+		elif vis > 0.0:
+			world.draw_texture_rect_region(tex["golf_ball"], Rect2(p - Vector2(4, 4), Vector2(8, vis)), Rect2(0, 0, 8, vis))
 		return
 	if is_pink("ball"):
 		world.draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, 6)), PINK)
@@ -835,7 +1052,7 @@ func _draw_hud() -> void:
 
 ## Ветер у правого края: деления цифрой, стрелка по направлению, длиннее с силой.
 func _draw_wind(right_top: Vector2) -> void:
-	var w := hole.wind
+	var w := _wind_now()
 	var digit_x := right_top.x - 8.0
 	draw_pixel_text(hud, Vector2(digit_x, right_top.y), str(absi(w)), HUD_INK, HUD_SHADOW)
 	if w == 0:

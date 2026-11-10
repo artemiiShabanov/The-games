@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BugDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/bugs/bug_def.gd" id="1_space"]
+
+[resource]
+script = ExtResource("1_space")
+id = &"ball_to_space"
+kind = 1
+genre = 3
+stamp = "МЯЧ В КОСМОС"
+manifestation = "Мяч через раз залипает в песке, дрожит и выстреливает в небо за край поля"
+tweet = "Бочонок увяз в бархане, подумал и улетел в космос. Физика уровня «и так сойдёт»"
+clip = "Бочонок наполовину в песке дрожит и выстреливает вверх за край экрана"
+spectacular = true
+params = Dictionary[StringName, float]({
+&"stick_every": 3.0,
+&"sink_s": 0.3,
+&"stuck_s": 1.2,
+&"eject_speed": 150.0,
+&"eject_accel": 200.0,
+&"eject_drift": 40.0,
+&"space_px": 80.0
+})

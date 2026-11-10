@@ -78,7 +78,7 @@ func _air(h: GolfCourse.Hole, t: GolfDemoTuning, sea_y: float, wind: int, dt: fl
 		pos.x = was_x
 		vel.x = -vel.x * t.hull_bounce
 		return
-	if absf(pos.x - h.cup_x) < t.cup_half and vel.length() < t.cup_capture_air:
+	if absf(pos.x - h.cup_x) < t.cup_half and vel.length() < t.cup_capture_air and absf(h.slope_at(pos.x)) <= t.cup_max_slope:
 		_holed(h)
 		return
 	var s := h.slope_at(pos.x)
@@ -128,7 +128,7 @@ func _roll(h: GolfCourse.Hole, t: GolfDemoTuning, dt: float) -> void:
 		return
 	pos.x = nx
 	pos.y = h.height_at(nx) - r
-	if absf(pos.x - h.cup_x) < t.cup_half and absf(roll) < t.cup_capture_roll:
+	if absf(pos.x - h.cup_x) < t.cup_half and absf(roll) < t.cup_capture_roll and absf(h.slope_at(pos.x)) <= t.cup_max_slope:
 		_holed(h)
 
 

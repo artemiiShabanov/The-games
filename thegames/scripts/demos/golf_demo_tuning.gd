@@ -35,6 +35,9 @@ const PATH := "res://resources/demos/sport_bit8.tres"
 @export var cup_half := 5.0
 @export var cup_capture_roll := 110.0
 @export var cup_capture_air := 160.0
+## Люк принимает мяч только на ровном: наклон под мячом не круче этого (dy/dx). На поле люк
+## всегда на ровной палубе; на остром пике бага «не достать» (#53) мяч в него не падает.
+@export var cup_max_slope := 0.5
 ## Мяч летит и катится дольше этого: считается лежащим (страховка).
 @export var ball_max_time := 12.0
 ## Шкала силы: зажатая A гонит шкалу от нуля до полной за `meter_fill` и обратно; отпустил,

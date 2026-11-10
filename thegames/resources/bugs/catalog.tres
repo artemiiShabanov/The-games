@@ -12,8 +12,9 @@
 [ext_resource type="Resource" path="res://resources/bugs/sneeze_enemies.tres" id="11_sneeze"]
 [ext_resource type="Resource" path="res://resources/bugs/through_walls.tres" id="12_walls"]
 [ext_resource type="Resource" path="res://resources/bugs/through_enemies.tres" id="13_foes"]
+[ext_resource type="Resource" path="res://resources/bugs/ball_to_space.tres" id="14_space"]
 [ext_resource type="Script" path="res://scripts/bugs/bug_catalog.gd" id="8_j06d8"]
 
 [resource]
 script = ExtResource("8_j06d8")
-bugs = Array[ExtResource("1_6c8r8")]([ExtResource("2_oxwl7"), ExtResource("3_3qmr7"), ExtResource("4_uiqsc"), ExtResource("5_sj1ih"), ExtResource("6_8eahj"), ExtResource("7_sl3yr"), ExtResource("9_flick"), ExtResource("10_alien"), ExtResource("11_sneeze"), ExtResource("12_walls"), ExtResource("13_foes")])
+bugs = Array[ExtResource("1_6c8r8")]([ExtResource("2_oxwl7"), ExtResource("3_3qmr7"), ExtResource("4_uiqsc"), ExtResource("5_sj1ih"), ExtResource("6_8eahj"), ExtResource("7_sl3yr"), ExtResource("9_flick"), ExtResource("10_alien"), ExtResource("11_sneeze"), ExtResource("12_walls"), ExtResource("13_foes"), ExtResource("14_space")])
