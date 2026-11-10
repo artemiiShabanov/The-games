@@ -18,6 +18,8 @@ signal sprint_started(def: MinigameDef)
 signal sprint_finished(def: MinigameDef, success: bool)
 signal sprint_replayed(def: MinigameDef)
 signal plan_finished(results: Array[bool])
+## Игрок вышел в меню из паузы мини-игры (#71).
+signal menu_requested
 
 enum Phase { IDLE, INTRO, PLAY, OFFER, RESULT, STUDIO }
 
@@ -83,14 +85,16 @@ func _ready() -> void:
 
 
 ## Запустить план. `seed_base + номер спринта` сид мини-игры.
-func run(plan_: SprintPlan, t_: float, first_release_: bool, seed_base_: int, title := "") -> void:
+## `start_index` и `results_before`: продолжение сохранённого релиза с этого спринта (#71).
+func run(plan_: SprintPlan, t_: float, first_release_: bool, seed_base_: int, title := "", start_index := 0,
+		results_before: Array[bool] = []) -> void:
 	plan = plan_
 	t = t_
 	first_release = first_release_
 	seed_base = seed_base_
 	game_title = title
-	results.clear()
-	index = -1
+	results = results_before.duplicate()
+	index = start_index - 1
 	_next()
 
 
@@ -148,6 +152,7 @@ func _run_sprint(def: MinigameDef) -> void:
 			_minigame = PLACEHOLDER.instantiate() as Minigame
 		var mult := tuning.first_release_time_multiplier if first_release else 1.0
 		_minigame.setup(def, t, seed_base + index + attempt * REPLAY_SEED_STEP, mult)
+		_minigame.menu_requested.connect(func() -> void: menu_requested.emit())
 		await _switch_view(_minigame)
 		_minigame.start()
 		success = await _minigame.finished

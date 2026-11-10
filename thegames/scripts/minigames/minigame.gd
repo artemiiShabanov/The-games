@@ -6,9 +6,12 @@ extends Control
 ## пилюля ввода внизу. Наследник переопределяет `_on_start`, `_on_tick`, `_on_timeout`,
 ## `_on_finish` и, когда появится настоящий бот, `_bot_step`. Пауза на Esc (плейтест
 ## 2026-11-08, #42): таймер и ввод стоят, поле закрыто подложкой с карточкой: глагол, правила
-## (`def.hint`), пилюля ввода, кнопка «Продолжить» (␣, Esc или клик). Под ботом паузы нет.
+## (`def.hint`), пилюля ввода, кнопка «Продолжить» (␣, Esc или клик) и «В меню» (#71, ↓ и ␣
+## или клик: `menu_requested`). Под ботом паузы нет.
 
 signal finished(success: bool)
+## «В меню» из паузы (#71): хозяин уходит в главное меню, сохранение на начало спринта.
+signal menu_requested
 
 const TIMER_HEIGHT := 6.0
 const DANGER_SECONDS := 3.0
@@ -29,6 +32,11 @@ var _done := false
 var _timer_bar: ColorRect
 var _pause_overlay: Control
 var _resume_button: PanelContainer
+var _menu_button: PanelContainer
+var _menu_lift: JellyLift
+var _resume_lift: JellyLift
+## Фокус в паузе: 0 «Продолжить», 1 «В меню».
+var _pause_focus := 0
 
 
 func setup(def_: MinigameDef, t_: float, seed_: int, time_multiplier := 1.0) -> void:
@@ -64,6 +72,8 @@ func pause() -> void:
 	set_process_unhandled_input(false)
 	if _pause_overlay == null:
 		_build_pause()
+	_pause_focus = 0
+	_refresh_pause_focus()
 	_pause_overlay.visible = true
 	_pause_overlay.move_to_front()
 	ShellSounds.play(&"tick")
@@ -92,9 +102,17 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	var mouse := event as InputEventMouseButton
-	var click := mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT \
-			and _resume_button != null and _resume_button.get_global_rect().has_point(mouse.position)
-	if esc or GameInput.is_a(event) or click:
+	var pressed := mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+	var click := pressed and _resume_button != null and _resume_button.get_global_rect().has_point(mouse.position)
+	var menu_click := pressed and _menu_button != null and _menu_button.get_global_rect().has_point(mouse.position)
+	if event.is_action_pressed(GameInput.DOWN) or event.is_action_pressed(GameInput.UP):
+		_pause_focus = 1 - _pause_focus
+		_refresh_pause_focus()
+		ShellSounds.play(&"tick")
+	elif menu_click or (GameInput.is_a(event) and _pause_focus == 1):
+		paused = false
+		menu_requested.emit()
+	elif esc or GameInput.is_a(event) or click:
 		resume()
 	if key != null or mouse != null:
 		get_viewport().set_input_as_handled()
@@ -201,13 +219,34 @@ func _build_pause() -> void:
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_resume_button.add_child(bl)
 	column.add_child(_resume_button)
-	# Единственная кнопка всегда в фокусе: поднята на бортике (мармелад).
-	Jelly.button(_resume_button).focused = true
+	_resume_lift = Jelly.button(_resume_button)
+	# «В меню» (#71): выход к началу этого спринта, сид мини-игры будет другой.
+	_menu_button = PanelContainer.new()
+	_menu_button.custom_minimum_size = Vector2(0, Style.BUTTON_HEIGHT)
+	_menu_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ml := _pause_label("В меню", Style.FONT_H2, Style.INK)
+	ml.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_menu_button.add_child(ml)
+	column.add_child(_menu_button)
+	_menu_lift = Jelly.button(_menu_button)
+	_refresh_pause_focus()
 	var hint := HBoxContainer.new()
 	hint.alignment = BoxContainer.ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.add_child(HintPill.make("%s или Esc продолжить" % GameInput.key(GameInput.A)))
+	hint.add_child(HintPill.make("↑ ↓ выбрать · %s или Esc продолжить" % GameInput.key(GameInput.A)))
 	column.add_child(hint)
+
+
+## Кнопка в фокусе тёмная на бортике, другая `surface-2`.
+func _refresh_pause_focus() -> void:
+	if _resume_button == null:
+		return
+	for i in 2:
+		var b := _resume_button if i == 0 else _menu_button
+		var on := i == _pause_focus
+		b.add_theme_stylebox_override("panel", Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
+		(b.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
+		(_resume_lift if i == 0 else _menu_lift).focused = on
 
 
 func _pause_label(text: String, font_size: int, color: Color) -> Label:

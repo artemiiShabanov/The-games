@@ -6,8 +6,11 @@ extends Control
 ## обычном конструкторе, где открыта только выпавшая пара. Под автотестом пара из
 ## `RunTuning` и профиль не трогается (`--draw` разыгрывает и под ним). Дальше основа (если открыты сиквелы или ремейки) → конструктор → спринты → плейтест →
 ## багфикс (одно или два предложения) → лента (из неё можно в демо и обратно) → фаза студии →
-## следующий релиз. Конец забега: банкротство из фазы студии или кап, короткий экран, A
-## начинает новый забег. Состояние в `RunState`, экраны грузятся по месту. Фон пока цвет
+## следующий релиз. Конец забега: экран концовки (#68), галерея, главное меню. Слот (#71):
+## `Main.slot` и `Main.pending` ставит меню; забег сохраняется в слот на границах фаз и между
+## спринтами (`_save`), продолжение с сохранённой фазы; Esc на экранах оболочки, где он не
+## занят экраном, ставит паузу «Продолжить / В меню». Состояние в `RunState`, экраны грузятся
+## по месту. Фон пока цвет
 ## студии, сама студия в M5. Раздел «Состояние» в дебаг-меню: деньги, релиз, репутация,
 ## покупка прокачки, пропуск этапа. Под ботом с `--loop` проходит `--releases=N` релизов
 ## (по умолчанию три) и сверяет деньги с ведомостью.
@@ -22,7 +25,15 @@ const FEED_PATH := "res://scenes/feed.tscn"
 const STUDIO_PATH := "res://scenes/studio_screen.tscn"
 const JOURNALIST_PATH := "res://resources/characters/journalist.tres"
 const BOT_PAUSE := 0.5
+const MENU_PATH := "res://scenes/main_menu.tscn"
+## Сдвиг сида мини-игр при продолжении посреди спринтов: «с новым сидом».
+const RESUME_SEED_STEP := 7919
 const CARD_SECONDS := 1.2
+
+## Слот забега (1..3) и сохранение, с которого продолжить; ставит главное меню. Слот 0: без
+## сохранений (автотест без `--slot`, дебаг).
+static var slot := 0
+static var pending: RunSave
 
 var run: RunState
 var stage := Stage.START
@@ -45,14 +56,24 @@ var _debug_upgrade := ""
 var _profile: Profile
 ## Автотест `--broke-at=N`: перед фазой студии релиза N денег −10 000 (банкротство, #67).
 var _broke_at := -1
+## Сколько раз этот забег продолжали из слота: сдвиг сида мини-игр.
+var _resumes := 0
+var _pause: PauseMenu
 
 
 func _ready() -> void:
 	var seed_ := 1 if AutoTest.enabled else randi()
-	run = RunState.start(seed_, AutoTest.enabled)
-	ShellHeader.studio = ""
+	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
+	if AutoTest.enabled and args.has("slot"):
+		RunSave.test_files = true
+		slot = int(str(args["slot"]))
+		if args.has("resume"):
+			pending = RunSave.load_slot(slot)
+	var resume := pending
+	pending = null
+	run = RunState.from_save(resume) if resume != null else RunState.start(seed_, AutoTest.enabled)
+	ShellHeader.studio = run.studio_name
 	if AutoTest.enabled:
-		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		if args.has("draw"):
 			run.draw_start()
 		if args.has("cap"):
@@ -107,19 +128,25 @@ func _ready() -> void:
 	if AutoTest.enabled:
 		Profile.use_test_file()
 	_profile = Profile.load_saved()
-	if not AutoTest.enabled:
+	if not AutoTest.enabled and resume == null:
 		run.draw_start(_profile.last_start_genre, _profile.last_start_tech)
 	Debug.watch("профиль", func() -> String: return str(_profile))
 	if AutoTest.enabled:
-		AutoTest.note("main scene ready")
-	_start_release()
+		AutoTest.note("main scene ready%s" % (" · продолжение слота %d с «%s»" % [slot, resume.stage] if resume != null else ""))
+	if resume != null:
+		_resume(resume)
+	else:
+		_start_release()
 
 
 # --- Этапы ----------------------------------------------------------------------------------
 
-func _start_release() -> void:
+func _start_release(prepared := false) -> void:
 	_clear_all()
-	run.prepare_release()
+	if run.studio_name != "":
+		_save(&"release", prepared)
+	if not prepared:
+		run.prepare_release()
 	base = null
 	if run.release == 1 and run.studio_name == "":
 		_open_new_studio()
@@ -154,6 +181,7 @@ func _on_studio_founded(studio_name: String, logo: StudioLogo) -> void:
 	if AutoTest.enabled:
 		AutoTest.note("studio founded: %s, логотип %s, %s × %s" % [studio_name, logo,
 				Game.genre_name(run.start_genre), Game.tech_name(run.start_tech)])
+	_save(&"release", true)
 	await get_tree().create_timer(Style.SWITCH_SECONDS if not Debug.skip_cards else 0.0).timeout
 	_open_constructor()
 
@@ -194,18 +222,28 @@ func _begin_development(config: GameConfig) -> void:
 	stage = Stage.SPRINTS
 	record = run.start_development(config)
 	_expected_cash -= config.total_cost()
+	_start_runner(0)
+
+
+## Спринты релиза с `from` (продолжение из слота): сыгранные уже в записи, сид сдвинут.
+func _start_runner(from: int) -> void:
+	stage = Stage.SPRINTS
+	_save(&"sprints")
 	_runner = SprintRunner.new()
 	_runner.tuning = run.sprint_tuning
 	_runner.sprint_finished.connect(_on_sprint_finished)
 	_runner.plan_finished.connect(_on_plan_finished)
+	_runner.menu_requested.connect(_to_menu)
 	add_child(_runner)
-	_runner.run(run.last_plan, run.t_value(), run.release == 1, record.seed, "%s · релиз %d" % [record.title, run.release])
+	_runner.run(run.last_plan, run.t_value(), run.release == 1, record.seed + _resumes * RESUME_SEED_STEP,
+			"%s · релиз %d" % [record.title, run.release], from, record.sprint_results)
 
 
 func _on_sprint_finished(d: MinigameDef, success: bool) -> void:
 	record.add_sprint(success)
 	if not success:
 		run.catalog.apply_fail(d, record, run.rng)
+	_save(&"sprints")
 
 
 func _on_plan_finished(_results: Array[bool]) -> void:
@@ -214,6 +252,7 @@ func _on_plan_finished(_results: Array[bool]) -> void:
 
 func _begin_playtest() -> void:
 	stage = Stage.PLAYTEST
+	_save(&"playtest")
 	if _runner != null:
 		_runner.queue_free()
 		_runner = null
@@ -262,6 +301,7 @@ func _offer_bugfix() -> void:
 		_finish_release()
 		return
 	stage = Stage.BUGFIX
+	_save(&"bugfix")
 	bugfix_offers += 1
 	var offer := (load(BUGFIX_PATH) as PackedScene).instantiate() as BugfixOffer
 	offer.setup(record, run.catalog, run.bugfix_price(record), run.wallet.cash)
@@ -309,6 +349,7 @@ func _finish_release() -> void:
 	_clear_all()
 	if record.score == null:
 		run.score_release(record)
+	_save(&"feed")
 	_open_feed()
 
 
@@ -331,6 +372,7 @@ func _on_feed_demo() -> void:
 func _open_studio() -> void:
 	_clear_all()
 	stage = Stage.STUDIO
+	_save(&"studio")
 	if run.release == _broke_at:
 		run.wallet.cash = -10000
 		_expected_cash = run.wallet.cash
@@ -390,6 +432,7 @@ func _show_end() -> void:
 ## «Итоги года»: выполненные концовки и продажа, закрыть карточку значит продать.
 func _show_year() -> void:
 	stage = Stage.YEAR
+	_save(&"year")
 	var who := load(JOURNALIST_PATH) as CharacterDef
 	var offer := Endings.year_offer(run.records, run.stats(), run.event_state.flags, run.tuning, who, run.studio_name)
 	var c := EventCard.new()
@@ -407,6 +450,9 @@ func _show_ending(id: Endings.Id) -> void:
 	var result := Endings.compute(id, run.records, run.stats(), run.event_state.flags)
 	result.studio = run.studio_name
 	_profile.finish_run(Endings.KEYS[id], result.score)
+	# Забег окончен: слот свободен.
+	if slot > 0:
+		RunSave.delete_slot(slot)
 	AutoTest.note("ending: %s · профиль: %s" % [result, _profile])
 	var screen := EndingScreen.new()
 	screen.setup(result)
@@ -422,8 +468,78 @@ func _on_ending_closed() -> void:
 		return
 	var g := GalleryScreen.new()
 	g.setup(_profile.gallery)
-	g.closed.connect(_restart)
+	g.closed.connect(_to_menu)
 	_set_screen(g)
+
+
+# --- Слот, продолжение, пауза (#71) ------------------------------------------------------------
+
+## Сохранить забег в слот на границе фазы `stage_`: текущий релиз и где он.
+func _save(stage_: StringName, prepared := false) -> void:
+	if slot <= 0 or run == null:
+		return
+	var s := run.to_save(stage_)
+	s.prepared = prepared
+	s.resumes = _resumes
+	if stage_ != &"release":
+		s.current = record
+		s.sprint_index = record.sprint_results.size() if record != null else 0
+		s.bugfix_offers = bugfix_offers
+	s.write(slot)
+
+
+## Продолжить забег с сохранённой фазы.
+func _resume(s: RunSave) -> void:
+	_resumes = s.resumes + 1
+	record = s.current
+	bugfix_offers = s.bugfix_offers
+	_expected_cash = run.wallet.cash
+	match s.stage:
+		&"sprints":
+			_start_runner(s.sprint_index)
+		&"playtest":
+			_begin_playtest()
+		&"bugfix":
+			_offer_bugfix()
+		&"feed":
+			_open_feed()
+		&"studio":
+			_open_studio()
+		&"year":
+			run.finished = true
+			run.finish_reason = "год закончился"
+			_show_year()
+		_:
+			_start_release(s.prepared)
+
+
+## В главное меню: забег уже сохранён на начало текущей фазы.
+func _to_menu() -> void:
+	get_tree().paused = false
+	Debug.clear_section(SECTION)
+	get_tree().change_scene_to_file(MENU_PATH)
+
+
+## Esc на экранах оболочки, где экран его не занял: пауза. В мини-играх и демках своя.
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo or key.keycode != KEY_ESCAPE or _pause != null:
+		return
+	if stage in [Stage.SPRINTS, Stage.FIXING, Stage.PLAYTEST, Stage.FEED_DEMO]:
+		return
+	get_viewport().set_input_as_handled()
+	_pause = PauseMenu.new()
+	_pause.resumed.connect(_close_pause)
+	_pause.to_menu.connect(_to_menu)
+	add_child(_pause)
+	get_tree().paused = true
+
+
+func _close_pause() -> void:
+	get_tree().paused = false
+	if _pause != null:
+		_pause.queue_free()
+		_pause = null
 
 
 func _restart() -> void:

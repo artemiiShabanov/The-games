@@ -101,6 +101,75 @@ func draw_start(last_genre := -1, last_tech := -1) -> void:
 	start_genre = genres[rng.randi_range(0, genres.size() - 1)]
 
 
+# --- Сохранение (#71) ---------------------------------------------------------------------------
+
+## Снимок забега для слота; текущий релиз и где он дописывает хозяин.
+func to_save(stage: StringName) -> RunSave:
+	var s := RunSave.new()
+	s.stage = stage
+	s.release = release
+	s.cap = cap
+	s.start_genre = start_genre
+	s.start_tech = start_tech
+	s.studio_name = studio_name
+	s.logo = RunSave.logo_to_dict(studio_logo)
+	s.run_number = run_number
+	s.cash = wallet.cash
+	s.upkeep_base = upkeep.base
+	s.upkeep_extras = upkeep.extras.duplicate()
+	s.market = market
+	s.studio = studio
+	s.records = records
+	s.rng_seed = rng.seed
+	s.rng_state = rng.state
+	s.last_first = last_first
+	s.reputation_before = reputation_before
+	s.buyer_came = buyer_came
+	s.rep_log = rep_log.duplicate()
+	s.events = RunSave.events_to_dict(event_state)
+	if last_plan != null:
+		for d in last_plan.defs:
+			s.plan_ids.append(d.id)
+		s.replay_left = last_plan.replay_left
+	return s
+
+
+## Забег из слота: тюнинг и каталоги заново, состояние из сохранения.
+static func from_save(s: RunSave) -> RunState:
+	var r := RunState.start(s.rng_seed)
+	r.release = s.release
+	r.cap = s.cap
+	r.start_genre = s.start_genre
+	r.start_tech = s.start_tech
+	r.studio_name = s.studio_name
+	r.studio_logo = RunSave.logo_from_dict(s.logo)
+	r.run_number = s.run_number
+	r.wallet = Wallet.new(s.cash)
+	r.upkeep = Upkeep.new(s.upkeep_base)
+	for k in s.upkeep_extras:
+		r.upkeep.add(k, s.upkeep_extras[k])
+	if s.market != null:
+		r.market = s.market
+	if s.studio != null:
+		r.studio = s.studio
+	r.records = s.records.duplicate()
+	r.rng.seed = s.rng_seed
+	r.rng.state = s.rng_state
+	r.last_first = s.last_first
+	r.reputation_before = s.reputation_before
+	r.buyer_came = s.buyer_came
+	r.rep_log = s.rep_log.duplicate()
+	r.event_state = RunSave.events_from_dict(s.events)
+	if not s.plan_ids.is_empty():
+		r.last_plan = SprintPlan.new()
+		for id in s.plan_ids:
+			var d := MinigamePool.find(r.minigames, id)
+			if d != null:
+				r.last_plan.defs.append(d)
+		r.last_plan.replay_left = s.replay_left
+	return r
+
+
 ## Сложность релиза по спеке мини-игр.
 func t_value() -> float:
 	return clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
