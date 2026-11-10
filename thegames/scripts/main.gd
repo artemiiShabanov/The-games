@@ -103,9 +103,13 @@ func _ready() -> void:
 	Debug.watch("забег", func() -> String: return "%s, %s, этап %s" % [run.studio_name, run, Stage.keys()[stage]])
 	Debug.watch("запись", func() -> String: return str(record) if record else "")
 
+	# Профиль (#69): под автотестом свой файл, пустой на старте прогона.
+	if AutoTest.enabled:
+		Profile.use_test_file()
+	_profile = Profile.load_saved()
 	if not AutoTest.enabled:
-		_profile = Profile.load_saved()
 		run.draw_start(_profile.last_start_genre, _profile.last_start_tech)
+	Debug.watch("профиль", func() -> String: return str(_profile))
 	if AutoTest.enabled:
 		AutoTest.note("main scene ready")
 	_start_release()
@@ -146,10 +150,7 @@ func _on_studio_founded(studio_name: String, logo: StudioLogo) -> void:
 	run.studio_name = studio_name
 	run.studio_logo = logo
 	ShellHeader.studio = studio_name
-	if _profile != null:
-		_profile.last_start_genre = int(run.start_genre)
-		_profile.last_start_tech = int(run.start_tech)
-		_profile.save()
+	run.run_number = _profile.start_run(run.start_genre, run.start_tech)
 	if AutoTest.enabled:
 		AutoTest.note("studio founded: %s, логотип %s, %s × %s" % [studio_name, logo,
 				Game.genre_name(run.start_genre), Game.tech_name(run.start_tech)])
@@ -367,6 +368,7 @@ func _apply_event(index: int, offer: Events.Offer) -> String:
 func _on_studio_finished() -> void:
 	_clear_all()
 	run.close_release(record, report)
+	_profile.add_game(record, run.run_number, run.records.size(), run.studio_name)
 	if _loop_check:
 		_check_release()
 	if run.finished:
@@ -404,7 +406,8 @@ func _show_ending(id: Endings.Id) -> void:
 	stage = Stage.END
 	var result := Endings.compute(id, run.records, run.stats(), run.event_state.flags)
 	result.studio = run.studio_name
-	AutoTest.note("ending: %s" % result)
+	_profile.finish_run(Endings.KEYS[id], result.score)
+	AutoTest.note("ending: %s · профиль: %s" % [result, _profile])
 	var screen := EndingScreen.new()
 	screen.setup(result)
 	screen.to_gallery.connect(_on_ending_closed)
@@ -467,6 +470,10 @@ func _process(delta: float) -> void:
 			# Экран концовки ведёт бот сам; петля автотеста засчитывает конец.
 			if _loop_check:
 				AutoTest.note("loop: run finished early: %s" % run.finish_reason)
+				# Профиль с диска сходится с забегом (#69).
+				var saved := Profile.load_saved()
+				if saved.gallery.size() != run.records.size() or saved.runs_finished != 1:
+					AutoTest.fail("loop: в профиле игр %d из %d, забегов %d" % [saved.gallery.size(), run.records.size(), saved.runs_finished])
 				AutoTest.fulfill("loop releases")
 
 

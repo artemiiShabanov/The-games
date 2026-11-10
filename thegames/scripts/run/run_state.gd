@@ -32,6 +32,8 @@ var start_genre := Game.Genre.PLATFORMER
 var start_tech := Game.Tech.BIT8
 var studio_name := ""
 var studio_logo: StudioLogo
+## Номер забега в профиле (#69): галерея помнит, в каком забеге вышла игра.
+var run_number := 1
 var records: Array[GameRecord] = []
 var market: MarketState
 var wallet: Wallet
