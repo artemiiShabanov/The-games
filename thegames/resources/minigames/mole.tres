@@ -1,6 +1,22 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_i4prp"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/mole.tscn" id="2_mole"]
+
+[sub_resource type="Curve" id="Curve_interval"]
+_limits = [0.65, 1.05, 0.0, 1.0]
+_data = [Vector2(0, 1.05), 0.0, 0.0, 0, 0, Vector2(1, 0.65), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_up"]
+_limits = [0.9, 1.3, 0.0, 1.0]
+_data = [Vector2(0, 1.3), 0.0, 0.0, 0, 0, Vector2(1, 0.9), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_pair"]
+_limits = [0.0, 0.4, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.25, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.4), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_i4prp")
@@ -8,5 +24,11 @@ id = &"mole"
 kind = 2
 genre = 2
 verb = "Бей"
-hint = "Кружок выскочил: стрелка в его сторону"
+hint = "Кружок выскочил: бей ← ↑ → ↓ в его сторону, пока не спрятался"
+scene = ExtResource("2_mole")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
+params = Dictionary[StringName, Curve]({
+&"interval": SubResource("Curve_interval"),
+&"pair": SubResource("Curve_pair"),
+&"up": SubResource("Curve_up")
+})
