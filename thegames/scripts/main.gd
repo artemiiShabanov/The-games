@@ -1,8 +1,9 @@
 class_name Main
 extends Control
-## Петля M1 (#30), спека `docs/specs/run.md`: старт экраном «Новая студия» (#61): пара
-## разыгрывается (не та же, что в прошлом забеге из `Profile`), конструктор первого релиза с
-## одной каруселью сеттинга и названием студии, оно же в шапке оболочки. Под автотестом пара из
+## Петля M1 (#30), спека `docs/specs/run.md`: старт экраном «Новая студия» (#61, `NewStudio`):
+## пара разыгрывается (не та же, что в прошлом забеге из `Profile`) и выкручивается колонками,
+## игрок берёт название и логотип студии; название дальше в шапке оболочки. Первая игра в
+## обычном конструкторе, где открыта только выпавшая пара. Под автотестом пара из
 ## `RunTuning` и профиль не трогается (`--draw` разыгрывает и под ним). Дальше основа (если открыты сиквелы или ремейки) → конструктор → спринты → плейтест →
 ## багфикс (одно или два предложения) → лента (из неё можно в демо и обратно) → фаза студии →
 ## следующий релиз. Конец забега: банкротство из фазы студии или кап, короткий экран, A
@@ -101,7 +102,7 @@ func _start_release() -> void:
 	_clear_all()
 	run.prepare_release()
 	base = null
-	if run.release == 1:
+	if run.release == 1 and run.studio_name == "":
 		_open_new_studio()
 	elif run.studio.sequels_unlocked() or run.studio.remakes_unlocked():
 		_open_base()
@@ -109,28 +110,29 @@ func _start_release() -> void:
 		_open_constructor()
 
 
-## «Новая студия»: конструктор первого релиза на выпавшей паре, выбор сеттинга и название.
+## «Новая студия»: выпавшая пара прокруткой, название и логотип студии.
 func _open_new_studio() -> void:
 	stage = Stage.START
-	var c := (load(CONSTRUCTOR_PATH) as PackedScene).instantiate() as Constructor
-	c.setup_first(run.start_genre, run.start_tech, run.unlocked_settings(), run.wallet.cash, run.rng.randi(), run.discount())
-	c.set_market(run.market, run.success, run.studio.insider())
-	c.game_configured.connect(_on_studio_founded.bind(c))
-	_set_screen(c)
+	var ns := NewStudio.new()
+	ns.setup(run.start_genre, run.start_tech, run.wallet.cash, run.rng.randi())
+	ns.founded.connect(_on_studio_founded)
+	_set_screen(ns)
 	_bot_timer = 0.0
 
 
-func _on_studio_founded(config: GameConfig, c: Constructor) -> void:
-	run.studio_name = c.studio_name
-	ShellHeader.studio = c.studio_name
+func _on_studio_founded(studio_name: String, logo: StudioLogo) -> void:
+	run.studio_name = studio_name
+	run.studio_logo = logo
+	ShellHeader.studio = studio_name
 	if _profile != null:
 		_profile.last_start_genre = int(run.start_genre)
 		_profile.last_start_tech = int(run.start_tech)
 		_profile.save()
 	if AutoTest.enabled:
-		AutoTest.note("studio founded: %s, %s × %s × %s" % [c.studio_name, Game.genre_name(config.genre),
-				Game.tech_name(config.tech), Game.setting_name(config.setting)])
-	_on_configured(config)
+		AutoTest.note("studio founded: %s, логотип %s, %s × %s" % [studio_name, logo,
+				Game.genre_name(run.start_genre), Game.tech_name(run.start_tech)])
+	await get_tree().create_timer(Style.SWITCH_SECONDS if not Debug.skip_cards else 0.0).timeout
+	_open_constructor()
 
 
 func _open_base() -> void:
@@ -365,7 +367,13 @@ func _process(delta: float) -> void:
 			var chooser := _screen as BaseChooser
 			if chooser != null:
 				chooser.confirm(chooser.options[0][0])
-		Stage.START, Stage.CONSTRUCTOR:
+		Stage.START:
+			# Бот досматривает прокрутку, как игрок: так её видно на скриншотах автотеста.
+			var ns := _screen as NewStudio
+			if ns != null and not ns.spinning:
+				_bot_timer = -INF
+				ns.found()
+		Stage.CONSTRUCTOR:
 			_bot_timer = -INF
 			var c := _screen as Constructor
 			if c != null:
@@ -429,7 +437,12 @@ func _skip_stage() -> void:
 			var chooser := _screen as BaseChooser
 			if chooser != null:
 				chooser.confirm(chooser.options[0][0])
-		Stage.START, Stage.CONSTRUCTOR:
+		Stage.START:
+			var ns := _screen as NewStudio
+			if ns != null:
+				ns.finish_spin()
+				ns.found()
+		Stage.CONSTRUCTOR:
 			var c := _screen as Constructor
 			if c != null:
 				c.focus(Constructor.ROW_BUTTON)

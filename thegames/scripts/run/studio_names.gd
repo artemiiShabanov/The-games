@@ -1,6 +1,6 @@
 class_name StudioNames
 extends Resource
-## Слова генератора названий студии, ресурс `res://resources/studio_names.tres` (#61):
+## Слова генератора названий студии и цвета логотипа, ресурс `res://resources/studio_names.tres` (#61):
 ## прилагательное в трёх родах через «|» (м|ж|ср), существительное с родом через «:»
 ## (m, f, n) и хвост, пустой хвост тоже вариант. «Ленивый Енот Games», «Сонная Табуретка».
 ## Свободного ввода нет, R перегенерирует.
@@ -11,6 +11,8 @@ const GENDERS := ["m", "f", "n"]
 @export var adjectives: PackedStringArray = []
 @export var nouns: PackedStringArray = []
 @export var suffixes: PackedStringArray = []
+## Цвета фона логотипа студии (`StudioLogo`).
+@export var logo_colors: PackedColorArray = []
 
 
 static func load_default() -> StudioNames:

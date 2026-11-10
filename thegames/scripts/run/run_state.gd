@@ -7,7 +7,7 @@ extends RefCounted
 ##   prepare_release → (конструктор) start_development → (спринты, плейтест, багфикс) →
 ##   score_release → (лента) → settle → close_release.
 ## Старт (#61): стартовая пара разыгрывается `draw_start` (не та же, что в прошлом забеге из
-## `Profile`), под автотестом берётся из `RunTuning`; название студии даёт экран «Новая студия».
+## `Profile`), под автотестом берётся из `RunTuning`; название студии и логотип даёт экран «Новая студия».
 ## Кап из тюнинга, конец только по банкротству (`StudioPhase.Report.game_over`) и по капу
 ## коротким экраном.
 
@@ -28,6 +28,7 @@ var cap := 12
 var start_genre := Game.Genre.PLATFORMER
 var start_tech := Game.Tech.BIT8
 var studio_name := ""
+var studio_logo: StudioLogo
 var records: Array[GameRecord] = []
 var market: MarketState
 var wallet: Wallet
