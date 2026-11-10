@@ -826,7 +826,8 @@ func _sprite(slot: String, name: String, at: Vector2, size: Vector2, flip := fal
 	if is_pink(slot):
 		world.draw_rect(Rect2(at + size * 0.2, size * 0.6), PINK)
 	elif flip:
-		world.draw_texture_rect(tex[name], Rect2(at + Vector2(size.x, 0.0), Vector2(-size.x, size.y)), false)
+		# Отрицательная ширина зеркалит на месте: левый край остаётся `at`.
+		world.draw_texture_rect(tex[name], Rect2(at, Vector2(-size.x, size.y)), false)
 	else:
 		world.draw_texture(tex[name], at)
 
