@@ -16,7 +16,8 @@ extends Control
 ## гольфа генератор поля, у файтинга генератор плана соперника и бой ботами без окна, у
 ## платформера × вектор (`--tech=vector`, #90) генератор этажей; там WIN забирается к флагу, а
 ## LOSE проваливается в дыры, пока не кончатся жизни. У гонок × вектор (#91) генератор заезда;
-## WIN приходит первым, LOSE едет без газа.
+## WIN приходит первым, LOSE едет без газа. У шутера × вектор (#92) генератор волн; WIN отбивается от
+## тридцати, LOSE не стреляет.
 
 
 var demo: Demo
@@ -50,6 +51,8 @@ func _ready() -> void:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
 			_check_tracks()
+		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.VECTOR:
+			_check_waves()
 		elif _genre() == Game.Genre.SHOOTER:
 			_check_arenas()
 		elif _genre() == Game.Genre.SPORT:
@@ -234,6 +237,35 @@ func _check_tracks() -> void:
 	var b := RacingTrackGen.generate(7, t)
 	_expect(a.points == b.points and a.tiles == b.tiles, "трасса сида 7 не повторяется")
 	AutoTest.note("racing tracks: 100 сидов прошли проверку, запасной эллипс %d" % fallbacks)
+
+
+## Шутер × вектор (#92): сто сидов дают волны, которые проходят проверку генератора (промежутки
+## не короче положенного, быстрые враги только сбоку, скорости в пределах) и за один проход
+## дают целей с запасом над целью демки; генерация детерминирована; на каждом сиде бот WIN без
+## окна (`TurretSim.simulate`) отбивается, а бот LOSE нет.
+func _check_waves() -> void:
+	var t := ShooterVectorGenTuning.load_default()
+	var dt := ShooterVectorTuning.load_default()
+	var targets := 0
+	var lives := 0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var w := TurretWaveGen.generate(s, t)
+		var why := TurretWaveGen.validate(w, t)
+		_expect(why == "", "волны сида %d: %s" % [s, why])
+		_expect(w.targets() >= dt.goal * 1.2, "волны сида %d: целей %d при цели %d" % [s, w.targets(), dt.goal])
+		targets += w.targets()
+		var win := TurretSim.simulate(w, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "волны сида %d: бот WIN не отбился, уничтожено %d за %.0f с" % [s, win.kills, win.time])
+		seconds.append(win.time)
+		lives += win.lives
+		var lose := TurretSim.simulate(w, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "волны сида %d: бот LOSE не проиграл за %.0f с" % [s, lose.time])
+	_expect(TurretWaveGen.generate(7, t).signature() == TurretWaveGen.generate(7, t).signature(), "волны сида 7 не повторяются")
+	_expect(TurretWaveGen.generate(7, t).signature() != TurretWaveGen.generate(8, t).signature(), "волны сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("shooter vector: 100 сидов прошли проверку, целей за проход в среднем %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, жизней в среднем %.2f" % [
+			targets / 100.0, seconds[50], seconds[0], seconds[99], lives / 100.0])
 
 
 ## Шутер: сто сидов дают арену, которая проходит проверку генератора (палуба связна, старт и

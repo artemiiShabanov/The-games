@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ShooterVectorGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_vector_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+count = 30
+first_time = 1.2
+interval_start = 2.1
+interval_end = 1.2
+interval_jitter = 0.2
+rock_share = 0.25
+spinner_share = 0.22
+spinner_from = 5
+side_share = 0.7
+side_angle = 35.0
+min_turn = 25.0
+enemy_speed_min = 105.0
+enemy_speed_max = 145.0
+rock_speed_min = 62.0
+rock_speed_max = 82.0
+spinner_speed_min = 70.0
+spinner_speed_max = 90.0
+spinner_spin_min = 16.0
+spinner_spin_max = 28.0
