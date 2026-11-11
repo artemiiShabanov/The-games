@@ -62,6 +62,9 @@ var _pause: PauseMenu
 
 
 func _ready() -> void:
+	# Корень оболочки не берёт мышь себе: иначе он под курсором и съедает клики, не давая им
+	# дойти до `_unhandled_input` экранов (#82, «В разработку» не нажималась).
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var seed_ := 1 if AutoTest.enabled else randi()
 	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
 	if AutoTest.enabled and args.has("slot"):

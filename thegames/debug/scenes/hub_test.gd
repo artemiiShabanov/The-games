@@ -20,6 +20,8 @@ func _ready() -> void:
 	var bg := ColorRect.new()
 	bg.color = Style.BG
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	if AutoTest.enabled:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())

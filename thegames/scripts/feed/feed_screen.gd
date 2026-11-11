@@ -85,6 +85,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
 	var viewport := get_viewport()
+	if MouseUi.is_motion(event):
+		# Наведение (#82): кнопки внизу берут фокус; посты не листаются от курсора.
+		for i in _buttons.size():
+			if at_end() and MouseUi.hit(_buttons[i], event) and focus_demo != (i == 0):
+				set_focus_demo(i == 0)
+		return
 	if MouseUi.is_mouse(event):
 		if _mouse(event):
 			MouseUi.consume(viewport)

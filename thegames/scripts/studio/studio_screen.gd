@@ -105,6 +105,16 @@ func reserve() -> int:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo() or not ready_for_input or _closing:
 		return
+	if MouseUi.is_motion(event):
+		# Наведение (#82): карточка прокачки под курсором берёт фокус.
+		if report.game_over or report.offer.is_empty() or bought != null:
+			return
+		for i in _cards.size():
+			if i != index and MouseUi.hit(_cards[i], event):
+				index = i
+				ShellSounds.play(&"tick")
+				_refresh_focus(true)
+		return
 	if MouseUi.is_mouse(event):
 		if _mouse(event):
 			get_viewport().set_input_as_handled()

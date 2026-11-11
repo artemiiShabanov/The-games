@@ -65,6 +65,12 @@ func selected() -> BaseOption:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo() or _closing:
 		return
+	if MouseUi.is_motion(event):
+		# Наведение (#82): колонка под курсором берёт фокус.
+		var col := _columns.column_at(event)
+		if col >= 0:
+			focus(col)
+		return
 	if MouseUi.is_mouse(event):
 		if _mouse(event):
 			get_viewport().set_input_as_handled()

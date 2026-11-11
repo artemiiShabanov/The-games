@@ -23,6 +23,9 @@
   `HEADLESS=1` без окна и скриншота. Внутри: `Godot --path thegames -- --auto-test
   --screenshot=debug/playtest/x.png`; автолоад `AutoTest`, бот `AutoTest.bot_mode` (OFF, WIN, LOSE),
   `AutoTest.fail(reason)` из любой системы. Дебаг-меню F1, `--debug`, `--scene=<id>`.
+  Ввод как от игрока (#82): `--bot=off "--input=200:key=space,300:move=960x936,310:click=960x936,
+  320:wheel=2@300x500,330:pan=40@1500x500"` (кадр:действие, координаты экрана 1920×1080; заметка
+  пишет Control под курсором: если там корень сцены, он съедает клики, нужен `MOUSE_FILTER_IGNORE`).
 - Одна мини-игра ботом (WIN, затем LOSE): `sh tools/autotest.sh --scene=sprint_runner_test
   --minigame=<id> --frames=3500` (часть мини-игр не укладывается в 1500). Под автотестом `t` и сид
   не из дебаг-меню, а `--t=<0..1>` и `--seed=<n>` (по умолчанию 0 и 1); на высоком `t` бот

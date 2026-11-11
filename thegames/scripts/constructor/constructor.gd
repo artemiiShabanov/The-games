@@ -269,6 +269,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		regenerate_title()
 		get_viewport().set_input_as_handled()
 		return
+	if MouseUi.is_motion(event):
+		# Наведение (#82): кнопка или колонка под курсором берут фокус.
+		if MouseUi.hit(_button, event):
+			focus(ROW_BUTTON)
+		else:
+			var col := _columns.column_at(event)
+			if col >= 0:
+				focus(col)
+		return
 	if MouseUi.is_mouse(event):
 		if _mouse(event):
 			get_viewport().set_input_as_handled()

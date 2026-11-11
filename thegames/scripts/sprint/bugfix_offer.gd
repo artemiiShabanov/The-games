@@ -48,6 +48,12 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
+	if MouseUi.is_motion(event):
+		# Наведение (#82): кнопка под курсором берёт фокус.
+		for i in _buttons.size():
+			if MouseUi.hit(_buttons[i], event):
+				set_focus_buy(i == 0)
+		return
 	if MouseUi.is_click(event):
 		for i in _buttons.size():
 			if MouseUi.hit(_buttons[i], event):

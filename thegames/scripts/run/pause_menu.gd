@@ -71,6 +71,14 @@ func _input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	var esc := key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE
 	var handled := true
+	if MouseUi.is_motion(event):
+		# Наведение (#82): кнопка под курсором берёт фокус.
+		for i in _buttons.size():
+			if i != index and MouseUi.hit(_buttons[i], event):
+				index = i
+				ShellSounds.play(&"tick")
+				_refresh()
+		return
 	if esc:
 		_choose(0)
 	elif event.is_action_pressed(GameInput.UP) or event.is_action_pressed(GameInput.DOWN):
