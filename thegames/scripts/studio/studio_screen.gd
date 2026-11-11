@@ -22,6 +22,8 @@ const LEDGER_WIDTH := 760
 const VALUATION_WIDTH := 480
 const OFFER_Y := 420
 const OFFER_CARD := Vector2(520, 336)
+## Толщина полосы цвета вида сверху карточки прокачки (#79).
+const KIND_STRIP := 8.0
 const MAX_TAIL_ROWS := 4
 const LIFT_PX := 6
 
@@ -468,13 +470,19 @@ func _make_card(def: UpgradeDef) -> PanelContainer:
 	column.add_theme_constant_override("separation", 10)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(column)
+	# Полоса цвета вида сверху (#79): технологии, жанры и возможности видно издалека.
+	var strip := Panel.new()
+	strip.custom_minimum_size = Vector2(0, KIND_STRIP)
+	strip.add_theme_stylebox_override("panel", Style.flat(Style.kind_color(def.kind), KIND_STRIP / 2.0, Color.TRANSPARENT, 0))
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(strip)
 	var pill_row := HBoxContainer.new()
 	pill_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(pill_row)
 	var pill := PanelContainer.new()
-	pill.add_theme_stylebox_override("panel", _pill_style(Style.SURFACE_SOLID))
+	pill.add_theme_stylebox_override("panel", _pill_style(Style.kind_tint(def.kind)))
 	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var pl := _label(def.kind_name(), Style.FONT_CAPTION, Style.INK_2)
+	var pl := _label(def.kind_name(), Style.FONT_CAPTION, Style.kind_color(def.kind))
 	pill.add_child(pl)
 	pill_row.add_child(pill)
 	_kind_pills.append(pill)

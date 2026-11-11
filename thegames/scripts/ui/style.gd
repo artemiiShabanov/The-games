@@ -24,6 +24,21 @@ const TINT_PLUS := Color("#E3F4EA")
 const TINT_MINUS := Color("#FBE5E2")
 const TINT_LOCK := Color("#E6ECFF")
 
+## Виды прокачки (плейтест 2026-11-11, #79): технология, жанр, возможность по `UpgradeDef.Kind`.
+## Цвет вида: полоса сверху карточки и текст пилюли; подложка пилюли светлая того же тона.
+## Не пересекаются со смысловыми `money`, `danger`, `bug`, `focus`.
+const KIND_COLORS: Array[Color] = [Color("#6A4CE0"), Color("#D99A0B"), Color("#1F9488")]
+const KIND_TINTS: Array[Color] = [Color("#ECE7FC"), Color("#FBF0D6"), Color("#DCF1EE")]
+
+
+static func kind_color(kind: int) -> Color:
+	return KIND_COLORS[clampi(kind, 0, KIND_COLORS.size() - 1)]
+
+
+static func kind_tint(kind: int) -> Color:
+	return KIND_TINTS[clampi(kind, 0, KIND_TINTS.size() - 1)]
+
+
 ## Акценты мини-игр a1..a4; палитру выбирает игрок в настройках, стартовая здесь.
 static var accents: Array[Color] = [Color("#2F5BFF"), Color("#F07A1C"), Color("#2BB37A"), Color("#E0457B")]
 
