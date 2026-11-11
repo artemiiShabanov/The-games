@@ -28,6 +28,8 @@ static var test_files := false
 @export var logo := {}
 @export var run_number := 1
 @export var cash := 0
+## История денег (#77): строки `Wallet.history`.
+@export var ledger: Array[Dictionary] = []
 @export var upkeep_base := 0
 @export var upkeep_extras: Dictionary[StringName, int] = {}
 @export var market: MarketState

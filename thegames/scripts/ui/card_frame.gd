@@ -8,6 +8,10 @@ extends PanelContainer
 
 var content: Control
 var shown := false
+## Свой прямоугольник вместо экранного (#78: панель релиза на полэкрана справа).
+var rect_override := Rect2()
+## Выезжать справа и уезжать вправо, а не снизу.
+var from_right := false
 
 
 func _init() -> void:
@@ -50,14 +54,27 @@ static func inner_size() -> Vector2:
 
 
 func layout() -> void:
-	var r := rect_in(_parent_size())
+	var r := _rect()
 	size = r.size
-	position = r.position if shown else Vector2(r.position.x, _parent_size().y)
+	position = r.position if shown else _hidden_pos(r)
+
+
+func _rect() -> Rect2:
+	return rect_override if rect_override.has_area() else rect_in(_parent_size())
+
+
+## Внутренняя область этой карточки, без отступов подложки.
+func inner() -> Vector2:
+	return _rect().size - Vector2(2 * Style.PAD_CARD, 2 * Style.PAD_CARD)
+
+
+func _hidden_pos(r: Rect2) -> Vector2:
+	return Vector2(_parent_size().x + Style.EDGE, r.position.y) if from_right else Vector2(r.position.x, _parent_size().y)
 
 
 ## Всплыть снизу; `sound` звук оболочки `intro`.
 func raise_card(sound := true) -> void:
-	var r := rect_in(_parent_size())
+	var r := _rect()
 	size = r.size
 	visible = true
 	shown = true
@@ -67,9 +84,9 @@ func raise_card(sound := true) -> void:
 		position = r.position
 		await get_tree().process_frame
 		return
-	position = Vector2(r.position.x, _parent_size().y)
+	position = _hidden_pos(r)
 	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tw.tween_property(self, "position:y", r.position.y, Style.CARD_RISE_SECONDS)
+	tw.tween_property(self, "position", r.position, Style.CARD_RISE_SECONDS)
 	await tw.finished
 
 
@@ -81,7 +98,7 @@ func drop_card() -> void:
 		await get_tree().process_frame
 		return
 	var tw := create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
-	tw.tween_property(self, "position:y", _parent_size().y, Style.CARD_DROP_SECONDS)
+	tw.tween_property(self, "position", _hidden_pos(_rect()), Style.CARD_DROP_SECONDS)
 	await tw.finished
 	visible = false
 

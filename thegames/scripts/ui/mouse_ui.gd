@@ -2,8 +2,9 @@ class_name MouseUi
 extends RefCounted
 ## Мышь в оболочке (плейтест 2026-11-08, #43): экраны держат все свои Control с
 ## `MOUSE_FILTER_IGNORE` и разбирают мышь сами в `_unhandled_input`: колесо листает, клик по
-## карточке выбирает её, клик по кнопке нажимает. Ховера нет. Здесь общие проверки событий и
-## попадание в прямоугольник Control с учётом масштаба карточки.
+## карточке выбирает её, клик по кнопке нажимает. Наведение переносит фокус (плейтест 2026-11-11,
+## #82), колесо и тачпад листают (`scroll_px`). Здесь общие проверки событий и попадание в
+## прямоугольник Control с учётом масштаба карточки.
 
 
 static func is_click(event: InputEvent) -> bool:
@@ -21,6 +22,28 @@ static func wheel(event: InputEvent) -> int:
 	if m.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 		return 1
 	return 0
+
+
+## Прокрутка колесом или тачпадом (#82) в пикселях: колесо с его `factor` (тачпад на macOS
+## шлёт колесо дробными шагами), жест панорамирования двумя пальцами. 0, если не прокрутка.
+static func scroll_px(event: InputEvent, step := 120.0) -> float:
+	var m := event as InputEventMouseButton
+	if m != null and m.pressed:
+		var f := m.factor if m.factor > 0.0 else 1.0
+		if m.button_index == MOUSE_BUTTON_WHEEL_UP:
+			return -step * f
+		if m.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			return step * f
+		return 0.0
+	var pan := event as InputEventPanGesture
+	if pan != null:
+		return pan.delta.y * step / 4.0
+	return 0.0
+
+
+## Наведение (#82): курсор сдвинулся.
+static func is_motion(event: InputEvent) -> bool:
+	return event is InputEventMouseMotion
 
 
 static func is_mouse(event: InputEvent) -> bool:

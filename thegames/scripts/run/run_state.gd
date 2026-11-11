@@ -115,6 +115,7 @@ func to_save(stage: StringName) -> RunSave:
 	s.logo = RunSave.logo_to_dict(studio_logo)
 	s.run_number = run_number
 	s.cash = wallet.cash
+	s.ledger = wallet.history.duplicate(true)
 	s.upkeep_base = upkeep.base
 	s.upkeep_extras = upkeep.extras.duplicate()
 	s.market = market
@@ -145,6 +146,8 @@ static func from_save(s: RunSave) -> RunState:
 	r.studio_logo = RunSave.logo_from_dict(s.logo)
 	r.run_number = s.run_number
 	r.wallet = Wallet.new(s.cash)
+	r.wallet.release = s.release
+	r.wallet.history = s.ledger.duplicate(true)
 	r.upkeep = Upkeep.new(s.upkeep_base)
 	for k in s.upkeep_extras:
 		r.upkeep.add(k, s.upkeep_extras[k])
@@ -244,6 +247,7 @@ func discount() -> float:
 func prepare_release() -> void:
 	market.roll_release(success, rng)
 	reputation_before = market.reputation
+	wallet.release = release
 
 
 ## Первый релиз без экрана (дебаг): стартовая пара, первый сеттинг.
@@ -255,7 +259,7 @@ func first_config() -> GameConfig:
 ## оставили следующей игре (#66), переходит в запись: доли с хвоста (сумма не выше
 ## `meta.max_tail_share`), бонусы к отклику; ограничения отработали в конструкторе и снимаются.
 func start_development(config: GameConfig) -> GameRecord:
-	wallet.spend(config.total_cost(), &"release")
+	wallet.spend(config.total_cost(), &"release", config.title)
 	var record := config.to_record(rng.randi())
 	_apply_contracts(record)
 	last_plan = SprintPlanner.plan(economy.sprints(record.tech), record.genre, record.tech, minigames,
@@ -274,9 +278,17 @@ func score_release(record: GameRecord) -> ReleaseScore:
 	return score
 
 
+## Лента релиза. Своим генератором от сида записи и с запомненными в записи репутацией и
+## «ветераном»: главный экран забега (#78) собирает ту же ленту прошлого релиза заново.
 func build_feed(record: GameRecord) -> FeedContent:
-	return Feed.build(record, record.score, critics, streamers, texts, success, catalog, rng,
-			market.reputation - reputation_before, veteran(), studio_name)
+	if not record.feed_built:
+		record.feed_built = true
+		record.feed_rep = market.reputation - reputation_before
+		record.feed_veteran = veteran()
+	var feed_rng := RandomNumberGenerator.new()
+	feed_rng.seed = hash([record.seed, "feed"])
+	return Feed.build(record, record.score, critics, streamers, texts, success, catalog, feed_rng,
+			record.feed_rep, record.feed_veteran, studio_name)
 
 
 func bugfix_price(record: GameRecord) -> int:

@@ -75,7 +75,7 @@ static func settle(release: int, past: Array[GameRecord], current: GameRecord, m
 	r.cash_start = wallet.cash
 	# 1. Продажи первой недели нового релиза и тики хвостов прошлых игр.
 	r.first_week = current.score.sales_first if current != null and current.score != null else 0
-	wallet.earn(r.first_week, &"sales")
+	wallet.earn(r.first_week, &"sales", current.title if current != null else "")
 	for p in past:
 		if p.score == null:
 			continue
@@ -122,7 +122,7 @@ static func buy(def: UpgradeDef, wallet: Wallet, upkeep: Upkeep, state: StudioSt
 	var cost := def.price(economy)
 	if not wallet.can_afford(cost):
 		return false
-	wallet.spend(cost, &"upgrade")
+	wallet.spend(cost, &"upgrade", def.title)
 	upkeep.add(def.id, def.upkeep(economy))
-	state.buy(def)
+	state.buy(def, wallet.release)
 	return true

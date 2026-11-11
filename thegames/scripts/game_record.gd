@@ -25,6 +25,11 @@ extends Resource
 @export var bonus_critics := 0.0
 @export var bonus_streamers := 0.0
 @export var bonus_sales := 0.0
+## Лента релиза собрана (#78): репутация за релиз и «ветеран» на тот момент, чтобы главный экран
+## забега собрал ту же ленту заново.
+@export var feed_built := false
+@export var feed_rep := 0.0
+@export var feed_veteran := false
 
 
 static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "", setting_ := Game.Setting.PIRATES) -> GameRecord:

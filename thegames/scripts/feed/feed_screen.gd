@@ -8,6 +8,9 @@ extends Control
 ## кнопки «В демо» и «Дальше». Вверх и вниз листают по карточке с центрированием, A до низа
 ## листает вниз, внизу ставит фокус на «Дальше» и подтверждает, влево-вправо меняют кнопку, B
 ## это «Дальше». Продажи на этом экране не показываются: они приходят в фазе студии.
+## Архив (#78, `setup_archive`): та же лента прошлого релиза панелью на правой половине экрана
+## поверх главного экрана забега, выезжает справа; без шапки и подсказок, кнопки «Играть демку»
+## и «Закрыть», Esc тоже закрывает.
 
 signal demo_requested
 signal finished
@@ -39,6 +42,7 @@ var _item_lifts: Array[Array] = []
 var _stream_holder: Control
 var _demo: Demo
 var _revealed := false
+var archive := false
 
 
 func setup(content_: FeedContent, record_: GameRecord, release_: int, cash_: int) -> void:
@@ -46,6 +50,19 @@ func setup(content_: FeedContent, record_: GameRecord, release_: int, cash_: int
 	record = record_
 	release = release_
 	cash = cash_
+
+
+## Лента прошлого релиза панелью справа (#78).
+func setup_archive(content_: FeedContent, record_: GameRecord) -> void:
+	setup(content_, record_, 0, 0)
+	archive = true
+
+
+## Прямоугольник панели архива: колонка с полями карточки, у правого края экрана.
+static func archive_rect() -> Rect2:
+	var w := COLUMN_WIDTH + 2 * SHADOW_PAD + 2 * Style.PAD_CARD
+	return Rect2(Style.SCREEN.x - Style.EDGE / 2.0 - w, Style.SPRINT_CARD_TOP, w,
+			Style.SCREEN.y - Style.SPRINT_CARD_TOP - Style.SPRINT_CARD_BOTTOM)
 
 
 func _ready() -> void:
@@ -67,9 +84,16 @@ func at_end() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
+	var viewport := get_viewport()
 	if MouseUi.is_mouse(event):
 		if _mouse(event):
-			get_viewport().set_input_as_handled()
+			MouseUi.consume(viewport)
+		return
+	var key := event as InputEventKey
+	if archive and key != null and key.pressed and key.keycode == KEY_ESCAPE:
+		ShellSounds.play(&"done")
+		finished.emit()
+		MouseUi.consume(viewport)
 		return
 	if event.is_action_pressed(GameInput.DOWN):
 		move(1)
@@ -153,27 +177,16 @@ func confirm() -> void:
 # --- Построение ---------------------------------------------------------------------------------
 
 func _build() -> void:
-	var header := HintPill.header(ShellHeader.release(release, "Отклик · %s" % content.tag))
-	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
-	add_child(header)
-	var right := HBoxContainer.new()
-	right.alignment = BoxContainer.ALIGNMENT_END
-	right.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	right.offset_left = Style.EDGE
-	right.offset_right = -Style.EDGE
-	right.offset_top = Style.HEADER_Y - Style.PILL_HEIGHT / 2.0
-	right.offset_bottom = right.offset_top + Style.PILL_HEIGHT
-	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(right)
-	var money := HintPill.header(Style.format_money(cash))
-	var money_label := money.get_child(0) as Label
-	money_label.add_theme_font_override("font", Style.mono_font())
-	money_label.add_theme_color_override("font_color", Style.MONEY)
-	right.add_child(money)
-
+	if not archive:
+		_build_header()
 	card = CardFrame.new()
+	if archive:
+		card.rect_override = archive_rect()
+		card.from_right = true
+		# Поверх студии и кнопок главного экрана: плотная, сквозь неё ничего не видно.
+		card.add_theme_stylebox_override("panel", Style.card(true))
 	add_child(card)
-	var inner := CardFrame.inner_size()
+	var inner := card.inner()
 	_scroll = ScrollContainer.new()
 	_scroll.position = Vector2((inner.x - COLUMN_WIDTH) / 2.0 - SHADOW_PAD, 0)
 	_scroll.size = Vector2(COLUMN_WIDTH + 2 * SHADOW_PAD, inner.y)
@@ -216,6 +229,9 @@ func _build() -> void:
 		n.modulate.a = 0.0 if not Debug.skip_cards else 1.0
 	_refresh_buttons()
 	_refresh_item_focus.call_deferred()
+	if archive:
+		MouseUi.pass_through(self)
+		return
 
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -229,6 +245,27 @@ func _build() -> void:
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.B, "дальше")))
 	MouseUi.pass_through(self)
 	add_child(hints)
+
+
+## Шапка над карточкой: релиз и тег слева, деньги справа.
+func _build_header() -> void:
+	var header := HintPill.header(ShellHeader.release(release, "Отклик · %s" % content.tag))
+	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
+	add_child(header)
+	var right := HBoxContainer.new()
+	right.alignment = BoxContainer.ALIGNMENT_END
+	right.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	right.offset_left = Style.EDGE
+	right.offset_right = -Style.EDGE
+	right.offset_top = Style.HEADER_Y - Style.PILL_HEIGHT / 2.0
+	right.offset_bottom = right.offset_top + Style.PILL_HEIGHT
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(right)
+	var money := HintPill.header(Style.format_money(cash))
+	var money_label := money.get_child(0) as Label
+	money_label.add_theme_font_override("font", Style.mono_font())
+	money_label.add_theme_color_override("font_color", Style.MONEY)
+	right.add_child(money)
 
 
 func _reveal() -> void:
@@ -474,7 +511,7 @@ func _make_buttons() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.GAP_CARDS)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for text in ["В демо", "Дальше"]:
+	for text in (["Играть демку", "Закрыть"] if archive else ["В демо", "Дальше"]):
 		var b := PanelContainer.new()
 		b.custom_minimum_size = Vector2(240, Style.BUTTON_HEIGHT)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE

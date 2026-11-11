@@ -329,13 +329,14 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 		if not win:
 			effects = c.lose_effects
 	var who := offer.character.with_name() if offer.character != null else ""
+	var payer := offer.character.name if offer.character != null else ""
 	for e in effects:
 		match e.kind:
 			EffectDef.Kind.MONEY:
 				if e.amount > 0:
-					wallet.earn(e.amount, &"event")
+					wallet.earn(e.amount, &"event", payer)
 				else:
-					wallet.spend(-e.amount, &"event")
+					wallet.spend(-e.amount, &"event", payer)
 			EffectDef.Kind.REPUTATION:
 				market.reputation += e.steps * meta.rep_step
 			EffectDef.Kind.RESTRICT_GENRE, EffectDef.Kind.RESTRICT_SETTING, EffectDef.Kind.RESTRICT_TECH, EffectDef.Kind.RESTRICT_SEQUEL:
@@ -360,7 +361,7 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 			EffectDef.Kind.FLAG:
 				state.flags[e.id] = release
 			EffectDef.Kind.SELL_TAIL:
-				wallet.earn(e.amount, &"event")
+				wallet.earn(e.amount, &"event", payer)
 				if not state.sold_tails.has(e.value):
 					state.sold_tails.append(e.value)
 	if offer.character != null:

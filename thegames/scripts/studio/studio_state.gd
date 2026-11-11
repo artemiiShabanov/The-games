@@ -7,6 +7,8 @@ extends Resource
 const MAX_PEOPLE := 12
 
 @export var upgrade_ids: Array[StringName] = []
+## Релиз покупки для каждой прокачки в `upgrade_ids` (#78, список купленного по порядку).
+@export var bought_release: Array[int] = []
 @export var people := 1
 @export var rescued := false
 
@@ -15,9 +17,10 @@ func has(id: StringName) -> bool:
 	return upgrade_ids.has(id)
 
 
-func buy(def: UpgradeDef) -> void:
+func buy(def: UpgradeDef, release := 0) -> void:
 	if not has(def.id):
 		upgrade_ids.append(def.id)
+		bought_release.append(release)
 	people = mini(people + 1, MAX_PEOPLE)
 
 
@@ -48,6 +51,11 @@ func sequels_unlocked() -> bool:
 
 func remakes_unlocked() -> bool:
 	return has(&"remakes")
+
+
+## Релиз покупки прокачки номер `i` (0, если неизвестно: старое сохранение, дебаг).
+func release_of(i: int) -> int:
+	return bought_release[i] if i < bought_release.size() else 0
 
 
 func _to_string() -> String:

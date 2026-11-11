@@ -15,7 +15,7 @@ extends Control
 ## покупка прокачки, пропуск этапа. Под ботом с `--loop` проходит `--releases=N` релизов
 ## (по умолчанию три) и сверяет деньги с ведомостью.
 
-enum Stage { START, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, YEAR, END }
+enum Stage { START, HUB, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, YEAR, END }
 
 const SECTION: StringName = &"Состояние"
 const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
@@ -150,7 +150,23 @@ func _start_release(prepared := false) -> void:
 	base = null
 	if run.release == 1 and run.studio_name == "":
 		_open_new_studio()
-	elif run.contract_sequel() != null:
+	else:
+		_open_hub()
+
+
+## Главный экран забега (#77): новый релиз начинается кнопкой «Новая игра».
+func _open_hub() -> void:
+	stage = Stage.HUB
+	var hub := RunHub.new()
+	hub.setup(run)
+	hub.new_game.connect(_begin_next_game)
+	_set_screen(hub)
+	_bot_timer = 0.0
+
+
+## «Новая игра»: основа, если открыты сиквелы или ремейки, иначе конструктор.
+func _begin_next_game() -> void:
+	if run.contract_sequel() != null:
 		# Обещанный во вставке сиквел (#66): основа задана, экрана основы нет.
 		base = BaseOption.sequel_of(run.contract_sequel())
 		_open_constructor()
@@ -183,7 +199,7 @@ func _on_studio_founded(studio_name: String, logo: StudioLogo) -> void:
 				Game.genre_name(run.start_genre), Game.tech_name(run.start_tech)])
 	_save(&"release", true)
 	await get_tree().create_timer(Style.SWITCH_SECONDS if not Debug.skip_cards else 0.0).timeout
-	_open_constructor()
+	_open_hub()
 
 
 func _open_base() -> void:
@@ -315,7 +331,7 @@ func _on_bugfix_accepted() -> void:
 	_clear_all()
 	stage = Stage.FIXING
 	var price := run.bugfix_price(record)
-	run.wallet.spend(price, &"bugfix")
+	run.wallet.spend(price, &"bugfix", record.title)
 	_expected_cash -= price
 	var def := Bugfix.pick_minigame(run.minigames, run.rng)
 	_runner = SprintRunner.new()
@@ -556,6 +572,11 @@ func _process(delta: float) -> void:
 	if _bot_timer < BOT_PAUSE:
 		return
 	match stage:
+		Stage.HUB:
+			_bot_timer = -INF
+			var hub := _screen as RunHub
+			if hub != null:
+				hub.start_new_game()
 		Stage.BASE:
 			_bot_timer = -INF
 			var chooser := _screen as BaseChooser
@@ -630,6 +651,10 @@ func _debug_buy() -> void:
 func _skip_stage() -> void:
 	Debug.close_menu()
 	match stage:
+		Stage.HUB:
+			var hub := _screen as RunHub
+			if hub != null:
+				hub.start_new_game()
 		Stage.BASE:
 			var chooser := _screen as BaseChooser
 			if chooser != null:
