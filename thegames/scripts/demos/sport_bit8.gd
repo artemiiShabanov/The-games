@@ -277,7 +277,7 @@ func _raise_peak(h: GolfCourse.Hole) -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS, 132.0), tuning.music_db if not embedded else -80.0)
+	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS, 132.0), tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

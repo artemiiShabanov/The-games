@@ -209,7 +209,7 @@ func _spawn_cars() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.player(Sfx.chiptune_loop(MELODY, BASS, 168.0), tuning.music_db if not embedded else -80.0)
+	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS, 168.0), tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

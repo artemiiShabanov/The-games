@@ -5,6 +5,8 @@ extends Node
 
 
 func _ready() -> void:
+	# Настройки игры (#81): шины звука, окно, движение, подписи; первым делом на старте.
+	Options.boot()
 	apply()
 	# Ручки мармелада общие для всех сцен; Debug готов только после своего `_ready`.
 	Jelly.register_debug.call_deferred()

@@ -85,9 +85,17 @@ static func chiptune_loop(melody: Array, bass: Array, bpm := 140.0, volume := 0.
 	return wav
 
 
-## Плеер с готовым потоком, добавить в дерево и звать `play()`.
+## Плеер с готовым потоком, добавить в дерево и звать `play()`. Шина звуков (#81).
 static func player(stream: AudioStream, volume_db := 0.0) -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
 	p.stream = stream
 	p.volume_db = volume_db
+	p.bus = Options.SFX_BUS
+	return p
+
+
+## Плеер музыки демки: шина музыки (#81).
+static func music(stream: AudioStream, volume_db := 0.0) -> AudioStreamPlayer:
+	var p := player(stream, volume_db)
+	p.bus = Options.MUSIC_BUS
 	return p

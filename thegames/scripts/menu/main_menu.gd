@@ -24,6 +24,7 @@ var _confirm: Control
 var _gallery: GalleryScreen
 ## Нижние пилюли меню: прячутся вместе с карточкой, иначе лежат под пилюлями галереи.
 var _hints: HBoxContainer
+var _options: OptionsScreen
 var _leaving := false
 
 
@@ -64,7 +65,7 @@ func _open_game(slot: int, save: RunSave) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
 	var viewport := get_viewport()
-	if _leaving or _gallery != null:
+	if _leaving or _gallery != null or _options != null:
 		return
 	if event is InputEventMouseMotion:
 		var over := _item_at(event)
@@ -145,6 +146,8 @@ func activate() -> void:
 		_open_game(focus + 1, saves[focus])
 	elif focus == RunSave.SLOTS:
 		_open_gallery()
+	elif focus == RunSave.SLOTS + 1:
+		_open_options()
 	else:
 		ShellSounds.play(&"tick")
 		get_tree().quit()
@@ -194,6 +197,18 @@ func _open_gallery() -> void:
 	add_child(_gallery)
 
 
+## Настройки (#81) поверх меню; меню ждёт, пока их закроют.
+func _open_options() -> void:
+	ShellSounds.play(&"done")
+	_hints.visible = false
+	_options = OptionsScreen.new()
+	_options.closed.connect(func() -> void:
+		_options.queue_free()
+		_options = null
+		_hints.visible = true)
+	add_child(_options)
+
+
 # --- Построение ---------------------------------------------------------------------------------
 
 func _build() -> void:
@@ -226,7 +241,7 @@ func _build() -> void:
 	buttons.add_theme_constant_override("separation", Style.GAP_CARDS)
 	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(buttons)
-	for text in ["Галерея", "Выход"]:
+	for text in ["Галерея", "Настройки", "Выход"]:
 		var b := PanelContainer.new()
 		b.custom_minimum_size = Vector2(320, Style.BUTTON_HEIGHT)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE

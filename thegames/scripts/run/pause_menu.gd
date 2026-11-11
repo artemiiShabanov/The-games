@@ -2,17 +2,18 @@ class_name PauseMenu
 extends Control
 ## Пауза вне мини-игр (#71), спека `docs/specs/run.md`: Esc на экранах оболочки, где Esc не
 ## занят самим экраном. Дерево на паузе (`get_tree().paused`), меню работает всегда:
-## «Продолжить» и «В меню» (↑ ↓, ␣, клик; Esc продолжает). Настройки в M6. Забег сохранён на
+## «Продолжить», «Настройки» (#81, экран поверх паузы) и «В меню» (↑ ↓, ␣, клик; Esc продолжает). Забег сохранён на
 ## начало текущей фазы, поэтому «В меню» ничего не теряет, кроме хода внутри фазы.
 
 signal resumed
 signal to_menu
 
-const ITEMS: Array[String] = ["Продолжить", "В меню"]
+const ITEMS: Array[String] = ["Продолжить", "Настройки", "В меню"]
 
 var index := 0
 var _buttons: Array[PanelContainer] = []
 var _lifts: Array[JellyLift] = []
+var _options: OptionsScreen
 
 
 func _ready() -> void:
@@ -66,6 +67,8 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _options != null:
+		return
 	# «В меню» синхронно уводит меню из дерева, поэтому вьюпорт берётся до выбора.
 	var viewport := get_viewport()
 	var key := event as InputEventKey
@@ -82,7 +85,7 @@ func _input(event: InputEvent) -> void:
 	if esc:
 		_choose(0)
 	elif event.is_action_pressed(GameInput.UP) or event.is_action_pressed(GameInput.DOWN):
-		index = 1 - index
+		index = wrapi(index + (1 if event.is_action_pressed(GameInput.DOWN) else -1), 0, ITEMS.size())
 		ShellSounds.play(&"tick")
 		_refresh()
 	elif GameInput.is_a(event) and not event.is_echo():
@@ -104,6 +107,12 @@ func _choose(i: int) -> void:
 	ShellSounds.play(&"done")
 	if i == 0:
 		resumed.emit()
+	elif i == 1:
+		_options = OptionsScreen.new()
+		_options.closed.connect(func() -> void:
+			_options.queue_free()
+			_options = null)
+		add_child(_options)
 	else:
 		to_menu.emit()
 
