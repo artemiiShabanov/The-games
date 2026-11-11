@@ -75,6 +75,7 @@ const FONT_PATH := "res://assets/fonts/nunito/Nunito-Variable.ttf"
 
 static var _font_file: FontFile
 static var _font_file_scaled: FontFile
+static var _scaled_oversampling := 2.0
 static var _fonts: Dictionary[int, Font] = {}
 
 
@@ -88,9 +89,23 @@ static func fun_font(weight := 700) -> Font:
 
 
 ## Тот же шрифт для текста, который увеличивается масштабом (карточки карусели): растр с
-## двойным запасом и мип-картами, чтобы и в увеличенной, и в обычной карточке он был чётким.
+## запасом (`need_scaled_oversampling`, не меньше двойного) и мип-картами, чтобы и в
+## увеличенной, и в обычной карточке он был чётким.
 static func fun_font_scaled(weight := 700) -> Font:
 	return _font(weight, true)
+
+
+## Запас растра увеличиваемого шрифта под масштаб `factor` относительно 1080p (масштаб
+## карточки, умноженный на масштаб окна): только растёт. Плейтест 2026-11-11: на экране основы
+## карточка в фокусе увеличена вдвое, в окне Retina это втрое с лишним от растра с двойным
+## запасом, и подписи мылились ступеньками.
+static func need_scaled_oversampling(factor: float) -> void:
+	var o := clampf(ceilf(factor * 2.0) / 2.0, 2.0, 6.0)
+	if o <= _scaled_oversampling:
+		return
+	_scaled_oversampling = o
+	if _font_file_scaled != null:
+		_font_file_scaled.oversampling = o
 
 
 static func _font(weight: int, scaled: bool) -> Font:
@@ -104,7 +119,7 @@ static func _font(weight: int, scaled: bool) -> Font:
 				_font_file_scaled = (load(FONT_PATH) as FontFile).duplicate() as FontFile
 				_font_file_scaled.multichannel_signed_distance_field = false
 				_font_file_scaled.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
-				_font_file_scaled.oversampling = 2.0
+				_font_file_scaled.oversampling = _scaled_oversampling
 				_font_file_scaled.generate_mipmaps = true
 			file = _font_file_scaled
 		else:

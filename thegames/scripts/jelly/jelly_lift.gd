@@ -13,8 +13,6 @@ var hover_lift := false
 ## Бледный нейтральный бортик: фокус на неинтерактивном (пост ленты), не обещает нажатия.
 var neutral := false
 var resting := 0.0
-## Добавка к подъёму в фокусе (подбородок карусели, #84), в координатах хозяина.
-var extra := 0.0
 var radius := 24.0
 var spring := JellySpring.new()
 var host: Control
@@ -67,7 +65,7 @@ func _process(delta: float) -> void:
 	var raised := focused if not hover_lift else Jelly.ui().is_hovered(host)
 	var target := resting
 	if raised:
-		target = resting + tu.lift_px + extra
+		target = resting + tu.lift_px
 		if focused and moving:
 			target += sin(Time.get_ticks_msec() / 1000.0 * 2.2 + _phase) * tu.lift_breathe
 	if _press_left > 0.0:
@@ -119,10 +117,12 @@ func _draw() -> void:
 	# Затемнённая (закрытая) карточка накрыта белой вуалью: бортик смешан с белым так же.
 	lip = lip.lerp(Style.SURFACE_SOLID, float(host.get_meta(&"jelly_veil", 0.0)))
 	var r := minf(radius, minf(size.x, size.y) / 2.0)
-	# Серп: та же форма, сдвинутая вниз и чуть уже, минус карточка, поднятая на 2 пикселя.
-	# Под карточку он заходит только на эти 2 пикселя: стыка нет, и сквозь растворяющуюся у
-	# края карусели карточку ему просвечивать нечем.
-	var inset := minf(3.0, k * 0.3)
+	# Серп: та же форма, сдвинутая вниз, минус карточка, поднятая на 2 пикселя. Под карточку
+	# он заходит только на эти 2 пикселя: стыка нет, и сквозь растворяющуюся у края карусели
+	# карточку ему просвечивать нечем. Бока прямые вровень с карточкой (плейтест 2026-11-11:
+	# у поджатого серпа на боку была ступенька, где скругление карточки встречает его бок),
+	# поджат только на полпикселя сглаженного края, чтобы не выпирать за карточку.
+	var inset := minf(0.5, k * 0.1)
 	var squeeze := 1.0 - 2.0 * inset / maxf(size.x, 1.0)
 	var cx := size.x / 2.0
 	var shape := RunnerJelly.rounded_rect(size, r, 10, 2)
