@@ -25,6 +25,7 @@ kind = 2
 genre = 4
 verb = "Выстрой"
 hint = "␣ останавливает светящееся кольцо: поставь вырез под стрелку, снаружи внутрь; мимо, и замок заново"
+mouse_hint = "клик"
 scene = ExtResource("2_rings")
 inputs = Array[StringName]([&"action_a"])
 params = Dictionary[StringName, Curve]({

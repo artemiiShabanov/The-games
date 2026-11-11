@@ -24,6 +24,7 @@ id = &"runner"
 kind = 2
 verb = "Прыгай"
 hint = "A прыжок через ямы и столбики, держи дольше: выше"
+mouse_hint = "клик прыжок, держи: выше"
 scene = ExtResource("1_51fd4")
 inputs = Array[StringName]([&"action_a"])
 params = Dictionary[StringName, Curve]({

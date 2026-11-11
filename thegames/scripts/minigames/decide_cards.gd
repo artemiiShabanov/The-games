@@ -207,6 +207,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Мышь (#83): клик выше середины карточки принимает, как ↑ (принятая улетает вверх), ниже
+## отклоняет; правая кнопка отклоняет где угодно.
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button == MOUSE_BUTTON_RIGHT:
+		return GameInput.DOWN
+	return GameInput.UP if pos.y < size.y * 0.52 else GameInput.DOWN
+
+
 func _zone_x() -> float:
 	return size.x / 2.0
 

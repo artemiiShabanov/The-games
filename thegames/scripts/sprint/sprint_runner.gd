@@ -273,7 +273,7 @@ func _make_intro_card(def: MinigameDef) -> Control:
 		column.add_child(_label(def.hint, Style.FONT_H2, Style.INK_2))
 	column.add_child(_spacer(12))
 	column.add_child(_label(def.owner_name().to_upper(), Style.FONT_CAPTION, Style.INK_3))
-	card.add_child(HintPill.bottom_bar(HintPill.for_inputs(def.inputs)))
+	card.add_child(HintPill.bottom_bar(HintPill.for_inputs(def.inputs, def.mouse_hint)))
 	return card
 
 

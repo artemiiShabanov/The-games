@@ -22,6 +22,7 @@ id = &"tune"
 aspect = 1
 verb = "Настрой волну"
 hint = "Влево-вправо частота, вверх-вниз амплитуда, A фиксирует"
+mouse_hint = "веди с зажатой кнопкой · клик фиксирует"
 scene = ExtResource("1_xbiec")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])
 params = Dictionary[StringName, Curve]({

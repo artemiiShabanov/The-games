@@ -7,7 +7,12 @@ extends Control
 ## `_on_finish` и, когда появится настоящий бот, `_bot_step`. Пауза на Esc (плейтест
 ## 2026-11-08, #42): таймер и ввод стоят, поле закрыто подложкой с карточкой: глагол, правила
 ## (`def.hint`), пилюля ввода, кнопка «Продолжить» (␣, Esc или клик) и «В меню» (#71, ↓ и ␣
-## или клик: `menu_requested`). Под ботом паузы нет.
+## или клик: `menu_requested`; наведение мыши переносит фокус, как стрелки). Под ботом паузы нет.
+## Мышь (#83): клавиатура основная, мышь своя у каждой игры, таблица в
+## `docs/specs/minigames_catalog.md`. По умолчанию левая кнопка жмёт A, правая B (зажатая
+## держит действие, отпущенная отпускает). Наследник решает, какое действие жмёт кнопка в
+## точке поля, в `_mouse_action`, а колесо, наведение и перетаскивание разбирает сам в
+## `_on_mouse`. Действие доходит до `_unhandled_input` наследника так же, как клавиша.
 
 signal finished(success: bool)
 ## «В меню» из паузы (#71): хозяин уходит в главное меню, сохранение на начало спринта.
@@ -27,6 +32,11 @@ var running := false
 var elapsed := 0.0
 
 var paused := false
+
+## Последнее действие, нажатое мышью (проверка `debug/scenes/mouse_test`).
+var mouse_last_action := &""
+## Кнопки мыши, зажатые сейчас, и действия, которые они держат.
+var _mouse_held: Dictionary[int, StringName] = {}
 
 var _done := false
 var _timer_bar: ColorRect
@@ -59,6 +69,7 @@ func finish(success: bool) -> void:
 		return
 	_done = true
 	running = false
+	_release_mouse()
 	_on_finish(success)
 	finished.emit(success)
 
@@ -69,6 +80,7 @@ func pause() -> void:
 		return
 	paused = true
 	running = false
+	_release_mouse()
 	set_process_unhandled_input(false)
 	if _pause_overlay == null:
 		_build_pause()
@@ -102,6 +114,19 @@ func _input(event: InputEvent) -> void:
 		if esc and running:
 			pause()
 			MouseUi.consume(viewport)
+		elif event is InputEventMouse and (running or not _mouse_held.is_empty()):
+			if _mouse_input(make_input_local(event) as InputEventMouse):
+				MouseUi.consume(viewport)
+		return
+	# Наведение на кнопку паузы переносит на неё фокус, как стрелка.
+	var motion := event as InputEventMouseMotion
+	if motion != null:
+		for i in 2:
+			var b := _resume_button if i == 0 else _menu_button
+			if i != _pause_focus and MouseUi.hit(b, motion):
+				_pause_focus = i
+				_refresh_pause_focus()
+				ShellSounds.play(&"tick")
 		return
 	var mouse := event as InputEventMouseButton
 	var pressed := mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
@@ -153,6 +178,91 @@ func _on_finish(_success: bool) -> void:
 	pass
 
 
+## Мышь, координаты поля. Своё разбирает и возвращает true: колесо, наведение, перетаскивание,
+## прямое действие по объекту. Кнопку, которую не разобрал, базовый класс превращает в
+## действие через `_mouse_action`.
+func _on_mouse(_event: InputEventMouse) -> bool:
+	return false
+
+
+## Какое действие жмёт кнопка мыши `button` в точке поля `pos`: по умолчанию левая A, правая B.
+## Пустое имя: клик ничего не жмёт (но съеден). Игры с направлением и целями решают по точке.
+func _mouse_action(button: MouseButton, _pos: Vector2) -> StringName:
+	match button:
+		MOUSE_BUTTON_LEFT:
+			return GameInput.A
+		MOUSE_BUTTON_RIGHT:
+			return GameInput.B
+	return &""
+
+
+## Стрелка в сторону точки `pos` от `from`, по большей оси: «клик по стороне поля».
+static func dir_action(from: Vector2, pos: Vector2) -> StringName:
+	var d := pos - from
+	if absf(d.x) >= absf(d.y):
+		return GameInput.RIGHT if d.x >= 0.0 else GameInput.LEFT
+	return GameInput.DOWN if d.y >= 0.0 else GameInput.UP
+
+
+## Нажать или отпустить действие, как клавишей: `Input` видит его зажатым (игры «держи»), событие
+## уходит в `_unhandled_input` этой мини-игры.
+func send_action(action: StringName, pressed := true) -> void:
+	if pressed:
+		Input.action_press(action)
+		mouse_last_action = action
+	else:
+		Input.action_release(action)
+	var ev := InputEventAction.new()
+	ev.action = action
+	ev.pressed = pressed
+	_unhandled_input(ev)
+
+
+## Нажать и сразу отпустить: клик колесом, шаг перетаскивания.
+func tap_action(action: StringName) -> void:
+	send_action(action, true)
+	send_action(action, false)
+
+
+func _unhandled_input(_event: InputEvent) -> void:
+	pass
+
+
+func _mouse_input(event: InputEventMouse) -> bool:
+	var b := event as InputEventMouseButton
+	if b != null and not b.pressed and _mouse_held.has(b.button_index):
+		var held: StringName = _mouse_held[b.button_index]
+		_mouse_held.erase(b.button_index)
+		send_action(held, false)
+		if not running:
+			return true
+		_on_mouse(event)
+		return true
+	if not running:
+		return false
+	if _on_mouse(event):
+		return true
+	if b == null or (b.button_index != MOUSE_BUTTON_LEFT and b.button_index != MOUSE_BUTTON_RIGHT):
+		return false
+	if b.pressed:
+		var action := _mouse_action(b.button_index, b.position)
+		if action != &"":
+			_mouse_held[b.button_index] = action
+			send_action(action, true)
+	return true
+
+
+## Зажатые мышью действия отпускаются: пауза, финиш, уход со сцены.
+func _release_mouse() -> void:
+	for button in _mouse_held.keys():
+		Input.action_release(_mouse_held[button])
+	_mouse_held.clear()
+
+
+func _exit_tree() -> void:
+	_release_mouse()
+
+
 ## Бот вместо игрока. По умолчанию через `BOT_DELAY` заканчивает исходом по режиму и
 ## забирает кадр (возвращает true). Настоящий бот нажимает действия и возвращает false.
 func _bot_step(_delta: float) -> bool:
@@ -178,7 +288,7 @@ func _build_chrome() -> void:
 	add_child(icon)
 	Jelly.attach(icon, AspectIcon.SIZE / 2.0, 14.0, false, 0.0, true, 1.5)
 
-	add_child(HintPill.bottom_bar(HintPill.for_inputs(def.inputs)))
+	add_child(HintPill.bottom_bar(HintPill.for_inputs(def.inputs, def.mouse_hint)))
 
 
 ## Карточка паузы поверх поля: глагол, правила, пилюля ввода, кнопка «Продолжить».
@@ -211,7 +321,7 @@ func _build_pause() -> void:
 	var inputs := HBoxContainer.new()
 	inputs.alignment = BoxContainer.ALIGNMENT_CENTER
 	inputs.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inputs.add_child(HintPill.for_inputs(def.inputs))
+	inputs.add_child(HintPill.for_inputs(def.inputs, def.mouse_hint))
 	column.add_child(inputs)
 	_resume_button = PanelContainer.new()
 	_resume_button.custom_minimum_size = Vector2(0, Style.BUTTON_HEIGHT)

@@ -24,6 +24,7 @@ id = &"flood_fill"
 aspect = 3
 verb = "Залей"
 hint = "Влево-вправо цвет, A заливает из угла: сделай сетку одноцветной"
+mouse_hint = "клик по цвету или по клетке"
 time_seconds = 30.0
 scene = ExtResource("1_3i3gf")
 inputs = Array[StringName]([&"move_left", &"move_right", &"action_a"])

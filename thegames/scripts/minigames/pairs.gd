@@ -111,6 +111,33 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Мышь (#83): наведение ставит курсор на карточку, клик открывает её.
+func _on_mouse(event: InputEventMouse) -> bool:
+	if event is InputEventMouseMotion:
+		var i := _card_at(event.position)
+		if i >= 0 and _index(cursor) != i:
+			cursor = Vector2i(i % cols, i / cols)
+			queue_redraw()
+	return false
+
+
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	var i := _card_at(pos)
+	if button != MOUSE_BUTTON_LEFT or i < 0:
+		return &""
+	cursor = Vector2i(i % cols, i / cols)
+	return GameInput.A
+
+
+## Карточка под точкой поля или −1.
+func _card_at(pos: Vector2) -> int:
+	for i in cols * ROWS:
+		var d := (pos - _card_home(i)).abs()
+		if d.x <= CARD / 2.0 and d.y <= CARD / 2.0:
+			return i
+	return -1
+
+
 func _move(d: Vector2i) -> void:
 	cursor = Vector2i(wrapi(cursor.x + d.x, 0, cols), wrapi(cursor.y + d.y, 0, ROWS))
 	queue_redraw()

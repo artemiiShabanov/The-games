@@ -28,6 +28,7 @@ script = ExtResource("1_as8un")
 id = &"patch_line"
 verb = "Поправь"
 hint = "Сдвинутый блок под курсором: стрелка ставит его на место"
+mouse_hint = "клик выше или ниже ленты · колесо"
 time_seconds = 18.0
 scene = ExtResource("1_m2iuy")
 inputs = Array[StringName]([&"move_up", &"move_down"])

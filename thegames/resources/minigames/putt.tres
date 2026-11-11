@@ -35,6 +35,7 @@ kind = 2
 genre = 3
 verb = "Натяни"
 hint = "Держи ␣: полоса тянется по земле, отпусти, когда её конец в лунке; стрелка сносит шар"
+mouse_hint = "держи кнопку мыши, отпусти"
 scene = ExtResource("2_putt")
 inputs = Array[StringName]([&"action_a"])
 params = Dictionary[StringName, Curve]({

@@ -2,10 +2,12 @@ class_name GameInput
 extends RefCounted
 ## Единый набор ввода игры, спека `docs/specs/minigames.md`: стрелки, A, B.
 ## Клавиатура основная: стрелки или WASD; A = Z, пробел, Enter; B = X, C, Ctrl (Esc с B снят
-## плейтестом 2026-11-08: Esc только паузы и отказы оболочки). Геймпад: крестовина и левый
-## стик, кнопка юга A, кнопка востока B. Действия заданы в `project.godot` ([input]); код
-## обращается к ним только через эти имена. Подписи в интерфейсе реальными клавишами через
-## `key(action)`: «␣» и «Ctrl» на клавиатуре, кнопки геймпада, когда он станет устройством.
+## плейтестом 2026-11-08: Esc только паузы и отказы оболочки). Мышь в мини-играх (#83):
+## левая кнопка = A, правая = B, своё у каждой игры (`Minigame._mouse_action`). Геймпад:
+## крестовина и левый стик, кнопка юга A, кнопка востока B. Действия заданы в
+## `project.godot` ([input]); код обращается к ним только через эти имена. Подписи в
+## интерфейсе реальными клавишами через `key(action)`: «␣» и «Ctrl» на клавиатуре, кнопки
+## геймпада, когда он станет устройством.
 
 const LEFT: StringName = &"move_left"
 const RIGHT: StringName = &"move_right"
@@ -29,6 +31,10 @@ const GAMEPAD_LABELS := {
 
 ## Текущее устройство подписей; геймпад переключит, когда появится его поддержка в оболочке.
 static var device := Device.KEYBOARD
+## Игрок сейчас на мыши (#83): последним нажал кнопку мыши или крутил колесо, а не клавишу.
+## Пилюли ввода мини-игр показывают тогда подсказку мыши (`HintPill.for_inputs`). Обновляет
+## `note`, его зовёт автолоад `UiTheme` на каждое событие окна.
+static var mouse := false
 
 
 ## Подпись действия реальной клавишей текущего устройства.
@@ -79,6 +85,15 @@ static func is_any_press(event: InputEvent) -> bool:
 		if event.is_action_pressed(action):
 			return true
 	return false
+
+
+## Последнее устройство ввода: нажатие кнопки мыши включает мышь, клавиша или кнопка геймпада
+## возвращают клавиатуру. Движение мыши не в счёт: случайно задетая мышь не меняет подсказки.
+static func note(event: InputEvent) -> void:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		mouse = true
+	elif (event is InputEventKey or event is InputEventJoypadButton) and event.is_pressed():
+		mouse = false
 
 
 ## Какое из игровых действий несёт событие, или пустое имя.

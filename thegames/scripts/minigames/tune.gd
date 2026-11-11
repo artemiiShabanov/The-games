@@ -34,6 +34,12 @@ const DOT_R := 7.0
 const DOT_GAP := 28.0
 const SPLASH_CRESTS := 5
 
+## Мышь: сколько пикселей ведения на шаг частоты и амплитуды, и сдвиг, после которого клик уже
+## ведение, а не фиксация.
+const DRAG_FREQ_PX := 36.0
+const DRAG_AMP_PX := 24.0
+const CLICK_SLOP := 10.0
+
 var offset_steps := 3
 var two_axes := 0.0
 var tolerance := 1
@@ -48,6 +54,9 @@ var shake := 0.0
 var lock := 0.0
 var merge := 0.0
 var done_this := false
+var _drag := false
+var _drag_acc := Vector2.ZERO
+var _drag_moved := false
 var _bot_timer := 0.0
 var _player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
@@ -135,6 +144,40 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+## Мышь (#83): ведёшь с зажатой кнопкой, как крутишь ручку: вбок частота, вверх-вниз амплитуда,
+## шаг на каждые `DRAG_FREQ_PX` и `DRAG_AMP_PX`; клик без ведения фиксирует, как ␣; колесо
+## амплитуда.
+func _on_mouse(event: InputEventMouse) -> bool:
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		tap_action(GameInput.UP if w < 0 else GameInput.DOWN)
+		return true
+	var b := event as InputEventMouseButton
+	if b != null and b.button_index == MOUSE_BUTTON_LEFT:
+		if b.pressed:
+			_drag = true
+			_drag_acc = Vector2.ZERO
+			_drag_moved = false
+		elif _drag:
+			_drag = false
+			if not _drag_moved:
+				tap_action(GameInput.A)
+		return true
+	var m := event as InputEventMouseMotion
+	if m == null or not _drag:
+		return false
+	_drag_acc += m.relative
+	if _drag_acc.length() > CLICK_SLOP:
+		_drag_moved = true
+	while absf(_drag_acc.x) >= DRAG_FREQ_PX:
+		tap_action(GameInput.RIGHT if _drag_acc.x > 0.0 else GameInput.LEFT)
+		_drag_acc.x -= signf(_drag_acc.x) * DRAG_FREQ_PX
+	while absf(_drag_acc.y) >= DRAG_AMP_PX:
+		tap_action(GameInput.DOWN if _drag_acc.y > 0.0 else GameInput.UP)
+		_drag_acc.y -= signf(_drag_acc.y) * DRAG_AMP_PX
+	return true
 
 
 func _adjust(df: float, da: float) -> void:

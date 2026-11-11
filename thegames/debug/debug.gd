@@ -305,6 +305,9 @@ func _register_builtin() -> void:
 			func(v: bool) -> void: minigame_loop = v)
 	add_number(SECTION_MINIGAMES, "Переигровок", func() -> int: return minigame_replays,
 			func(v: float) -> void: minigame_replays = int(v), 0, 2, 1)
+	# Мышь (#83): пилюли ввода как у игрока на мыши; клик или клавиша переключат сами.
+	add_toggle(SECTION_MINIGAMES, "Пилюли: мышь", func() -> bool: return GameInput.mouse,
+			func(v: bool) -> void: GameInput.mouse = v)
 	add_action(SECTION_MINIGAMES, "Запустить мини-игру", func() -> void:
 		minigame_single = true
 		run_test_scene(MINIGAME_SCENE))

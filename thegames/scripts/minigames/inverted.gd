@@ -196,6 +196,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Мышь (#83): клик со стороны от точки жмёт стрелку в ту сторону, по большей оси; в режиме
+## лабиринта, как и стрелка, едет лабиринт.
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	_layout()
+	return dir_action(_dot_screen, pos)
+
+
 ## Нажатие стрелки: в режиме точки точка идёт туда, в режиме лабиринта лабиринт едет туда,
 ## то есть точка попадает в клетку напротив.
 func _press(d: int) -> void:

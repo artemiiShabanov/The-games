@@ -27,6 +27,7 @@ id = &"decide_cards"
 aspect = 4
 verb = "Реши"
 hint = "Подходит под правило: ↑, не подходит: любая другая стрелка"
+mouse_hint = "клик выше карточки: да · ниже или правый клик: нет"
 time_seconds = 24.0
 scene = ExtResource("1_8f6v3")
 inputs = Array[StringName]([&"move_up", &"move_down", &"move_left", &"move_right"])

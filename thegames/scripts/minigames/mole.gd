@@ -129,6 +129,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Мышь (#83): клик по лунке (со стороны от молотка, по большей оси) бьёт в неё.
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	return dir_action(_center(), pos)
+
+
 func _press(i: int) -> void:
 	if stun > 0.0:
 		return

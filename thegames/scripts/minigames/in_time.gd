@@ -151,6 +151,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			_release(lane)
 
 
+## Мышь (#83): клик по дорожке жмёт её стрелку, зажатая кнопка держит длинную ноту. Аккорд
+## мышью не взять: одна кнопка, одна дорожка.
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	for lane in LANES:
+		if absf(pos.x - _lane_x(lane)) <= (LANE_W + LANE_GAP) / 2.0:
+			return LANE_ACTIONS[lane]
+	return &""
+
+
 func _on_tick(delta: float) -> void:
 	for lane in LANES:
 		lane_flash[lane] = maxf(lane_flash[lane] - delta, 0.0)

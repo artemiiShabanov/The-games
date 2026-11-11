@@ -19,6 +19,7 @@ id = &"fishing"
 aspect = 4
 verb = "Удержи"
 hint = "Держи клавишу: столбик вверх, отпусти: вниз, держи шарик внутри"
+mouse_hint = "держи кнопку мыши"
 scene = ExtResource("1_ww226")
 inputs = Array[StringName]([&"action_a"])
 params = Dictionary[StringName, Curve]({

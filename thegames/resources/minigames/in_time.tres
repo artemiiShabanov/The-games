@@ -39,6 +39,7 @@ id = &"in_time"
 aspect = 1
 verb = "В такт"
 hint = "Ноты бегут к метке: нужная стрелка в такт, длинные держи"
+mouse_hint = "клик по дорожке, длинные держи"
 scene = ExtResource("1_e1mjj")
 inputs = Array[StringName]([&"move_left", &"move_down", &"move_right"])
 params = Dictionary[StringName, Curve]({

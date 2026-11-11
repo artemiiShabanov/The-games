@@ -102,6 +102,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Мышь (#83): клик по клавише на поле жмёт её; правая кнопка жмёт Ctrl, как клавиатурная.
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button == MOUSE_BUTTON_RIGHT:
+		return GameInput.B
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	for i in KEYS.size():
+		var d := (pos - _pad_center(i)).abs()
+		if d.x <= PAD / 2.0 and d.y <= PAD / 2.0:
+			return KEYS[i]
+	return &""
+
+
 func _on_tick(delta: float) -> void:
 	for i in KEYS.size():
 		lit[i] = maxf(lit[i] - delta, 0.0)

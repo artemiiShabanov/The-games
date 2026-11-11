@@ -25,6 +25,7 @@ kind = 2
 genre = 2
 verb = "Бей"
 hint = "Кружок выскочил: бей ← ↑ → ↓ в его сторону, пока не спрятался"
+mouse_hint = "клик по лунке"
 scene = ExtResource("2_mole")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
 params = Dictionary[StringName, Curve]({
