@@ -92,6 +92,8 @@ func resume() -> void:
 ## Esc открывает и закрывает паузу; на паузе ␣, Esc или клик по кнопке продолжают, остальной
 ## ввод не доходит до мини-игры.
 func _input(event: InputEvent) -> void:
+	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
+	var viewport := get_viewport()
 	if _done or AutoTest.bot_active():
 		return
 	var key := event as InputEventKey
@@ -99,7 +101,7 @@ func _input(event: InputEvent) -> void:
 	if not paused:
 		if esc and running:
 			pause()
-			get_viewport().set_input_as_handled()
+			MouseUi.consume(viewport)
 		return
 	var mouse := event as InputEventMouseButton
 	var pressed := mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
@@ -115,7 +117,7 @@ func _input(event: InputEvent) -> void:
 	elif esc or GameInput.is_a(event) or click:
 		resume()
 	if key != null or mouse != null:
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 
 
 func _process(delta: float) -> void:

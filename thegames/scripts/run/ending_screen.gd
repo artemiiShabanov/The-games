@@ -33,11 +33,13 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
+	var viewport := get_viewport()
 	if _done:
 		return
 	if (MouseUi.is_click(event) and MouseUi.hit(_button, event)) or (not event.is_echo() and GameInput.is_a(event)):
 		press()
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 
 
 func _process(delta: float) -> void:

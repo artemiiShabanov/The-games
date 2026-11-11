@@ -123,21 +123,23 @@ func finish_spin() -> void:
 # --- Ввод -------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
+	var viewport := get_viewport()
 	if _founded:
 		return
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_R:
 		regenerate()
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 		return
 	if MouseUi.is_click(event):
 		if MouseUi.hit(_button, event):
 			_press()
-			get_viewport().set_input_as_handled()
+			MouseUi.consume(viewport)
 		return
 	if not event.is_echo() and GameInput.is_a(event):
 		_press()
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 
 
 func _press() -> void:

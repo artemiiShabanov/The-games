@@ -69,6 +69,8 @@ func _sort_entries() -> void:
 # --- Ввод ------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
+	var viewport := get_viewport()
 	if playing or _closing:
 		return
 	if event is InputEventMouseMotion:
@@ -80,13 +82,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		var w := MouseUi.wheel(event)
 		if w != 0:
 			_scroll.scroll_vertical += w * (CARD_HEIGHT / 2)
-			get_viewport().set_input_as_handled()
+			MouseUi.consume(viewport)
 		elif MouseUi.is_click(event):
 			var at := _card_at(event)
 			if at >= 0:
 				focus(at, false)
 				play()
-				get_viewport().set_input_as_handled()
+				MouseUi.consume(viewport)
 		return
 	if event.is_echo() and not (event.is_action(GameInput.UP) or event.is_action(GameInput.DOWN)
 			or event.is_action(GameInput.LEFT) or event.is_action(GameInput.RIGHT)):
@@ -108,7 +110,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		play()
 	else:
 		return
-	get_viewport().set_input_as_handled()
+	MouseUi.consume(viewport)
 
 
 func _card_at(event: InputEvent) -> int:

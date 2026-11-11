@@ -43,3 +43,10 @@ static func pass_through(node: Node) -> void:
 		(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for child in node.get_children():
 		pass_through(child)
+
+
+## Ввод съеден. Вьюпорт берётся до выбора: выбор может синхронно увести экран из дерева, и тогда
+## `get_viewport()` уже пуст.
+static func consume(viewport: Viewport) -> void:
+	if viewport != null:
+		viewport.set_input_as_handled()

@@ -66,6 +66,8 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# «В меню» синхронно уводит меню из дерева, поэтому вьюпорт берётся до выбора.
+	var viewport := get_viewport()
 	var key := event as InputEventKey
 	var esc := key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE
 	var handled := true
@@ -86,7 +88,7 @@ func _input(event: InputEvent) -> void:
 	else:
 		handled = event is InputEventKey or event is InputEventMouseButton
 	if handled:
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 
 
 func _choose(i: int) -> void:

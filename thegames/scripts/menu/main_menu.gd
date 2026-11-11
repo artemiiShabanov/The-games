@@ -60,6 +60,8 @@ func _open_game(slot: int, save: RunSave) -> void:
 # --- Ввод -------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
+	var viewport := get_viewport()
 	if _leaving or _gallery != null:
 		return
 	if event is InputEventMouseMotion:
@@ -76,7 +78,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif at >= 0:
 			focus = at
 			activate()
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 		return
 	if event.is_echo():
 		return
@@ -87,7 +89,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_confirm_new(true)
 		elif esc or GameInput.is_b(event):
 			_confirm_new(false)
-		get_viewport().set_input_as_handled()
+		MouseUi.consume(viewport)
 		return
 	if key != null and key.pressed and key.keycode == KEY_R:
 		ask_new(focus)
@@ -103,7 +105,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		activate()
 	else:
 		return
-	get_viewport().set_input_as_handled()
+	MouseUi.consume(viewport)
 
 
 func _item_at(event: InputEvent) -> int:
