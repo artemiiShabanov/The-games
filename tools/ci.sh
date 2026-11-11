@@ -34,6 +34,9 @@ step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=
 step "demo bugs" sh tools/autotest.sh --scene=demo_test --bugs --frames=3000
 step "ascii sheet" sh tools/autotest.sh --scene=ascii_test --frames=120
 step "minigame mash" sh tools/autotest.sh --scene=sprint_runner_test --minigame=mash --frames=1500
+step "demo platformer ascii" sh tools/autotest.sh --scene=demo_test --tech=ascii --frames=4000
+step "demo platformer ascii bugs" sh tools/autotest.sh --scene=demo_test --tech=ascii --bugs --frames=5000
+step "feed platformer ascii" sh tools/autotest.sh --scene=feed_test --tech=ascii --frames=400
 step "ascii probe bugs" sh tools/autotest.sh --scene=ascii_test --probe --bugs --frames=1500
 step "demo racing" sh tools/autotest.sh --scene=demo_test --genre=racing --frames=5000
 step "demo racing bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --bugs --frames=5000

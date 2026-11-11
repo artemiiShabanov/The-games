@@ -99,12 +99,13 @@ static func _segment(level: PlatformerLevel, rng: RandomNumberGenerator, t: Plat
 		var px := rng.randi_range(x + 1, end - plen - 1)
 		var py := h + rng.randi_range(t.platform_lift_min, t.platform_lift_max)
 		_platform(level, rng, t, px, py, plen, false)
-		if rng.randf() < t.platform_second_chance and py + 1 + t.jump_dy - 1 + 1 < level.height - 2:
+		var lift2 := t.platform_second_lift if t.platform_second_lift > 0 else t.jump_dy - 1
+		if rng.randf() < t.platform_second_chance and py + 1 + lift2 + 1 < level.height - 2:
 			# Второй ярус: начинается над первым со сдвигом вправо, выше на jump_dy − 1 рядов
 			# стояния, так что с первого яруса на него есть прыжок.
 			var plen2 := rng.randi_range(t.platform_min, t.platform_max)
 			var px2 := px + rng.randi_range(1, plen)
-			var py2 := py + t.jump_dy - 1
+			var py2 := py + lift2
 			_platform(level, rng, t, px2, py2, plen2, true)
 	elif not after_pit and real_len >= 4 and rng.randf() < t.coin_chance * 0.6:
 		var cx := rng.randi_range(x + 1, end - 3)
@@ -132,7 +133,7 @@ static func _platform(level: PlatformerLevel, rng: RandomNumberGenerator, t: Pla
 	level.platforms.append(Rect2i(px, py, plen, 1))
 	if rng.randf() < t.coin_chance:
 		for i in plen:
-			level.coins.append(Vector2i(px + i, py + 2))
+			level.coins.append(Vector2i(px + i, py + t.platform_coin_lift))
 	if with_enemy and plen >= 3 and rng.randf() < t.platform_enemy_chance:
 		var e := PlatformerLevel.Enemy.new()
 		e.patrol_from = px
@@ -165,7 +166,7 @@ static func passable(level: PlatformerLevel, t: PlatformerGenTuning) -> bool:
 				var ok := false
 				if d == 1 and sy <= s.y + 1:
 					ok = true
-				elif d <= t.jump_dx and sy <= s.y + t.jump_dy:
+				elif d <= t.jump_dx and sy <= s.y + t.jump_dy and (sy <= s.y or t.jump_dx_up <= 0 or d <= t.jump_dx_up):
 					ok = true
 				elif d > t.jump_dx and sy <= s.y + 2:
 					ok = true

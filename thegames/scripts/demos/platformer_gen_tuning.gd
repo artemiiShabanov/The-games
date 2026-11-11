@@ -35,6 +35,9 @@ const PATH := "res://resources/demos/platformer_gen.tres"
 @export var platform_lift_max := 3
 ## Второй ярус: платформа над первой, ряд стояния выше не больше чем на `jump_dy`.
 @export var platform_second_chance := 0.5
+## Насколько второй ярус выше первого в рядах; 0 значит `jump_dy − 1` (8-bit). ASCII: 2, иначе
+## при прыжке на две клетки второй ярус лёг бы на голову стоящему на первом.
+@export var platform_second_lift := 0
 ## Ходок на платформе второго яруса длиной от трёх.
 @export var platform_enemy_chance := 0.4
 @export var enemy_chance := 0.9
@@ -46,10 +49,16 @@ const PATH := "res://resources/demos/platformer_gen.tres"
 ## выходе отрезка должны быть свободны.
 @export var flyer_min_segment := 8
 @export var coin_chance := 0.7
+## Ряд монет над платформой (от ряда платформы). ASCII: 1, монеты лежат на ней, иначе ряд монет
+## совпал бы с рядом второго яруса.
+@export var platform_coin_lift := 2
 @export var jump_dx := 5
 @export var jump_dy := 4
 ## Сколько колонок добавляет дэш в воздухе; приземление при этом не выше двух рядов.
 @export var dash_dx := 3
+## Дальность прыжка на поверхность выше старта; 0 значит `jump_dx` (8-bit). ASCII (#90): прыжок
+## по клеткам на высоте держится недолго, вверх он короче, чем вровень или вниз.
+@export var jump_dx_up := 0
 
 
 static func load_default() -> PlatformerGenTuning:

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PlatformerAsciiTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_ascii_tuning.gd" id="1_demo"]
+
+[resource]
+script = ExtResource("1_demo")
+lives = 2
+step_seconds = 0.08
+vtick = 0.06
+jump_rows = 2
+hang_ticks = 4
+enemy_step = 0.3
+invulnerable_seconds = 1.2
+death_pause = 0.6
+prop_chance = 0.03
+music_db = -10.0
+sfx_db = -8.0

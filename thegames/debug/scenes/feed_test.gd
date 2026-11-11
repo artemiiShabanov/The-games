@@ -4,7 +4,8 @@ extends Control
 ## «Дальше» или «В демо» показывает, что нажали, A запускает снова. Под ботом: состав ленты по
 ## спеке, сдвиги критиков, выбор стримера, сигналы кнопок. Флаги `--no-checks`, `--quality=`,
 ## `--bugs=`, `--end` (пролистать в конец), `--genre=racing`, `--genre=shooter`, `--genre=sport` или
-## `--genre=fighting` (стрим крутит демку гонок, шутера, гольфа или файтинга).
+## `--genre=fighting` (стрим крутит демку гонок, шутера, гольфа или файтинга), `--tech=ascii`
+## (демка пары на ASCII, #90).
 
 const SECTION: StringName = &"Лента"
 ## Сцена грузится при запуске, не `preload`: константная ссылка на сцену с вложенным классом
@@ -22,6 +23,8 @@ var seed_value := 1
 ## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50;
 ## `--genre=sport`, #52; `--genre=fighting`, #54).
 var genre := Game.Genre.PLATFORMER
+## Технология записи (`--tech=ascii`, #90), по умолчанию 8-bit.
+var tech := Game.Tech.BIT8
 var tuning: SuccessTuning
 var catalog: BugCatalog
 var critics: PeopleSet
@@ -66,6 +69,8 @@ func _ready() -> void:
 			bugs = int(args["bugs"])
 		if args.has("genre"):
 			genre = maxi(DemoCatalog.GENRE_KEYS.find(str(args["genre"])), 0) as Game.Genre
+		if args.has("tech"):
+			tech = maxi(DemoCatalog.TECH_KEYS.find(str(args["tech"])), 0) as Game.Tech
 		if args.has("no-checks"):
 			_checked = true
 		else:
@@ -83,7 +88,7 @@ func _exit_tree() -> void:
 
 
 func _make_record() -> GameRecord:
-	var rec := GameRecord.create(genre, Game.Tech.BIT8, seed_value, str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])), Game.Setting.PIRATES)
+	var rec := GameRecord.create(genre, tech, seed_value, str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])), Game.Setting.PIRATES)
 	var sprints := 5
 	var ok := int(round(quality * sprints))
 	for k in sprints:

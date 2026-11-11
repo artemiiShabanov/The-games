@@ -361,15 +361,28 @@ func _check_demo_lock() -> void:
 	_expect(constructor.is_unlocked(0, shooter), "шутер × 8-bit открыт с демкой (#50)")
 	_expect(constructor.is_unlocked(0, sport), "спорт × 8-bit открыт с демкой (#52)")
 	_expect(constructor.is_unlocked(0, fighting), "файтинг × 8-bit открыт с демкой (#54)")
-	# С #54 демка есть у каждого жанра на 8-bit; закрытая пара теперь на другой технологии:
-	# у ASCII демок ещё нет, жанр с ней закрыт пилюлей «демка в работе».
-	_expect(not DemoCatalog.has_demo(Game.Genre.PLATFORMER, Game.Tech.ASCII), "у платформера × ASCII появилась демка, тест ищет другую закрытую пару")
-	constructor.index[1] = constructor.catalogs[1].index_of(Game.Tech.ASCII)
-	_expect(not constructor.is_unlocked(0, plat), "платформер × ASCII закрыт без демки")
-	constructor.focus(0)
-	constructor.select(0, plat)
-	_expect(not constructor.selection_open() and constructor._button_label.text == "Демка в работе",
-			"кнопка без демки: «%s»" % constructor._button_label.text)
+	# С #54 демка есть у каждого жанра на 8-bit, с #90 у платформера × ASCII. Закрытая пара
+	# ищется сама: первая пара каталога без демки, её жанр закрыт пилюлей «демка в работе».
+	var ascii_i := constructor.catalogs[1].index_of(Game.Tech.ASCII)
+	constructor.index[1] = ascii_i
+	_expect(constructor.is_unlocked(0, plat), "платформер × ASCII открыт с демкой (#90)")
+	var closed_tech := -1
+	var closed_genre := -1
+	for ti in constructor.catalogs[1].entries.size():
+		for gi in genres.entries.size():
+			var tech := constructor.catalogs[1].entries[ti].value as Game.Tech
+			var genre := genres.entries[gi].value as Game.Genre
+			if closed_tech < 0 and not DemoCatalog.has_demo(genre, tech):
+				closed_tech = ti
+				closed_genre = gi
+	_expect(closed_tech >= 0, "у всех пар каталога есть демки, закрытую пару проверить негде")
+	if closed_tech >= 0:
+		constructor.index[1] = closed_tech
+		_expect(not constructor.is_unlocked(0, closed_genre), "пара без демки открыта")
+		constructor.focus(0)
+		constructor.select(0, closed_genre)
+		_expect(not constructor.selection_open() and constructor._button_label.text == "Демка в работе",
+				"кнопка без демки: «%s»" % constructor._button_label.text)
 	all_open = false
 
 
