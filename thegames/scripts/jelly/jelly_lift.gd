@@ -13,6 +13,8 @@ var hover_lift := false
 ## Бледный нейтральный бортик: фокус на неинтерактивном (пост ленты), не обещает нажатия.
 var neutral := false
 var resting := 0.0
+## Добавка к подъёму в фокусе (подбородок карусели, #84), в координатах хозяина.
+var extra := 0.0
 var radius := 24.0
 var spring := JellySpring.new()
 var host: Control
@@ -65,7 +67,7 @@ func _process(delta: float) -> void:
 	var raised := focused if not hover_lift else Jelly.ui().is_hovered(host)
 	var target := resting
 	if raised:
-		target = resting + tu.lift_px
+		target = resting + tu.lift_px + extra
 		if focused and moving:
 			target += sin(Time.get_ticks_msec() / 1000.0 * 2.2 + _phase) * tu.lift_breathe
 	if _press_left > 0.0:

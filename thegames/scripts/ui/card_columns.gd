@@ -90,7 +90,10 @@ func build(labels: Array[String], cards_: Array[Array], area: Vector2) -> void:
 		_lifts.append(lifts)
 		for i in cards[col].size():
 			var c: Control = cards[col][i]
-			lifts.append(JellyLift.add_to(c, Style.R_CARD))
+			var l := JellyLift.add_to(c, Style.R_CARD)
+			# Подбородок толще (#84): добавка в пикселях экрана, карточка в фокусе увеличена.
+			l.extra = Jelly.tuning().carousel_chin_px / maxf(select_scale, 0.01)
+			lifts.append(l)
 			c.pivot_offset = Style.CARD_SIZE / 2.0
 			c.position = Vector2(card_x, _card_y(col, i))
 			column.add_child(c)
@@ -175,6 +178,10 @@ func _card_y(col: int, i: int) -> float:
 		y -= grow
 	elif i > index[col]:
 		y += grow
+		# Под выбранной карточкой фокусной колонки толстый подбородок (#84): соседи ниже
+		# уходят на его добавку, зазор остаётся `GAP_CARDS`.
+		if col == focus_col:
+			y += Jelly.tuning().carousel_chin_px
 	return y
 
 

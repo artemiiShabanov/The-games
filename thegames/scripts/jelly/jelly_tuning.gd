@@ -79,3 +79,6 @@ extends Resource
 @export var lift_press := 1.5
 @export var lift_breathe := 0.8
 @export var lift_darken := 0.3
+## Добавка к бортику выбранной карточки карусели в фокусной колонке, пикселей экрана (плейтест
+## 2026-11-11, #84: подбородок карточек «Следующей игры» был тоньше, чем хочется).
+@export var carousel_chin_px := 20.0
