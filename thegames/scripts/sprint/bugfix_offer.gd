@@ -1,7 +1,7 @@
 class_name BugfixOffer
 extends Control
 ## Карточка предложения спринта багфикса после плейтеста (#27): сколько багов, что починит
-## успех, цена, кнопки «Купить» и «Отказаться». Влево-вправо фокус, A подтверждает, B и Esc
+## успех, цена, кнопки «Купить» и «Выпустить так». Влево-вправо фокус, A подтверждает, B и Esc
 ## отказ. Денег не хватает: кнопка покупки серая с суммой нехватки и трясётся. Деньги не
 ## списывает: хозяин по сигналу `accepted`.
 
@@ -123,7 +123,7 @@ func _build() -> void:
 	column.add_child(_label("Спринт багфикса", Style.FONT_H1, Style.INK, true))
 	var n := record.bug_ids.size()
 	var fix := Bugfix.fix_count(record)
-	column.add_child(_label("Багов в сборке: %d. Успех чинит %d из них, какие именно, решит QA." % [n, fix],
+	column.add_child(_label("В сборке багов: %d. Удачный спринт прихлопнет %d, каких именно, решит случай." % [n, fix],
 			Style.FONT_BODY, Style.INK_2, true))
 	# Штампы текущих багов.
 	var row := HBoxContainer.new()
@@ -148,7 +148,7 @@ func _build() -> void:
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", Style.GAP_CARDS)
 	column.add_child(buttons)
-	for text in ["Купить", "Отказаться"]:
+	for text in ["Купить", "Выпустить так"]:
 		var b := PanelContainer.new()
 		b.custom_minimum_size = Vector2(280, Style.BUTTON_HEIGHT)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -161,7 +161,7 @@ func _build() -> void:
 		_lifts.append(Jelly.button(b))
 	var pill_row := HBoxContainer.new()
 	pill_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	pill_row.add_child(HintPill.make("← → выбрать · %s подтвердить · %s отказаться" % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
+	pill_row.add_child(HintPill.make("← → выбрать · %s подтвердить · %s выпустить так" % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	column.add_child(pill_row)
 	MouseUi.pass_through(self)
 	_refresh()

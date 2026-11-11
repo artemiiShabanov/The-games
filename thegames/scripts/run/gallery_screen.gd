@@ -224,7 +224,7 @@ func _build() -> void:
 	add_child(card)
 	var inner := CardFrame.inner_size()
 	if entries.is_empty():
-		var empty := _label("Здесь появятся игры твоих забегов: каждая выпущенная игра попадает в галерею и запускается с теми же багами.",
+		var empty := _label("Пока пусто. Выпусти игру, и она поселится здесь навсегда, со всеми своими багами.",
 				Style.FONT_H2, Style.INK_2)
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

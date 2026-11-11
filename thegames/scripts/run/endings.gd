@@ -38,12 +38,12 @@ class Result:
 	func caption() -> String:
 		match id:
 			Id.SALE:
-				return "Студию купили за её оценку"
+				return "Студию купили. Чек с правильным количеством нулей"
 			Id.CORPORATION:
-				return "Годовой оборот: тик хвостов × 10"
+				return "Старые игры кормят лучше новых. Теперь вы корпорация"
 			Id.LEGEND:
-				return "Закрылись на пике: критики трёх лучших игр × 10 и их охват"
-		return "Денег на следующую игру не нашлось"
+				return "Ушли на пике, пока все ещё хлопают"
+		return "Деньги кончились раньше идей"
 
 	func _to_string() -> String:
 		return "%s %d, релизов %d, лучшие %s" % [title(), score, releases, top.map(func(r: GameRecord) -> String: return r.title)]

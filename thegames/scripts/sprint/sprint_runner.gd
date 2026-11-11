@@ -289,7 +289,7 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		column.add_child(_label("провал", Style.FONT_VERB, Style.BUG))
 	if replays > 0:
 		column.add_child(_spacer(16))
-		column.add_child(_label("переиграть? осталось %d" % replays, Style.FONT_H2, Style.INK_2))
+		column.add_child(_label("ещё попытка? осталось %d" % replays, Style.FONT_H2, Style.INK_2))
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 16)

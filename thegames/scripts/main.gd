@@ -285,7 +285,7 @@ func _begin_playtest() -> void:
 	if _runner != null:
 		_runner.queue_free()
 		_runner = null
-	_show_card("Плейтест", ["%s готова к пробе" % record.title, "багов: %d" % record.bug_ids.size()], "")
+	_show_card("Плейтест", ["%s собралась. Пробуем, пока не передумала" % record.title, "багов: %d" % record.bug_ids.size()], "")
 	ShellSounds.play(&"intro")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	if stage != Stage.PLAYTEST:
@@ -366,7 +366,7 @@ func _on_bugfix_sprint(_def: MinigameDef, success: bool) -> void:
 	for id in fixed:
 		var b := run.catalog.by_id(id)
 		names.append(b.stamp_for(record.genre) if b != null else String(id))
-	_show_card("Багфикс", ["Починено: %s" % ", ".join(names) if success else "Провал: ничего не починено",
+	_show_card("Багфикс", ["Починено: %s" % ", ".join(names) if success else "Ничего не починилось. Баги довольны",
 			"осталось багов: %d" % record.bug_ids.size()], "")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	_clear_card()

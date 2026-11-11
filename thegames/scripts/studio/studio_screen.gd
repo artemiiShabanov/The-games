@@ -3,7 +3,7 @@ extends Control
 ## Экран фазы студии (#28), спека `docs/specs/studio.md`. В большой карточке `CardFrame`
 ## поверх студии: слева ведомость, строки появляются по одной (продажи первой недели нового
 ## релиза, тики хвостов, содержание, банкротство и аванс), деньги в пилюле над карточкой
-## прокручиваются за каждой строкой; справа оценка студии; внизу «Что улучшим?» с карточками
+## прокручиваются за каждой строкой; справа оценка студии; внизу «На что потратим?» с карточками
 ## прокачки по правилу состава. Влево-вправо фокус, A купить, B и Esc отказ. Недоступное по
 ## деньгам красным с нехваткой, фокус на него встаёт, A трясёт карточку. Пул пуст: «студия
 ## укомплектована». Забег окончен банкротством: вместо предложения «студия закрывается», A
@@ -353,19 +353,19 @@ func _show_offer() -> void:
 		_offer_title.text = "Студия закрывается"
 		_offer_title.add_theme_color_override("font_color", Style.DANGER)
 		_offer_caption.text = report.close_reason if report.close_reason != "" \
-				else "Денег на самый дешёвый релиз нет, и спасение уже было. Забег окончен."
+				else "Денег не хватит даже на самую скромную игру, а второго спасителя не нашлось."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	if report.offer.is_empty():
-		_offer_title.text = "Студия укомплектована"
-		_offer_caption.text = "Всё, что можно было купить, уже куплено."
+		_offer_title.text = "Больше нечего купить"
+		_offer_caption.text = "Деньги впервые в безопасности."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
-	_offer_title.text = "Что улучшим?"
+	_offer_title.text = "На что потратим?"
 	_fade_in(_offer_title)
 	index = 0
 	for i in report.offer.size():

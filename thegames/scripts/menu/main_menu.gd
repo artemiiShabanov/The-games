@@ -223,7 +223,7 @@ func _build() -> void:
 	var title := _label("The Games", Style.FONT_VERB, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
 	column.add_child(title)
-	column.add_child(_label("Инди-студия, где каждую игру делаешь руками, а потом в неё играешь", Style.FONT_H2, Style.INK_2))
+	column.add_child(_label("Игры сами себя не сделают. Пока что это твоя работа.", Style.FONT_H2, Style.INK_2))
 	var filler := Control.new()
 	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	filler.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -292,7 +292,7 @@ func _make_slot(i: int) -> PanelContainer:
 		f.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(f)
 		col.add_child(_label("пусто", Style.FONT_H2, Style.INK_3))
-		col.add_child(_label("Новый забег", Style.FONT_BODY, Style.INK_2))
+		col.add_child(_label("Здесь могла быть ваша студия", Style.FONT_BODY, Style.INK_2))
 		return p
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 16)
@@ -345,7 +345,7 @@ func _make_confirm(i: int) -> Control:
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(col)
 	col.add_child(_label("Новый забег в слоте %d?" % (i + 1), Style.FONT_H1, Style.INK))
-	var text := _label("Студия «%s» и её прогресс пропадут. Игры уже в галерее останутся." % saves[i].studio_name,
+	var text := _label("Студия «%s» закроется без прощальной вечеринки. Игры в галерее останутся: их уже не отнять." % saves[i].studio_name,
 			Style.FONT_BODY, Style.INK_2)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(text)
