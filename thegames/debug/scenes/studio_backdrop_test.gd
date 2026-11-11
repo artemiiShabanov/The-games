@@ -4,12 +4,15 @@ extends Control
 ## незнакомый id). Аргументы: `--stage=N`, или своя студия `--people=N --upgrades=a,b,c`,
 ## `--release=N`, `--tech=N`, `--genre=N` (стартовая пара); `--grid` четыре стадии сеткой
 ## (превью роста), `--card` карточка оболочки посреди (проверка читаемости), `--static` без
-## движения, `--react=release|viral|broke`, `--busy`; `--sheet` пишет превью-лист всех спрайтов
+## движения, `--react=release|viral|broke`, `--busy`, `--daytime=0..1` сутки стоят (0 полночь,
+## 0.5 полдень, 0.75 золотой час); `--sheet` пишет превью-лист всех спрайтов
 ## в `debug/playtest/studio_sheet.png`. Под ботом проверяет раскладку: сколько
 ## людей и предметов, одинаковость при одинаковом состоянии, рост с покупками, вход новичков,
-## перетаскивание мышью синтетическими событиями (`_drag_check`). Кадр с человечком в руке:
+## перетаскивание мышью синтетическими событиями (подъём над тенью, падение, `_drag_check`) и
+## нажатие кулера, телевизора, часов (`_props_check`). Кадр с человечком в руке:
 ## `--bot=off "--input=20:move=684x472,22:press=684x472,40:move=900x640" --stage=2`.
-## Раздел «Студия фон» дебаг-меню: стадия, люди, движение, спринт, реакции, карточка.
+## Раздел «Студия фон» дебаг-меню: стадия, люди, движение, спринт, реакции, карточка, время и
+## длина суток, нажать предмет.
 
 const SECTION: StringName = &"Студия фон"
 const STAGES := [
@@ -51,6 +54,8 @@ func _ready() -> void:
 	for b in backdrops:
 		b.animate = not args.has("static")
 		b.busy = args.has("busy")
+		if args.has("daytime"):
+			b.daytime = clampf(float(args["daytime"]), 0.0, 1.0)
 		if args.has("react"):
 			b.react(StringName(str(args["react"])))
 	Debug.add_choice(SECTION, "Стадия", ["пустая", "релиз 4", "релиз 8", "полная"],
@@ -70,6 +75,16 @@ func _ready() -> void:
 				func() -> void: _each(func(b: StudioBackdrop) -> void: b.react(StringName(kind))))
 	Debug.add_action(SECTION, "Встряхнуть (между спринтами)",
 			func() -> void: _each(func(b: StudioBackdrop) -> void: b.nudge()))
+	Debug.add_toggle(SECTION, "Сутки идут", func() -> bool: return backdrops[0].daytime < 0.0,
+			func(v: bool) -> void: _each(func(b: StudioBackdrop) -> void: b.daytime = -1.0 if v else b.hour() / 24.0))
+	Debug.add_number(SECTION, "Время суток (0 полночь, 0.5 полдень)",
+			func() -> float: return backdrops[0].hour() / 24.0,
+			func(v: float) -> void: _each(func(b: StudioBackdrop) -> void: b.daytime = v), 0.0, 1.0, 0.02)
+	Debug.add_number(SECTION, "Длина суток, с", func() -> float: return backdrops[0].tuning.day_seconds,
+			func(v: float) -> void: backdrops[0].tuning.day_seconds = v, 20.0, 600.0, 10.0)
+	for prop: StringName in StudioBackdrop.PROPS:
+		Debug.add_action(SECTION, "Нажать: %s" % prop,
+				func() -> void: _each(func(b: StudioBackdrop) -> void: b.poke(prop)))
 	if args.has("sheet"):
 		var path := ProjectSettings.globalize_path("res://debug/playtest/studio_sheet.png")
 		DirAccess.make_dir_recursive_absolute(path.get_base_dir())
@@ -223,15 +238,29 @@ func _drag_check() -> void:
 	await get_tree().process_frame
 	var b := backdrops[0]
 	var to_screen := b.get_global_transform_with_canvas()
-	var start := to_screen * b.worker_local_rect(0).get_center()
+	var before := b.worker_local_rect(0)
+	var start := to_screen * before.get_center()
 	_mouse(start, -1)
 	_mouse(start, 1)
 	_expect(b.worker_info(0)["held"], "нажатие на человечка его не подняло")
+	for i in 6:
+		b._process(1.0 / 30.0)
+	# Поднялся вверх над тенью, а не съехал вниз (плейтест 2026-11-11).
+	var held := b.worker_local_rect(0)
+	_expect(held.end.y < before.end.y and b.worker_info(0)["lift"] > 0.0,
+			"взятый не поднялся: низ %.0f, был %.0f" % [held.end.y, before.end.y])
 	var target := start + Vector2(520, 260)
 	_mouse(target, -1)
 	_mouse(target, 0)
 	var info := b.worker_info(0)
 	_expect(not info["held"] and info["placed"], "после отпускания %s" % info)
+	_expect(info["act"] == "fall" and info["lift"] > 0.0, "отпущенный не падает: %s" % info)
+	var landed := false
+	for i in 30:
+		b._process(1.0 / 30.0)
+		var now := b.worker_info(0)
+		landed = landed or (now["act"] == "wait" and now["lift"] == 0.0)
+	_expect(landed, "за секунду не приземлился: %s" % b.worker_info(0))
 	var moved: float = (info["pos"] as Vector2).distance_to(info["home"])
 	_expect(moved > 60.0, "отпустили, а он в %.0f px арта от места" % moved)
 	var home := false
@@ -263,8 +292,38 @@ func _drag_check() -> void:
 	_expect(not b.worker_info(0)["held"], "поднялся из-под элемента оболочки")
 	_mouse(start, 0)
 	cover.queue_free()
-	AutoTest.note("backdrop drag: сдвинут на %.0f, вернулся к делу, стена и оболочка ок" % moved)
+	AutoTest.note("backdrop drag: сдвинут на %.0f, поднят, упал, вернулся к делу, стена и оболочка ок" % moved)
+	await get_tree().process_frame
+	_props_check(b, to_screen)
 	AutoTest.fulfill("backdrop drag")
+
+
+## Кулер, телевизор и часы нажимаются синтетическими событиями (все сидят, чтобы никто не стоял
+## перед предметом): пузырь, переключение канала, прокрутка суток.
+func _props_check(b: StudioBackdrop, to_screen: Transform2D) -> void:
+	b.react(&"broke")
+	var h0 := b.hour()
+	for prop in StudioBackdrop.PROPS:
+		var r := b.prop_local_rect(prop)
+		if r.size == Vector2.ZERO:
+			AutoTest.note("backdrop: предмета %s нет" % prop)
+			continue
+		var at := to_screen * r.get_center()
+		_mouse(at, -1)
+		_mouse(at, 1)
+		_mouse(at, 0)
+	var info := b.prop_info()
+	_expect(info["bubbles"] == 1, "кулер: пузырей %d" % info["bubbles"])
+	if b.prop_local_rect(&"tv").size != Vector2.ZERO:
+		_expect(info["tv_switching"] and info["tv_channel"] == 1, "телевизор: %s" % info)
+	for i in 60:
+		b._process(1.0 / 30.0)
+	info = b.prop_info()
+	var turned := fposmod(float(info["hour"]) - h0, 24.0)
+	_expect(info["bubbles"] == 0 and not info["tv_switching"] and not info["spinning"], "предметы не успокоились: %s" % info)
+	_expect(turned > b.tuning.clock_spin_hours - 0.1, "часы прокрутили %.2f ч" % turned)
+	b.react(&"")
+	AutoTest.note("backdrop props: кулер, телевизор, часы (+%.1f ч)" % turned)
 
 
 ## Событие мыши во вьюпорт: `button` -1 движение, 1 нажать, 0 отпустить левую.

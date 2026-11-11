@@ -4,3 +4,5 @@
 
 [resource]
 script = ExtResource("1_backdrop")
+day_seconds = 300.0
+start_hour = 10.5

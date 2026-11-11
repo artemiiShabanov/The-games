@@ -56,9 +56,11 @@
   сразу открывает игру; меню кадром `--menu --frames=60`.. Студия на фоне (#80): `--scene=studio_backdrop_test --frames=600`
   (`--stage=0..3`, `--people=N --upgrades=a,b`, `--grid` четыре стадии сеткой, `--card`
   карточка поверх, `--static`, `--react=release|viral|broke`, `--sheet` лист спрайтов в
-  `debug/playtest/studio_sheet.png`; кадр перетаскивания `--bot=off
-  "--input=20:move=684x472,22:press=684x472,40:move=900x640" --stage=2`, в `--input` есть
-  `press=XxY` и `release=XxY`). Фаза студии: `--scene=studio_test --frames=600`; скриншот
+  `debug/playtest/studio_sheet.png`, `--daytime=0..1` сутки стоят (0 полночь, 0.5 полдень,
+  0.75 золотой час, 0.96 ночь); кадр перетаскивания `--bot=off
+  "--input=20:move=684x472,22:press=684x472,40:move=900x640" --stage=2` (с `50:release=900x640`
+  и `--frames=53` падает), в `--input` есть `press=XxY` и `release=XxY`; телевизор посреди
+  переключения `--stage=2 --bot=off --input=20:click=1508x198 --frames=28`, кулер `click=1204x204`). Фаза студии: `--scene=studio_test --frames=600`; скриншот
   состояния: `--scene=studio_test --no-checks --past=4 [--cash=-16000] [--rescued]
   [--all-bought] --frames=240` (под `--fixed-fps` снимок отстаёт от сцены, поэтому экран
   без `--animate` стоит с первого кадра). Кривые параметров и сцена в ресурс мини-игры:

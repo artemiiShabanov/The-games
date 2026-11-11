@@ -198,6 +198,19 @@ const MAPS := {
 		".++++++++.",
 		".++....++.",
 	],
+	# Приземлился после падения из рук: сплющен на кадр.
+	"land": [
+		".HHHHHHHH.",
+		".HSSSSSSH.",
+		".SSESSESS.",
+		".SSSSSSSS.",
+		"bbBBBBBBbb",
+		"bbBBBBBBbb",
+		"SSBBBBBBSS",
+		"..PPPPPP..",
+		".PP....PP.",
+		"KKK....KKK",
+	],
 	"chair": [
 		".++++++++.",
 		".+oooooo+.",
@@ -352,17 +365,19 @@ const MAPS := {
 		"#o##o#",
 		"##..##",
 	],
+	# Кулер с бутылью (плейтест 2026-11-11: «кулер»): вода средним тоном с бликом, краники, тумба.
+	# По нажатию в бутыли всплывает пузырь (`StudioBackdrop`, вода `COOLER_WATER`).
 	"coffee": [
-		"..######..",
-		"..#oooo#..",
-		"..#o++o#..",
-		"..#oooo#..",
-		"..######..",
-		"..#+..+#..",
-		"..#+..+#..",
+		"...####...",
+		"..#++++#..",
+		".#-+++++#.",
+		".#-+++++#.",
+		".#++++++#.",
 		"..######..",
 		"##########",
-		"#--------#",
+		"#oooooooo#",
+		"#o#oooo#o#",
+		"#oooooooo#",
 		"##########",
 		"#++++++++#",
 		"#++++++++#",
@@ -417,12 +432,13 @@ const MAPS := {
 		"####################",
 		".#................#.",
 	],
+	# Часы без стрелок: стрелки рисует `StudioBackdrop` по времени суток, центр `CLOCK_CENTER`.
 	"clock": [
 		"..#####..",
 		".#ooooo#.",
-		"#ooo#ooo#",
-		"#ooo#ooo#",
-		"#ooo##oo#",
+		"#ooooooo#",
+		"#ooooooo#",
+		"#ooooooo#",
 		"#ooooooo#",
 		".#ooooo#.",
 		"..#####..",
@@ -646,8 +662,62 @@ const MAPS := {
 }
 
 ## Человечки с ореолом фона в пиксель: не сливаются со столами и друг с другом.
+## Окно: ширина и высота с подоконником (плейтест 2026-11-11: крупнее, за ними смена суток).
+const WINDOW_SIZE := Vector2i(42, 34)
+## Экран 8-bit телевизора (`tech_bit8`): левый верхний угол и размер; каналы ниже.
+const TV_SCREEN := Rect2i(1, 4, 10, 5)
+## Вода в бутыли кулера: левый верхний угол и размер; центр часов.
+const COOLER_WATER := Rect2i(2, 1, 6, 4)
+const CLOCK_CENTER := Vector2i(4, 4)
+## Каналы телевизора 10×5 в тонах мебели; нулевой это картинка самого спрайта.
+const TV_CHANNELS: Array = [
+	[],
+	[
+		"oo#oooo#oo",
+		"oooooooooo",
+		"o#oooooo#o",
+		"oo######oo",
+		"oooooooooo",
+	],
+	[
+		"ooooooo##o",
+		"ooo#ooo##o",
+		"oo###ooooo",
+		"o#####o#oo",
+		"##########",
+	],
+	[
+		"##++--oo##",
+		"##++--oo##",
+		"##++--oo##",
+		"##++--oo##",
+		"oo--++##oo",
+	],
+	[
+		"oo#oooo#oo",
+		"oo######oo",
+		"o##o##o##o",
+		"o########o",
+		"o#o#oo#o#o",
+	],
+	[
+		"oo##oo##oo",
+		"o########o",
+		"oo######oo",
+		"ooo####ooo",
+		"oooo##oooo",
+	],
+	[
+		"oooooooooo",
+		"ooo##ooooo",
+		"oo####oooo",
+		"++++++++++",
+		"o#o#o#oo#o",
+	],
+]
+
 const HALO: Array[String] = ["stand", "walk0", "walk1", "hand_head", "wave0", "wave1", "held0", "held1",
-		"sit0", "sit1", "sit2", "stretch", "sleep"]
+		"land", "sit0", "sit1", "sit2", "stretch", "sleep"]
 
 static var _cache := {}
 
@@ -735,7 +805,7 @@ static func rows_of(name: String) -> Array:
 		return MAPS[name]
 	match name:
 		"window":
-			return window_rows(30, 22)
+			return window_rows(WINDOW_SIZE.x, WINDOW_SIZE.y)
 		"whiteboard":
 			return whiteboard_rows(38, 20)
 		"door":
@@ -793,7 +863,8 @@ static func _row(w: int, edge: String, fill: String) -> String:
 	return edge + fill.repeat(w - 2) + edge
 
 
-## Окно: рама, переплёт крестом, блик по диагонали светлым, подоконник средним.
+## Окно: рама, переплёт крестом, подоконник средним. Стёкла прозрачные: за ними небо, которое
+## рисует `StudioBackdrop` по времени суток (плейтест 2026-11-11).
 static func window_rows(w: int, h: int) -> Array:
 	var rows: Array = []
 	var mid_x := w / 2
@@ -801,11 +872,9 @@ static func window_rows(w: int, h: int) -> Array:
 	for y in h - 2:
 		var line := ""
 		for x in w:
-			var c := "o"
+			var c := "."
 			if y == 0 or y == h - 3 or x == 0 or x == w - 1 or x == mid_x or y == mid_y:
 				c = "#"
-			elif (x + y) % 9 == 0 and y < mid_y and x < mid_x:
-				c = "-"
 			line += c
 		rows.append(line)
 	rows.append("#".repeat(w))
