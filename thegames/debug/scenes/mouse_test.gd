@@ -25,6 +25,7 @@ func _run() -> void:
 	await _repeat()
 	await _mole()
 	await _pairs()
+	await _mash()
 	await _flood_fill()
 	await _tune()
 	await _beam()
@@ -143,6 +144,20 @@ func _pairs() -> void:
 	await _click(game.call("_card_home", 2))
 	var open: Array[bool] = game.get("open")
 	_check(open[2] and game.get("cursor") == Vector2i(2 % cols, 2 / cols), "pairs: клик не открыл карточку")
+
+
+## «Разгони» (#89): левая кнопка ←, правая →; по очереди толкают бегунка, одна дважды нет.
+func _mash() -> void:
+	await _open(&"mash")
+	await _click(Vector2(960, 540))
+	_check(game.mouse_last_action == GameInput.LEFT, "mash: левая кнопка не ←")
+	await _button(Vector2(960, 540), MOUSE_BUTTON_RIGHT, true)
+	await _button(Vector2(960, 540), MOUSE_BUTTON_RIGHT, false)
+	_check(game.mouse_last_action == GameInput.RIGHT, "mash: правая кнопка не →")
+	_check(int(game.get("presses")) == 2, "mash: две кнопки по очереди дали %d толчков" % int(game.get("presses")))
+	await _click(Vector2(960, 540))
+	await _click(Vector2(960, 540))
+	_check(int(game.get("presses")) == 3, "mash: левая дважды толкнула дважды")
 
 
 func _flood_fill() -> void:

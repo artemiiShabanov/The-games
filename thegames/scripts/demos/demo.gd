@@ -58,6 +58,10 @@ void fragment() {
 }
 """
 const MENU_ITEMS: Array[String] = ["Вернуться", "Пропустить"]
+## `glyph_mixup`: кто с кем меняется глифами. Пары из тех, кто встречается в одной демке, чтобы
+## подмена была видна в любом жанре: герой и враг, своя лодка и чужая, снаряд и бонус, мяч и цель.
+const MIXUP_PAIRS: Array[Array] = [[&"hero", &"enemy"], [&"vehicle", &"rival"], [&"shot", &"bonus"],
+		[&"ball", &"goal"], [&"obstacle", &"finish"], [&"enemy_2", &"prop_a"]]
 ## ASCII: клетка 8×16 на экране демки ×2, сетка по размеру карточки (104×26 на 1920×1080).
 const ASCII_SCALE := 2
 ## Пиксельные цифры 3×5 для HUD демок 8-bit (`draw_pixel_text`), плюс «/» для места в гонке,
@@ -128,6 +132,10 @@ var _line_counts: Dictionary[int, int] = {}
 ## ASCII-экран демки и сеттинг записи (`ascii_screen`).
 var ascii: AsciiGrid
 var ascii_set: SettingDef
+## `glyph_mixup`: пары слотов, которые меняются глифами, и сколько ещё длится подмена.
+var _mixup: Dictionary[StringName, StringName] = {}
+var _mixup_timer := 0.0
+var _mixup_left := 0.0
 
 
 func setup(record_: GameRecord, source_: StringName) -> void:
@@ -203,6 +211,11 @@ func _setup_common_bugs() -> void:
 		_palette = ShaderMaterial.new()
 		_palette.shader = shader
 		_palette.set_shader_parameter("hue_shift", bug_param(&"alien_palette", &"hue_shift", 0.45))
+	if has_bug(&"glyph_mixup"):
+		for pair in MIXUP_PAIRS:
+			_mixup[pair[0]] = pair[1]
+			_mixup[pair[1]] = pair[0]
+		_mixup_timer = 1.0
 	if has_bug(&"pink_placeholders"):
 		var share := bug_param(&"pink_placeholders", &"share", 0.35)
 		var slots := _placeholder_slots().duplicate()
@@ -382,8 +395,32 @@ func ascii_screen() -> AsciiGrid:
 func put_slot(x: int, y: int, slot: StringName) -> void:
 	if is_pink(String(slot)):
 		ascii.put(x, y, "?", AsciiGrid.PINK_INK)
-	else:
-		ascii.put(x, y, ascii_set.ascii_glyph(slot), ascii_set.ascii_ink(slot))
+		return
+	var shown := slot
+	if has_bug(&"glyph_mixup"):
+		if slot in SettingDef.ASCII_TERRAIN:
+			shown = &"ground"
+		elif _mixup_left > 0.0:
+			shown = _mixup.get(slot, slot)
+	ascii.put(x, y, ascii_set.ascii_glyph(shown), ascii_set.ascii_ink(shown))
+
+
+## Идёт ли сейчас подмена глифов `glyph_mixup`.
+func glyph_mixup_active() -> bool:
+	return _mixup_left > 0.0
+
+
+## Таймер подмены глифов: раз в `swap_period_s` пары меняются на `swap_s`.
+func _glyph_mixup_tick(delta: float) -> void:
+	if _mixup.is_empty():
+		return
+	if _mixup_left > 0.0:
+		_mixup_left -= delta
+		return
+	_mixup_timer -= delta
+	if _mixup_timer <= 0.0:
+		_mixup_left = bug_param(&"glyph_mixup", &"swap_s", 0.7)
+		_mixup_timer = bug_param(&"glyph_mixup", &"swap_period_s", 2.5) * bug_rng.randf_range(0.8, 1.2)
 
 
 ## Легенда в ряду `row` по центру: глифы своими чернилами, слова приглушённые (чернила 3).
@@ -453,6 +490,7 @@ func _process(delta: float) -> void:
 	elapsed += delta
 	if bot_driven():
 		_bot_step(delta)
+	_glyph_mixup_tick(delta)
 	_on_tick(delta)
 
 

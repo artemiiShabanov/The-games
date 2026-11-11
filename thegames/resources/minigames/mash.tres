@@ -1,12 +1,29 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_vbtmr"]
+[ext_resource type="PackedScene" path="res://scenes/minigames/mash.tscn" id="2_mash"]
+
+[sub_resource type="Curve" id="Curve_pull"]
+_limits = [0.0, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 0.6), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_finish"]
+_limits = [0.0, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(1, 0.85), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_vbtmr")
 id = &"mash"
 kind = 1
 verb = "Разгони"
-hint = "Влево-вправо как можно быстрее"
+hint = "Влево-вправо по очереди, как можно быстрее"
+mouse_hint = "левая и правая кнопка по очереди"
 time_seconds = 10.0
+scene = ExtResource("2_mash")
 inputs = Array[StringName]([&"move_left", &"move_right"])
+params = Dictionary[StringName, Curve]({
+&"finish": SubResource("Curve_finish"),
+&"pull": SubResource("Curve_pull")
+})

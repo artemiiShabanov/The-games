@@ -5,14 +5,14 @@ extends Control
 ## палитре, земля из разрешённых глифов, герой самый плотный из не-земли, глифы попарно
 ## различимы, пищалка даёт звук. `--probe` (или «ASCII: пробная демка» в дебаг-меню) запускает
 ## пробную демку `ascii_probe_demo.gd` в карточке: бот WIN доходит до флага, LOSE стоит;
-## `--bugs` все общие баги, `--bug=<id>` один, `--setting=N` сеттинг, `--no-checks` без проверок.
+## `--bugs` все общие баги и баг технологии `glyph_mixup`, `--bug=<id>` один, `--setting=N` сеттинг, `--no-checks` без проверок.
 
 const ProbeDemo := preload("res://debug/scenes/ascii_probe_demo.gd")
 ## Минимум различающихся пикселей между двумя глифами одного сеттинга.
 const MIN_DIFF_PX := 10
-## Общие баги, которые показывает основа (технологический ASCII приходит с «Разгони», #89).
+## Общие баги, которые показывает основа, и баг технологии ASCII `glyph_mixup` (#89).
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
-		&"pink_placeholders", &"alien_palette"]
+		&"pink_placeholders", &"alien_palette", &"glyph_mixup"]
 const SHEET_COLS := 40
 
 var demo: Demo
@@ -20,6 +20,8 @@ var record: GameRecord
 var _args := {}
 var _phase := 0
 var _saw_pink := false
+var _saw_mixup := false
+var _wall_as_ground := false
 
 
 func _ready() -> void:
@@ -180,8 +182,15 @@ func _launch() -> void:
 
 
 func _process(_delta: float) -> void:
-	if demo != null and demo.ascii != null and demo.ascii.dump().contains("?"):
+	if demo == null or demo.ascii == null:
+		return
+	if demo.ascii.dump().contains("?"):
 		_saw_pink = true
+	if demo.glyph_mixup_active():
+		_saw_mixup = true
+	var ground := demo.ascii_set.ascii_glyph(&"ground")
+	if demo.ascii.at(0, 5) == ground and demo.ascii_set.ascii_glyph(&"wall") != ground:
+		_wall_as_ground = true
 
 
 func _on_finished(_r: GameRecord, reached: bool) -> void:
@@ -197,6 +206,9 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 			_expect(record.has_bug(&"pink_placeholders") == _saw_pink, "розовые «?» %s при баге %s" % [_saw_pink,
 					record.has_bug(&"pink_placeholders")])
 			_expect((probe.ascii.material != null) == record.has_bug(&"alien_palette"), "чужая палитра не на сетке")
+			var mixup := record.has_bug(&"glyph_mixup")
+			_expect(_saw_mixup == mixup, "подмена глифов %s при баге %s" % [_saw_mixup, mixup])
+			_expect(_wall_as_ground == mixup, "стена глифом земли %s при баге %s" % [_wall_as_ground, mixup])
 			AutoTest.note("ascii probe: %d дублонов, %.1f с, баги %s" % [probe.collected, probe.elapsed, record.bug_ids])
 			probe.queue_free()
 			AutoTest.fulfill("ascii probe")
