@@ -51,7 +51,10 @@
   --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--refuse-events`
   бот отвечает на вставки последним вариантом; `--slot=N` сохранять в тестовый слот, `--resume`
   продолжить из него). Главная сцена проекта это меню (#71): под автотестом без `--menu` оно
-  сразу открывает игру; меню кадром `--menu --frames=60`.. Фаза студии: `--scene=studio_test --frames=600`; скриншот
+  сразу открывает игру; меню кадром `--menu --frames=60`.. Студия на фоне (#80): `--scene=studio_backdrop_test --frames=600`
+  (`--stage=0..3`, `--people=N --upgrades=a,b`, `--grid` четыре стадии сеткой, `--card`
+  карточка поверх, `--static`, `--react=release|viral|broke`, `--sheet` лист спрайтов в
+  `debug/playtest/studio_sheet.png`). Фаза студии: `--scene=studio_test --frames=600`; скриншот
   состояния: `--scene=studio_test --no-checks --past=4 [--cash=-16000] [--rescued]
   [--all-bought] --frames=240` (под `--fixed-fps` снимок отстаёт от сцены, поэтому экран
   без `--animate` стоит с первого кадра). Кривые параметров и сцена в ресурс мини-игры:

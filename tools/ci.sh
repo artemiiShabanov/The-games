@@ -26,6 +26,7 @@ step "profile_test" sh tools/autotest.sh --scene=profile_test --frames=30
 step "gallery_test" sh tools/autotest.sh --scene=gallery_test --time-scale=4 --frames=2500
 step "hub_test" sh tools/autotest.sh --scene=hub_test --frames=60
 step "studio_test" sh tools/autotest.sh --scene=studio_test --frames=600
+step "studio_backdrop_test" sh tools/autotest.sh --scene=studio_backdrop_test --frames=30
 step "bugfix_test" sh tools/autotest.sh --scene=bugfix_test --time-scale=4 --frames=3000
 step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=4 --frames=4500
 step "demo bugs" sh tools/autotest.sh --scene=demo_test --bugs --frames=3000
