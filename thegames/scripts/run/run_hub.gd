@@ -3,31 +3,42 @@ extends Control
 ## Главный экран забега (плейтест 2026-11-11, #77 и #78), спека `docs/specs/run.md`. Между
 ## релизами игрок стоит здесь, новый релиз начинается кнопкой «Новая игра», а не сам. Фоном
 ## студия (её рисует хозяин под экраном), поверх только хром: слева сверху логотип и название,
-## справа сверху пилюли «Прокачка» и денег, слева столбик карточек релизов, снизу по центру
-## «Новая игра».
+## под ними пилюли денег и «Прокачка» (и «Прокачаться», если от предложения фазы студии
+## отказались), справа столбик карточек релизов, снизу по центру «Новая игра» (плейтест
+## 2026-11-11: деньги и прокачка слева, релизы справа).
 ## - Пилюля денег раскрывает мармеладом окно с историей денег по релизам (`Wallet.history`).
 ## - «Прокачка» раскрывает окно купленной прокачки по порядку покупки с цветом вида (#79).
-## - Карточка релиза выдвигает справа на полэкрана ленту этого релиза (`FeedScreen` архивом)
+## - «Прокачаться» раскрывает отложенное предложение прокачки (`RunState.pending_offer`): одна
+##   покупка до старта новой игры, с тем же запасом на следующий релиз, что и в фазе студии.
+## - Карточка релиза выдвигает слева на полэкрана ленту этого релиза (`FeedScreen` архивом)
 ##   с «Играть демку»; демка идёт на весь экран, по её концу панель снова на месте.
 ## Стрелки ходят по экрану (`FocusNav`), наведение мыши переносит фокус, ␣ или клик нажимают,
 ## колесо и тачпад листают релизы и окна. Esc, Ctrl или клик мимо закрывают окно; без окна Esc
 ## уходит хозяину (пауза).
 
 signal new_game
+signal upgrade_bought(upgrade: UpgradeDef)
+## Окно или панель релиза открылись (`true`) или закрылись: хозяин притеняет студию под ними.
+signal overlay_changed(on: bool)
 
 const RELEASE_CARD := Vector2(400, 116)
-const RELEASES_TOP := 120.0
+const RELEASES_TOP := 12.0
 const RELEASES_BOTTOM := 120.0
+## Ряд пилюль денег и прокачки под названием студии.
+const PILLS_Y := 104.0
 const STRIPE := 6.0
 const WINDOW_WIDTH := 640.0
-const WINDOW_TOP := 96.0
+const WINDOW_TOP := 176.0
 const WINDOW_MAX_HEIGHT := 760.0
 const NEW_GAME_SIZE := Vector2(520, 88)
 const NEW_GAME_BOTTOM := 104.0
 const POP_SECONDS := 0.36
 const ROW_GAP := 12
+## «Прокачаться»: цвет и как часто кнопка зовёт к себе.
+const OFFER_COLOR := Color("#2BB37A")
+const OFFER_PULSE_SECONDS := 2.4
 
-enum Pop { NONE, MONEY, UPGRADES, RELEASE }
+enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER }
 
 ## Подписи строк истории денег по причине `Wallet`.
 const REASONS := {
@@ -48,6 +59,13 @@ var _release_count := 0
 var _new_index := 0
 var _upgrades_index := 0
 var _money_index := 0
+var _offer_index := -1
+var _offer_rows: Array[PanelContainer] = []
+var _offer_lifts: Array[JellyLift] = []
+var _offer_defs: Array[UpgradeDef] = []
+var _offer_focus := 0
+var _offer_halo: Panel
+var _pills: HBoxContainer
 var _chrome: Control
 var _hints: HBoxContainer
 var _releases_scroll: ScrollContainer
@@ -99,6 +117,8 @@ func activate(i: int) -> void:
 		_toggle_window(Pop.UPGRADES)
 	elif i == _money_index:
 		_toggle_window(Pop.MONEY)
+	elif i == _offer_index:
+		_toggle_window(Pop.OFFER)
 
 
 func open_money() -> void:
@@ -107,6 +127,37 @@ func open_money() -> void:
 
 func open_upgrades() -> void:
 	_toggle_window(Pop.UPGRADES)
+
+
+func open_offer() -> void:
+	if _offer_index >= 0:
+		_toggle_window(Pop.OFFER)
+
+
+## Купить пункт отложенного предложения: тот же запас на следующий релиз, что в фазе студии.
+## Куплено: предложение сгорает, хром перестраивается с новыми деньгами и счётчиком.
+func buy_offer(i: int) -> bool:
+	if i < 0 or i >= _offer_defs.size():
+		return false
+	var def := _offer_defs[i]
+	_offer_lifts[i].press()
+	if not _offer_affordable(i) or not StudioPhase.buy(def, run.wallet, run.upkeep, run.studio, run.economy):
+		_shake(_offer_rows[i])
+		ShellSounds.play(&"miss")
+		return false
+	ShellSounds.play(&"done")
+	run.pending_offer.clear()
+	upgrade_bought.emit(def)
+	_close_window(false)
+	_rebuild()
+	focus = _upgrades_index
+	_refresh_focus()
+	Jelly.poke(_focusables[_upgrades_index], 1.2)
+	return true
+
+
+func _offer_affordable(i: int) -> bool:
+	return run.wallet.can_afford(_offer_defs[i].price(run.economy) + run.cheapest_next())
 
 
 func open_release(i: int) -> void:
@@ -168,11 +219,32 @@ func _window_input(event: InputEvent, viewport: Viewport) -> void:
 		_window_scroll.scroll_vertical += int(px)
 	elif MouseUi.is_click(event):
 		var inside := MouseUi.hit(_window_node, event)
-		var on_pill := MouseUi.hit(_focusables[_money_index], event) or MouseUi.hit(_focusables[_upgrades_index], event)
-		if on_pill:
-			activate(_focus_at(event))
+		var on_pill := _pill_at(event)
+		if window == Pop.OFFER and inside:
+			var row := _offer_row_at(event)
+			if row >= 0:
+				_offer_focus = row
+				_refresh_offer()
+				buy_offer(row)
+		elif on_pill >= 0:
+			activate(on_pill)
 		elif not inside:
 			_close_window()
+	elif window == Pop.OFFER and MouseUi.is_motion(event):
+		var row := _offer_row_at(event)
+		if row >= 0 and row != _offer_focus:
+			_offer_focus = row
+			ShellSounds.play(&"tick")
+			_refresh_offer()
+		return
+	elif window == Pop.OFFER and not event.is_echo() and GameInput.is_a(event):
+		buy_offer(_offer_focus)
+	elif window == Pop.OFFER and (event.is_action_pressed(GameInput.DOWN, true) or event.is_action_pressed(GameInput.UP, true)):
+		var next := clampi(_offer_focus + (1 if event.is_action_pressed(GameInput.DOWN, true) else -1), 0, _offer_rows.size() - 1)
+		if next != _offer_focus:
+			_offer_focus = next
+			ShellSounds.play(&"tick")
+			_refresh_offer()
 	elif esc or GameInput.is_b(event) or (not event.is_echo() and GameInput.is_a(event)):
 		_close_window()
 	elif event.is_action_pressed(GameInput.DOWN, true):
@@ -184,6 +256,21 @@ func _window_input(event: InputEvent, viewport: Viewport) -> void:
 	else:
 		return
 	MouseUi.consume(viewport)
+
+
+## Пилюля шапки под курсором (деньги, прокачка, «Прокачаться»), или -1.
+func _pill_at(event: InputEvent) -> int:
+	for i in [_money_index, _upgrades_index, _offer_index]:
+		if i >= 0 and MouseUi.hit(_focusables[i], event):
+			return i
+	return -1
+
+
+func _offer_row_at(event: InputEvent) -> int:
+	for i in _offer_rows.size():
+		if MouseUi.hit(_offer_rows[i], event):
+			return i
+	return -1
 
 
 func _focus_rects() -> Array[Rect2]:
@@ -221,14 +308,29 @@ func _toggle_window(w: Pop) -> void:
 		return
 	_close_window(false)
 	window = w
+	overlay_changed.emit(true)
 	ShellSounds.play(&"intro")
-	var pill := _focusables[_money_index if w == Pop.MONEY else _upgrades_index]
-	_window_node = _make_window(_money_rows() if w == Pop.MONEY else _upgrade_rows(),
-			"Деньги" if w == Pop.MONEY else "Прокачка студии")
+	var pill := _focusables[_money_index]
+	var rows: Array[Control] = []
+	var title := "Деньги"
+	match w:
+		Pop.MONEY:
+			rows = _money_rows()
+		Pop.UPGRADES:
+			pill = _focusables[_upgrades_index]
+			rows = _upgrade_rows()
+			title = "Прокачка студии"
+		Pop.OFFER:
+			pill = _focusables[_offer_index]
+			rows = _offer_window_rows()
+			title = "Предложение ещё в силе"
+	_window_node = _make_window(rows, title)
 	add_child(_window_node)
-	# Окно раскрывается из своей пилюли: правый верхний угол под ней.
+	if w == Pop.OFFER:
+		_refresh_offer()
+	# Окно раскрывается из своей пилюли: левый верхний угол под ней.
 	var pr := MouseUi.rect_of(pill)
-	_window_node.position = Vector2(pr.end.x - WINDOW_WIDTH, WINDOW_TOP)
+	_window_node.position = Vector2(Style.EDGE, WINDOW_TOP)
 	_window_node.pivot_offset = Vector2(pr.get_center().x - _window_node.position.x, 0.0)
 	if not Debug.skip_cards:
 		_window_node.scale = Vector2(0.6, 0.2)
@@ -257,6 +359,8 @@ func _close_window(sound := true) -> void:
 		var w := _window_node
 		_window_node = null
 		_window_scroll = null
+		_offer_rows.clear()
+		_offer_lifts.clear()
 		if Debug.skip_cards:
 			w.queue_free()
 		else:
@@ -265,12 +369,13 @@ func _close_window(sound := true) -> void:
 			tw.tween_property(w, "modulate:a", 0.0, POP_SECONDS * 0.5)
 			tw.chain().tween_callback(w.queue_free)
 	window = Pop.NONE
+	overlay_changed.emit(false)
 	_set_new_game_shown(true)
 
 
-## Панель релиза закрывает правую половину: «Новая игра» и подсказки уходят из-под неё.
+## Панель релиза закрывает левую половину: пилюли, «Новая игра» и подсказки уходят из-под неё.
 func _set_new_game_shown(on: bool) -> void:
-	for c: Control in [_focusables[_new_index], _hints]:
+	for c: Control in [_focusables[_new_index], _hints, _pills]:
 		var tw := create_tween()
 		tw.tween_property(c, "modulate:a", 1.0 if on else 0.0, Style.SWITCH_SECONDS if not Debug.skip_cards else 0.0)
 
@@ -409,6 +514,79 @@ func _upgrade_rows() -> Array[Control]:
 	return rows
 
 
+## Отложенное предложение: строки как в списке купленного, справа цена; одна покупка.
+func _offer_window_rows() -> Array[Control]:
+	var rows: Array[Control] = []
+	_offer_defs = run.pending_defs()
+	_offer_rows.clear()
+	_offer_lifts.clear()
+	_offer_focus = 0
+	for i in _offer_defs.size():
+		if _offer_affordable(i):
+			_offer_focus = i
+			break
+	rows.append(_wrap_label("Отложено в фазе студии. Пока новая игра не начата, одно из этого можно купить.",
+			Style.FONT_CAPTION, Style.INK_2))
+	for def in _offer_defs:
+		var row := PanelContainer.new()
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 16)
+		row.add_child(h)
+		var kind := int(def.kind)
+		var bar := Panel.new()
+		bar.custom_minimum_size = Vector2(8, 0)
+		bar.add_theme_stylebox_override("panel", Style.flat(Style.kind_color(kind), 4, Color.TRANSPARENT, 0))
+		h.add_child(bar)
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(col)
+		col.add_child(_label(def.title, Style.FONT_BODY, Style.INK))
+		var sub := _label(def.effect_line, Style.FONT_CAPTION, Style.INK_2)
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(sub)
+		var right := VBoxContainer.new()
+		right.alignment = BoxContainer.ALIGNMENT_CENTER
+		h.add_child(right)
+		right.add_child(_kind_pill(kind, def.kind_name()))
+		var price := _label(Style.format_money(def.price(run.economy)), Style.FONT_BODY, Style.INK)
+		price.add_theme_font_override("font", Style.mono_font())
+		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		right.add_child(price)
+		rows.append(row)
+		_offer_rows.append(row)
+		_offer_lifts.append(Jelly.button(row, Style.R_CTL))
+	return rows
+
+
+## Фокус строки предложения: тёмная подложка; цена красным, если покупка съест запас.
+func _refresh_offer() -> void:
+	for i in _offer_rows.size():
+		var on := i == _offer_focus
+		var sb := Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0)
+		sb.content_margin_left = 0
+		sb.content_margin_right = 20
+		sb.content_margin_top = 14
+		sb.content_margin_bottom = 14
+		_offer_rows[i].add_theme_stylebox_override("panel", sb)
+		_offer_lifts[i].focused = on
+		var h := _offer_rows[i].get_child(0) as HBoxContainer
+		var col := h.get_child(1) as VBoxContainer
+		(col.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
+		(col.get_child(1) as Label).add_theme_color_override("font_color", Style.SURFACE_2 if on else Style.INK_2)
+		var price := (h.get_child(2) as VBoxContainer).get_child(1) as Label
+		var ok := _offer_affordable(i)
+		price.add_theme_color_override("font_color", (Style.SURFACE_SOLID if on else Style.INK) if ok else Style.DANGER)
+
+
+func _shake(node: Control) -> void:
+	if Debug.skip_cards:
+		return
+	var x := node.position.x
+	var tw := create_tween()
+	for dx in [10.0, -8.0, 5.0, -2.0, 0.0]:
+		tw.tween_property(node, "position:x", x + dx, 0.04)
+
+
 func _kind_pill(kind: int, text: String) -> PanelContainer:
 	var p := PanelContainer.new()
 	var sb := Style.flat(Style.kind_tint(kind), Style.R_PILL, Color.TRANSPARENT, 0)
@@ -429,6 +607,7 @@ func _open_release(i: int) -> void:
 		return
 	_close_window(false)
 	window = Pop.RELEASE
+	overlay_changed.emit(true)
 	_lifts[i].press()
 	_feed_record = record
 	_feed = (load(Main.FEED_PATH) as PackedScene).instantiate() as FeedScreen
@@ -468,6 +647,17 @@ func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
 
 # --- Построение ---------------------------------------------------------------------------------
 
+## Хром заново на месте (после покупки): без появления, фокус хозяин ставит сам.
+func _rebuild() -> void:
+	_chrome.queue_free()
+	_focusables.clear()
+	_lifts.clear()
+	_labels.clear()
+	_offer_index = -1
+	_offer_halo = null
+	_build()
+
+
 func _build() -> void:
 	_chrome = Control.new()
 	_chrome.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -488,9 +678,9 @@ func _build() -> void:
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(title)
 
-	# Слева: релизы этого забега, свежие сверху.
+	# Справа: релизы этого забега, свежие сверху.
 	_releases_scroll = ScrollContainer.new()
-	_releases_scroll.position = Vector2(Style.EDGE - 24, RELEASES_TOP)
+	_releases_scroll.position = Vector2(Style.SCREEN.x - Style.EDGE - RELEASE_CARD.x - 24, RELEASES_TOP)
 	_releases_scroll.size = Vector2(RELEASE_CARD.x + 48, Style.SCREEN.y - RELEASES_TOP - RELEASES_BOTTOM)
 	_releases_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_releases_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
@@ -508,20 +698,18 @@ func _build() -> void:
 		_add_focusable(c, Jelly.button(c, Style.R_CARD), null)
 	_release_count = run.records.size()
 
-	# Справа сверху: «Прокачка» и деньги.
-	var right := HBoxContainer.new()
-	right.alignment = BoxContainer.ALIGNMENT_END
-	right.add_theme_constant_override("separation", 16)
-	right.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	right.offset_left = Style.EDGE
-	right.offset_right = -Style.EDGE
-	right.offset_top = Style.HEADER_Y - Style.PILL_HEIGHT / 2.0 - 8
-	right.offset_bottom = right.offset_top + Style.PILL_HEIGHT + 16
-	_chrome.add_child(right)
-	_upgrades_index = _focusables.size()
-	_pill_button(right, "Прокачка · %d" % run.studio.upgrade_ids.size(), false)
+	# Под названием: деньги, «Прокачка» и, если предложение отложено, «Прокачаться».
+	_pills = HBoxContainer.new()
+	_pills.add_theme_constant_override("separation", 16)
+	_pills.position = Vector2(Style.EDGE, PILLS_Y)
+	_chrome.add_child(_pills)
 	_money_index = _focusables.size()
-	_pill_button(right, Style.format_money(run.wallet.cash), true)
+	_pill_button(_pills, Style.format_money(run.wallet.cash), true)
+	_upgrades_index = _focusables.size()
+	_pill_button(_pills, "Прокачка · %d" % run.studio.upgrade_ids.size(), false)
+	if not run.pending_defs().is_empty():
+		_offer_index = _focusables.size()
+		_offer_button(_pills)
 
 	# Снизу по центру: «Новая игра».
 	var b := PanelContainer.new()
@@ -549,6 +737,45 @@ func _build() -> void:
 	_chrome.add_child(hints)
 	_hints = hints
 	MouseUi.pass_through(self)
+
+
+## «Прокачаться»: зелёная пилюля, раз в пару секунд вздрагивает и пускает от себя ореол.
+func _offer_button(parent: Control) -> void:
+	var p := PanelContainer.new()
+	p.custom_minimum_size = Vector2(0, Style.PILL_HEIGHT + 16)
+	var l := _label("Прокачаться", Style.FONT_BODY, Style.SURFACE_SOLID)
+	l.add_theme_font_override("font", Jelly.fun_font(800))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	p.add_child(l)
+	_offer_halo = Panel.new()
+	_offer_halo.show_behind_parent = true
+	_offer_halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_offer_halo.add_theme_stylebox_override("panel", Style.flat(OFFER_COLOR, Style.R_PILL, Color.TRANSPARENT, 0))
+	_offer_halo.modulate.a = 0.0
+	p.add_child(_offer_halo)
+	parent.add_child(p)
+	_add_focusable(p, Jelly.button(p, Style.R_PILL), l)
+	_pulse_offer.call_deferred()
+
+
+## Ореол расходится от кнопки и гаснет, кнопка вздрагивает; по кругу, пока кнопка жива.
+func _pulse_offer() -> void:
+	var halo := _offer_halo
+	if halo == null or not is_instance_valid(halo) or Debug.skip_cards:
+		return
+	var host := halo.get_parent() as Control
+	halo.position = Vector2.ZERO
+	halo.size = host.size
+	halo.pivot_offset = host.size / 2.0
+	halo.scale = Vector2.ONE
+	halo.modulate.a = 0.55
+	if window == Pop.NONE:
+		Jelly.poke(host, 0.8)
+	var tw := halo.create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(halo, "scale", Vector2(1.18, 1.6), 0.9)
+	tw.tween_property(halo, "modulate:a", 0.0, 0.9)
+	tw.chain().tween_interval(OFFER_PULSE_SECONDS - 0.9)
+	tw.chain().tween_callback(_pulse_offer)
 
 
 func _add_focusable(c: Control, lift: JellyLift, label: Label) -> void:
@@ -622,7 +849,10 @@ func _refresh_focus() -> void:
 			continue
 		var c := _focusables[i] as PanelContainer
 		var radius := Style.R_PILL if i != _new_index else Style.R_CTL
-		var sb := Style.flat(Style.INK if on else Style.SURFACE_SOLID, radius, Color.TRANSPARENT, 0)
+		var bg := Style.INK if on else Style.SURFACE_SOLID
+		if i == _offer_index:
+			bg = OFFER_COLOR.darkened(0.3) if on else OFFER_COLOR
+		var sb := Style.flat(bg, radius, Color.TRANSPARENT, 0)
 		sb.content_margin_left = 24
 		sb.content_margin_right = 24
 		c.add_theme_stylebox_override("panel", sb)
@@ -630,6 +860,8 @@ func _refresh_focus() -> void:
 		var base := Style.INK
 		if i == _money_index:
 			base = Style.DANGER if run.wallet.cash < 0 else Style.MONEY
+		elif i == _offer_index:
+			base = Style.SURFACE_SOLID
 		l.add_theme_color_override("font_color", Style.SURFACE_SOLID if on else base)
 
 

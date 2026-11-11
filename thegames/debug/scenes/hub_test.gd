@@ -3,8 +3,8 @@ extends Control
 ## релизов быстрыми конфигурациями (разработка, отклик, лента, фаза студии, покупка первой
 ## прокачки), затем `RunHub` на пиксельной студии. Раздел «Главный экран» дебаг-меню: «Заново», окна. Под ботом:
 ## окно денег сходится с кошельком, окно прокачки по порядку покупки, панель релиза с лентой,
-## «Новая игра» шлёт сигнал. `--no-checks [--pop=money|upgrades|release]` держит экран для
-## скриншота.
+## «Новая игра» шлёт сигнал, отложенное предложение покупается с главного экрана один раз.
+## `--no-checks [--pop=money|upgrades|release|offer]` держит экран для скриншота.
 
 const SECTION: StringName = &"Главный экран"
 
@@ -15,6 +15,7 @@ var _checks := false
 var _pop := ""
 var _started := false
 var _bg: StudioBackdrop
+var _dim: ColorRect
 
 
 func _ready() -> void:
@@ -22,6 +23,13 @@ func _ready() -> void:
 	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bg)
+	# Притенение под окнами и панелью релиза, как в `Main`.
+	_dim = ColorRect.new()
+	_dim.color = Style.STUDIO_DIM
+	_dim.modulate.a = 0.0
+	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_dim)
 	if AutoTest.enabled:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		past = int(str(args.get("past", past)))
@@ -36,6 +44,7 @@ func _ready() -> void:
 	Debug.add_action(SECTION, "Окно денег", func() -> void: hub.open_money())
 	Debug.add_action(SECTION, "Окно прокачки", func() -> void: hub.open_upgrades())
 	Debug.add_action(SECTION, "Последний релиз", func() -> void: hub.open_release(0))
+	Debug.add_action(SECTION, "Отложенная прокачка", func() -> void: hub.open_offer())
 	_open()
 
 
@@ -51,6 +60,8 @@ func _open() -> void:
 	hub = RunHub.new()
 	hub.setup(run)
 	hub.new_game.connect(func() -> void: _started = true)
+	hub.overlay_changed.connect(func(on: bool) -> void:
+		create_tween().tween_property(_dim, "modulate:a", 1.0 if on else 0.0, Style.STUDIO_DIM_SECONDS))
 	add_child(hub)
 	if _checks:
 		_check.call_deferred()
@@ -66,6 +77,8 @@ func _show_pop() -> void:
 			hub.open_upgrades()
 		"release":
 			hub.open_release(0)
+		"offer":
+			hub.open_offer()
 
 
 ## Забег, прошедший `n` релизов: каждый как в петле, первая прокачка предложения куплена.
@@ -83,7 +96,12 @@ static func _make_run(n: int) -> RunState:
 		r.score_release(record)
 		r.build_feed(record)
 		var report := r.settle(record)
-		if not report.offer.is_empty():
+		# Последняя фаза: от предложения отказались, оно ждёт на главном экране.
+		r.pending_offer.clear()
+		if i == n - 1:
+			for d in report.offer:
+				r.pending_offer.append(d.id)
+		elif not report.offer.is_empty():
 			StudioPhase.buy(report.offer[0], r.wallet, r.upkeep, r.studio, r.economy)
 		r.close_release(record, report)
 	r.prepare_release()
@@ -106,6 +124,22 @@ func _check() -> void:
 	_expect(hub.window == RunHub.Pop.UPGRADES, "окно прокачки открыто")
 	_expect(run.studio.bought_release.size() == run.studio.upgrade_ids.size() and run.studio.release_of(0) == 1,
 			"релизы покупки %s" % [run.studio.bought_release])
+	# Отложенное предложение: кнопка есть, покупка одна, после неё кнопка уходит.
+	_expect(hub._offer_index >= 0, "кнопка «Прокачаться» на месте")
+	var owned := run.studio.upgrade_ids.size()
+	var cash := run.wallet.cash
+	hub.open_offer()
+	_expect(hub.window == RunHub.Pop.OFFER and hub._offer_rows.size() == run.pending_offer.size(), "окно предложения открыто")
+	var pick := -1
+	for i in hub._offer_defs.size():
+		if hub._offer_affordable(i):
+			pick = i
+			break
+	if pick >= 0:
+		var price := hub._offer_defs[pick].price(run.economy)
+		_expect(hub.buy_offer(pick), "покупка из предложения")
+		_expect(run.studio.upgrade_ids.size() == owned + 1 and run.wallet.cash == cash - price, "куплено и списано")
+		_expect(run.pending_offer.is_empty() and hub._offer_index < 0 and hub.window == RunHub.Pop.NONE, "предложение сгорело")
 	hub.open_release(0)
 	_expect(hub.window == RunHub.Pop.RELEASE and hub._feed != null, "панель релиза открыта")
 	# Лента прошлого релиза собирается заново той же.

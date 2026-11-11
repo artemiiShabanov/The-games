@@ -187,7 +187,8 @@ func _open_gallery() -> void:
 	card.visible = false
 	_hints.visible = false
 	_gallery = GalleryScreen.new()
-	_gallery.setup(Profile.load_saved().gallery)
+	var profile := Profile.load_saved()
+	_gallery.setup(profile.gallery, profile.runs)
 	_gallery.closed.connect(func() -> void:
 		_gallery.queue_free()
 		_gallery = null

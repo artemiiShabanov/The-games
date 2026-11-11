@@ -8,8 +8,8 @@ extends Control
 ## кнопки «В демо» и «Дальше». Вверх и вниз листают по карточке с центрированием, A до низа
 ## листает вниз, внизу ставит фокус на «Дальше» и подтверждает, влево-вправо меняют кнопку, B
 ## это «Дальше». Продажи на этом экране не показываются: они приходят в фазе студии.
-## Архив (#78, `setup_archive`): та же лента прошлого релиза панелью на правой половине экрана
-## поверх главного экрана забега, выезжает справа; без шапки и подсказок, кнопки «Играть демку»
+## Архив (#78, `setup_archive`): та же лента прошлого релиза панелью на левой половине экрана
+## поверх главного экрана забега, выезжает слева; без шапки и подсказок, кнопки «Играть демку»
 ## и «Закрыть», Esc тоже закрывает.
 
 signal demo_requested
@@ -52,16 +52,16 @@ func setup(content_: FeedContent, record_: GameRecord, release_: int, cash_: int
 	cash = cash_
 
 
-## Лента прошлого релиза панелью справа (#78).
+## Лента прошлого релиза панелью слева (#78; справа на главном экране столбик релизов).
 func setup_archive(content_: FeedContent, record_: GameRecord) -> void:
 	setup(content_, record_, 0, 0)
 	archive = true
 
 
-## Прямоугольник панели архива: колонка с полями карточки, у правого края экрана.
+## Прямоугольник панели архива: колонка с полями карточки, у левого края экрана.
 static func archive_rect() -> Rect2:
 	var w := COLUMN_WIDTH + 2 * SHADOW_PAD + 2 * Style.PAD_CARD
-	return Rect2(Style.SCREEN.x - Style.EDGE / 2.0 - w, Style.SPRINT_CARD_TOP, w,
+	return Rect2(Style.EDGE / 2.0, Style.SPRINT_CARD_TOP, w,
 			Style.SCREEN.y - Style.SPRINT_CARD_TOP - Style.SPRINT_CARD_BOTTOM)
 
 
@@ -188,7 +188,7 @@ func _build() -> void:
 	card = CardFrame.new()
 	if archive:
 		card.rect_override = archive_rect()
-		card.from_right = true
+		card.from_left = true
 		# Поверх студии и кнопок главного экрана: плотная, сквозь неё ничего не видно.
 		card.add_theme_stylebox_override("panel", Style.card(true))
 	add_child(card)

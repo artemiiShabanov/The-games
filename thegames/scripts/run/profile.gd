@@ -25,6 +25,9 @@ static var path := PATH
 ## Стартовая пара прошлого забега, −1 если забегов не было.
 @export var last_start_genre := -1
 @export var last_start_tech := -1
+## Законченные забеги для вкладки «Студии» галереи: `run`, `studio`, `logo` (как в слоте),
+## `ending` (ключ `Endings.KEYS`), `score`, `releases`, `finished` (unix-время).
+@export var runs: Array[Dictionary] = []
 
 
 ## Автотест: свой файл, пустой на старте прогона.
@@ -74,8 +77,16 @@ func add_game(r: GameRecord, run_number: int, release: int, studio: String) -> v
 	save()
 
 
-## Конец забега: лучшая оценка концовки и счётчики.
-func finish_run(ending: StringName, score: int) -> void:
+## Каталог кадров демок: свой под автотестом.
+static func shots_dir() -> String:
+	return "user://shots_autotest/" if path == TEST_PATH else "user://shots/"
+
+
+## Конец забега: лучшая оценка концовки, счётчики и строка забега для галереи.
+func finish_run(ending: StringName, score: int, run_number := 0, studio := "", logo := {}, releases := 0) -> void:
+	if run_number > 0:
+		runs.append({"run": run_number, "studio": studio, "logo": logo, "ending": ending, "score": score,
+				"releases": releases, "finished": int(Time.get_unix_time_from_system())})
 	runs_finished += 1
 	ending_counts[ending] = ending_counts.get(ending, 0) + 1
 	if not best_endings.has(ending) or score > best_endings[ending]:

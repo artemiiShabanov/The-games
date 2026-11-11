@@ -3,7 +3,7 @@ extends Control
 ## (число багов, деньги, сид), предложение, при согласии списание и случайная аспектная
 ## мини-игра через раннер, затем карточка «починено». Под ботом: отказ, покупка с WIN чинит
 ## половину багов, покупка с LOSE не чинит и не добавляет, нехватка денег держит кнопку, с
-## «Отделом QA» (#29) второе предложение после первого спринта, пока баги остались.
+## «Отделом QA» (#29) второе предложение после первого спринта, есть баги или нет.
 
 const SECTION: StringName = &"Багфикс"
 const OFFER_PATH := "res://scenes/bugfix_offer.tscn"
@@ -124,8 +124,8 @@ func _on_sprint_finished(_def: MinigameDef, success: bool) -> void:
 		names.append(b.stamp_for(record.genre) if b != null else String(id))
 	_show(("Починено: %s" % ", ".join(names) if success else "Провал: ничего не починено") +
 			"\nОсталось багов: %d · деньги %s\n\nA снова, F1 меню" % [record.bug_ids.size(), wallet])
-	# «Отдел QA»: второе предложение, пока баги остались.
-	if offers_shown < Bugfix.offers(state) and not record.bug_ids.is_empty() and offer == null:
+	# «Отдел QA»: второе предложение, есть баги или нет.
+	if offers_shown < Bugfix.offers(state) and offer == null:
 		_show_offer()
 	if AutoTest.enabled and _phase > 0:
 		await _check(success)

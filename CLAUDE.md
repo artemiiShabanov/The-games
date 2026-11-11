@@ -48,8 +48,8 @@
   --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`). Мышь в мини-играх:
   `--scene=mouse_test --frames=1500`.
   Главный экран забега: `--scene=hub_test --frames=60`, кадр `--no-checks
-  [--past=N] [--pop=money|upgrades|release]`. Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
-  кадр `--no-checks [--empty]`; профиль `--scene=profile_test --frames=30`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop
+  [--past=N] [--pop=money|upgrades|release|offer]`. Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
+  кадр `--no-checks [--empty] [--studios]`; профиль `--scene=profile_test --frames=30`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop
   --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--refuse-events`
   бот отвечает на вставки последним вариантом; `--slot=N` сохранять в тестовый слот, `--resume`
   продолжить из него). Главная сцена проекта это меню (#71): под автотестом без `--menu` оно

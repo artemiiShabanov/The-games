@@ -197,6 +197,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make("↑ ↓ листать"))
 	hints.add_child(HintPill.make("← → колонка"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "выбрать")))
+	hints.add_child(HintPill.make("Esc назад"))
 	add_child(hints)
 	MouseUi.pass_through(self)
 

@@ -19,6 +19,8 @@ extends Resource
 @export var run_number := 1
 @export var release := 1
 @export var studio := ""
+## Кадр демки (`GameRecord.shot`), пусто: в галерее заглушка цвета жанра.
+@export var shot := ""
 
 
 static func of(r: GameRecord, run_number_: int, release_: int, studio_: String) -> GalleryEntry:
@@ -39,6 +41,7 @@ static func of(r: GameRecord, run_number_: int, release_: int, studio_: String) 
 	e.run_number = run_number_
 	e.release = release_
 	e.studio = studio_
+	e.shot = r.shot
 	return e
 
 

@@ -440,6 +440,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make("← → колонка и кнопка"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
 	hints.add_child(HintPill.make("R название"))
+	hints.add_child(HintPill.make("Esc назад"))
 	add_child(hints)
 	MouseUi.pass_through(self)
 

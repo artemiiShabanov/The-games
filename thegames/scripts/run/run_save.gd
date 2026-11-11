@@ -42,6 +42,8 @@ static var test_files := false
 @export var buyer_came := false
 @export var rep_log: Array[float] = []
 @export var events := {}
+## Отложенное предложение прокачки (`RunState.pending_offer`).
+@export var pending_offer: Array[StringName] = []
 
 ## Текущий релиз: запись, план спринтов, сколько спринтов сыграно, предложений багфикса.
 @export var current: GameRecord

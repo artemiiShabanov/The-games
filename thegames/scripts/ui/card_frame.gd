@@ -12,6 +12,8 @@ var shown := false
 var rect_override := Rect2()
 ## Выезжать справа и уезжать вправо, а не снизу.
 var from_right := false
+## Выезжает слева, а не снизу (панель релиза главного экрана, релизы справа).
+var from_left := false
 
 
 func _init() -> void:
@@ -69,6 +71,8 @@ func inner() -> Vector2:
 
 
 func _hidden_pos(r: Rect2) -> Vector2:
+	if from_left:
+		return Vector2(-r.size.x - Style.EDGE, r.position.y)
 	return Vector2(_parent_size().x + Style.EDGE, r.position.y) if from_right else Vector2(r.position.x, _parent_size().y)
 
 

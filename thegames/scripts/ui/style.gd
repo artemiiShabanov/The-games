@@ -24,6 +24,9 @@ const BUG := Color("#F07A1C")
 const TINT_PLUS := Color("#E3F4EA")
 const TINT_MINUS := Color("#FBE5E2")
 const TINT_LOCK := Color("#E6ECFF")
+## Притенение студии фоном под карточкой, экраном или окном (плейтест 2026-11-11).
+const STUDIO_DIM := Color(0.11, 0.1, 0.09, 0.2)
+const STUDIO_DIM_SECONDS := 0.3
 
 ## Виды прокачки (плейтест 2026-11-11, #79): технология, жанр, возможность по `UpgradeDef.Kind`.
 ## Цвет вида: полоса сверху карточки и текст пилюли; подложка пилюли светлая того же тона.

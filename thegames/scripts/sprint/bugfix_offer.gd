@@ -1,7 +1,8 @@
 class_name BugfixOffer
 extends Control
-## Карточка предложения спринта багфикса после плейтеста (#27): сколько багов, что починит
-## успех, цена, кнопки «Купить» и «Выпустить так». Влево-вправо фокус, A подтверждает, B и Esc
+## Карточка предложения спринта багфикса после плейтеста (#27): цена и кнопки «Купить» и
+## «Выпустить так». Сколько багов и какие, не говорит (плейтест 2026-11-11): игрок ищет их в
+## демке сам, предложение приходит после каждой демки. Влево-вправо фокус, A подтверждает, B и Esc
 ## отказ. Денег не хватает: кнопка покупки серая с суммой нехватки и трясётся. Деньги не
 ## списывает: хозяин по сигналу `accepted`.
 
@@ -121,27 +122,8 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 16)
 	panel.add_child(column)
 	column.add_child(_label("Спринт багфикса", Style.FONT_H1, Style.INK, true))
-	var n := record.bug_ids.size()
-	var fix := Bugfix.fix_count(record)
-	column.add_child(_label("В сборке багов: %d. Удачный спринт прихлопнет %d, каких именно, решит случай." % [n, fix],
+	column.add_child(_label("Что-то в демке показалось кривым? Удачный спринт прихлопнет половину того, что там есть. Если там что-то есть.",
 			Style.FONT_BODY, Style.INK_2, true))
-	# Штампы текущих багов.
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	column.add_child(row)
-	for id in record.bug_ids:
-		var bug := catalog.by_id(id) if catalog != null else null
-		var pill := PanelContainer.new()
-		var sb := Style.flat(Style.BUG, Style.R_PILL, Color.TRANSPARENT, 0)
-		sb.content_margin_left = 18
-		sb.content_margin_right = 18
-		sb.content_margin_top = 6
-		sb.content_margin_bottom = 6
-		pill.add_theme_stylebox_override("panel", sb)
-		var l := _label(bug.stamp_for(record.genre) if bug != null else String(id), Style.FONT_CAPTION + 2, Style.SURFACE_SOLID, false)
-		pill.add_child(l)
-		row.add_child(pill)
 	column.add_child(_label("Цена обычного спринта: %s · у вас %s" % [Style.format_money(cost), Style.format_money(cash)],
 			Style.FONT_BODY, Style.INK_2, true))
 	var buttons := HBoxContainer.new()

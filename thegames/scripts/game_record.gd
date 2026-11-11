@@ -30,6 +30,8 @@ extends Resource
 @export var feed_built := false
 @export var feed_rep := 0.0
 @export var feed_veteran := false
+## Кадр демки с плейтеста (галерея, плейтест 2026-11-11): PNG в `user://`, пусто без кадра.
+@export var shot := ""
 
 
 static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "", setting_ := Game.Setting.PIRATES) -> GameRecord:

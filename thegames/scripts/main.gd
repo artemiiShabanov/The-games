@@ -20,6 +20,9 @@ enum Stage { START, HUB, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, F
 const SECTION: StringName = &"Состояние"
 const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
 const BASE_PATH := "res://scenes/base_chooser.tscn"
+## Кадр демки плейтеста в галерею: когда снимать и размер.
+const SHOT_SECONDS := 4.0
+const SHOT_SIZE := Vector2i(480, 270)
 const BUGFIX_PATH := "res://scenes/bugfix_offer.tscn"
 const FEED_PATH := "res://scenes/feed.tscn"
 const STUDIO_PATH := "res://scenes/studio_screen.tscn"
@@ -39,6 +42,8 @@ var run: RunState
 var stage := Stage.START
 var record: GameRecord
 var base: BaseOption
+## Конструктор открыт после экрана основы: Esc в нём возвращает к основе, а не на главный.
+var _via_base := false
 var report: StudioPhase.Report
 var bugfix_offers := 0
 
@@ -60,6 +65,11 @@ var _broke_at := -1
 ## Сколько раз этот забег продолжали из слота: сдвиг сида мини-игр.
 var _resumes := 0
 var _pause: PauseMenu
+## Притенение студии под карточками и экранами (плейтест 2026-11-11): на главном экране без
+## окон его нет, на всём остальном поверх студии есть.
+var _dim: ColorRect
+var _dim_on := false
+var _hub_overlay := false
 
 
 func _ready() -> void:
@@ -97,6 +107,12 @@ func _ready() -> void:
 	_bg = StudioBackdrop.new()
 	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_bg)
+	_dim = ColorRect.new()
+	_dim.color = Style.STUDIO_DIM
+	_dim.modulate.a = 0.0
+	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_dim)
 	_sync_studio()
 
 	Debug.add_number(SECTION, "Деньги", func() -> int: return run.wallet.cash,
@@ -171,12 +187,19 @@ func _open_hub() -> void:
 	var hub := RunHub.new()
 	hub.setup(run)
 	hub.new_game.connect(_begin_next_game)
+	_hub_overlay = false
+	hub.overlay_changed.connect(func(on: bool) -> void: _hub_overlay = on)
+	hub.upgrade_bought.connect(func(u: UpgradeDef) -> void:
+		_expected_cash -= u.price(run.economy)
+		_sync_studio()
+		_save(&"release", true))
 	_set_screen(hub)
 	_bot_timer = 0.0
 
 
 ## «Новая игра»: основа, если открыты сиквелы или ремейки, иначе конструктор.
 func _begin_next_game() -> void:
+	_via_base = false
 	if run.contract_sequel() != null:
 		# Обещанный во вставке сиквел (#66): основа задана, экрана основы нет.
 		base = BaseOption.sequel_of(run.contract_sequel())
@@ -225,6 +248,7 @@ func _open_base() -> void:
 
 func _on_base_chosen(o: BaseOption) -> void:
 	base = o
+	_via_base = true
 	_open_constructor()
 
 
@@ -286,7 +310,8 @@ func _begin_playtest() -> void:
 	if _runner != null:
 		_runner.queue_free()
 		_runner = null
-	_show_card("Плейтест", ["%s собралась. Пробуем, пока не передумала" % record.title, "багов: %d" % record.bug_ids.size()], "")
+	# Число багов не показываем (плейтест 2026-11-11): игрок ищет их в демке сам.
+	_show_card("Плейтест", ["%s собралась. Пробуем, пока не передумала" % record.title, "Баги ищи сам: списка никто не составит"], "")
 	ShellSounds.play(&"intro")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	if stage != Stage.PLAYTEST:
@@ -309,6 +334,42 @@ func _run_demo(source: StringName, caption: String) -> void:
 	_demo.demo_finished.connect(_on_demo_finished)
 	add_child(_demo)
 	_demo.start()
+	if source == &"playtest" and record.shot == "":
+		_capture_shot(record, _demo)
+
+
+## Кадр демки плейтеста для галереи: через `SHOT_SECONDS` после старта, без пилюли шапки,
+## только поле демки, шириной `SHOT_SIZE.x`, PNG в каталоге кадров профиля. Без окна не снимается.
+func _capture_shot(r: GameRecord, demo: Demo) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	await get_tree().create_timer(SHOT_SECONDS).timeout
+	if demo != _demo or not is_instance_valid(demo):
+		return
+	if _demo_header != null:
+		_demo_header.visible = false
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	if demo != _demo:
+		return
+	var img := get_viewport().get_texture().get_image()
+	if _demo_header != null:
+		_demo_header.visible = true
+	if img == null or img.is_empty():
+		return
+	# Только поле демки, без карточки и студии вокруг: кадр в пикселях окна.
+	if demo.screen != null:
+		var k := float(img.get_width()) / Style.SCREEN.x
+		var area := demo.screen.get_global_rect()
+		var px := Rect2i(Vector2i(area.position * k), Vector2i(area.size * k)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+		if px.has_area():
+			img = img.get_region(px)
+	img.resize(SHOT_SIZE.x, roundi(SHOT_SIZE.x * float(img.get_height()) / img.get_width()), Image.INTERPOLATE_LANCZOS)
+	DirAccess.make_dir_recursive_absolute(Profile.shots_dir())
+	var path := Profile.shots_dir() + "run%d_release%d_%d.png" % [run.run_number, run.release, r.seed]
+	if img.save_png(path) == OK:
+		r.shot = path
+		AutoTest.note("shot: %s" % path)
 
 
 func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
@@ -325,9 +386,10 @@ func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
 		_offer_bugfix()
 
 
-## Предложение багфикса: пока есть баги и предложения (с «Отделом QA» два).
+## Предложение багфикса после демки, есть баги или нет (плейтест 2026-11-11: найти их игрок
+## должен сам, отсутствие предложения их выдавало); с «Отделом QA» два.
 func _offer_bugfix() -> void:
-	if record.bug_ids.is_empty() or bugfix_offers >= Bugfix.offers(run.studio):
+	if bugfix_offers >= Bugfix.offers(run.studio):
 		_finish_release()
 		return
 	stage = Stage.BUGFIX
@@ -364,12 +426,10 @@ func _on_bugfix_sprint(_def: MinigameDef, success: bool) -> void:
 	if _runner != null:
 		_runner.queue_free()
 		_runner = null
-	var names: PackedStringArray = []
-	for id in fixed:
-		var b := run.catalog.by_id(id)
-		names.append(b.stamp_for(record.genre) if b != null else String(id))
-	_show_card("Багфикс", ["Починено: %s" % ", ".join(names) if success else "Ничего не починилось. Баги довольны",
-			"осталось багов: %d" % record.bug_ids.size()], "")
+	# Что починено и сколько осталось, не говорим: игрок узнаёт по отзывам.
+	AutoTest.note("bugfix: %s, починено %s, осталось %d" % [success, fixed, record.bug_ids.size()])
+	_show_card("Багфикс", ["Спринт удался. Если баги были, их стало меньше" if success
+			else "Спринт не задался. Баги, если были, на месте"], "")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	_clear_card()
 	_offer_bugfix()
@@ -445,6 +505,12 @@ func _apply_event(index: int, offer: Events.Offer) -> String:
 
 
 func _on_studio_finished() -> void:
+	# Отказ от прокачки не сгорает до новой игры: кнопка «Прокачаться» на главном экране.
+	var screen := _screen as StudioScreen
+	run.pending_offer.clear()
+	if screen != null and screen.bought == null and report != null and not report.game_over:
+		for d in report.offer:
+			run.pending_offer.append(d.id)
 	_clear_all()
 	if _bg != null:
 		_bg.react(&"")
@@ -488,7 +554,8 @@ func _show_ending(id: Endings.Id) -> void:
 	stage = Stage.END
 	var result := Endings.compute(id, run.records, run.stats(), run.event_state.flags)
 	result.studio = run.studio_name
-	_profile.finish_run(Endings.KEYS[id], result.score)
+	_profile.finish_run(Endings.KEYS[id], result.score, run.run_number, run.studio_name,
+			RunSave.logo_to_dict(run.studio_logo), run.records.size())
 	# Забег окончен: слот свободен.
 	if slot > 0:
 		RunSave.delete_slot(slot)
@@ -506,7 +573,7 @@ func _on_ending_closed() -> void:
 	if _loop_check:
 		return
 	var g := GalleryScreen.new()
-	g.setup(_profile.gallery)
+	g.setup(_profile.gallery, _profile.runs)
 	g.closed.connect(_to_menu)
 	_set_screen(g)
 
@@ -567,6 +634,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if stage in [Stage.SPRINTS, Stage.FIXING, Stage.PLAYTEST, Stage.FEED_DEMO]:
 		return
 	get_viewport().set_input_as_handled()
+	# Выбор следующей игры (плейтест 2026-11-11): Esc шаг назад, к основе или на главный.
+	if stage == Stage.CONSTRUCTOR and _via_base:
+		ShellSounds.play(&"switch")
+		_open_base()
+		return
+	if stage == Stage.BASE or stage == Stage.CONSTRUCTOR:
+		ShellSounds.play(&"switch")
+		base = null
+		_open_hub()
+		return
 	_pause = PauseMenu.new()
 	_pause.resumed.connect(_close_pause)
 	_pause.to_menu.connect(_to_menu)
@@ -589,6 +666,7 @@ func _restart() -> void:
 # --- Ввод, бот, дебаг -------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_update_dim()
 	if not AutoTest.bot_active():
 		return
 	_bot_timer += delta
@@ -709,6 +787,15 @@ func _skip_stage() -> void:
 
 
 # --- Экраны и карточки ------------------------------------------------------------------------
+
+func _update_dim() -> void:
+	var want := stage != Stage.HUB or _hub_overlay
+	if want == _dim_on or _dim == null:
+		return
+	_dim_on = want
+	var tw := create_tween()
+	tw.tween_property(_dim, "modulate:a", 1.0 if want else 0.0, Style.STUDIO_DIM_SECONDS if not Debug.skip_cards else 0.0)
+
 
 func _set_screen(node: Node) -> void:
 	_clear_screen()

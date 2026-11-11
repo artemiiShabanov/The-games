@@ -52,6 +52,9 @@ var event_state := EventState.new()
 ## Репутация в конце каждого закрытого релиза: «выросла за два релиза» у вставок.
 var rep_log: Array[float] = []
 var finished := false
+## Предложение прокачки, от которого отказались в фазе студии (плейтест 2026-11-11): до старта
+## новой игры его можно открыть с главного экрана и купить одно. Пусто: нечего предлагать.
+var pending_offer: Array[StringName] = []
 var finish_reason := ""
 
 
@@ -128,6 +131,7 @@ func to_save(stage: StringName) -> RunSave:
 	s.buyer_came = buyer_came
 	s.rep_log = rep_log.duplicate()
 	s.events = RunSave.events_to_dict(event_state)
+	s.pending_offer = pending_offer.duplicate()
 	if last_plan != null:
 		for d in last_plan.defs:
 			s.plan_ids.append(d.id)
@@ -163,6 +167,7 @@ static func from_save(s: RunSave) -> RunState:
 	r.buyer_came = s.buyer_came
 	r.rep_log = s.rep_log.duplicate()
 	r.event_state = RunSave.events_from_dict(s.events)
+	r.pending_offer = s.pending_offer.duplicate()
 	if not s.plan_ids.is_empty():
 		r.last_plan = SprintPlan.new()
 		for id in s.plan_ids:
@@ -259,6 +264,7 @@ func first_config() -> GameConfig:
 ## оставили следующей игре (#66), переходит в запись: доли с хвоста (сумма не выше
 ## `meta.max_tail_share`), бонусы к отклику; ограничения отработали в конструкторе и снимаются.
 func start_development(config: GameConfig) -> GameRecord:
+	pending_offer.clear()
 	wallet.spend(config.total_cost(), &"release", config.title)
 	var record := config.to_record(rng.randi())
 	_apply_contracts(record)
@@ -453,6 +459,16 @@ func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
 	if release > cap:
 		finished = true
 		finish_reason = "год закончился"
+
+
+## Отложенное предложение прокачки: то, что ещё можно купить (куплено или открыто иначе уходит).
+func pending_defs() -> Array[UpgradeDef]:
+	var out: Array[UpgradeDef] = []
+	for id in pending_offer:
+		var d := UpgradePool.find(upgrades, id)
+		if d != null and not studio.has(d.id):
+			out.append(d)
+	return out
 
 
 func stats() -> RunStats:

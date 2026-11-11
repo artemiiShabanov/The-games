@@ -1,8 +1,9 @@
 extends Control
 ## Тестовая сцена галереи (#70): шесть игр двух забегов в тестовом профиле. Раздел «Галерея»
 ## дебаг-меню: «Открыть» и «Пустая». Под ботом: порядок по забегам и по критикам, ход фокуса,
-## бот запускает демку первой игры и закрывает галерею, затем пустая галерея с подписью.
-## `--no-checks [--empty]` держит экран для скриншота.
+## вкладка «Студии» (законченный забег с концовкой и забег в пути по играм), бот запускает
+## демку первой игры и закрывает галерею, затем пустая галерея с подписью.
+## `--no-checks [--empty] [--studios]` держит экран для скриншота.
 
 const SECTION: StringName = &"Галерея"
 const G := Game.Genre
@@ -13,6 +14,7 @@ var screen: GalleryScreen
 var _phase := 0
 var _checks := false
 var _played := ""
+var _studios := false
 
 
 func _ready() -> void:
@@ -26,6 +28,7 @@ func _ready() -> void:
 	if AutoTest.enabled:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		empty = args.has("empty")
+		_studios = args.has("studios")
 		if args.has("no-checks"):
 			AutoTest.bot_mode = AutoTest.BotMode.OFF
 		else:
@@ -57,17 +60,36 @@ func _entries() -> Array[GalleryEntry]:
 		r.score.critics = d[5]
 		r.score.viral = d[5] > 9.0
 		out.append(GalleryEntry.of(r, d[0], d[1], "Тихая Лампа" if d[0] == 1 else "Ночной Пельмень"))
+	# Кадр у первой игры второго забега: небо, земля и солнце, чтобы видеть картинку в строке.
+	var img := Image.create(480, 270, false, Image.FORMAT_RGB8)
+	img.fill(Color("#5C94FC"))
+	img.fill_rect(Rect2i(0, 200, 480, 70), Color("#C84C0C"))
+	img.fill_rect(Rect2i(380, 30, 50, 50), Color("#FCE0A8"))
+	DirAccess.make_dir_recursive_absolute("user://shots_autotest/")
+	if img.save_png("user://shots_autotest/gallery_test.png") == OK:
+		out[3].shot = "user://shots_autotest/gallery_test.png"
 	return out
+
+
+## Первый забег закончен продажей, второй в пути.
+func _runs() -> Array[Dictionary]:
+	var logo := RunSave.logo_to_dict(StudioLogo.new())
+	return [{"run": 1, "studio": "Тихая Лампа", "logo": logo, "ending": &"sale", "score": 640, "releases": 3, "finished": 0}]
 
 
 func _open(entries: Array[GalleryEntry]) -> void:
 	if screen != null:
 		screen.queue_free()
 	screen = GalleryScreen.new()
-	screen.setup(entries)
+	var runs: Array[Dictionary] = []
+	if not entries.is_empty():
+		runs = _runs()
+	screen.setup(entries, runs)
 	screen.closed.connect(_on_closed)
 	screen.demo_opened.connect(func(e: GalleryEntry) -> void: _played = e.title)
 	add_child(screen)
+	if _studios:
+		screen.set_tab(GalleryScreen.Tab.STUDIOS)
 	if _checks and _phase == 0:
 		_order_checks()
 
@@ -84,6 +106,15 @@ func _order_checks() -> void:
 	screen.focus(5)
 	_expect(screen.index == 5, "фокус %d" % screen.index)
 	screen.focus(0)
+	# Вкладка студий: новые сверху, у второго забега концовки нет, у первого продажа.
+	screen.set_tab(GalleryScreen.Tab.STUDIOS)
+	var st := screen.studios
+	_expect(screen.count() == 2 and int(st[0]["run"]) == 2 and st[0]["ending"] == &"" and st[1]["ending"] == &"sale",
+			"студии: %s" % [st])
+	_expect(st[0]["best"] == "Абордаж на лунке" and int(st[1]["games"]) == 3 and int(st[1]["releases"]) == 3,
+			"лучшая и релизы: %s" % [st])
+	screen.set_tab(GalleryScreen.Tab.GAMES)
+	_expect(screen.index == 0 and screen.count() == 6, "назад на игры")
 
 
 func _on_closed() -> void:
