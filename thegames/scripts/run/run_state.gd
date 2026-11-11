@@ -52,6 +52,9 @@ var event_state := EventState.new()
 ## Репутация в конце каждого закрытого релиза: «выросла за два релиза» у вставок.
 var rep_log: Array[float] = []
 var finished := false
+## Спокойный рынок (автотест `--calm`, сверка модели #72): без шума отклика и насыщения, настрой
+## рынка 1, без тренда. Так игра считает ровно по формулам `tools/model_run.py`.
+var calm := false
 ## Предложение прокачки, от которого отказались в фазе студии (плейтест 2026-11-11): до старта
 ## новой игры его можно открыть с главного экрана и купить одно. Пусто: нечего предлагать.
 var pending_offer: Array[StringName] = []
@@ -250,7 +253,12 @@ func discount() -> float:
 
 ## Перед конструктором: настрой рынка и тренд этого релиза.
 func prepare_release() -> void:
-	market.roll_release(success, rng)
+	if calm:
+		market.mood = 1.0
+		market.trend_genre = -1
+		market.trend_setting = -1
+	else:
+		market.roll_release(success, rng)
 	reputation_before = market.reputation
 	wallet.release = release
 
@@ -278,9 +286,9 @@ func start_development(config: GameConfig) -> GameRecord:
 ## Отклик на релиз после плейтеста и багфикса; репутация и насыщение применяются сразу,
 ## чтобы лента и оценка студии видели их.
 func score_release(record: GameRecord) -> ReleaseScore:
-	var score := Success.score_release(record, records, market, success, catalog, rng, true)
+	var score := Success.score_release(record, records, market, success, catalog, rng, not calm)
 	record.score = score
-	Success.apply_release(record, score, market, success, rng, true)
+	Success.apply_release(record, score, market, success, rng, not calm)
 	return score
 
 

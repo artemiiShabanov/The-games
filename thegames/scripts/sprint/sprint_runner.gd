@@ -160,8 +160,10 @@ func _run_sprint(def: MinigameDef) -> void:
 		_minigame.setup(def, t, seed_base + index + attempt * REPLAY_SEED_STEP, mult)
 		_minigame.menu_requested.connect(func() -> void: menu_requested.emit())
 		await _switch_view(_minigame)
+		AutoTest.next_hand()
 		_minigame.start()
 		success = await _minigame.finished
+		AutoTest.end_hand()
 		var offer := not success and plan.replay_left > 0
 		result_card = _make_result_card(def, success, plan.replay_left if offer else 0)
 		await _switch_view(result_card)

@@ -69,6 +69,10 @@
   [--screen [--locked]] [--lose] --from=N --every=N --count=N [--crop=x,y,w,h]
   ["--actions=40:down,80:click=710x680"] ["--set=ui_press:0"] --frames=N`, лист в
   `debug/playtest/jelly_sheet.png`. Сцена без автотеста: `Godot --path thegames -- --scene=jelly_test`.
+- Сверка модели (#72): `sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12
+  --releases=12 --ledger=debug/playtest/ledger_m2.json --time-scale=4 --frames=40000` (долго,
+  `TIMEOUT=1500`), затем `python3 tools/model_run.py --replay thegames/debug/playtest/ledger_m2.json`;
+  таблица M2 `--m2 [--mid] [--events]`.
 - Всё разом: `sh tools/ci.sh` (модель экономики `python3 tools/model_run.py --check` и
   автотесты систем без окна, пара минут).
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.

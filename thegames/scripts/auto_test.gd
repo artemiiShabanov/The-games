@@ -22,6 +22,10 @@ var enabled := false
 var bot_mode := BotMode.OFF
 var frames_left := 0
 var screenshot_path := ""
+## `--hands=0.75`: «руки» бота для сверки модели (#72), доля выигранных спринтов. Исходы
+## раскладываются без случайности: спринт выигран, когда растёт `floor(n × hands)`.
+var hands := -1.0
+var _hand_n := 0
 var failures: PackedStringArray = []
 var _required: PackedStringArray = []
 var _inputs: Dictionary[int, PackedStringArray] = {}
@@ -47,6 +51,7 @@ func _ready() -> void:
 			bot_mode = BotMode.LOSE
 	# Прогоны молчат: звук в автотесте только мешает за соседним столом.
 	AudioServer.set_bus_mute(0, true)
+	hands = float(str(args.get("hands", "-1")))
 	frames_left = int(args.get("frames", str(DEFAULT_FRAMES)))
 	screenshot_path = str(args.get("screenshot", ""))
 	# `--time-scale=4`: игровое время быстрее, чтобы длинные прогоны ботом укладывались в кадры.
@@ -59,6 +64,21 @@ func _ready() -> void:
 				_inputs[f] = PackedStringArray()
 			_inputs[f].append(part.substr(at + 1))
 	print("AUTO-TEST start: frames=%d screenshot=%s" % [frames_left, screenshot_path])
+
+
+## Перед попыткой спринта: с `--hands` бот на эту попытку выигрывающий или проигрывающий.
+func next_hand() -> void:
+	if hands < 0.0 or bot_mode == BotMode.OFF:
+		return
+	var win := floori((_hand_n + 1) * hands + 0.0001) > floori(_hand_n * hands + 0.0001)
+	_hand_n += 1
+	bot_mode = BotMode.WIN if win else BotMode.LOSE
+
+
+## После попытки: остальная оболочка снова под выигрывающим ботом (покупки, вставки).
+func end_hand() -> void:
+	if hands >= 0.0 and bot_mode != BotMode.OFF:
+		bot_mode = BotMode.WIN
 
 
 func bot_active() -> bool:

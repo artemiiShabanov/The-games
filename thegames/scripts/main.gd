@@ -57,6 +57,10 @@ var _demo: Demo
 var _bot_timer := 0.0
 var _loop_check := false
 var _loop_releases := 3
+## Автотест `--ledger=path`: ведомость каждого релиза в JSON (сверка модели, #72).
+var _ledger_path := ""
+var _ledger: Array = []
+var _dev_discount := 0.0
 var _expected_cash := 0
 var _debug_upgrade := ""
 var _profile: Profile
@@ -98,6 +102,9 @@ func _ready() -> void:
 		if args.has("broke-at"):
 			_broke_at = int(str(args["broke-at"]))
 		_loop_check = args.has("loop")
+		# Сверка модели (#72): спокойный рынок и ведомость релизов для `tools/model_run.py`.
+		run.calm = args.has("calm")
+		_ledger_path = str(args.get("ledger", ""))
 		if args.has("releases"):
 			_loop_releases = int(str(args["releases"]))
 		if _loop_check:
@@ -271,6 +278,7 @@ func _on_configured(config: GameConfig) -> void:
 
 func _begin_development(config: GameConfig) -> void:
 	stage = Stage.SPRINTS
+	_dev_discount = run.discount()
 	record = run.start_development(config)
 	_expected_cash -= config.total_cost()
 	_start_runner(0)
@@ -514,6 +522,8 @@ func _on_studio_finished() -> void:
 	_clear_all()
 	if _bg != null:
 		_bg.react(&"")
+	if _ledger_path != "":
+		_write_ledger()
 	run.close_release(record, report)
 	_profile.add_game(record, run.run_number, run.records.size(), run.studio_name)
 	if _loop_check:
@@ -682,7 +692,7 @@ func _process(delta: float) -> void:
 			_bot_timer = -INF
 			var chooser := _screen as BaseChooser
 			if chooser != null:
-				chooser.confirm(chooser.options[0][0])
+				chooser.confirm(_bot_base(chooser))
 		Stage.START:
 			# Бот досматривает прокрутку, как игрок: так её видно на скриншотах автотеста.
 			var ns := _screen as NewStudio
@@ -693,6 +703,8 @@ func _process(delta: float) -> void:
 			_bot_timer = -INF
 			var c := _screen as Constructor
 			if c != null:
+				if _ledger_path != "":
+					_bot_vary(c)
 				c.focus(Constructor.ROW_BUTTON)
 				c.confirm()
 		Stage.BUGFIX:
@@ -738,6 +750,68 @@ func _check_release() -> void:
 	if n >= _loop_releases and not run.finished:
 		AutoTest.fulfill("loop releases")
 		AutoTest.note("loop releases done: frames_left=%d" % AutoTest.frames_left)
+
+
+## Бот сверки модели (#72): каждый третий релиз сиквел первой открытой игры, иначе новая.
+func _bot_base(chooser: BaseChooser) -> BaseOption:
+	if _ledger_path != "" and run.release % 3 == 0 and chooser.options.size() > 1:
+		for o: BaseOption in chooser.options[1]:
+			if o.open:
+				return o
+	return chooser.options[0][0]
+
+
+## Бот сверки модели: жанр и сеттинг по кругу среди открытых, чтобы ведомость видела новизну,
+## повторы и насыщение, а не одну тройку двенадцать раз.
+func _bot_vary(c: Constructor) -> void:
+	for kind in [0, 2]:
+		if c.is_locked_column(kind):
+			continue
+		var open: Array[int] = []
+		for i in c.catalogs[kind].entries.size():
+			if c.is_unlocked(kind, i):
+				open.append(i)
+		if not open.is_empty():
+			c.select(kind, open[(run.release * (kind + 1)) % open.size()])
+
+
+## Строка ведомости релиза для сверки с моделью: тройка, руки, отклик, все движения денег
+## релиза по причинам, покупки, деньги после фазы студии. Файл переписывается целиком.
+func _write_ledger() -> void:
+	var flows := {}
+	for e in run.wallet.history:
+		if int(e.get("release", 0)) == run.release:
+			var k := str(e.get("reason", ""))
+			flows[k] = int(flows.get(k, 0)) + int(e["delta"])
+	var bought: Array = []
+	for i in run.studio.upgrade_ids.size():
+		if run.studio.release_of(i) == run.release:
+			var d := UpgradePool.find(run.upgrades, run.studio.upgrade_ids[i])
+			if d != null:
+				bought.append({"id": String(d.id), "kind": int(d.kind), "tech": int(d.tech), "genre": int(d.genre)})
+	var sold: Array = []
+	for i in run.records.size():
+		if run.records[i].tail_sold:
+			sold.append(i)
+	var s := record.score
+	_ledger.append({
+		"release": run.release, "genre": int(record.genre), "tech": int(record.tech), "setting": int(record.setting),
+		"part": record.part, "remake": record.remake,
+		"parent_critics": record.parent.score.critics if record.parent != null and record.parent.score != null else 0.0,
+		"q": record.quality(), "bugs": record.bug_ids.size(), "spectacular": s.spectacular_bugs if s != null else 0,
+		"bonus_critics": record.bonus_critics, "bonus_streamers": record.bonus_streamers, "bonus_sales": record.bonus_sales,
+		"discount": _dev_discount, "critics": s.critics if s != null else 0.0, "streamers": s.streamers if s != null else 0,
+		"viral": s.viral if s != null else false, "p0": s.sales_first if s != null else 0,
+		"tails": report.tails_total if report != null else 0, "upkeep": report.upkeep if report != null else 0,
+		"flows": flows, "bought": bought, "tail_sold": sold, "cash_after": run.wallet.cash,
+		"cash_before": run.wallet.cash - flows.values().reduce(func(a: int, b: int) -> int: return a + b, 0),
+	})
+	var f := FileAccess.open(ProjectSettings.globalize_path("res://" + _ledger_path), FileAccess.WRITE)
+	if f == null:
+		AutoTest.fail("ledger: не пишется %s" % _ledger_path)
+		return
+	f.store_string(JSON.stringify(_ledger, "  "))
+	AutoTest.note("ledger: релиз %d, деньги %d" % [run.release, run.wallet.cash])
 
 
 func _debug_buy() -> void:
