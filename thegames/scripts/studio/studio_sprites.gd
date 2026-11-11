@@ -1,138 +1,219 @@
 class_name StudioSprites
 extends RefCounted
-## Пиксель-арт студии на фоне (#80): текстовые карты, из которых собираются текстуры. Один цвет
-## `studio-ink` на фоне `bg` (STYLE «Студия»), тона это доли смешения фона с чернилами:
-## `#` линия, `+` средний, `-` светлый, `o` фон (заслоняет то, что позади), `.` прозрачно.
+## Пиксель-арт студии на фоне (#80): текстовые карты, из которых собираются текстуры. Мебель в
+## одном цвете `studio-ink` на фоне `bg` (STYLE «Студия»), тона это доли смешения фона с
+## чернилами: `#` линия, `+` средний, `-` светлый, `o` фон (заслоняет то, что позади), `.`
+## прозрачно. Человечки в своих приглушённых цветах (плейтест 2026-11-11), ключи ниже.
 ## Доли тонов в `resources/studio_backdrop.tres`. Карты правятся прямо здесь; лист всех
 ## спрайтов (`sheet`): `sh tools/autotest.sh --scene=studio_backdrop_test --sheet --frames=5`.
 ## Крупные рамки (стена, окна, доска, дверь) строятся функциями ниже, а не картами.
 
-## Человечки 8 в ширину, якорь посередине снизу. Безликие: со спины и спереди одинаковы.
+## Человечки 10 в ширину (с поднятыми руками 12), якорь посередине снизу, линии в два пикселя.
+## Свои ключи цвета, у каждого человечка свои (`worker_colors`): `H` волосы, `S` кожа, `E` глаза,
+## `B` рубашка, `b` её тень (руки), `P` брюки, `K` ботинки. Спереди с глазами, сидят спиной.
 const MAPS := {
 	"stand": [
-		"...##...",
-		"..####..",
-		"..####..",
-		"...##...",
-		".######.",
-		".######.",
-		"..####..",
-		"..#..#..",
-		"..#..#..",
+		".HHHHHHHH.",
+		".HHHHHHHH.",
+		".HSSSSSSH.",
+		".SSESSESS.",
+		".SSSSSSSS.",
+		".bBBBBBBb.",
+		"bbBBBBBBbb",
+		"bbBBBBBBbb",
+		"SSBBBBBBSS",
+		"..PPPPPP..",
+		"..PP..PP..",
+		"..PP..PP..",
+		"..KK..KK..",
 	],
 	"walk0": [
-		"...##...",
-		"..####..",
-		"..####..",
-		"...##...",
-		".######.",
-		".######.",
-		"..####..",
-		"..#..#..",
-		".#....#.",
+		".HHHHHHHH.",
+		".HHHHHHHH.",
+		".HSSSSSSH.",
+		".SSESSESS.",
+		".SSSSSSSS.",
+		".bBBBBBBb.",
+		"bbBBBBBBbb",
+		"bbBBBBBBbb",
+		"SSBBBBBBSS",
+		"..PPPPPP..",
+		".PP....PP.",
+		".PP....PP.",
+		".KK....KK.",
 	],
 	"walk1": [
-		"........",
-		"...##...",
-		"..####..",
-		"..####..",
-		"...##...",
-		".######.",
-		".######.",
-		"..####..",
-		"...##...",
+		"..........",
+		".HHHHHHHH.",
+		".HHHHHHHH.",
+		".HSSSSSSH.",
+		".SSESSESS.",
+		".SSSSSSSS.",
+		".bBBBBBBb.",
+		"bbBBBBBBbb",
+		"SSBBBBBBSS",
+		"..PPPPPP..",
+		"...PPPP...",
+		"...PPPP...",
+		"...KKKK...",
 	],
 	"hand_head": [
-		"...##.#.",
-		"..#####.",
-		"..####..",
-		"...##...",
-		".#####..",
-		".#####..",
-		"..####..",
-		"..#..#..",
-		"..#..#..",
+		".HHHHHHH..",
+		".HHHHHHHSS",
+		".HSSSSSHSS",
+		".SSESSESbb",
+		".SSSSSSSbb",
+		".bBBBBBBbb",
+		"bbBBBBBBb.",
+		"bbBBBBBB..",
+		"SSBBBBBB..",
+		"..PPPPPP..",
+		"..PP..PP..",
+		"..PP..PP..",
+		"..KK..KK..",
 	],
 	"wave0": [
-		"#..##..#",
-		"#.####.#",
-		"#.####.#",
-		".#.##.#.",
-		"..####..",
-		"..####..",
-		"..####..",
-		"..#..#..",
-		"..#..#..",
+		"SS........SS",
+		"bb........bb",
+		"bbHHHHHHHHbb",
+		"bbHHHHHHHHbb",
+		"bbHSSSSSSHbb",
+		".bSSESSESSb.",
+		"..SSSSSSSS..",
+		"..bBBBBBBb..",
+		"..BBBBBBBB..",
+		"..BBBBBBBB..",
+		"...PPPPPP...",
+		"...PP..PP...",
+		"...PP..PP...",
+		"...KK..KK...",
 	],
 	"wave1": [
-		"...##...",
-		"..####..",
-		"#.####.#",
-		"##.##.##",
-		"..####..",
-		"..####..",
-		"..####..",
-		"..#..#..",
-		"..#..#..",
+		"............",
+		"............",
+		"..HHHHHHHH..",
+		"..HHHHHHHH..",
+		"..HSSSSSSH..",
+		"..SSESSESS..",
+		"..SSSSSSSS..",
+		"SSbBBBBBBbSS",
+		"SSbBBBBBBbSS",
+		"..BBBBBBBB..",
+		"...PPPPPP...",
+		"...PP..PP...",
+		"...PP..PP...",
+		"...KK..KK...",
+	],
+	"held0": [
+		"SS........SS",
+		"bb........bb",
+		"bbHHHHHHHHbb",
+		"bbHHHHHHHHbb",
+		"bbHSSSSSSHbb",
+		".bSSESSESSb.",
+		"..SSSSSSSS..",
+		"..bBBBBBBb..",
+		"..BBBBBBBB..",
+		"..BBBBBBBB..",
+		"...PPPPPP...",
+		"..PP....PP..",
+		".PP......PP.",
+		".KK......KK.",
+	],
+	"held1": [
+		"SS........SS",
+		"bb........bb",
+		"bbHHHHHHHHbb",
+		"bbHHHHHHHHbb",
+		"bbHSSSSSSHbb",
+		".bSSESSESSb.",
+		"..SSSSSSSS..",
+		"..bBBBBBBb..",
+		"..BBBBBBBB..",
+		"..BBBBBBBB..",
+		"...PPPPPP...",
+		"...PP..PP...",
+		"...PP...PP..",
+		"...KK...KK..",
 	],
 	"sit0": [
-		"...##...",
-		"..####..",
-		"..####..",
-		"...##...",
-		".######.",
-		".######.",
-		".++++++.",
-		".+....+.",
+		".HHHHHHHH.",
+		".HHHHHHHH.",
+		"SHHHHHHHHS",
+		".HHHHHHHH.",
+		".bBBBBBBb.",
+		"bbBBBBBBbb",
+		"bbBBBBBBbb",
+		".++++++++.",
+		".++++++++.",
+		".++....++.",
 	],
 	"sit1": [
-		"...##...",
-		"..####..",
-		"..####..",
-		"...##...",
-		"#######.",
-		".######.",
-		".++++++.",
-		".+....+.",
+		".HHHHHHHH.",
+		".HHHHHHHH.",
+		"SHHHHHHHHS",
+		"bbHHHHHHH.",
+		"bbBBBBBBb.",
+		".bBBBBBBbb",
+		".bBBBBBBbb",
+		".++++++++.",
+		".++++++++.",
+		".++....++.",
 	],
 	"sit2": [
-		"...##...",
-		"..####..",
-		"..####..",
-		"...##...",
-		".#######",
-		".######.",
-		".++++++.",
-		".+....+.",
+		".HHHHHHHH.",
+		".HHHHHHHH.",
+		"SHHHHHHHHS",
+		".HHHHHHHbb",
+		".bBBBBBBbb",
+		"bbBBBBBBb.",
+		"bbBBBBBBb.",
+		".++++++++.",
+		".++++++++.",
+		".++....++.",
 	],
 	"stretch": [
-		"#..##..#",
-		"#.####.#",
-		"#.####.#",
-		".#.##.#.",
-		"..####..",
-		".######.",
-		".++++++.",
-		".+....+.",
+		"SS........SS",
+		"bb........bb",
+		"bbHHHHHHHHbb",
+		"bbHHHHHHHHbb",
+		".SHHHHHHHHS.",
+		"..HHHHHHHH..",
+		"..bBBBBBBb..",
+		"..BBBBBBBB..",
+		"..BBBBBBBB..",
+		"..++++++++..",
+		"..++++++++..",
+		"..++....++..",
 	],
 	"sleep": [
-		"........",
-		"..####..",
-		".######.",
-		".######.",
-		".++++++.",
-		".+....+.",
+		"..........",
+		"..........",
+		".HHHHHHHH.",
+		"SHHHHHHHHS",
+		"bbHHHHHHbb",
+		"bbBBBBBBbb",
+		"bbBBBBBBbb",
+		".++++++++.",
+		".++++++++.",
+		".++....++.",
 	],
 	"chair": [
-		".++++++.",
-		".+oooo+.",
-		".++++++.",
-		".+....+.",
+		".++++++++.",
+		".+oooooo+.",
+		".++++++++.",
+		".++++++++.",
+		".++....++.",
+	],
+	"shadow": [
+		"..++++++..",
+		".++++++++.",
 	],
 	# Мелочь в руках и над головой.
 	"cup": [
-		"##",
-		"##",
+		"###",
+		"#o#",
+		"###",
 	],
 	"tablet": [
 		"###",
@@ -141,8 +222,9 @@ const MAPS := {
 		"###",
 	],
 	"phone": [
-		"#",
-		"#",
+		"##",
+		"##",
+		"##",
 	],
 	"bubble": [
 		".####.",
@@ -564,19 +646,17 @@ const MAPS := {
 }
 
 ## Человечки с ореолом фона в пиксель: не сливаются со столами и друг с другом.
-const HALO: Array[String] = ["stand", "walk0", "walk1", "hand_head", "wave0", "wave1", "sit0", "sit1",
-		"sit2", "stretch", "sleep"]
+const HALO: Array[String] = ["stand", "walk0", "walk1", "hand_head", "wave0", "wave1", "held0", "held1",
+		"sit0", "sit1", "sit2", "stretch", "sleep"]
 
 static var _cache := {}
 
 
-## Цвета тонов; `@` для человечков, на долю `people` (они чуть темнее мебели, чтобы копошение
-## читалось боковым зрением).
-static func tone_colors(tones: Vector3, strength := 1.0, people := 0.55) -> Dictionary:
+## Цвета мебели: доли смешения фона с чернилами, `o` чистый фон.
+static func tone_colors(tones: Vector3, strength := 1.0) -> Dictionary:
 	var bg := Style.BG
 	var ink := Style.STUDIO_INK
 	return {
-		"@": bg.lerp(ink, people * strength),
 		"#": bg.lerp(ink, tones.x * strength),
 		"+": bg.lerp(ink, tones.y * strength),
 		"-": bg.lerp(ink, tones.z * strength),
@@ -584,7 +664,25 @@ static func tone_colors(tones: Vector3, strength := 1.0, people := 0.55) -> Dict
 	}
 
 
-## Картинка карты; `halo` обводит линии пикселем фона (картинка шире на пиксель с каждой стороны).
+## Цвета человечка: мебельные тона плюс свои ключи. Рубашка, кожа и волосы приглушены к фону на
+## `mix`; глаза и брюки долями чернил. Тень рубашки (руки) на четверть темнее к чернилам.
+static func worker_colors(base: Dictionary, shirt: Color, skin: Color, hair: Color, mix: float,
+		pants: float, eyes: float, strength := 1.0) -> Dictionary:
+	var bg := Style.BG
+	var ink := Style.STUDIO_INK
+	var k := mix * strength
+	var c := base.duplicate()
+	c["B"] = bg.lerp(shirt, k)
+	c["b"] = bg.lerp(shirt.lerp(ink, 0.25), k)
+	c["S"] = bg.lerp(skin, k)
+	c["H"] = bg.lerp(hair, k)
+	c["E"] = bg.lerp(ink, eyes * strength)
+	c["P"] = bg.lerp(ink, pants * strength)
+	c["K"] = bg.lerp(ink, eyes * 0.8 * strength)
+	return c
+
+
+## Картинка карты; `halo` обводит фигуру пикселем фона (картинка шире на пиксель с каждой стороны).
 static func image_from(rows: Array, colors: Dictionary, halo := false) -> Image:
 	var h := rows.size()
 	var w := 0
@@ -600,7 +698,6 @@ static func image_from(rows: Array, colors: Dictionary, halo := false) -> Image:
 			if colors.has(c):
 				img.set_pixel(x + m, y + m, colors[c])
 	if halo:
-		var line: Color = colors["#"]
 		var ring: Array[Vector2i] = []
 		for y in img.get_height():
 			for x in img.get_width():
@@ -609,7 +706,7 @@ static func image_from(rows: Array, colors: Dictionary, halo := false) -> Image:
 				for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 					var q: Vector2i = Vector2i(x, y) + d
 					if q.x >= 0 and q.y >= 0 and q.x < img.get_width() and q.y < img.get_height() \
-							and img.get_pixelv(q).is_equal_approx(line):
+							and img.get_pixelv(q).a > 0.0:
 						ring.append(Vector2i(x, y))
 						break
 		for q in ring:
@@ -617,28 +714,19 @@ static func image_from(rows: Array, colors: Dictionary, halo := false) -> Image:
 	return img
 
 
-## Человечки рисуются тоном `@` вместо линии.
-static func _colors_for(name: String, colors: Dictionary) -> Dictionary:
-	if not HALO.has(name):
-		return colors
-	var c := colors.duplicate()
-	c["#"] = colors["@"]
-	return c
-
-
 ## Сдвиг рисования: у спрайтов с ореолом картинка начинается на пиксель левее и выше.
 static func offset(name: String) -> Vector2:
 	return Vector2(-1, -1) if HALO.has(name) else Vector2.ZERO
 
 
-## Текстура по имени карты или построенной рамки; кешируется на набор тонов.
-static func texture(name: String, tones: Vector3, strength := 1.0, people := 0.55) -> Texture2D:
-	var key := "%s|%s|%.3f|%.3f" % [name, tones, strength, people]
-	if _cache.has(key):
-		return _cache[key]
-	var rows := rows_of(name)
-	var tex := ImageTexture.create_from_image(image_from(rows, _colors_for(name, tone_colors(tones, strength, people)), HALO.has(name)))
-	_cache[key] = tex
+## Текстура по имени карты или построенной рамки в цветах `colors`; кешируется по `key`
+## (набор цветов: мебель или облик человечка при данной силе чернил).
+static func texture(name: String, colors: Dictionary, key: String) -> Texture2D:
+	var k := name + "|" + key
+	if _cache.has(k):
+		return _cache[k]
+	var tex := ImageTexture.create_from_image(image_from(rows_of(name), colors, HALO.has(name)))
+	_cache[k] = tex
 	return tex
 
 
@@ -667,18 +755,24 @@ static func names() -> PackedStringArray:
 	return out
 
 
-## Превью-лист: все спрайты в тонах `tones` строками шириной `row_w` пикселей арта, ×`scale`.
-static func sheet(tones: Vector3, people := 0.55, scale := 6, row_w := 300, pad := 6) -> Image:
-	var colors := tone_colors(tones, 1.0, people)
+## Превью-лист: все спрайты (человечки в первом облике), ниже ряды «стоит», «идёт» и «сидит»
+## во всех обликах `looks`; строки шириной `row_w` пикселей арта, ×`scale`.
+static func sheet(furniture: Dictionary, looks: Array[Dictionary], scale := 6, row_w := 300, pad := 6) -> Image:
 	var images: Array[Image] = []
+	var breaks: Array[int] = []
 	for n in names():
-		images.append(image_from(rows_of(n), _colors_for(n, colors), HALO.has(n)))
+		images.append(image_from(rows_of(n), looks[0] if HALO.has(n) or n == "chair" else furniture, HALO.has(n)))
+	for pose in ["stand", "walk0", "sit1"]:
+		breaks.append(images.size())
+		for look in looks:
+			images.append(image_from(rows_of(pose), look, true))
 	var places: Array[Vector2i] = []
 	var x := pad
 	var y := pad
 	var row_h := 0
-	for img in images:
-		if x + img.get_width() + pad > row_w:
+	for i in images.size():
+		var img := images[i]
+		if x + img.get_width() + pad > row_w or breaks.has(i):
 			x = pad
 			y += row_h + pad
 			row_h = 0

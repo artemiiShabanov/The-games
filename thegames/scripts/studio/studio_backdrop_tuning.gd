@@ -9,8 +9,20 @@ const PATH := "res://resources/studio_backdrop.tres"
 @export_group("Вид")
 ## Доли смешения фона с `studio-ink`: линия, средний тон, светлый тон.
 @export var tones := Vector3(0.42, 0.2, 0.08)
-## Доля для человечков: чуть темнее мебели.
-@export var people_tone := 0.6
+
+@export_group("Человечки")
+## Рубашки, кожа, волосы: облик каждого выбирается по месту без случайности. Цвета приглушаются
+## к фону на `people_mix`, чтобы под оболочкой оставались тихими.
+@export var shirts := PackedColorArray([Color("#5E7FC2"), Color("#6FA581"), Color("#C9775A"),
+		Color("#D2A845"), Color("#9479BF"), Color("#5C9DB0")])
+@export var skins := PackedColorArray([Color("#F0C9A6"), Color("#D9A27A"), Color("#A8714F")])
+@export var hairs := PackedColorArray([Color("#2A2D3E"), Color("#5A3B2C"), Color("#A9773E"), Color("#7D8295")])
+@export var people_mix := 0.8
+## Менеджер в тёмном пиджаке.
+@export var manager_shirt := Color("#3A4566")
+## Доли чернил: брюки, глаза.
+@export var pants_tone := 0.55
+@export var eyes_tone := 0.95
 
 @export_group("Движение")
 ## Скорость ходьбы, пикселей арта в секунду.
@@ -42,6 +54,8 @@ const PATH := "res://resources/studio_backdrop.tres"
 @export var sleep_seconds := 9.0
 ## Спит лицом в стол только с этого релиза (спека: вторая половина забега).
 @export var sleep_from_release := 6
+## Поставленный мышью стоит и озирается, секунды, потом идёт к своему делу.
+@export var drop_seconds := 0.8
 ## Менеджер стоит у стола, секунды.
 @export var manager_stop_seconds := 2.5
 

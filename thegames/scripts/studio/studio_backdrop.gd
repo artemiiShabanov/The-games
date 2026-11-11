@@ -1,16 +1,19 @@
 class_name StudioBackdrop
 extends Control
 ## Пиксельная студия на фоне (#80, STYLE «Студия», спека `docs/specs/studio.md`): одна комната в
-## три четверти на весь экран, один цвет `studio-ink` в трёх долях на фоне `bg`. Растёт со
-## студией: стол и человечек на каждого из `StudioState.people` (до 12), предмет на каждую
-## купленную прокачку (`UpgradeDef.prop`), незнакомый id ставит растение или коробки.
-## Человечки копошатся: печатают, потягиваются, ходят за кофе, к соседу, к доске, спят во второй
-## половине забега; тестировщик, менеджер и инсайдер заняты своим. Одно и то же состояние даёт
-## одну и ту же картинку: раскладка без случайности, занятия от сида состояния.
+## три четверти на весь экран, мебель одним цветом `studio-ink` в трёх долях на фоне `bg`,
+## человечки в своих приглушённых цветах с глазами. Растёт со студией: стол и человечек на
+## каждого из `StudioState.people` (до 12), предмет на каждую купленную прокачку
+## (`UpgradeDef.prop`), незнакомый id ставит растение или коробки. Человечки копошатся:
+## печатают, потягиваются, ходят за кофе, к соседу, к доске, спят во второй половине забега;
+## тестировщик, менеджер и инсайдер заняты своим. Одно и то же состояние даёт одну и ту же
+## картинку: раскладка и облики без случайности, занятия от сида состояния.
 ##
 ## Как поставить: `var b := StudioBackdrop.new()`, `add_child(b)` первым ребёнком экрана,
 ## `b.set_anchors_preset(Control.PRESET_FULL_RECT)`, затем `b.set_studio(run.studio, run.release,
-## run.start_tech, run.start_genre)` после каждой покупки. Мышь не ловит. Рисует свой фон `bg`.
+## run.start_tech, run.start_genre)` после каждой покупки. Как Control мышь не ловит, но сама
+## смотрит нажатия: человечка, над которым нет оболочки, можно утащить (раздел «Мышь»).
+## Рисует свой фон `bg`.
 ## Арт в `StudioSprites`, числа в `resources/studio_backdrop.tres`.
 
 ## Холст арта: 1920×1080 при пикселе 4.
@@ -62,7 +65,14 @@ const POSTER_SPRITES: Array[String] = ["poster_platformer", "poster_racing", "po
 const KNOWN_CAPS: Array[StringName] = [&"replay", &"replay2", &"sequels", &"remakes", &"qa", &"insider", &"manager"]
 
 enum Role { DESK, TESTER, MANAGER, INSIDER }
-enum Act { TYPE, STRETCH, SLEEP, WALK, COFFEE, BOARD, VISIT, POST, TWITCH }
+enum Act { TYPE, STRETCH, SLEEP, WALK, COFFEE, BOARD, VISIT, POST, TWITCH, HELD, WAIT }
+const ACT_NAMES: Array[String] = ["type", "stretch", "sleep", "walk", "coffee", "board", "visit", "post",
+		"twitch", "held", "wait"]
+## Человечка держат за макушку: ноги на столько ниже курсора, тень на столько ниже ног.
+const HOLD_DY := 15.0
+const SHADOW_DY := 6.0
+## Куда можно поставить: пол без полосы у стены и края.
+const FLOOR_RECT := Rect2(6, WALL_Y + 12, ART.x - 12, ART.y - WALL_Y - 14)
 
 ## Анимация. Учитывает и выключатель движения мармелада (`Jelly.enabled`): без него студия стоит
 ## в спокойной позе (все за столами), раскладка та же.
@@ -72,6 +82,8 @@ enum Act { TYPE, STRETCH, SLEEP, WALK, COFFEE, BOARD, VISIT, POST, TWITCH }
 		queue_redraw()
 ## Спринт идёт: печатают быстрее.
 var busy := false
+## Человечков можно таскать мышью (плейтест 2026-11-11), если над ними нет оболочки.
+var drag_enabled := true
 ## Сила чернил: 1 по STYLE, меньше тише (под модальными карточками).
 var strength := 1.0:
 	set(v):
@@ -95,6 +107,12 @@ var _coffee_spot := Vector2(COFFEE_X + 5, SPOT_Y)
 var _board_spot := Vector2(BOARD.x + 19, SPOT_Y)
 var _window_spot := Vector2(WINDOWS[2].x + 15, SPOT_Y)
 var _has_board := false
+## Кого тащат и где курсор (пиксели арта); какой курсор мы выставили.
+var _drag: Worker
+var _drag_at := Vector2.ZERO
+var _cursor := Input.CURSOR_ARROW
+## Цвета мебели и обликов при текущей силе чернил: ключ кеша текстур -> словарь.
+var _palettes := {}
 
 
 class Item:
@@ -136,6 +154,10 @@ class Worker:
 	var jitter := 0
 	## Новичок ещё за дверью: секунды до входа.
 	var delay := 0.0
+	## Облик: рубашка, кожа, волосы (индексы в тюнинге; рубашка -1 у менеджера пиджак).
+	var look := Vector3i.ZERO
+	## Поставлен мышью: стоит, где отпустили (при выключенном движении так и остаётся).
+	var placed := false
 	var rng := RandomNumberGenerator.new()
 
 	func seated() -> bool:
@@ -179,6 +201,7 @@ func set_studio(state: StudioState, release := 1, start_tech := -1, start_genre 
 		if w.role != Role.DESK:
 			old_specials.append(w.role)
 	_signature = sig
+	_end_drag()
 	_build(state, start_tech, start_genre)
 	_spawn(sig.hash(), had, old_desk_workers, old_specials)
 	queue_redraw()
@@ -190,6 +213,7 @@ func react(kind: StringName) -> void:
 	_react = kind
 	_react_left = tuning.react_seconds
 	if kind == &"broke":
+		_end_drag()
 		for w in _workers:
 			_home_now(w)
 	queue_redraw()
@@ -399,6 +423,7 @@ func _spawn(seed_: int, had: bool, old_desk: int, old_specials: Array[Role]) -> 
 		if _desks[i].qa:
 			continue
 		var w := _new_worker(Role.DESK, seed_, n)
+		w.look = _look_for(i)
 		w.desk = i
 		w.home = _desks[i].seat
 		w.home_lane = _desks[i].lane
@@ -407,6 +432,9 @@ func _spawn(seed_: int, had: bool, old_desk: int, old_specials: Array[Role]) -> 
 		n += 1
 	for r in _specials:
 		var w := _new_worker(r, seed_, 100 + int(r))
+		w.look = _look_for(20 + int(r))
+		if r == Role.MANAGER:
+			w.look.x = -1
 		match r:
 			Role.TESTER:
 				w.desk = qa_desk
@@ -420,6 +448,12 @@ func _spawn(seed_: int, had: bool, old_desk: int, old_specials: Array[Role]) -> 
 				w.home = _window_spot
 				w.home_lane = TOP_LANE
 		_place_new(w, had and not old_specials.has(r), maxf(0.0, n - old_desk) * 1.5 + 1.0)
+
+
+## Облик по месту, без случайности: соседи по столам разные, одно место всегда одно лицо.
+func _look_for(slot: int) -> Vector3i:
+	return Vector3i((slot * 5 + 1) % tuning.shirts.size(), (slot * 7 + slot / 3) % tuning.skins.size(),
+			(slot * 3 + 1) % tuning.hairs.size())
 
 
 func _new_worker(role: Role, seed_: int, index: int) -> Worker:
@@ -457,6 +491,7 @@ func _home_now(w: Worker) -> void:
 	w.path.clear()
 	w.cup = false
 	w.delay = 0.0
+	w.placed = false
 	w.act = _post_act(w)
 	w.timer = w.rng.randf_range(tuning.type_min, tuning.type_max)
 
@@ -500,7 +535,14 @@ func _tick(w: Worker, delta: float) -> void:
 			if w.pos == w.home:
 				w.cup = false
 		return
+	if w.act == Act.HELD:
+		return
 	w.timer -= delta
+	if w.act == Act.WAIT:
+		if w.timer <= 0.0:
+			w.placed = false
+			_walk(w, w.home, w.home_lane, _post_act(w), w.rng.randf_range(tuning.type_min, tuning.type_max))
+		return
 	if w.act == Act.TWITCH:
 		if w.rng.randf() < delta * 1.5:
 			w.jitter = w.rng.randi_range(-1, 1)
@@ -556,7 +598,7 @@ func _choose(w: Worker, away: bool) -> void:
 			var d: Desk = _desks[others[w.rng.randi_range(0, others.size() - 1)]]
 			w.visit_desk = _desks.find(d)
 			w.visit_len = tuning.visit_seconds
-			var side := -7.0 if DESK_X.find(d.x) % 2 == 0 else 7.0
+			var side := -9.0 if DESK_X.find(d.x) % 2 == 0 else 9.0
 			_walk(w, Vector2(d.seat.x + side, d.seat.y + 4), d.lane, Act.VISIT, tuning.visit_seconds)
 		4:
 			var spot := _board_spot
@@ -598,7 +640,7 @@ func _next_post(w: Worker) -> void:
 				_walk(w, w.home, w.home_lane, Act.POST, tuning.manager_stop_seconds)
 				return
 			var d := _desks[desk_ids[w.rng.randi_range(0, desk_ids.size() - 1)]]
-			_walk(w, Vector2(d.seat.x - 7.0, d.seat.y + 4), d.lane, Act.POST, tuning.manager_stop_seconds)
+			_walk(w, Vector2(d.seat.x - 9.0, d.seat.y + 4), d.lane, Act.POST, tuning.manager_stop_seconds)
 		Role.INSIDER:
 			var x := w.home.x + float(w.rng.randi_range(-3, 3))
 			_walk(w, Vector2(x, w.home.y), w.home_lane, Act.POST, w.rng.randf_range(3.0, 7.0))
@@ -638,16 +680,46 @@ func _px() -> float:
 	return maxf(1.0, floorf(minf(size.x / ART.x, size.y / ART.y)))
 
 
-func _tex(sprite: String) -> Texture2D:
-	return StudioSprites.texture(sprite, tuning.tones, strength, tuning.people_tone)
+## Цвета мебели (без человечка) или облика человечка и ключ кеша текстур к ним.
+func _palette(w: Worker = null) -> Array:
+	var key := "f|%.3f" % strength
+	if w != null:
+		key = "w%s|%.3f" % [w.look, strength]
+	if not _palettes.has(key):
+		var furniture := StudioSprites.tone_colors(tuning.tones, strength)
+		if w == null:
+			_palettes[key] = furniture
+		else:
+			var shirt := tuning.manager_shirt if w.look.x < 0 else tuning.shirts[w.look.x]
+			_palettes[key] = StudioSprites.worker_colors(furniture, shirt, tuning.skins[w.look.y],
+					tuning.hairs[w.look.z], tuning.people_mix, tuning.pants_tone, tuning.eyes_tone, strength)
+	return [_palettes[key], key]
+
+
+## Для превью-листа: цвета мебели и обликов по рубашкам (кожа и волосы по кругу).
+func sheet_image() -> Image:
+	var looks: Array[Dictionary] = []
+	for i in tuning.shirts.size() + 1:
+		var w := Worker.new()
+		w.look = Vector3i(i - 1, i % tuning.skins.size(), i % tuning.hairs.size())
+		looks.append(_palette(w)[0])
+	return StudioSprites.sheet(_palette()[0], looks)
+
+
+func _tex(sprite: String, w: Worker = null) -> Texture2D:
+	var p := _palette(w)
+	return StudioSprites.texture(sprite, p[0], p[1])
+
+
+func _origin() -> Vector2:
+	return ((size - Vector2(ART) * _px()) / 2.0).floor()
 
 
 func _draw() -> void:
-	var colors := StudioSprites.tone_colors(tuning.tones, strength, tuning.people_tone)
+	var colors: Dictionary = _palette()[0]
 	draw_rect(Rect2(Vector2.ZERO, size), Style.BG)
 	var px := _px()
-	var origin := ((size - Vector2(ART) * px) / 2.0).floor()
-	draw_set_transform(origin, 0.0, Vector2(px, px))
+	draw_set_transform(_origin(), 0.0, Vector2(px, px))
 	# Стена светлым тоном, плинтус средним, линия пола.
 	draw_rect(Rect2(-ART.x, -ART.y, ART.x * 3, ART.y + WALL_Y - 3), colors["-"])
 	draw_rect(Rect2(-ART.x, WALL_Y - 3, ART.x * 3, 2), colors["+"])
@@ -663,7 +735,7 @@ func _draw() -> void:
 	var list: Array = []
 	var order := 0
 	for it in _floor:
-		list.append([it.base, order, _item_sprite(it), Vector2(it.pos)])
+		list.append([it.base, order, _item_sprite(it), Vector2(it.pos), null])
 		order += 1
 	for w in _workers:
 		order = _queue_worker(list, w, order)
@@ -671,7 +743,7 @@ func _draw() -> void:
 		return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
 	for e in list:
 		if e[2] != "":
-			draw_texture(_tex(e[2]), e[3] + StudioSprites.offset(e[2]))
+			draw_texture(_tex(e[2], e[4]), e[3] + StudioSprites.offset(e[2]))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -699,34 +771,31 @@ func _monitor_sprite(desk: int) -> String:
 	return "monitor_a" if phase == 0 else "monitor_b"
 
 
-## Поза человечка и мелочь при нём в общий список глубины. Возвращает следующий порядковый.
-func _queue_worker(list: Array, w: Worker, order: int) -> int:
-	if w.delay > 0.0 and moving() and _react != &"broke":
-		if w.desk >= 0:
-			var s0 := _desks[w.desk].seat
-			list.append([s0.y, order, "chair", Vector2(s0.x - 4, s0.y - 4).floor()])
-			order += 1
-		return order
+## Поза человечка: [спрайт, ноги, подъём, мелочь [[спрайт, сдвиг от левого верхнего]]].
+func _pose(w: Worker) -> Array:
 	var pose := "stand"
 	var extra: Array = []
 	var pos := w.pos
 	var lift := 0.0
-	var at_home := w.pos == w.home
-	if not moving() or _react == &"broke":
+	if w == _drag:
+		# Висит за макушку, болтает ногами.
+		pose = "held0" if int((_time if moving() else Time.get_ticks_msec() / 1000.0) / 0.22) % 2 == 0 else "held1"
+		pos = _drag_at + Vector2(0, HOLD_DY)
+	elif w.placed and not moving():
+		pose = "stand"
+	elif not moving() or _react == &"broke":
 		pos = w.home
 		match w.role:
 			Role.DESK, Role.TESTER:
 				pose = "sit0"
 			Role.MANAGER:
-				pose = "stand"
-				extra.append(["tablet", Vector2(6, 4)])
+				extra.append(["tablet", Vector2(8, 6)])
 			Role.INSIDER:
 				pose = "hand_head"
-				extra.append(["phone", Vector2(7, -1)])
+				extra.append(["phone", Vector2(9, 0)])
 	elif _react == &"release":
 		pose = "wave0" if int((_time + w.anim) / 0.3) % 2 == 0 else "wave1"
 	elif _react == &"viral":
-		pose = "stand"
 		lift = absf(sin((_time + w.anim * 0.1) * PI / tuning.jump_seconds)) * tuning.jump_height
 	else:
 		var tick := tuning.type_seconds_busy if busy else tuning.type_seconds
@@ -740,44 +809,193 @@ func _queue_worker(list: Array, w: Worker, order: int) -> int:
 				pose = "stretch"
 			Act.SLEEP:
 				pose = "sleep"
-				extra.append(["zz", Vector2(6, -5 - float(int(w.anim / 0.6) % 3))])
+				extra.append(["zz", Vector2(7, -3 - float(int(w.anim / 0.6) % 3))])
 			Act.WALK:
 				pose = "walk0" if int(w.anim / tuning.step_seconds) % 2 == 0 else "walk1"
-			Act.COFFEE:
-				pose = "stand"
 			Act.BOARD:
 				pose = "hand_head"
 			Act.VISIT:
-				pose = "stand"
 				# Говорят по очереди: сначала гость, потом сосед, если он на месте.
-				var nd: Desk = _desks[w.visit_desk] if w.visit_desk >= 0 and w.visit_desk < _desks.size() else null
-				var there := nd != null and nd.owner != null and nd.owner.pos == nd.seat and nd.owner.seated()
-				if w.timer > w.visit_len * 0.5 or not there:
-					extra.append(["bubble", Vector2(5, -6)])
-				else:
-					list.append([nd.seat.y + 0.5, order, "bubble", (nd.seat + Vector2(1, -14)).floor()])
-					order += 1
+				if w.timer > w.visit_len * 0.5 or _visit_partner(w) == null:
+					extra.append(["bubble", Vector2(7, -7)])
 			Act.POST:
-				if w.role == Role.MANAGER:
-					pose = "stand"
-				else:
+				if w.role == Role.INSIDER:
 					pose = "hand_head"
 		if w.cup:
-			extra.append(["cup", Vector2(7, 4)])
+			extra.append(["cup", Vector2(9, 7)])
 		if w.role == Role.MANAGER:
-			extra.append(["tablet", Vector2(6, 4)])
+			extra.append(["tablet", Vector2(8, 6)])
 		if w.role == Role.INSIDER and w.act == Act.POST:
-			extra.append(["phone", Vector2(7, -1)])
-	# Пустой стул, пока хозяин стола не сидит.
-	if w.desk >= 0 and not (at_home and w.seated()) and moving() and _react != &"broke":
-		var seat := _desks[w.desk].seat
-		list.append([seat.y, order, "chair", Vector2(seat.x - 4, seat.y - 4).floor()])
-		order += 1
+			extra.append(["phone", Vector2(9, 0)])
+	return [pose, pos, lift, extra]
+
+
+## Сосед, к которому пришли, если он сидит на месте.
+func _visit_partner(w: Worker) -> Desk:
+	if w.visit_desk < 0 or w.visit_desk >= _desks.size():
+		return null
+	var nd := _desks[w.visit_desk]
+	if nd.owner != null and nd.owner.pos == nd.seat and nd.owner.seated():
+		return nd
+	return null
+
+
+func _pose_top(pose: String, pos: Vector2, lift: float) -> Vector2:
 	var s := _size(pose)
-	var top := Vector2(roundf(pos.x) - 4, roundf(pos.y - lift) - s.y)
-	list.append([pos.y + 0.25, order, pose, top])
+	return Vector2(roundf(pos.x) - s.x / 2, roundf(pos.y - lift) - s.y)
+
+
+## Поза человечка и мелочь при нём в общий список глубины. Возвращает следующий порядковый.
+func _queue_worker(list: Array, w: Worker, order: int) -> int:
+	var live := moving() and _react != &"broke"
+	var away := not (w.pos == w.home and w.seated()) and (live or w == _drag or w.placed)
+	if w.desk >= 0 and (away or (live and w.delay > 0.0)):
+		# Пустой стул, пока хозяин стола не сидит.
+		var seat := _desks[w.desk].seat
+		list.append([seat.y, order, "chair", Vector2(seat.x - 5, seat.y - 5).floor(), null])
+		order += 1
+	if w.delay > 0.0 and live:
+		return order
+	var p := _pose(w)
+	var pose: String = p[0]
+	var pos: Vector2 = p[1]
+	var top := _pose_top(pose, pos, p[2])
+	var depth := 100000.0 if w == _drag else pos.y + 0.25
+	if w == _drag:
+		var ground := (pos + Vector2(0, SHADOW_DY)).round()
+		list.append([depth - 1.0, order, "shadow", Vector2(ground.x - 5, ground.y - 2), null])
+		order += 1
+	elif live and w.act == Act.VISIT and w.timer <= w.visit_len * 0.5:
+		var nd := _visit_partner(w)
+		if nd != null:
+			list.append([nd.seat.y + 0.5, order, "bubble", (nd.seat + Vector2(2, -17)).floor(), null])
+			order += 1
+	list.append([depth, order, pose, top, w])
 	order += 1
-	for x in extra:
-		list.append([pos.y + 0.3, order, x[0], top + x[1]])
+	for x in p[3]:
+		list.append([depth + 0.05, order, x[0], top + x[1], null])
 		order += 1
 	return order
+
+
+# --- Мышь ----------------------------------------------------------------------------------
+
+## Нажатие на человечка, над которым нет оболочки, поднимает его; он висит за курсором, пока
+## кнопку не отпустят, и встаёт на ближайшее место пола. Событие съедается, только когда
+## человечка подняли (и пока тащат), так что клики по карточкам сверху работают как раньше.
+func _input(event: InputEvent) -> void:
+	if not drag_enabled or not is_visible_in_tree() or _workers.is_empty():
+		return
+	if event is InputEventMouseMotion:
+		var at := _to_art((event as InputEventMouseMotion).position)
+		if _drag != null:
+			_drag_at = at
+			queue_redraw()
+			get_viewport().set_input_as_handled()
+		else:
+			var over := _shell_free() and worker_at(at) >= 0
+			_set_cursor(Input.CURSOR_POINTING_HAND if over else Input.CURSOR_ARROW)
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		var b := event as InputEventMouseButton
+		var at := _to_art(b.position)
+		if b.pressed and _drag == null:
+			var i := worker_at(at) if _shell_free() else -1
+			if i >= 0:
+				_pick(_workers[i], at)
+				get_viewport().set_input_as_handled()
+		elif not b.pressed and _drag != null:
+			_drop(at)
+			get_viewport().set_input_as_handled()
+
+
+func _exit_tree() -> void:
+	_end_drag()
+	_set_cursor(Input.CURSOR_ARROW)
+
+
+## Под курсором нет элемента оболочки: ни одного Control, или только сама студия и её хозяин.
+func _shell_free() -> bool:
+	var hovered := get_viewport().gui_get_hovered_control()
+	return hovered == null or hovered == self or hovered == get_parent()
+
+
+func _to_art(screen: Vector2) -> Vector2:
+	var local := get_global_transform_with_canvas().affine_inverse() * screen
+	return (local - _origin()) / _px()
+
+
+func _set_cursor(shape: Input.CursorShape) -> void:
+	if shape != _cursor:
+		_cursor = shape
+		Input.set_default_cursor_shape(shape)
+
+
+## Индекс человечка под точкой арта (ближний к зрителю первым), -1 нет.
+func worker_at(at: Vector2) -> int:
+	var best := -1
+	var best_y := -INF
+	for i in _workers.size():
+		if _workers[i].delay > 0.0 and moving():
+			continue
+		var r := worker_rect(i)
+		if r.grow(1.0).has_point(at) and r.end.y > best_y:
+			best = i
+			best_y = r.end.y
+	return best
+
+
+## Прямоугольник человечка в пикселях арта, как он сейчас нарисован.
+func worker_rect(i: int) -> Rect2:
+	var p := _pose(_workers[i])
+	return Rect2(_pose_top(p[0], p[1], p[2]), Vector2(_size(p[0])))
+
+
+## Тот же прямоугольник в координатах студии (для тестов и подсказок).
+func worker_local_rect(i: int) -> Rect2:
+	var r := worker_rect(i)
+	return Rect2(_origin() + r.position * _px(), r.size * _px())
+
+
+## Состояние человечка для тестов: где стоит, где его место, чем занят.
+func worker_info(i: int) -> Dictionary:
+	var w := _workers[i]
+	return {"pos": w.pos, "home": w.home, "act": ACT_NAMES[w.act], "held": w == _drag, "placed": w.placed}
+
+
+func _pick(w: Worker, at: Vector2) -> void:
+	_drag = w
+	_drag_at = at
+	w.path.clear()
+	w.act = Act.HELD
+	w.placed = false
+	_set_cursor(Input.CURSOR_DRAG)
+	queue_redraw()
+
+
+func _drop(at: Vector2) -> void:
+	var w := _drag
+	_drag = null
+	var feet := at + Vector2(0, HOLD_DY)
+	feet.x = clampf(feet.x, FLOOR_RECT.position.x, FLOOR_RECT.end.x)
+	feet.y = clampf(feet.y, FLOOR_RECT.position.y, FLOOR_RECT.end.y)
+	w.pos = feet.round()
+	# Ближайшая дорожка: с неё пойдёт к своему делу.
+	var lane := float(TOP_LANE)
+	for d in _desks:
+		if absf(d.lane - w.pos.y) < absf(lane - w.pos.y):
+			lane = d.lane
+	w.lane = lane
+	w.act = Act.WAIT
+	w.timer = tuning.drop_seconds
+	w.placed = true
+	w.cup = false
+	_set_cursor(Input.CURSOR_POINTING_HAND)
+	queue_redraw()
+
+
+## Бросить перетаскивание без места (перестройка студии, реакция «банкротство»).
+func _end_drag() -> void:
+	if _drag != null:
+		_home_now(_drag)
+		_drag = null
+		_set_cursor(Input.CURSOR_ARROW)
