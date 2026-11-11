@@ -15,7 +15,8 @@ extends Control
 ## У гонок до заезда проверяется генератор трассы на сотне сидов, у шутера генератор арены, у
 ## гольфа генератор поля, у файтинга генератор плана соперника и бой ботами без окна, у
 ## платформера × вектор (`--tech=vector`, #90) генератор этажей; там WIN забирается к флагу, а
-## LOSE бьётся о потолок, пока не кончатся жизни.
+## LOSE проваливается в дыры, пока не кончатся жизни. У гонок × вектор (#91) генератор заезда;
+## WIN приходит первым, LOSE едет без газа.
 
 
 var demo: Demo
@@ -45,6 +46,8 @@ func _ready() -> void:
 		AutoTest.require("demo checks")
 		if _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.VECTOR:
 			_check_towers()
+		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
+			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
 			_check_tracks()
 		elif _genre() == Game.Genre.SHOOTER:
@@ -187,6 +190,34 @@ func _check_towers() -> void:
 	seconds.sort()
 	AutoTest.note("platformer vector: 100 сидов прошли проверку, дыр в среднем %.1f, врагов %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f" % [
 			holes / 100.0, enemies / 100.0, seconds[50], seconds[0], seconds[99]])
+
+
+## Гонки × вектор (#91): сто сидов дают заезд, который проходит проверку генератора (в каждом
+## ряду препятствий есть свободная полоса, ряды не теснее положенного, соперники на разных
+## полосах), генерация детерминирована; на каждом сиде бот WIN без окна (`LaneSim.simulate`)
+## приходит первым, а бот LOSE нет.
+func _check_lanes() -> void:
+	var t := RacingVectorGenTuning.load_default()
+	var dt := RacingVectorTuning.load_default()
+	var obstacles := 0
+	var crashes := 0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var race := LaneRaceGen.generate(s, t)
+		var why := LaneRaceGen.validate(race, t)
+		_expect(why == "", "заезд сида %d: %s" % [s, why])
+		obstacles += race.obstacles.size()
+		var win := LaneSim.simulate(race, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "заезд сида %d: бот WIN не первый, место %d за %.0f с" % [s, win.place(), win.time])
+		seconds.append(win.time)
+		crashes += win.player.crashes
+		var lose := LaneSim.simulate(race, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "заезд сида %d: бот LOSE не проиграл за %.0f с" % [s, lose.time])
+	_expect(LaneRaceGen.generate(7, t).signature() == LaneRaceGen.generate(7, t).signature(), "заезд сида 7 не повторяется")
+	_expect(LaneRaceGen.generate(7, t).signature() != LaneRaceGen.generate(8, t).signature(), "заезды сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("racing vector: 100 сидов прошли проверку, препятствий в среднем %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, столкновений в среднем %.2f" % [
+			obstacles / 100.0, seconds[50], seconds[0], seconds[99], crashes / 100.0])
 
 
 ## Гонки: сто сидов дают трассу, которая проходит проверку генератора (замкнутость, ширина,

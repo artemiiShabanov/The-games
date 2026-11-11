@@ -38,6 +38,9 @@ step "vector probe bugs" sh tools/autotest.sh --scene=vector_test --probe --bugs
 step "demo platformer vector" sh tools/autotest.sh --scene=demo_test --tech=vector --frames=5000
 step "demo platformer vector bugs" sh tools/autotest.sh --scene=demo_test --tech=vector --bugs --frames=7000
 step "feed platformer vector" sh tools/autotest.sh --scene=feed_test --tech=vector --frames=400
+step "demo racing vector" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=vector --frames=7000
+step "demo racing vector bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=vector --bugs --frames=8000
+step "feed racing vector" sh tools/autotest.sh --scene=feed_test --genre=racing --tech=vector --frames=400
 step "demo racing" sh tools/autotest.sh --scene=demo_test --genre=racing --frames=5000
 step "demo racing bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --bugs --frames=5000
 step "feed racing" sh tools/autotest.sh --scene=feed_test --genre=racing --frames=400

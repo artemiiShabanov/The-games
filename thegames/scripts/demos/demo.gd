@@ -34,6 +34,8 @@ const PINK := Color("#FF2BD6")
 ## Заикание музыки: длина залипания и кусок, который повторяется.
 const STUTTER_SECONDS := 0.35
 const STUTTER_CHUNK := 0.07
+## Сколько живут отрезки рассыпавшегося контура (`shatter_slot`).
+const SHARD_LIFE := 0.6
 ## Чужая палитра: сдвиг оттенка всего слоя мира (`alien_palette`).
 const HUE_SHADER := """
 shader_type canvas_item;
@@ -127,6 +129,9 @@ var _line_counts: Dictionary[int, int] = {}
 ## Векторный экран демки и сеттинг записи (`vector_screen`).
 var vector: VectorScreen
 var vector_set: SettingDef
+## Отрезки рассыпавшихся контуров (`shatter_slot`): [a, b, скорость, возраст, чернила].
+var _shards: Array[Array] = []
+var _shard_rng := RandomNumberGenerator.new()
 
 
 func setup(record_: GameRecord, source_: StringName) -> void:
@@ -363,6 +368,7 @@ func vector_screen(draw_fn: Callable) -> VectorScreen:
 	vector.draw_fn = draw_fn
 	vector.glow = Debug.vector_glow
 	vector.persistence = Debug.vector_persistence
+	_shard_rng.seed = hash(str(record.seed if record != null else 1, ":shards"))
 	if bug_palette() != null:
 		vector.material = bug_palette()
 	if has_bug(&"beam_lag"):
@@ -381,6 +387,42 @@ func draw_slot(slot: StringName, center: Vector2, px: float, flip := false, angl
 		vector.cross_box(center, 14.0 * px)
 		return
 	vector.shape(vector_set.vector_contours(slot), center, px, vector_set.vector_ink(slot), flip, angle)
+
+
+## Контур слота рассыпается на отрезки (враг от чиха, разбитое препятствие, потерянная жизнь):
+## каждый отрезок летит от центра, падает и гаснет за `SHARD_LIFE`. `drift` общая скорость
+## обломков (например, дорога уезжает назад). Демка зовёт `step_shards` в шаге мира и
+## `draw_shards` в `draw_fn`.
+func shatter_slot(slot: StringName, center: Vector2, px: float, ink_i: int, flip := false, angle := 0.0,
+		drift := Vector2.ZERO) -> void:
+	if vector_set == null:
+		return
+	var xf := Transform2D(angle, Vector2.ZERO).scaled_local(Vector2(-px if flip else px, px))
+	for c in vector_set.vector_contours(slot):
+		for i in c.size():
+			var a := xf * c[i]
+			var b := xf * c[(i + 1) % c.size()]
+			var out := ((a + b) / 2.0).normalized()
+			var vel := out * _shard_rng.randf_range(120.0, 340.0) + Vector2(0.0, -90.0) + drift
+			_shards.append([center + a, center + b, vel, 0.0, ink_i])
+
+
+func step_shards(dt: float) -> void:
+	for i in range(_shards.size() - 1, -1, -1):
+		var s := _shards[i]
+		var vel: Vector2 = s[2]
+		vel.y += 520.0 * dt
+		s[0] = (s[0] as Vector2) + vel * dt
+		s[1] = (s[1] as Vector2) + vel * dt
+		s[2] = vel
+		s[3] = float(s[3]) + dt
+		if float(s[3]) >= SHARD_LIFE:
+			_shards.remove_at(i)
+
+
+func draw_shards() -> void:
+	for s in _shards:
+		vector.line(s[0], s[1], int(s[4]), 2.0, 1.0 - float(s[3]) / SHARD_LIFE)
 
 
 ## Строка пиксельными цифрами `PIXEL_DIGITS` клетками `cell` с тенью на клетку вправо-вниз.

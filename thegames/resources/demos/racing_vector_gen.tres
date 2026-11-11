@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RacingVectorGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/racing_vector_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+lanes = 4
+length = 24000.0
+first_row = 1500.0
+last_clear = 900.0
+row_gap_min = 520.0
+row_gap_max = 980.0
+two_chance = 0.45
+three_chance = 0.1
+rivals = 3
+rival_pace_min = 440.0
+rival_pace_max = 510.0
+rival_pace_jitter = 0.02
+rival_head_min = 260.0
+rival_head_max = 900.0

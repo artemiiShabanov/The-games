@@ -32,7 +32,6 @@ const INK_WORLD := 1
 const INK_HERO := 2
 const INK_DANGER := 3
 const FLASH_SECONDS := 0.3
-const SHARD_LIFE := 0.6
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "bonus", "finish"]
 const MELODY := [0, null, 7, null, 12, null, 7, null, 3, null, 10, null, 15, null, 10, null,
 	5, null, 12, null, 17, null, 12, 10, 7, null, 5, null, 3, 2, 0, null]
@@ -46,9 +45,6 @@ var _time := 0.0
 var _flash := 0.0
 var _flash_line := -1
 var _flash_x := 0.0
-## Отрезки рассыпавшегося контура: [a, b, скорость, возраст, чернила].
-var _shards: Array[Array] = []
-var _fx_rng := RandomNumberGenerator.new()
 var _music: AudioStreamPlayer
 var _sfx := {}
 
@@ -58,7 +54,6 @@ func _on_start() -> void:
 	var seed_ := record.seed if record != null else 1
 	tower = TowerLevelGen.generate(seed_)
 	sim = TowerSim.create(tower, tuning, (GROUND_Y - TOP_Y) / tower.floors)
-	_fx_rng.seed = hash(str(seed_, ":fx"))
 	# Баги жанра и баланса; общие баги в `Demo` (#44).
 	if has_bug(&"wild_physics"):
 		sim.jump_levels = maxi(int(round(bug_param(&"wild_physics", &"jump_mult", 3.0))), 1)
@@ -152,7 +147,7 @@ func _on_tick(delta: float) -> void:
 func _step(dt: float) -> void:
 	_time += dt
 	_flash = maxf(_flash - dt, 0.0)
-	_step_shards(dt)
+	step_shards(dt)
 	bug_input_tick()
 	# Ось движения: с багом управления из прошлого на delay_ms (`Demo.bug_axis`).
 	var raw := bot_dir if bot_driven() else GameInput.axis().x
@@ -186,7 +181,7 @@ func _on_event(ev: Array) -> void:
 		&"pop":
 			var i := int(ev[1])
 			var e := tower.enemies[i]
-			_shatter(&"enemy", Vector2(sim.enemy_x[i], _y(sim.floor_h(e.level)) - BODY_H / 2.0), e.speed > 0.0, INK_DANGER)
+			shatter_slot(&"enemy", Vector2(sim.enemy_x[i], _y(sim.floor_h(e.level)) - BODY_H / 2.0), PX, INK_DANGER, e.speed > 0.0)
 			_play("pop")
 		&"stunned":
 			_play("bonk")
@@ -196,7 +191,7 @@ func _on_event(ev: Array) -> void:
 			_flash = FLASH_SECONDS
 			_flash_line = sim.level
 			_flash_x = sim.hero_x
-			_shatter(&"hero", Vector2(sim.hero_x, _y(sim.hero_h) - BODY_H / 2.0), sim.facing < 0, INK_HERO)
+			shatter_slot(&"hero", Vector2(sim.hero_x, _y(sim.hero_h) - BODY_H / 2.0), PX, INK_HERO, sim.facing < 0)
 			bug_clear_stick()
 			if AutoTest.enabled and not embedded:
 				AutoTest.note("platformer vector: жизнь %d потеряна на %.1f с, x %.0f" % [sim.hits, elapsed, sim.hero_x])
@@ -204,35 +199,6 @@ func _on_event(ev: Array) -> void:
 			end_demo(true)
 		&"lose":
 			end_demo(false)
-
-
-## Контур слота рассыпается на отрезки: каждый летит от центра и гаснет.
-func _shatter(slot: StringName, center: Vector2, flip: bool, ink_i: int) -> void:
-	if vector_set == null:
-		return
-	for c in vector_set.vector_contours(slot):
-		for i in c.size():
-			var a := c[i] * PX
-			var b := c[(i + 1) % c.size()] * PX
-			if flip:
-				a.x = -a.x
-				b.x = -b.x
-			var out := ((a + b) / 2.0).normalized()
-			var vel := out * _fx_rng.randf_range(120.0, 340.0) + Vector2(0.0, -90.0)
-			_shards.append([center + a, center + b, vel, 0.0, ink_i])
-
-
-func _step_shards(dt: float) -> void:
-	for i in range(_shards.size() - 1, -1, -1):
-		var s := _shards[i]
-		var vel: Vector2 = s[2]
-		vel.y += 520.0 * dt
-		s[0] = (s[0] as Vector2) + vel * dt
-		s[1] = (s[1] as Vector2) + vel * dt
-		s[2] = vel
-		s[3] = float(s[3]) + dt
-		if float(s[3]) >= SHARD_LIFE:
-			_shards.remove_at(i)
 
 
 # --- Рисование -------------------------------------------------------------------------------
@@ -333,8 +299,7 @@ func _draw_vector(v: VectorScreen) -> void:
 			var c := Vector2(sim.hero_x + cos(a) * 26.0, feet - BODY_H - 12.0 + sin(a) * 6.0)
 			v.line(c + Vector2(-5.0, -5.0), c + Vector2(5.0, 5.0), INK_HERO, 2.0, 0.9)
 			v.line(c + Vector2(5.0, -5.0), c + Vector2(-5.0, 5.0), INK_HERO, 2.0, 0.9)
-	for s in _shards:
-		v.line(s[0], s[1], int(s[4]), 2.0, 1.0 - float(s[3]) / SHARD_LIFE)
+	draw_shards()
 	# HUD штрихами: жизни иконками героя, монеты, этаж из этажей.
 	for i in sim.lives:
 		draw_slot(&"hero", Vector2(40.0 + i * 52.0, 44.0), 2.0)
