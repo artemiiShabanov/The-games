@@ -17,7 +17,8 @@ extends Control
 ## платформера × вектор (`--tech=vector`, #90) генератор этажей; там WIN забирается к флагу, а
 ## LOSE проваливается в дыры, пока не кончатся жизни. У гонок × вектор (#91) генератор заезда;
 ## WIN приходит первым, LOSE едет без газа. У шутера × вектор (#92) генератор волн; WIN отбивается от
-## тридцати, LOSE не стреляет.
+## тридцати, LOSE не стреляет. У спорта × вектор (#93, понг) генератор матча; WIN выигрывает до
+## пяти, LOSE не двигает ракетку.
 
 
 var demo: Demo
@@ -55,6 +56,8 @@ func _ready() -> void:
 			_check_waves()
 		elif _genre() == Game.Genre.SHOOTER:
 			_check_arenas()
+		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.VECTOR:
+			_check_pong()
 		elif _genre() == Game.Genre.SPORT:
 			_check_courses()
 		elif _genre() == Game.Genre.FIGHTING:
@@ -284,6 +287,31 @@ func _check_arenas() -> void:
 	var b := ShooterArenaGen.generate(7, t)
 	_expect(a.tiles == b.tiles and a.total_enemies() == b.total_enemies() and a.doors == b.doors, "арена сида 7 не повторяется")
 	AutoTest.note("shooter arenas: 100 сидов прошли проверку, запасная арена %d, врагов в волнах в среднем %.1f" % [fallbacks, enemies / 100.0])
+
+
+## Спорт × вектор, понг (#93): сто сидов дают матч, который проходит проверку генератора
+## (соперник и подачи в своих пределах), генерация детерминирована; на каждом сиде бот WIN без
+## окна (`PongSim.simulate`) выигрывает матч, а бот LOSE проигрывает.
+func _check_pong() -> void:
+	var t := SportVectorGenTuning.load_default()
+	var dt := SportVectorTuning.load_default()
+	var hits := 0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var m := PongMatchGen.generate(s, t)
+		var why := PongMatchGen.validate(m, t)
+		_expect(why == "", "матч сида %d: %s" % [s, why])
+		var win := PongSim.simulate(m, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "матч сида %d: бот WIN не выиграл, %d:%d за %.0f с" % [s, win.score_player, win.score_ai, win.time])
+		seconds.append(win.time)
+		hits += win.hits
+		var lose := PongSim.simulate(m, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "матч сида %d: бот LOSE не проиграл за %.0f с" % [s, lose.time])
+	_expect(PongMatchGen.generate(7, t).signature() == PongMatchGen.generate(7, t).signature(), "матч сида 7 не повторяется")
+	_expect(PongMatchGen.generate(7, t).signature() != PongMatchGen.generate(8, t).signature(), "матчи сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("sport vector: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, ударов ракеток за матч в среднем %.1f" % [
+			seconds[50], seconds[0], seconds[99], hits / 100.0])
 
 
 ## Гольф: сто сидов дают поле, которое проходит проверку генератора (ровные ти и палуба, люк

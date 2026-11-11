@@ -407,6 +407,20 @@ func shatter_slot(slot: StringName, center: Vector2, px: float, ink_i: int, flip
 			_shards.append([center + a, center + b, vel, 0.0, ink_i])
 
 
+## То же для своего замкнутого контура в координатах экрана (ракетка, фигура не из слотов).
+func shatter_poly(points: PackedVector2Array, ink_i: int, drift := Vector2.ZERO) -> void:
+	var center := Vector2.ZERO
+	for q in points:
+		center += q
+	center /= maxf(points.size(), 1.0)
+	for i in points.size():
+		var a := points[i]
+		var b := points[(i + 1) % points.size()]
+		var out := ((a + b) / 2.0 - center).normalized()
+		var vel := out * _shard_rng.randf_range(120.0, 340.0) + Vector2(0.0, -90.0) + drift
+		_shards.append([a, b, vel, 0.0, ink_i])
+
+
 func step_shards(dt: float) -> void:
 	for i in range(_shards.size() - 1, -1, -1):
 		var s := _shards[i]

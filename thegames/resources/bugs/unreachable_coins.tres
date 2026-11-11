@@ -13,6 +13,8 @@ clip = "Награда висит там, куда не добраться"
 params = Dictionary[StringName, float]({
 &"lift_rows": 5.0,
 &"lane_finish_early": 1500.0,
+&"pong_ai_height_mult": 1.7,
+&"pong_ai_speed_mult": 3.0,
 &"extra_per_kill": 1.0,
 &"peak_rise": 96.0,
 &"peak_half": 24.0,

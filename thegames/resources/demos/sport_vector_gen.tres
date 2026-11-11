@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SportVectorGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/sport_vector_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+ai_speed_min = 340.0
+ai_speed_max = 420.0
+ai_error_min = 100.0
+ai_error_max = 140.0
+ai_react_min = 0.3
+ai_react_max = 0.55
+serves = 12
+serve_angle_min = 12.0
+serve_angle_max = 30.0

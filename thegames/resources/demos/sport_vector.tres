@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SportVectorTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/sport_vector_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+points_to_win = 5
+wall_inset = 24.0
+paddle_inset = 72.0
+paddle_height = 132.0
+paddle_width = 16.0
+paddle_speed = 640.0
+ball_radius = 12.0
+ball_speed = 820.0
+ball_gain = 0.1
+ball_speed_cap = 1400.0
+max_angle = 55.0
+serve_delay = 0.9
+ai_idle = 0.5
+ai_tire = 0.18
+bot_edge = 0.75
+music_db = -12.0
+sfx_db = -6.0
