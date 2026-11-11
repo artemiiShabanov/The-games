@@ -1,11 +1,11 @@
 extends Minigame
 ## «Реши» (decide_cards, баланс), каталог `docs/specs/minigames_catalog.md`. Карточки едут
 ## слева направо по одной, на каждой цветная фигура с числом внутри. Правило вверху крупно
-## и без слов: «≤ 30», «≥ 40», «2n» чётное, «2n+1» нечётное, цветной круг; фигуры («≤ 5
-## сторон») только при `t` выше 0.8 (плейтест 2026-11-07). Карточка въезжает в зону решения
+## словами (плейтест 2026-11-11, #86): «≤ 30», «≥ 40», «чётное», «нечётное», цвет словом его
+## цвета («синее»); стороны фигуры («≤ 5 сторон») только при `t` выше 0.8. Карточка въезжает в зону решения
 ## по центру и ждёт там `card_seconds`: ↑ принимает, любая другая стрелка отклоняет; не
 ## дождалась, уезжает вправо, это ошибка. Две ошибки: провал. Подходящих и неподходящих
-## карточек поровну. С `t` темп выше, карточек больше, правило из двух условий («красные и
+## карточек поровну. С `t` темп выше, карточек больше, правило из двух условий («розовое и
 ## ≤ 30»), затем правило меняется посреди раунда. Параметры в
 ## `resources/minigames/decide_cards.tres`: cards, card_seconds, two (от 0.5 два условия),
 ## change (от 0.5 смена правила на середине).
@@ -43,7 +43,8 @@ class Card:
 
 
 const COLORS: Array[Color] = [Color("#E0457B"), Color("#2F5BFF"), Color("#2BB37A")]
-const COLOR_NAMES: Array[String] = ["красные", "синие", "зелёные"]
+## Цвета словами в правиле: средний род, как «чётное» (первый цвет акцентный розовый).
+const COLOR_NAMES: Array[String] = ["розовое", "синее", "зелёное"]
 const CARD_W := 220.0
 const CARD_H := 280.0
 const FAIL_AT := 2
@@ -55,6 +56,10 @@ const BOT_REACTION := 0.25
 ## Условия на число сторон появляются только при `t` выше этого.
 const SHAPES_FROM_T := 0.8
 const FIGURE_R := 92.0
+## Правило словами: крупно, не мельче `RULE_FONT_MIN`, с полями по бокам.
+const RULE_FONT := 72
+const RULE_FONT_MIN := 48
+const RULE_MARGIN := 120.0
 ## Мармелад: точки контура карточки, наклон улетающей, бортик едущей (вместо тени), вздроги.
 const CARD_POINTS := 64
 const FLY_TILT := 0.14
@@ -425,7 +430,7 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(Style.SURFACE_SOLID, alpha))
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 	_splash.draw_air(self, Vector2.ZERO)
-	# Правило сверху пиктограммами, при смене вспухает.
+	# Правило сверху словами, при смене вспухает.
 	var pivot := Vector2(size.x / 2.0, 150.0)
 	var pop := 1.0 + maxf(_rule_pop.value, -0.5)
 	draw_set_transform(pivot * (1.0 - pop), 0.0, Vector2(pop, pop))
@@ -445,61 +450,55 @@ func _draw() -> void:
 		draw_circle(Vector2(dx + j * 20.0, 92.0), 5.0, Style.INK if j < decided else Style.SURFACE_2)
 
 
-## Правило: условия пиктограммами в ряд, между двумя знак «+»; при смене вспышка цветом фокуса.
+## Правило словами в ряд (плейтест 2026-11-11, #86): «чётное», «нечётное», цвет словом своего
+## цвета, «≤ 30», «≥ 5 сторон»; два условия через «и». Не влезает в ширину поля: шрифт мельче.
+## При смене правила вспышка цветом фокуса.
 func _draw_rule(font: Font) -> void:
 	var y := 150.0
 	var ink := Style.INK if rule_flash <= 0.0 else Style.INK.lerp(Style.FOCUS, rule_flash / RULE_FLASH)
-	var widths: Array[float] = []
-	var total := 0.0
-	for c in rule:
-		var w := _cond_width(font, c)
-		widths.append(w)
-		total += w
-	total += 64.0 * (rule.size() - 1)
-	var x := size.x / 2.0 - total / 2.0
+	var parts: Array[String] = []
+	var colors: Array[Color] = []
+	# Рядом со сторонами голое «≤ 20» читается как про стороны: тогда «число ≤ 20».
+	var sides := rule.any(func(c: Cond) -> bool: return _family(c.kind) == 2)
 	for i in rule.size():
-		_draw_cond(font, rule[i], Vector2(x, y), widths[i], ink)
-		x += widths[i]
-		if i < rule.size() - 1:
-			var plus_w := font.get_string_size("+", HORIZONTAL_ALIGNMENT_LEFT, -1, 56).x
-			draw_string(font, Vector2(x + 32.0 - plus_w / 2.0, y + 20.0), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 56, Style.INK_3)
-			x += 64.0
+		if i > 0:
+			parts.append(" и ")
+			colors.append(Style.INK_3)
+		var text := _cond_text(rule[i])
+		if sides and (rule[i].kind == Kind.NUMBER_LE or rule[i].kind == Kind.NUMBER_GE):
+			text = "число " + text
+		parts.append(text)
+		colors.append(COLORS[rule[i].value] if rule[i].kind == Kind.COLOR else ink)
+	var fs := RULE_FONT
+	var total := 0.0
+	while true:
+		total = 0.0
+		for part in parts:
+			total += font.get_string_size(part, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		if total <= size.x - 2.0 * RULE_MARGIN or fs <= RULE_FONT_MIN:
+			break
+		fs -= 8
+	var x := size.x / 2.0 - total / 2.0
+	for i in parts.size():
+		draw_string(font, Vector2(x, y + fs * 0.36), parts[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, colors[i])
+		x += font.get_string_size(parts[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 
 
-func _cond_text(c: Cond) -> String:
+## Условие словами: так его читает игрок.
+static func _cond_text(c: Cond) -> String:
 	match c.kind:
 		Kind.NUMBER_LE:
 			return "≤ " + str(c.value)
 		Kind.NUMBER_GE:
 			return "≥ " + str(c.value)
 		Kind.EVEN:
-			return "2n"
+			return "чётное"
 		Kind.ODD:
-			return "2n+1"
+			return "нечётное"
+		Kind.COLOR:
+			return COLOR_NAMES[c.value]
+		Kind.SIDES_LE:
+			return "≤ %d сторон" % c.value
+		Kind.SIDES_GE:
+			return "≥ %d сторон" % c.value
 	return ""
-
-
-func _cond_width(font: Font, c: Cond) -> float:
-	match c.kind:
-		Kind.COLOR:
-			return 88.0
-		Kind.SIDES_LE, Kind.SIDES_GE:
-			return 88.0 + 16.0 + font.get_string_size(("≤ " if c.kind == Kind.SIDES_LE else "≥ ") + str(c.value), HORIZONTAL_ALIGNMENT_LEFT, -1, 56).x
-	return font.get_string_size(_cond_text(c), HORIZONTAL_ALIGNMENT_LEFT, -1, 72).x
-
-
-func _draw_cond(font: Font, c: Cond, pos: Vector2, w: float, ink: Color) -> void:
-	match c.kind:
-		Kind.NUMBER_LE, Kind.NUMBER_GE, Kind.EVEN, Kind.ODD:
-			draw_string(font, pos + Vector2(0, 26.0), _cond_text(c), HORIZONTAL_ALIGNMENT_LEFT, -1, 72, ink)
-		Kind.COLOR:
-			draw_circle(pos + Vector2(44.0, 0.0), 40.0, COLORS[c.value])
-		Kind.SIDES_LE, Kind.SIDES_GE:
-			# Многоугольник с нужным числом сторон контуром и знак рядом.
-			var pts := PackedVector2Array()
-			for i in c.value:
-				var a := -PI / 2.0 + TAU * i / c.value
-				pts.append(pos + Vector2(44.0, 0.0) + Vector2(cos(a), sin(a)) * 40.0)
-			pts.append(pts[0])
-			draw_polyline(pts, ink, 5.0, true)
-			draw_string(font, pos + Vector2(104.0, 20.0), ("≤ " if c.kind == Kind.SIDES_LE else "≥ ") + str(c.value), HORIZONTAL_ALIGNMENT_LEFT, -1, 56, ink)
