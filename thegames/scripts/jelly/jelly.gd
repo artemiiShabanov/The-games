@@ -103,6 +103,7 @@ static func _font(weight: int, scaled: bool) -> Font:
 			if _font_file_scaled == null:
 				_font_file_scaled = (load(FONT_PATH) as FontFile).duplicate() as FontFile
 				_font_file_scaled.multichannel_signed_distance_field = false
+				_font_file_scaled.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
 				_font_file_scaled.oversampling = 2.0
 				_font_file_scaled.generate_mipmaps = true
 			file = _font_file_scaled
@@ -110,6 +111,9 @@ static func _font(weight: int, scaled: bool) -> Font:
 			if _font_file == null:
 				_font_file = load(FONT_PATH) as FontFile
 				_font_file.multichannel_signed_distance_field = false
+				# Без субпиксельных копий глифов (плейтест 2026-11-11): на Retina с дробным
+				# масштабом окна в цифрах и буквах проступали обрывки соседних глифов атласа.
+				_font_file.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
 			file = _font_file
 	var v := FontVariation.new()
 	if file != null:

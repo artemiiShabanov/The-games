@@ -134,6 +134,8 @@ func _inject(what: String) -> void:
 			var m := InputEventMouseMotion.new()
 			m.position = pos
 			m.global_position = pos
+			# Мармелад и линза читают настоящий курсор, не события: двигаем и его.
+			Input.warp_mouse(vp.get_final_transform() * pos)
 			vp.push_input(m, true)
 		"click":
 			for pressed in [true, false]:

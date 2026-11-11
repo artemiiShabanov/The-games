@@ -47,6 +47,9 @@ var _skip := false
 var _offer_answer := -1
 ## Пилюля «переиграть» на карточке результата: клик по ней равен B.
 var _offer_pill: Control
+## Свой сплошной фон. В забеге выключен: карточка спринта стоит поверх пиксельной студии
+## (плейтест 2026-11-11); тестовым сценам без студии нужен.
+var own_background := true
 var _frame: CardFrame
 var _content: Control
 var _header: Label
@@ -56,13 +59,16 @@ var _dots: Control
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Раннер на весь экран не берёт мышь себе, иначе съест клики по карточкам (#82).
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if tuning == null:
 		tuning = MinigamePool.load_tuning()
-	var bg := ColorRect.new()
-	bg.color = Style.BG
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	if own_background:
+		var bg := ColorRect.new()
+		bg.color = Style.BG
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(bg)
 
 	var chrome := Control.new()
 	chrome.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

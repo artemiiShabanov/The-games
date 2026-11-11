@@ -8,7 +8,8 @@ extends RefCounted
 
 const BG := Color("#F4F1EC")
 const STUDIO_INK := Color("#1E2A4A")
-const SURFACE := Color(1, 1, 1, 0.85)
+## Плотная (плейтест 2026-11-11): все панели непрозрачные, студия сквозь них не просвечивает.
+const SURFACE := Color(1, 1, 1, 1.0)
 const SURFACE_SOLID := Color("#FFFFFF")
 const SURFACE_2 := Color("#ECE8E1")
 const INK := Color("#1C1B19")
@@ -106,6 +107,7 @@ static func mono_font() -> Font:
 		var f := SystemFont.new()
 		f.font_names = PackedStringArray(["Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace"])
 		f.font_weight = 700
+		f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
 		_mono = f
 	return _mono
 

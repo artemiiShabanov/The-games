@@ -14,6 +14,8 @@ const WIDTH := 880.0
 const ROW_HEIGHT := 72.0
 const BAR := Vector2(320, 12)
 const STEP := 0.1
+## Зазор между строками (плейтест 2026-11-11: строки слипались).
+const ROW_GAP := 20
 
 enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, GLYPHS, DONE }
 
@@ -44,7 +46,7 @@ func _ready() -> void:
 	center.add_child(panel)
 	Jelly.panel(panel)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", ROW_GAP)
 	panel.add_child(column)
 	var title := _label("Настройки", Style.FONT_H1, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
@@ -53,7 +55,7 @@ func _ready() -> void:
 	for i in TITLES.size():
 		column.add_child(_make_row(i))
 		if i == Row.SFX or i == Row.GLYPHS:
-			column.add_child(_spacer(8))
+			column.add_child(_spacer(12))
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
 	hints.add_theme_constant_override("separation", 16)

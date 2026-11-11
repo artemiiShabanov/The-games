@@ -258,6 +258,7 @@ func _start_runner(from: int) -> void:
 	_sync_studio()
 	_save(&"sprints")
 	_runner = SprintRunner.new()
+	_runner.own_background = false
 	_runner.tuning = run.sprint_tuning
 	_runner.sprint_finished.connect(_on_sprint_finished)
 	_runner.plan_finished.connect(_on_plan_finished)
@@ -348,6 +349,7 @@ func _on_bugfix_accepted() -> void:
 	_expected_cash -= price
 	var def := Bugfix.pick_minigame(run.minigames, run.rng)
 	_runner = SprintRunner.new()
+	_runner.own_background = false
 	_runner.tuning = run.sprint_tuning
 	_runner.sprint_finished.connect(_on_bugfix_sprint)
 	add_child(_runner)
