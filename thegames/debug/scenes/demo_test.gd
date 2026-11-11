@@ -1,5 +1,6 @@
 extends Control
-## Тестовая сцена демки: запускает демку 8-bit жанра, сида и набора багов из раздела «Демки»
+## Тестовая сцена демки: запускает демку жанра и технологии (`--tech=ascii|bit8`, по умолчанию
+## 8-bit), сида и набора багов из раздела «Демки»
 ## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
 ## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
 ## финиширует первым; шутер: уничтожает 30; гольф: укладывается в пар; файтинг: здоровья
@@ -67,13 +68,22 @@ func _genre() -> Game.Genre:
 	return clampi(genre, 0, Game.Genre.size() - 1) as Game.Genre
 
 
+func _tech() -> Game.Tech:
+	var tech := Game.Tech.BIT8 if AutoTest.enabled else Debug.demo_tech as Game.Tech
+	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
+	if args.has("tech"):
+		var v := str(args["tech"])
+		tech = (DemoCatalog.TECH_KEYS.find(v) if DemoCatalog.TECH_KEYS.has(v) else int(v)) as Game.Tech
+	return clampi(tech, 0, Game.Tech.size() - 1) as Game.Tech
+
+
 func _launch() -> void:
 	_label.visible = false
 	var seed_ := Debug.demo_seed
 	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("seed"):
 		# `--seed=<n>`: сид записи мимо сохранённого меню.
 		seed_ = int(AutoTest.parse_args(OS.get_cmdline_user_args())["seed"])
-	record = GameRecord.create(_genre(), Game.Tech.BIT8, seed_, "Тест демки")
+	record = GameRecord.create(_genre(), _tech(), seed_, "Тест демки")
 	record.setting = Debug.demo_setting as Game.Setting
 	if AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("setting"):
 		# `--setting=<0..2>`: сеттинг записи под скриншот.
@@ -89,7 +99,7 @@ func _launch() -> void:
 		record.add_bug(StringName(str(AutoTest.parse_args(OS.get_cmdline_user_args())["bug"])))
 	demo = DemoCatalog.create(record)
 	if demo == null:
-		_label.text = "У пары %s × 8-bit ещё нет демки" % Game.genre_name(record.genre)
+		_label.text = "У пары %s × %s ещё нет демки" % [Game.genre_name(record.genre), Game.TECH_NAMES[record.tech]]
 		_label.visible = true
 		if AutoTest.enabled:
 			AutoTest.fail("demo: нет сцены %s" % DemoCatalog.path(record.genre, record.tech))

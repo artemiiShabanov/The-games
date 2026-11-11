@@ -61,9 +61,13 @@ var demo_seed := 1
 ## Сеттинг записи тестовой демки (#46): 0 пираты, 1 космос, 2 замки.
 var demo_setting := 0
 ## Жанр тестовой демки (#48, #50, #52, #54): `Game.Genre`, 0 платформер, 1 гонки, 2 шутер, 3 спорт
-## (гольф), 4 файтинг; технология всегда 8-bit.
+## (гольф), 4 файтинг.
 var demo_genre := 0
+## Технология тестовой демки (#88): `Game.Tech`, 0 ASCII, 1 8-bit.
+var demo_tech := 1
 var demo_bugs: Array[StringName] = []
+## `ascii_test` запускает пробную ASCII-демку, а не лист глифов (#88).
+var ascii_probe := false
 var active := false
 
 var _sections: Dictionary = {}
@@ -319,6 +323,10 @@ func _register_builtin() -> void:
 	var genre_names: Array[String] = ["платформер", "гонки", "шутер", "спорт", "файтинг"]
 	add_choice(SECTION_DEMOS, "Жанр", genre_names, func() -> String: return genre_names[clampi(demo_genre, 0, genre_names.size() - 1)],
 			func(v: String) -> void: demo_genre = maxi(genre_names.find(v), 0), true)
+	var tech_names: Array[String] = []
+	tech_names.assign(Game.TECH_NAMES)
+	add_choice(SECTION_DEMOS, "Технология", tech_names, func() -> String: return tech_names[clampi(demo_tech, 0, tech_names.size() - 1)],
+			func(v: String) -> void: demo_tech = maxi(tech_names.find(v), 0), true)
 	var setting_names: Array[String] = ["пираты", "космос", "замки"]
 	add_choice(SECTION_DEMOS, "Сеттинг", setting_names, func() -> String: return setting_names[demo_setting],
 			func(v: String) -> void: demo_setting = maxi(setting_names.find(v), 0), true)
@@ -334,6 +342,10 @@ func _register_builtin() -> void:
 						elif not v:
 							demo_bugs.erase(id))
 	add_action(SECTION_DEMOS, "Запустить демку", func() -> void: run_test_scene(DEMO_SCENE))
+	add_action(SECTION_DEMOS, "ASCII: лист глифов сеттингов", func() -> void: run_test_scene("ascii_test"))
+	add_action(SECTION_DEMOS, "ASCII: пробная демка с багами раздела", func() -> void:
+		ascii_probe = true
+		run_test_scene("ascii_test"))
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())

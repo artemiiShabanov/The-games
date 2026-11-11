@@ -15,7 +15,10 @@ extends Control
 ## `bug_press`, `bug_input_tick`, `bug_stick`, `bug_take_stick`), розовые заглушки
 ## `pink_placeholders` по слотам спрайтов демки (`_placeholder_slots`, `is_pink`,
 ## `draw_pink`), чужая палитра `alien_palette` (`bug_palette` на слой мира) и мерцание 8-bit
-## `sprite_flicker` (`flicker_reset`, `flicker_hidden`). Демка зовёт эти хуки в своих местах и
+## `sprite_flicker` (`flicker_reset`, `flicker_hidden`). ASCII-демки (#88) рисуют в
+## текстовый экран `ascii_screen()`: слоты сеттинга глифами (`put_slot`), розовая заглушка
+## это «?» розовыми чернилами в мире и в легенде (`ascii_legend`), чужая палитра на всей сетке.
+## Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -55,6 +58,8 @@ void fragment() {
 }
 """
 const MENU_ITEMS: Array[String] = ["Вернуться", "Пропустить"]
+## ASCII: клетка 8×16 на экране демки ×2, сетка по размеру карточки (104×26 на 1920×1080).
+const ASCII_SCALE := 2
 ## Пиксельные цифры 3×5 для HUD демок 8-bit (`draw_pixel_text`), плюс «/» для места в гонке,
 ## «+», «-», «°» и буквы «ПАР» для гольфа (#52), «KO» и «ВРЕМЯ» для файтинга (#54).
 const PIXEL_DIGITS := {
@@ -120,6 +125,9 @@ var _pink: Dictionary[String, bool] = {}
 var _palette: ShaderMaterial
 var _flicker_limit := 0
 var _line_counts: Dictionary[int, int] = {}
+## ASCII-экран демки и сеттинг записи (`ascii_screen`).
+var ascii: AsciiGrid
+var ascii_set: SettingDef
 
 
 func setup(record_: GameRecord, source_: StringName) -> void:
@@ -342,6 +350,54 @@ func flicker_hidden(line: int) -> bool:
 	var n: int = _line_counts.get(line, 0) + 1
 	_line_counts[line] = n
 	return n > _flicker_limit and (Engine.get_process_frames() + n) % 2 == 1
+
+
+# --- ASCII (#88) --------------------------------------------------------------------------
+
+## Размер ASCII-сетки в клетках: одна на все ASCII-демки, по карточке демки.
+static func ascii_size() -> Vector2i:
+	return Vector2i((CardFrame.inner_size() / Vector2(AsciiGrid.CELL * ASCII_SCALE)).floor())
+
+
+## Текстовый экран на всю область демки, палитра сеттинга записи, чужая палитра при баге.
+## Во встроенном режиме та же сетка, уменьшенная под размер.
+func ascii_screen() -> AsciiGrid:
+	ascii_set = SettingDef.of(record.setting if record != null else Game.Setting.PIRATES)
+	var cells := ascii_size()
+	ascii = AsciiGrid.make(cells.x, cells.y, ascii_set.ascii_palette)
+	var area := embed_size if embedded else CardFrame.inner_size()
+	var k := float(ASCII_SCALE)
+	if embedded:
+		k = minf(area.x / ascii.pixel_size().x, area.y / ascii.pixel_size().y)
+		ascii.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	ascii.scale = Vector2(k, k)
+	ascii.position = ((area - ascii.pixel_size() * k) / 2.0).floor()
+	if bug_palette() != null:
+		ascii.material = bug_palette()
+	screen.add_child(ascii)
+	return ascii
+
+
+## Слот сеттинга в клетку: глиф и чернила сеттинга, розовая «?» при заглушке.
+func put_slot(x: int, y: int, slot: StringName) -> void:
+	if is_pink(String(slot)):
+		ascii.put(x, y, "?", AsciiGrid.PINK_INK)
+	else:
+		ascii.put(x, y, ascii_set.ascii_glyph(slot), ascii_set.ascii_ink(slot))
+
+
+## Легенда в ряду `row` по центру: глифы своими чернилами, слова приглушённые (чернила 3).
+func ascii_legend(row: int, slots: Array[StringName]) -> void:
+	var parts: Array[String] = []
+	for slot in slots:
+		parts.append("%s %s" % [ascii_set.ascii_glyph(slot), ascii_set.ascii_names.get(slot, String(slot))])
+	var line := " · ".join(parts)
+	var x := (ascii.cols - line.length()) / 2
+	ascii.fill(Rect2i(0, row, ascii.cols, 1), " ")
+	ascii.text(x, row, line, 3)
+	for slot in slots:
+		put_slot(x, row, slot)
+		x += 2 + str(ascii_set.ascii_names.get(slot, String(slot))).length() + 3
 
 
 ## Строка пиксельными цифрами `PIXEL_DIGITS` клетками `cell` с тенью на клетку вправо-вниз.

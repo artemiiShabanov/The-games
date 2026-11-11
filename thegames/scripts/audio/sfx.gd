@@ -85,6 +85,52 @@ static func chiptune_loop(melody: Array, bass: Array, bpm := 140.0, volume := 0.
 	return wav
 
 
+## Пищалка ASCII (#88): один голос, чистый квадрат без огибающей, как динамик PC; частота
+## скользит от `freq` к `to_freq` (0: без скольжения).
+static func beep(freq: float, seconds: float, volume := 0.3, to_freq := 0.0) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / n
+		var f := lerpf(freq, to_freq, t) if to_freq > 0.0 else freq
+		phase = fmod(phase + f / MIX_RATE, 1.0)
+		# Без огибающей, только щелчок срезан на краях в 2 мс.
+		var edge := minf(1.0, minf(float(i), float(n - i)) / (0.002 * MIX_RATE))
+		out[i] = (volume if phase < 0.5 else -volume) * edge
+	return _wav(out)
+
+
+## Музыка пищалкой: одна мелодия без баса и шума, ноты полутонами от ля (null пауза), между
+## нотами короткий разрыв, как у динамика PC.
+static func beeper_loop(melody: Array, bpm := 150.0, volume := 0.22) -> AudioStreamWAV:
+	var step := 60.0 / bpm / 2.0
+	var n := int(melody.size() * step * MIX_RATE)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	var phase := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var si := int(tm / step) % melody.size()
+		var local := tm - si * step
+		var v := 0.0
+		if melody[si] != null and local < step * 0.85:
+			var f := 440.0 * pow(2.0, float(melody[si]) / 12.0)
+			phase = fmod(phase + f / MIX_RATE, 1.0)
+			v = volume if phase < 0.5 else -volume
+		data.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 32767.0))
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = MIX_RATE
+	wav.stereo = false
+	wav.data = data
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_begin = 0
+	wav.loop_end = n
+	return wav
+
+
 ## «Бульк» кулера в студии (#80): два коротких всплеска синуса, частота скользит вверх, как
 ## пузырь в бутыли.
 static func bulp(volume := 0.32) -> AudioStreamWAV:
