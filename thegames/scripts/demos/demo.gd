@@ -17,7 +17,9 @@ extends Control
 ## `draw_pink`), чужая палитра `alien_palette` (`bug_palette` на слой мира) и мерцание 8-bit
 ## `sprite_flicker` (`flicker_reset`, `flicker_hidden`). Векторные демки (#88) рисуют на
 ## экране `vector_screen(draw_fn)`: слоты сеттинга контурами (`draw_slot`), розовая заглушка это
-## розовый квадрат с крестом вместо контура, чужая палитра на всём экране. Демка зовёт эти хуки в своих местах и
+## розовый квадрат с крестом вместо контура, чужая палитра на всём экране; баг технологии
+## вектора `beam_lag` «луч не успевает» (#89) включается там же и живёт в самом экране
+## (`VectorScreen.set_beam_lag`), демке его звать не надо. Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -363,6 +365,11 @@ func vector_screen(draw_fn: Callable) -> VectorScreen:
 	vector.persistence = Debug.vector_persistence
 	if bug_palette() != null:
 		vector.material = bug_palette()
+	if has_bug(&"beam_lag"):
+		vector.set_beam_lag(int(bug_param(&"beam_lag", &"budget", 140.0)), bug_param(&"beam_lag", &"min_keep", 0.5),
+				bug_param(&"beam_lag", &"jitter_px", 2.5), bug_param(&"beam_lag", &"ghost_px", 5.0),
+				bug_param(&"beam_lag", &"ghost_alpha", 0.4), bug_param(&"beam_lag", &"gap_px", 7.0),
+				hash(str(record.seed, ":beam")))
 	screen.add_child(vector)
 	return vector
 

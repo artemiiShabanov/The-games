@@ -4,12 +4,14 @@ extends Control
 ## автотестом проверки: у каждого слота каждого сеттинга есть контур, он не пустой и не
 ## разросся (точек не больше `MAX_POINTS`), цвета луча заданы, цифры рисуются. `--probe` (или
 ## «Вектор: пробная демка» в дебаг-меню) запускает пробную демку в карточке: бот WIN бежит до
-## флага; `--bugs` все общие баги, `--bug=<id>` один, `--setting=N`, `--no-checks` без проверок.
+## флага; `--bugs` все общие баги и баг технологии `beam_lag` «луч не успевает» (#89),
+## `--bug=<id>` один, `--setting=N`, `--no-checks` без проверок. Проверки `beam_lag`: с багом
+## на экране двойники линий и пропуски (мерцание), без бага ни одного.
 
 const ProbeDemo := preload("res://debug/scenes/vector_probe_demo.gd")
 const MAX_POINTS := 60
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
-		&"pink_placeholders", &"alien_palette"]
+		&"pink_placeholders", &"alien_palette", &"beam_lag"]
 const SHEET_PX := 5.0
 
 var demo: Demo
@@ -17,6 +19,9 @@ var record: GameRecord
 var _args := {}
 var _saw_pink := false
 var _segments := 0
+## Баг «луч не успевает» за прогон: двойников и пропущенных линий больше всего за кадр.
+var _ghosts := 0
+var _skipped := 0
 
 
 func _ready() -> void:
@@ -98,6 +103,15 @@ func _check_settings() -> void:
 			_expect(box.size.x <= 32.0 and box.size.y <= 64.0, "%s: контур %s больше спрайта %s" % [id, slot, box.size])
 			total += n
 		AutoTest.note("vector %s: %d слотов, точек всего %d" % [id, SettingDef.VECTOR_SLOTS.size(), total])
+	# Провал «Разгони» (мини-игра технологии вектор) даёт баг «луч не успевает» (#89), и у
+	# бага есть слова под все пять жанров.
+	var mash := MinigamePool.find(MinigamePool.load_all(), &"mash")
+	var probe_record := GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.VECTOR, 1, "Провал")
+	var given := BugCatalog.load_default().apply_fail(mash, probe_record)
+	_expect(given != null and given.id == &"beam_lag", "провал «Разгони» дал баг %s, не beam_lag" % [given.id if given else &""])
+	var lag := BugCatalog.load_default().by_id(&"beam_lag")
+	for g in Game.Genre.size():
+		_expect(lag != null and lag.tweet_by_genre.has(g) and lag.clip_by_genre.has(g), "beam_lag: нет слов для жанра %d" % g)
 	# Квадрат 4×4 с дыркой: внешний обход 4 точки, дырка в пиксель отброшена.
 	var img := Image.create(6, 6, false, Image.FORMAT_RGBA8)
 	img.fill_rect(Rect2i(1, 1, 4, 4), Color.WHITE)
@@ -119,6 +133,7 @@ func _check_embedded() -> void:
 	await get_tree().create_timer(0.6).timeout
 	_expect(d.vector.size.x <= 480.5 and d.vector.size.y <= 270.5, "встроенный экран %s не в рамке" % d.vector.size)
 	_expect(float(d.get("hero_x")) > 130.0, "встроенный бот стоит")
+	_expect(d.vector.lag_budget == 0 and d.vector.lag_ghosts == 0, "луч отстаёт без бага")
 	holder.queue_free()
 
 
@@ -149,6 +164,8 @@ func _process(_delta: float) -> void:
 	if demo.vector.pink_drawn > 0:
 		_saw_pink = true
 	_segments = maxi(_segments, demo.vector.segments)
+	_ghosts = maxi(_ghosts, demo.vector.lag_ghosts)
+	_skipped = maxi(_skipped, demo.vector.lag_skipped)
 
 
 func _on_finished(_r: GameRecord, reached: bool) -> void:
@@ -163,8 +180,15 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 			record.has_bug(&"pink_placeholders")])
 	_expect((probe.vector.material != null) == record.has_bug(&"alien_palette"), "чужая палитра не на экране")
 	_expect(_segments > 50, "за кадр нарисовано всего %d отрезков" % _segments)
-	AutoTest.note("vector probe: %d монет, %.1f с, до %d отрезков за кадр, баги %s" % [probe.collected,
-			probe.elapsed, _segments, record.bug_ids])
+	# Луч не успевает (#89): двойники у линий и пропуски только с багом; пробная демка рисует
+	# больше бюджета луча, значит мерцать обязана.
+	var lag := record.has_bug(&"beam_lag")
+	_expect((_ghosts > 0) == lag, "двойников линий %d при баге луча %s" % [_ghosts, lag])
+	_expect((_skipped > 0) == lag, "пропущенных линий %d при баге луча %s" % [_skipped, lag])
+	_expect(not lag or _segments > probe.vector.lag_budget, "луч успевает всё: отрезков %d при бюджете %d" % [
+			_segments, probe.vector.lag_budget])
+	AutoTest.note("vector probe: %d монет, %.1f с, до %d отрезков за кадр, двойников до %d, пропусков до %d, баги %s" % [
+			probe.collected, probe.elapsed, _segments, _ghosts, _skipped, record.bug_ids])
 	probe.queue_free()
 	AutoTest.fulfill("vector probe")
 

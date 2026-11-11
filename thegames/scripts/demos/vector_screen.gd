@@ -9,7 +9,11 @@ extends SubViewportContainer
 ## `logical_size` (карточка демки), во встроенном режиме окно меньше и всё уменьшено.
 ## Цвета: `palette[0]` фон, дальше чернила по номеру (`SettingDef.vector_colors`); розовые
 ## чернила `PINK_INK` для заглушки. Счётчик `segments` (отрезков за прошлый кадр) нужен багу
-## технологии «луч не успевает» (#89).
+## технологии «луч не успевает» (`beam_lag`, #89, `set_beam_lag`): луч успевает `lag_budget`
+## отрезков за кадр, сверх того линии рисуются через раз и картинка мерцает; при любом числе
+## линий они дрожат (сдвиг ломаной и шум вершин каждый кадр), двоятся (тусклая копия со
+## сдвигом) и не сходятся концами (контур не доведён до первой точки, конец отрезка с
+## недолётом или перелётом). Баг сидит в `poly`, поэтому работает в любой векторной демке.
 
 const PINK_INK := 255
 ## Стрихи цифр и знаков HUD в клетке 0..1 × 0..1 (y вниз), как у сегментного табло: векторные
@@ -50,6 +54,25 @@ var _world: Node2D
 var _counting := 0
 var _pinks := 0
 var _dt := 1.0 / 60.0
+## Баг «луч не успевает»: 0 выключен, иначе сколько отрезков луч успевает за кадр.
+var lag_budget := 0
+## Меньше этой доли линий за кадр не рисуется, сколько бы их ни было.
+var lag_min_keep := 0.5
+## Дрожь, сдвиг двойника и зазор на концах, логические пиксели; яркость двойника.
+var lag_jitter := 2.5
+var lag_ghost := 5.0
+var lag_ghost_alpha := 0.4
+var lag_gap := 7.0
+## За прошлый кадр: линий пропущено (мерцание) и двойников нарисовано (проверки).
+var lag_skipped := 0
+var lag_ghosts := 0
+var _lag_rng := RandomNumberGenerator.new()
+var _lag_keep := 1.0
+var _lag_load := 0.0
+var _lag_time := 0.0
+var _lag_index := 0
+var _skips := 0
+var _ghosts := 0
 ## Первый кадр заливает фон целиком: окно до него не стёрто.
 var _first := true
 
@@ -99,12 +122,36 @@ func _draw_fade() -> void:
 
 
 func _draw_world() -> void:
+	# Нагрузка луча по прошлому кадру: чем больше отрезков сверх бюджета, тем меньше линий
+	# успевает нарисоваться и тем сильнее дрожь.
+	if lag_budget > 0:
+		_lag_keep = clampf(float(lag_budget) / maxf(segments, 1.0), lag_min_keep, 1.0)
+		_lag_load = clampf(float(segments) / (2.0 * lag_budget), 0.0, 1.0)
+		_lag_time += _dt
 	_counting = 0
 	_pinks = 0
+	_skips = 0
+	_ghosts = 0
+	_lag_index = 0
 	if draw_fn.is_valid():
 		draw_fn.call(self)
 	segments = _counting
 	pink_drawn = _pinks
+	lag_skipped = _skips
+	lag_ghosts = _ghosts
+
+
+## Включить баг «луч не успевает»: `budget` отрезков за кадр луч успевает, дальше мерцание;
+## `min_keep` нижняя доля линий за кадр; `jitter`, `ghost`, `gap` в логических пикселях.
+func set_beam_lag(budget: int, min_keep: float, jitter: float, ghost: float, ghost_alpha: float, gap: float,
+		seed_ := 1) -> void:
+	lag_budget = maxi(budget, 0)
+	lag_min_keep = clampf(min_keep, 0.05, 1.0)
+	lag_jitter = jitter
+	lag_ghost = ghost
+	lag_ghost_alpha = ghost_alpha
+	lag_gap = gap
+	_lag_rng.seed = seed_
 
 
 func ink(i: int) -> Color:
@@ -123,10 +170,54 @@ func poly(points: PackedVector2Array, ink_i: int, closed := false, width := 2.0,
 	_counting += pts.size() - 1
 	if ink_i == PINK_INK:
 		_pinks += 1
+	if lag_budget > 0:
+		pts = _lagged(pts, closed, c, width, alpha)
+		if pts.is_empty():
+			return
 	if glow:
 		_world.draw_polyline(pts, Color(c, 0.07 * alpha), width * 5.0, true)
 		_world.draw_polyline(pts, Color(c, 0.18 * alpha), width * 2.4, true)
 	_world.draw_polyline(pts, Color(c.lerp(Color.WHITE, 0.35), alpha), width, true)
+
+
+## Ломаная под багом «луч не успевает»: пустая, если луч до неё в этом кадре не дошёл;
+## иначе сдвинутая и дрожащая, с несошедшимся концом. Двойника рисует сама.
+func _lagged(pts: PackedVector2Array, closed: bool, c: Color, width: float, alpha: float) -> PackedVector2Array:
+	_lag_index += 1
+	if _lag_rng.randf() > _lag_keep:
+		_skips += 1
+		return PackedVector2Array()
+	var out := pts.duplicate()
+	var shake := lag_jitter * lerpf(0.6, 1.4, _lag_load)
+	var off := Vector2(_lag_rng.randf_range(-shake, shake), _lag_rng.randf_range(-shake, shake))
+	var noise := shake * 0.3
+	for i in out.size():
+		out[i] += off + Vector2(_lag_rng.randf_range(-noise, noise), _lag_rng.randf_range(-noise, noise))
+	# Концы не сходятся: луч не доводит контур до первой точки, остаётся разрыв в один-два
+	# зазора по длине обхода; отрезок не долетает или перелетает (короткий штрих меньше,
+	# чтобы не вывернулся).
+	if closed:
+		var cut := lag_gap * _lag_rng.randf_range(1.0, 2.0)
+		while out.size() > 2:
+			var seg := out[out.size() - 1] - out[out.size() - 2]
+			if seg.length() > cut:
+				out[out.size() - 1] -= seg.normalized() * cut
+				break
+			cut -= seg.length()
+			out.remove_at(out.size() - 1)
+	else:
+		var tail := out[out.size() - 1] - out[out.size() - 2]
+		var gap := minf(lag_gap, tail.length() * 0.35)
+		if tail.length() > 0.01:
+			out[out.size() - 1] += tail.normalized() * _lag_rng.randf_range(-gap, gap)
+	# Двоение: тусклая копия со сдвигом, сдвиг плывёт.
+	var g := Vector2(lag_ghost, lag_ghost * 0.35) * (0.6 + 0.4 * sin(_lag_time * 6.0 + _lag_index))
+	var ghost := Transform2D(0.0, g) * out
+	if glow:
+		_world.draw_polyline(ghost, Color(c, 0.12 * lag_ghost_alpha * alpha), width * 2.4, true)
+	_world.draw_polyline(ghost, Color(c.lerp(Color.WHITE, 0.2), lag_ghost_alpha * alpha), width, true)
+	_ghosts += 1
+	return out
 
 
 func line(a: Vector2, b: Vector2, ink_i: int, width := 2.0, alpha := 1.0) -> void:

@@ -14,8 +14,9 @@
 [ext_resource type="Resource" path="res://resources/bugs/through_enemies.tres" id="13_foes"]
 [ext_resource type="Resource" path="res://resources/bugs/ball_to_space.tres" id="14_space"]
 [ext_resource type="Resource" path="res://resources/bugs/ghost_hits.tres" id="15_ghost"]
+[ext_resource type="Resource" path="res://resources/bugs/beam_lag.tres" id="16_beam"]
 [ext_resource type="Script" path="res://scripts/bugs/bug_catalog.gd" id="8_j06d8"]
 
 [resource]
 script = ExtResource("8_j06d8")
-bugs = Array[ExtResource("1_6c8r8")]([ExtResource("2_oxwl7"), ExtResource("3_3qmr7"), ExtResource("4_uiqsc"), ExtResource("5_sj1ih"), ExtResource("6_8eahj"), ExtResource("7_sl3yr"), ExtResource("9_flick"), ExtResource("10_alien"), ExtResource("11_sneeze"), ExtResource("12_walls"), ExtResource("13_foes"), ExtResource("14_space"), ExtResource("15_ghost")])
+bugs = Array[ExtResource("1_6c8r8")]([ExtResource("2_oxwl7"), ExtResource("3_3qmr7"), ExtResource("4_uiqsc"), ExtResource("5_sj1ih"), ExtResource("6_8eahj"), ExtResource("7_sl3yr"), ExtResource("9_flick"), ExtResource("10_alien"), ExtResource("11_sneeze"), ExtResource("12_walls"), ExtResource("13_foes"), ExtResource("14_space"), ExtResource("15_ghost"), ExtResource("16_beam")])
