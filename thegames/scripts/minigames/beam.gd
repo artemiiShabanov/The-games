@@ -78,6 +78,9 @@ var _handoff: AudioStreamPlayer
 var _win: AudioStreamPlayer
 var _deny: AudioStreamPlayer
 # Мармелад: только рисование, геймплей их не читает.
+## Мышь: левая кнопка зажата и ведёт луч к точке поля.
+var _aim := false
+var _aim_at := Vector2.ZERO
 var _wob: Array[Wobble] = []
 var _body: JellyShape
 var _ring_shape: JellyShape
@@ -184,6 +187,10 @@ func _on_tick(delta: float) -> void:
 			turn += 1.0
 		if turn != 0.0:
 			_rotate(turn * TURN_SPEED * delta)
+		elif _aim and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			_turn_toward(_aim_at, TURN_SPEED * delta)
+		else:
+			_aim = false
 	_trace()
 	if _target_lit():
 		hit_target = true
@@ -324,20 +331,58 @@ func _bot_step(delta: float) -> bool:
 		return false
 	# Текущий элемент целится в следующее зеркало, последнее зеркало в мишень.
 	var goal: Vector2 = mirrors[current].pos if current < mirror_count else target
-	var want: float
-	if current == 0:
-		want = (goal - _emitter_pos()).angle()
-		emitter_angle = move_toward(emitter_angle, clampf(want, -EMITTER_LIMIT, EMITTER_LIMIT), BOT_TURN * delta)
-	else:
-		var m := mirrors[current - 1]
-		var incoming := _incoming_dir(current - 1)
-		if incoming == Vector2.ZERO:
-			return false
-		var out := (goal - m.pos).normalized()
-		var normal := (out - incoming).normalized()
-		want = normal.angle() - PI / 2.0
-		m.angle = _toward_angle(m.angle, fposmod(want, PI), BOT_TURN * delta)
+	_turn_toward(goal, BOT_TURN * delta)
 	return false
+
+
+## Доворачивает текущий элемент не больше чем на `step` так, чтобы его луч шёл в `goal`: ствол
+## платформы на точку, зеркало отражает входящий луч в неё.
+func _turn_toward(goal: Vector2, step: float) -> void:
+	if current == 0:
+		var want := (goal - _emitter_pos()).angle()
+		emitter_angle = move_toward(emitter_angle, clampf(want, -EMITTER_LIMIT, EMITTER_LIMIT), step)
+		return
+	var m := mirrors[current - 1]
+	var incoming := _incoming_dir(current - 1)
+	if incoming == Vector2.ZERO:
+		return
+	var out := (goal - m.pos).normalized()
+	var normal := (out - incoming).normalized()
+	m.angle = _toward_angle(m.angle, fposmod(normal.angle() - PI / 2.0, PI), step)
+
+
+## Мышь (#83): зажатая левая кнопка ведёт луч текущего элемента к курсору со скоростью стрелок,
+## клик по зеркалу под лучом передаёт ему управление, как ␣ (мимо луча: отказ), правая
+## кнопка возвращает к началу, как Ctrl.
+func _on_mouse(event: InputEventMouse) -> bool:
+	if event is InputEventMouseMotion:
+		_aim_at = event.position
+		return _aim
+	var b := event as InputEventMouseButton
+	if b == null or b.button_index != MOUSE_BUTTON_LEFT:
+		return false
+	_aim = false
+	if not b.pressed or hit_target:
+		return true
+	var i := _mirror_at(b.position)
+	if i >= 0 and i + 1 != current:
+		if hit_candidates.has(i):
+			_advance_to(i)
+		else:
+			_deny.play()
+			_jelly_deny()
+		return true
+	_aim = true
+	_aim_at = b.position
+	return true
+
+
+## Зеркало под точкой поля или −1.
+func _mirror_at(pos: Vector2) -> int:
+	for i in mirrors.size():
+		if pos.distance_to(mirrors[i].pos) <= MIRROR_LEN / 2.0 + 12.0:
+			return i
+	return -1
 
 
 ## Направление луча, приходящего в зеркало `i`: точный отрезок трассы, который кончается у него.

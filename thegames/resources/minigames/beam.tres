@@ -28,6 +28,7 @@ id = &"beam"
 aspect = 3
 verb = "Наведи"
 hint = "Влево-вправо наклон, A передаёт управление зеркалу под лучом, B сначала"
+mouse_hint = "зажми и веди луч · клик по зеркалу · правый клик сначала"
 scene = ExtResource("1_fqjrw")
 inputs = Array[StringName]([&"move_left", &"move_right", &"action_a", &"action_b"])
 params = Dictionary[StringName, Curve]({

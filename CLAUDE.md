@@ -45,7 +45,8 @@
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks
-  --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`).
+  --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`). Мышь в мини-играх:
+  `--scene=mouse_test --frames=1500`.
   Главный экран забега: `--scene=hub_test --frames=60`, кадр `--no-checks
   [--past=N] [--pop=money|upgrades|release]`. Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
   кадр `--no-checks [--empty]`; профиль `--scene=profile_test --frames=30`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop

@@ -69,6 +69,8 @@ const TRAIL_WIDTH := 0.9
 ## Радиус, которым след огибает поворот (не меньше полуширины следа, иначе внутренний край
 ## ляжет сам на себя); на столько же след не доходит до центра клетки.
 const TRAIL_TURN := 28.0
+## Шаг отметок следа вдоль хода, пиксели.
+const TRAIL_SAMPLE := 5.0
 ## Брызги: на выходе и от удара о стену (число капель до тюнинга, скорость).
 const POP_EXIT := 4
 const POP_EXIT_SPEED := 300.0
@@ -87,6 +89,8 @@ var _fx := SplashFx.new()
 var _trail_from := Vector2(-1, -1)
 var _trail_to := Vector2(-1, -1)
 var _trail_in := Vector2.ZERO
+## Докуда по текущему ходу след уже положен, пиксели от центра клетки начала.
+var _trail_s := 0.0
 var _seen_shake := 0.0
 var _seen_flash := 0.0
 var _seen_maze := -1
@@ -190,6 +194,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	_press(d)
 	get_viewport().set_input_as_handled()
+
+
+## Мышь (#83): клик со стороны от точки жмёт стрелку в ту сторону, по большей оси; в режиме
+## лабиринта, как и стрелка, едет лабиринт.
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	_layout()
+	return dir_action(_dot_screen, pos)
 
 
 ## Нажатие стрелки: в режиме точки точка идёт туда, в режиме лабиринта лабиринт едет туда,
@@ -350,6 +363,7 @@ func _process(delta: float) -> void:
 			_trail.clear()
 			_trail_from = Vector2(-1, -1)
 			_trail_to = Vector2(-1, -1)
+			_trail_s = 0.0
 		_seen_maze = maze_index
 		_seen_mode = mode
 	if shake > _seen_shake:
@@ -371,33 +385,46 @@ func _process(delta: float) -> void:
 	jelly_dot.follow(delta, _dot_screen)
 	# След в координатах лабиринта: в режиме лабиринта он едет вместе со стенами. Пока точка
 	# стоит, отметки не добавляются (шаг следа), и след тает.
-	_trail.add(_trail_point(), DOT_R * 2.0 * TRAIL_WIDTH)
+	_add_trail()
 	_trail.step(delta)
 	_fx.step(delta, Callable())
 	if not running:
 		queue_redraw()
 
 
-## Куда кладётся след в координатах лабиринта. Путь точки ломаный, от центра к центру клетки,
-## а широкая полупрозрачная линия на прямом углу легла бы сама на себя тёмным клином. Поэтому
+## Куда кладётся след в координатах лабиринта. Путь точки ломаный, от центра к центру клетки;
 ## след не доходит до центра клетки на `TRAIL_TURN` (это под точкой) и огибает поворот дугой
-## такого радиуса; при развороте назад рвётся. Смена режима след не рвёт: в координатах
-## лабиринта точка не прыгает.
-func _trail_point() -> Vector2:
+## такого радиуса, так что и внутренний край поворота скруглён. При развороте назад след не
+## рвётся: `SlimeTrail` рисует путь одной фигурой, и обратный ход ложится на прямой без
+## нахлёста (плейтест 2026-11-11, #86). Смена режима след не рвёт: в координатах лабиринта
+## точка не прыгает.
+##
+## Точка за кадр проходит до трети клетки, и дуга поворота из трёх-четырёх отметок была бы
+## гранёной, поэтому путь от прошлого кадра добирается отметками через `TRAIL_SAMPLE`.
+func _add_trail() -> void:
+	var w := DOT_R * 2.0 * TRAIL_WIDTH
 	var d := (anim_to - anim_from).normalized()
 	if anim_from != _trail_from or anim_to != _trail_to:
 		# Новый ход: откуда след вошёл в клетку, с которой он начинается.
 		var last := (_trail_to - _trail_from).normalized()
 		_trail_in = last if _trail_to == anim_from else Vector2.ZERO
 		if _trail_in != Vector2.ZERO and _trail_in.dot(d) < -0.5:
-			_trail.cut()
 			_trail_in = Vector2.ZERO
 		_trail_from = anim_from
 		_trail_to = anim_to
+		_trail_s = 0.0
 	var c := (anim_from + Vector2(0.5, 0.5)) * CELL
 	if d == Vector2.ZERO:
-		return c
+		_trail.add(c, w)
+		return
 	var s := minf(_dot_local.distance_to(c), CELL - TRAIL_TURN)
+	while _trail_s < s:
+		_trail_s = minf(_trail_s + TRAIL_SAMPLE, s)
+		_trail.add(_trail_point(c, d, _trail_s), w)
+
+
+## Точка следа на ходе из центра `c` в сторону `d` на расстоянии `s`.
+func _trail_point(c: Vector2, d: Vector2, s: float) -> Vector2:
 	if _trail_in != Vector2.ZERO and absf(_trail_in.dot(d)) < 0.5 and s < TRAIL_TURN:
 		var o := c + (d - _trail_in) * TRAIL_TURN
 		var a0 := (-d).angle()

@@ -20,6 +20,7 @@ kind = 1
 tech = 1
 verb = "Запомни"
 hint = "Открывай карточки парами"
+mouse_hint = "клик по карточке"
 time_seconds = 25.0
 scene = ExtResource("1_4elti")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])

@@ -134,6 +134,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Смещение блока от ленты по сдвигу: одинарный SHIFT_PX, двойной DOUBLE_PX.
+## Мышь (#83): клик выше ленты жмёт ↑, ниже ↓; колесо так же.
+func _on_mouse(event: InputEventMouse) -> bool:
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		tap_action(GameInput.UP if w < 0 else GameInput.DOWN)
+		return true
+	return false
+
+
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	return GameInput.UP if pos.y < _lane_mid() else GameInput.DOWN
+
+
 func _offset_for(shift: int) -> float:
 	match absi(shift):
 		0:

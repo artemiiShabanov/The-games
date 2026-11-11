@@ -24,6 +24,8 @@ enum Kind { ASPECT, TECH, GENRE }
 @export var scene: PackedScene
 ## Какие действия использует, для значков на интро: `GameInput.LEFT` и т.д.
 @export var inputs: Array[StringName] = []
+## Подсказка мыши на пилюле ввода, когда игрок на мыши (#83): «клик прыжок».
+@export var mouse_hint: String
 ## Кривые параметров от `t`.
 @export var params: Dictionary[StringName, Curve] = {}
 

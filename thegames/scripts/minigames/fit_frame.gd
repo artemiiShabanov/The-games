@@ -88,6 +88,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	queue_redraw()
 
 
+## Мышь (#83): колесо меняет число сторон (вверх больше), клик по левой или правой половине
+## поля отправляет фигуру в трафарет с той стороны.
+func _on_mouse(event: InputEventMouse) -> bool:
+	var w := MouseUi.wheel(event)
+	if w != 0:
+		tap_action(GameInput.UP if w < 0 else GameInput.DOWN)
+		return true
+	return false
+
+
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT:
+		return &""
+	return GameInput.LEFT if pos.x < size.x / 2.0 else GameInput.RIGHT
+
+
 func _on_tick(delta: float) -> void:
 	for i in 2:
 		flash[i] = maxf(flash[i] - delta, 0.0)

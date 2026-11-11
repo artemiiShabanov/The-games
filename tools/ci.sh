@@ -20,6 +20,7 @@ export HEADLESS=1
 step "economy_test" sh tools/autotest.sh --scene=economy_test --frames=200
 step "success_test" sh tools/autotest.sh --scene=success_test --frames=200
 step "constructor_test" sh tools/autotest.sh --scene=constructor_test --frames=400
+step "mouse_test" sh tools/autotest.sh --scene=mouse_test --frames=1500
 step "feed_test" sh tools/autotest.sh --scene=feed_test --frames=400
 step "event_test" sh tools/autotest.sh --scene=event_test --frames=600
 step "profile_test" sh tools/autotest.sh --scene=profile_test --frames=30

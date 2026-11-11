@@ -24,6 +24,7 @@ id = &"inverted"
 aspect = 2
 verb = "Выведи"
 hint = "Выведи точку к выходу: движется то точка, то лабиринт"
+mouse_hint = "клик с той стороны от точки"
 scene = ExtResource("1_evsus")
 inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
 params = Dictionary[StringName, Curve]({

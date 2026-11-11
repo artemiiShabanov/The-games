@@ -28,6 +28,7 @@ script = ExtResource("1_qrhuq")
 id = &"fit_frame"
 verb = "Подгони"
 hint = "Вверх-вниз число сторон, влево или вправо отправить в трафарет"
+mouse_hint = "колесо стороны · клик по половине поля"
 scene = ExtResource("1_lxmw3")
 inputs = Array[StringName]([&"move_up", &"move_down", &"move_left", &"move_right"])
 params = Dictionary[StringName, Curve]({

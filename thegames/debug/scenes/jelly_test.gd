@@ -16,7 +16,9 @@ var crop := Rect2i(240, 560, 760, 380)
 var images: Array[Image] = []
 var constructor: Constructor
 ## Действия по кадрам для экрана: кадр -> команда (down, up, left, right, a, mouse=XxY,
-## click=XxY, release=XxY). `--locked` открыт только первый жанр.
+## click=XxY, release=XxY, rclick=XxY правая кнопка, нажата и отпущена). Мышь работает и в
+## мини-игре (#83), там с `--nobot`: бот выключен, иначе мини-игра мышь не слушает.
+## `--locked` открыт только первый жанр.
 var actions: Dictionary[int, String] = {}
 
 
@@ -29,6 +31,8 @@ func _ready() -> void:
 	add_child(bg)
 	if args.has("lose"):
 		AutoTest.bot_mode = AutoTest.BotMode.LOSE
+	if args.has("nobot"):
+		AutoTest.bot_mode = AutoTest.BotMode.OFF
 	if args.has("flat"):
 		Jelly.enabled = false
 	# `--set=ui_press:0;lift_px:12` числа материала на прогон.
@@ -73,11 +77,15 @@ func _open_constructor(locked := false) -> void:
 
 
 func _act(cmd: String) -> void:
-	if cmd.begins_with("click=") or cmd.begins_with("release="):
+	if cmd.begins_with("rclick="):
+		_act("rpress=" + cmd.get_slice("=", 1))
+		_act("rrelease=" + cmd.get_slice("=", 1))
+		return
+	if cmd.begins_with("click=") or cmd.begins_with("release=") or cmd.begins_with("rpress=") or cmd.begins_with("rrelease="):
 		var xy2 := cmd.get_slice("=", 1).split("x")
 		var b := InputEventMouseButton.new()
-		b.button_index = MOUSE_BUTTON_LEFT
-		b.pressed = cmd.begins_with("click=")
+		b.button_index = MOUSE_BUTTON_RIGHT if cmd.begins_with("rpress=") or cmd.begins_with("rrelease=") else MOUSE_BUTTON_LEFT
+		b.pressed = cmd.begins_with("click=") or cmd.begins_with("rpress=")
 		b.position = Vector2(float(xy2[0]), float(xy2[1]))
 		b.global_position = b.position
 		Input.parse_input_event(b)
@@ -91,6 +99,8 @@ func _act(cmd: String) -> void:
 		get_viewport().warp_mouse(pos)
 		Input.parse_input_event(e)
 		return
+	if constructor == null:
+		return
 	match cmd:
 		"down": constructor.move(1)
 		"up": constructor.move(-1)
@@ -101,7 +111,7 @@ func _act(cmd: String) -> void:
 
 func _process(_delta: float) -> void:
 	frame += 1
-	if actions.has(frame) and constructor != null:
+	if actions.has(frame):
 		_act(actions[frame])
 	if shots.has(frame):
 		await RenderingServer.frame_post_draw

@@ -35,6 +35,7 @@ kind = 2
 genre = 1
 verb = "Старт"
 hint = "Огни погасли: жми ␣, раньше фальстарт"
+mouse_hint = "клик"
 time_seconds = 24.0
 scene = ExtResource("2_lo")
 inputs = Array[StringName]([&"action_a"])

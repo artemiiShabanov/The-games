@@ -139,6 +139,47 @@ func _unhandled_input(event: InputEvent) -> void:
 	queue_redraw()
 
 
+## Мышь (#83): наведение на кружок палитры выбирает цвет, клик по нему заливает; клик по клетке
+## заливает её цветом.
+func _on_mouse(event: InputEventMouse) -> bool:
+	if event is InputEventMouseMotion and done_left <= 0.0:
+		var c := _swatch_at(event.position)
+		if c >= 0 and c != sel:
+			sel = c
+			queue_redraw()
+	return false
+
+
+func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
+	if button != MOUSE_BUTTON_LEFT or done_left > 0.0:
+		return &""
+	var c := _swatch_at(pos)
+	if c < 0:
+		var cell := _cell_at(pos)
+		if cell < 0:
+			return &""
+		c = shown[cell]
+	sel = c
+	return GameInput.A
+
+
+func _swatch_at(pos: Vector2) -> int:
+	for c in k:
+		if pos.distance_to(_swatch_center(c)) <= SWATCH_R + SWATCH_GAP / 2.0:
+			return c
+	return -1
+
+
+## Клетка сетки под точкой поля или −1.
+func _cell_at(pos: Vector2) -> int:
+	var origin := Vector2((size.x - GRID_PX) / 2.0, (size.y - GRID_PX) / 2.0 - 40.0)
+	var p := pos - origin
+	if p.x < 0.0 or p.y < 0.0 or p.x >= GRID_PX or p.y >= GRID_PX:
+		return -1
+	var step := GRID_PX / n
+	return mini(int(p.y / step), n - 1) * n + mini(int(p.x / step), n - 1)
+
+
 func _on_tick(delta: float) -> void:
 	for i in n * n:
 		if shown[i] != grid[i] and elapsed >= change_at[i]:
