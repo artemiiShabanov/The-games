@@ -22,6 +22,8 @@ var _buttons: Array[PanelContainer] = []
 var _button_lifts: Array[JellyLift] = []
 var _confirm: Control
 var _gallery: GalleryScreen
+## Нижние пилюли меню: прячутся вместе с карточкой, иначе лежат под пилюлями галереи.
+var _hints: HBoxContainer
 var _leaving := false
 
 
@@ -180,12 +182,14 @@ func _confirm_new(yes: bool) -> void:
 func _open_gallery() -> void:
 	ShellSounds.play(&"done")
 	card.visible = false
+	_hints.visible = false
 	_gallery = GalleryScreen.new()
 	_gallery.setup(Profile.load_saved().gallery)
 	_gallery.closed.connect(func() -> void:
 		_gallery.queue_free()
 		_gallery = null
 		card.visible = true
+		_hints.visible = true
 		card.raise_card())
 	add_child(_gallery)
 
@@ -245,6 +249,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "открыть")))
 	hints.add_child(HintPill.make("R новый забег в слоте"))
 	add_child(hints)
+	_hints = hints
 	MouseUi.pass_through(self)
 
 
