@@ -56,6 +56,7 @@ var _closing := false
 var _bot_timer := 0.0
 var _bot_played := false
 var _runs: Array[Dictionary] = []
+var _fade: EdgeFade
 
 
 func setup(entries_: Array[GalleryEntry], runs_: Array[Dictionary] = []) -> void:
@@ -347,6 +348,8 @@ func _build() -> void:
 	_list.add_theme_constant_override("separation", ROW_GAP)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_child(_list)
+	# Края списка растворяются, как в карусели конструктора (плейтест 2026-11-11).
+	_fade = EdgeFade.attach(_scroll)
 	_empty = _label("", Style.FONT_H2, Style.INK_2)
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -403,6 +406,8 @@ func _fill() -> void:
 	_empty.text = "Пока пусто. Выпусти игру, и она поселится здесь навсегда, со всеми своими багами." if games \
 			else "Ни одной студии. Самое время основать первую."
 	MouseUi.pass_through(_list)
+	if _fade != null:
+		_fade.refresh()
 	_refresh_focus()
 
 

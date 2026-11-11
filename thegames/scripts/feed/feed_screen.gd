@@ -231,6 +231,8 @@ func _build() -> void:
 	_column.add_child(buttons)
 	_items.append(buttons)
 	_item_lifts.append([])
+	# Края ленты растворяются, как в карусели конструктора (плейтест 2026-11-11).
+	EdgeFade.attach(_scroll)
 	for n in _items:
 		n.modulate.a = 0.0 if not Debug.skip_cards else 1.0
 	_refresh_buttons()

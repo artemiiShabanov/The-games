@@ -11,6 +11,8 @@ extends CanvasLayer
 
 const LAYER := 90
 const MAX_BODIES := 24
+## Наибольший сдвиг края элемента от вздрога масштабом, пикселей.
+const POKE_PX := 6.0
 const SHADER := """
 shader_type canvas_item;
 render_mode unshaded;
@@ -47,13 +49,25 @@ vec2 warp(vec2 src, vec4 A, vec4 B, vec4 C, vec4 D) {
 void fragment() {
 	vec2 p = UV * canvas_size;
 	vec2 src = p;
+	// Тела отсортированы по глубине. Вложенное искажает уже искажённое родителем, а соседи одной
+	// глубины считаются от одной точки, и берётся самое сильное: иначе соседняя строка
+	// искажала уже искажённое соседом, и элементы разъезжались (плейтест 2026-11-11).
+	float level = -1.0;
+	vec2 base = p;
+	float best = 0.0;
 	for (int i = 0; i < count; i++) {
 		vec4 A = bodies[i * 4];
 		vec4 B = bodies[i * 4 + 1];
 		vec4 C = bodies[i * 4 + 2];
 		vec4 D = bodies[i * 4 + 3];
+		float depth = floor(D.z * 0.5);
+		if (depth != level) {
+			level = depth;
+			base = src;
+			best = 0.0;
+		}
 		float m = abs(D.w);
-		vec2 du = abs(src - A.xy) - A.zw;
+		vec2 du = abs(base - A.xy) - A.zw;
 		if (max(du.x, du.y) > m * 2.0 + 24.0) {
 			continue;
 		}
@@ -61,13 +75,16 @@ void fragment() {
 		// проступает фон из-за края) или искажённое место внутри элемента (при растяжении
 		// элемент выходит за край). Иначе кадр как есть. Плавного поля за краем нет: при сжатии
 		// оно выворачивало полосу за краем зеркалом.
-		vec2 mapped = warp(src, A, B, C, D);
-		float d0 = rr_sdf(src - A.xy, A.zw, C.z);
+		vec2 mapped = warp(base, A, B, C, D);
+		float d0 = rr_sdf(base - A.xy, A.zw, C.z);
 		float d1 = rr_sdf(mapped - A.xy, A.zw, C.z);
 		// Сглаженная кромка (до полутора пикселей снаружи) считается элементом, иначе при
 		// сжатии она оставалась призраком за краем.
 		float w = max(1.0 - smoothstep(0.8, 1.8, d0), 1.0 - smoothstep(0.8, 1.8, d1));
-		src = mix(src, mapped, w);
+		if (w > best) {
+			best = w;
+			src = mix(base, mapped, w);
+		}
 	}
 	vec2 duv = vec2(dFdx(SCREEN_UV.x) / dFdx(UV.x), dFdy(SCREEN_UV.y) / dFdy(UV.y));
 	COLOR = texture(screen_tex, SCREEN_UV + (src - p) / canvas_size * duv);
@@ -316,7 +333,13 @@ func _upload(active: Array[Body], tu: JellyTuning) -> void:
 	data.resize(MAX_BODIES * 4)
 	for i in active.size():
 		var b := active[i]
-		var forward := Transform2D(Vector2(1.0 + b.q + b.r, 0.0), Vector2(0.0, 1.0 - b.q + b.r), Vector2.ZERO)
+		# Вздрог масштабом не дальше `POKE_PX` у края: на широкой строке те же проценты сдвигали
+		# края и текст на десятки пикселей (плейтест 2026-11-11, «Полный экран»).
+		var px := (b.q + b.r) * b.half.x
+		var py := (b.r - b.q) * b.half.y
+		px = clampf(px, -POKE_PX, POKE_PX)
+		py = clampf(py, -POKE_PX, POKE_PX)
+		var forward := Transform2D(Vector2(1.0 + px / maxf(b.half.x, 1.0), 0.0), Vector2(0.0, 1.0 + py / maxf(b.half.y, 1.0)), Vector2.ZERO)
 		# Вытягивание только по осям, каждое со сжатием поперёк: по диагонали прямоугольник
 		# выглядел бы перекошенным, а не мармеладным.
 		var ex := absf(b.lag.x) / maxf(b.half.x, 1.0) * tu.ui_stretch
@@ -333,7 +356,8 @@ func _upload(active: Array[Body], tu: JellyTuning) -> void:
 		data[i * 4 + 1] = Vector4(inv.x.x, inv.y.x, inv.x.y, inv.y.y)
 		# Линза с минусом: курсор не приближает, а вминает элемент.
 		data[i * 4 + 2] = Vector4(bend.x, bend.y, minf(b.radius + b.expand, minf(b.half.x, b.half.y)), -b.lens)
-		data[i * 4 + 3] = Vector4(b.lens_at.x, b.lens_at.y, 1.0 if b.ring else 0.0, b.margin)
+		# z: глубина вдвое плюс признак рамки фокуса (шейдер группирует соседей по глубине).
+		data[i * 4 + 3] = Vector4(b.lens_at.x, b.lens_at.y, b.depth * 2.0 + (1.0 if b.ring else 0.0), b.margin)
 	_material.set_shader_parameter("bodies", data)
 	_material.set_shader_parameter("count", active.size())
 	_material.set_shader_parameter("canvas_size", get_viewport().get_visible_rect().size)
