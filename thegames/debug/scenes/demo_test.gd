@@ -13,7 +13,9 @@ extends Control
 ## `--bug=<id>` один баг, `--freeze=<с>` замораживает демку на этой секунде с запуска (с
 ## отсчётом), для скриншота момента.
 ## У гонок до заезда проверяется генератор трассы на сотне сидов, у шутера генератор арены, у
-## гольфа генератор поля, у файтинга генератор плана соперника и бой ботами без окна.
+## гольфа генератор поля, у файтинга генератор плана соперника и бой ботами без окна, у
+## платформера × вектор (`--tech=vector`, #90) генератор этажей; там WIN забирается к флагу, а
+## LOSE бьётся о потолок, пока не кончатся жизни.
 
 
 var demo: Demo
@@ -41,7 +43,9 @@ func _ready() -> void:
 	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
 	if AutoTest.enabled and not args.has("no-checks"):
 		AutoTest.require("demo checks")
-		if _genre() == Game.Genre.RACING:
+		if _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.VECTOR:
+			_check_towers()
+		elif _genre() == Game.Genre.RACING:
 			_check_tracks()
 		elif _genre() == Game.Genre.SHOOTER:
 			_check_arenas()
@@ -155,6 +159,34 @@ func _check(reached: bool) -> void:
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
 			AutoTest.fulfill("demo checks")
 			AutoTest.note("demo checks done: seed %d" % record.seed)
+
+
+## Платформер × вектор (#90): сто сидов дают этажи, которые проходят проверку генератора (дыры
+## на каждой линии едут и не слипаются, соседние линии не едут вровень, враги не на верхнем
+## этаже и не у старта героя), генерация детерминирована; на каждом сиде бот WIN без окна
+## (`TowerSim.simulate`) добирается до флага, а бот LOSE теряет все жизни.
+func _check_towers() -> void:
+	var t := PlatformerVectorGenTuning.load_default()
+	var dt := PlatformerVectorTuning.load_default()
+	var holes := 0
+	var enemies := 0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var lv := TowerLevelGen.generate(s, t)
+		var why := TowerLevelGen.validate(lv, t)
+		_expect(why == "", "этажи сида %d: %s" % [s, why])
+		holes += lv.holes.size()
+		enemies += lv.enemies.size()
+		var win := TowerSim.simulate(lv, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "этажи сида %d: бот WIN не добрался до флага за %.0f с, этаж %d, жизней %d" % [s, win.time, win.level, win.lives])
+		seconds.append(win.time)
+		var lose := TowerSim.simulate(lv, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "этажи сида %d: бот LOSE не проиграл за %.0f с" % [s, lose.time])
+	_expect(TowerLevelGen.generate(7, t).signature() == TowerLevelGen.generate(7, t).signature(), "этажи сида 7 не повторяются")
+	_expect(TowerLevelGen.generate(7, t).signature() != TowerLevelGen.generate(8, t).signature(), "этажи сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("platformer vector: 100 сидов прошли проверку, дыр в среднем %.1f, врагов %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f" % [
+			holes / 100.0, enemies / 100.0, seconds[50], seconds[0], seconds[99]])
 
 
 ## Гонки: сто сидов дают трассу, которая проходит проверку генератора (замкнутость, ширина,

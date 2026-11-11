@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PlatformerVectorTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_vector_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+lives = 3
+run_speed = 280.0
+jump_seconds = 0.28
+fall_seconds = 0.26
+bonk_seconds = 0.3
+stun_seconds = 0.45
+bonk_stun = 0.7
+enemy_stun = 1.0
+wild_stun = 1.1
+invulnerable_seconds = 1.6
+touch_grace = 0.8
+jump_margin = 12.0
+fall_inset = 24.0
+hit_distance = 42.0
+coin_distance = 40.0
+flag_distance = 44.0
+bot_hole_margin = 46.0
+bot_jump_inset = 28.0
+bot_enemy_margin = 150.0
+music_db = -12.0
+sfx_db = -6.0

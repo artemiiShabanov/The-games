@@ -43,7 +43,9 @@
   `debug/tools/dump_fight.gd -- <seed> [count]`; момент боя под скриншот `--no-checks
   --freeze=<с от запуска, с отсчётом>` (демка встаёт на этой секунде, работает у любой демки),
   скриншот паузы `--scene=demo_test --no-checks --pause --frames=240`. Уровень платформера по
-  сиду текстом: `Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  сиду текстом: `Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to]`. Платформер ×
+  вектор «этажи с дырами» (#90): `--scene=demo_test --tech=vector --frames=5000`, этажи по сиду и
+  боты без окна текстом `debug/tools/dump_tower.gd -- <seed> [count] [wild,sneeze,coins]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PlatformerVectorGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_vector_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+width = 1664.0
+floors = 6
+hole_width_low = 200.0
+hole_width_high = 140.0
+hole_speed_low = 50.0
+hole_speed_high = 120.0
+hole_speed_jitter = 0.15
+hole_speed_gap = 22.0
+two_holes_low = 0.9
+two_holes_high = 0.2
+alternate_chance = 0.75
+enemy_speed_min = 60.0
+enemy_speed_max = 105.0
+enemy_second_from = 2
+enemy_second_chance = 0.35
+enemy_start_gap = 520.0
+coins_per_level = 2
+edge_margin = 0.15
