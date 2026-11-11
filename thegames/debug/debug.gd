@@ -63,11 +63,9 @@ var demo_setting := 0
 ## Жанр тестовой демки (#48, #50, #52, #54): `Game.Genre`, 0 платформер, 1 гонки, 2 шутер, 3 спорт
 ## (гольф), 4 файтинг.
 var demo_genre := 0
-## Технология тестовой демки (#88): `Game.Tech`, 0 ASCII, 1 8-bit.
+## Технология тестовой демки (#88): `Game.Tech`, 0 вектор, 1 8-bit.
 var demo_tech := 1
 var demo_bugs: Array[StringName] = []
-## `ascii_test` запускает пробную ASCII-демку, а не лист глифов (#88).
-var ascii_probe := false
 var active := false
 
 var _sections: Dictionary = {}
@@ -342,10 +340,6 @@ func _register_builtin() -> void:
 						elif not v:
 							demo_bugs.erase(id))
 	add_action(SECTION_DEMOS, "Запустить демку", func() -> void: run_test_scene(DEMO_SCENE))
-	add_action(SECTION_DEMOS, "ASCII: лист глифов сеттингов", func() -> void: run_test_scene("ascii_test"))
-	add_action(SECTION_DEMOS, "ASCII: пробная демка с багами раздела", func() -> void:
-		ascii_probe = true
-		run_test_scene("ascii_test"))
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())

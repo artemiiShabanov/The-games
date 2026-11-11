@@ -85,7 +85,7 @@ static func chiptune_loop(melody: Array, bass: Array, bpm := 140.0, volume := 0.
 	return wav
 
 
-## Пищалка ASCII (#88): один голос, чистый квадрат без огибающей, как динамик PC; частота
+## Пищалка векторных демок (#88): один голос, чистый квадрат без огибающей, как динамик PC; частота
 ## скользит от `freq` к `to_freq` (0: без скольжения).
 static func beep(freq: float, seconds: float, volume := 0.3, to_freq := 0.0) -> AudioStreamWAV:
 	var n := int(seconds * MIX_RATE)

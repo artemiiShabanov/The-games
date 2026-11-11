@@ -10,7 +10,7 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var kind: Kind = Kind.ASPECT
 @export var aspect: Game.Aspect = Game.Aspect.OPTIMIZATION
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
-@export var tech: Game.Tech = Game.Tech.ASCII
+@export var tech: Game.Tech = Game.Tech.VECTOR
 ## Крупно на штампе карточки результата: «15 FPS», «ПРЫЖОК ×3».
 @export var stamp: String
 ## Штамп под жанр записи (#51): ключ `Game.Genre`, без записи общий `stamp`. Нужен багам, чьё

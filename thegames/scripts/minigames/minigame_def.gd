@@ -13,7 +13,7 @@ enum Kind { ASPECT, TECH, GENRE }
 ## Только для жанровых.
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
 ## Только для технологических.
-@export var tech: Game.Tech = Game.Tech.ASCII
+@export var tech: Game.Tech = Game.Tech.VECTOR
 ## Крупно на интро.
 @export var verb: String
 ## Подпись одной строкой под глаголом в первом релизе.

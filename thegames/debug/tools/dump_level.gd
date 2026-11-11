@@ -1,8 +1,7 @@
 extends SceneTree
 ## Дамп уровня платформера по сиду в консоль: высоты земли (цифры, `.` яма), платформы `=`,
 ## ходоки `w`, попугаи `v`, монеты `o`, чекпоинт `C`, флаг `F`, плюс проходимость.
-##   Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to] [ascii]
-## `ascii` (#90): уровень ASCII-платформера, свой тюнинг генератора, три экрана по 104 колонки.
+##   Godot --headless --path thegames -s debug/tools/dump_level.gd -- <seed> [from] [to]
 
 var _done := false
 
@@ -13,7 +12,7 @@ func _process(_delta: float) -> bool:
 	_done = true
 	var args := OS.get_cmdline_user_args()
 	var seed_ := int(args[0]) if args.size() > 0 else 1
-	var t := PlatformerAsciiTuning.gen() if args.has("ascii") else PlatformerGenTuning.load_default()
+	var t := PlatformerGenTuning.load_default()
 	var lv := PlatformerLevelGen.generate(seed_, t)
 	var from := int(args[1]) if args.size() > 1 else 0
 	var to := mini(int(args[2]) if args.size() > 2 else lv.width, lv.width)

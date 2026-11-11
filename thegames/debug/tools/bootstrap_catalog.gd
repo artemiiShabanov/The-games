@@ -13,7 +13,7 @@ const GENRES := [
 	[Game.Genre.FIGHTING, "fighting", "Файтинг", "#8E44AD", ["на ринге", "против всех", "в драке", "один на один"]],
 ]
 const TECHS := [
-	[Game.Tech.ASCII, "ascii", "ASCII", "#6B6B5A", []],
+	[Game.Tech.VECTOR, "vector", "Вектор", "#2F4A40", []],
 	[Game.Tech.BIT8, "bit8", "8-bit", "#2F5BFF", []],
 	[Game.Tech.BIT16, "bit16", "16/32-bit", "#7A4FE0", []],
 	[Game.Tech.LOWPOLY, "lowpoly", "Low poly", "#27AE8F", []],

@@ -4,8 +4,8 @@ extends Control
 ## «Дальше» или «В демо» показывает, что нажали, A запускает снова. Под ботом: состав ленты по
 ## спеке, сдвиги критиков, выбор стримера, сигналы кнопок. Флаги `--no-checks`, `--quality=`,
 ## `--bugs=`, `--end` (пролистать в конец), `--genre=racing`, `--genre=shooter`, `--genre=sport` или
-## `--genre=fighting` (стрим крутит демку гонок, шутера, гольфа или файтинга), `--tech=ascii`
-## (демка пары на ASCII, #90).
+## `--genre=fighting` (стрим крутит демку гонок, шутера, гольфа или файтинга), `--tech=vector`
+## (демка пары на векторе).
 
 const SECTION: StringName = &"Лента"
 ## Сцена грузится при запуске, не `preload`: константная ссылка на сцену с вложенным классом
@@ -23,7 +23,7 @@ var seed_value := 1
 ## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50;
 ## `--genre=sport`, #52; `--genre=fighting`, #54).
 var genre := Game.Genre.PLATFORMER
-## Технология записи (`--tech=ascii`, #90), по умолчанию 8-bit.
+## Технология записи (`--tech=vector`), по умолчанию 8-bit.
 var tech := Game.Tech.BIT8
 var tuning: SuccessTuning
 var catalog: BugCatalog

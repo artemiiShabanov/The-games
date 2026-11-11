@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "thegames" / "resources"
 
 GENRES = ["platformer", "racing", "shooter", "sport", "fighting"]
-TECHS = ["ascii", "8bit", "16bit", "lowpoly", "3d"]
+TECHS = ["vector", "8bit", "16bit", "lowpoly", "3d"]
 SETTINGS = ["pirates", "space", "castles"]
 
 
@@ -109,10 +109,10 @@ def franchise_boost(part):
 RUN = [
     ("platformer", "8bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
     ("shooter", "8bit", "pirates", 0.8, 1, 0, 1, [("cap", "replay")]),
-    ("platformer", "8bit", "space", 0.6, 2, 1, 1, [("tech", "ascii")]),
-    ("shooter", "ascii", "space", 1.0, 0, 0, 1, [("cap", "sequels")]),
+    ("platformer", "8bit", "space", 0.6, 2, 1, 1, [("tech", "vector")]),
+    ("shooter", "vector", "space", 1.0, 0, 0, 1, [("cap", "sequels")]),
     ("platformer", "8bit", "pirates", 0.8, 1, 0, 2, []),
-    ("platformer", "ascii", "castles", 0.75, 1, 0, 1, [("tech", "lowpoly")]),
+    ("platformer", "vector", "castles", 0.75, 1, 0, 1, [("tech", "lowpoly")]),
     ("shooter", "lowpoly", "castles", 0.57, 3, 1, 1, []),
     ("shooter", "8bit", "pirates", 0.8, 1, 0, 2, [("genre", "racing")]),
     ("racing", "lowpoly", "space", 0.71, 2, 1, 1, []),

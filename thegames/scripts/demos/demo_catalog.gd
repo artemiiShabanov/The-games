@@ -7,7 +7,7 @@ extends RefCounted
 
 const DIR := "res://scenes/demos/"
 const GENRE_KEYS: Array[String] = ["platformer", "racing", "shooter", "sport", "fighting"]
-const TECH_KEYS: Array[String] = ["ascii", "bit8", "bit16", "lowpoly", "threed"]
+const TECH_KEYS: Array[String] = ["vector", "bit8", "bit16", "lowpoly", "threed"]
 
 ## Для тестов механики экранов: считать, что демка есть у любой пары (замки «демка в работе»
 ## не мешают проверять ремейки и мышь). В игре всегда false.

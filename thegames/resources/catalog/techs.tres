@@ -6,9 +6,9 @@
 [sub_resource type="Resource" id="Resource_4rqvb"]
 script = ExtResource("1_apmck")
 kind = 1
-id = &"ascii"
-title = "ASCII"
-color = Color(0.41960785, 0.41960785, 0.3529412, 1)
+id = &"vector"
+title = "Вектор"
+color = Color(0.18431373, 0.2901961, 0.2509804, 1)
 
 [sub_resource type="Resource" id="Resource_p1eyx"]
 script = ExtResource("1_apmck")

@@ -60,7 +60,7 @@ const GENERIC_SLOTS: Array[Vector2i] = [
 ## Мелочь на столах по кругу; пустая строка это пустой угол.
 const DESK_STUFF: Array[String] = ["mug", "papers", "", "lamp", "mug", "plant_mini", "papers", ""]
 const GENERIC_SPRITES: Array[String] = ["plant", "plant_tall", "boxes"]
-const TECH_SPRITES: Array[String] = ["tech_ascii", "tech_bit8", "tech_bit16", "tech_lowpoly", "tech_server"]
+const TECH_SPRITES: Array[String] = ["tech_vector", "tech_bit8", "tech_bit16", "tech_lowpoly", "tech_server"]
 const POSTER_SPRITES: Array[String] = ["poster_platformer", "poster_racing", "poster_shooter", "poster_sport", "poster_fighting"]
 ## Возможности со своим предметом; остальные id без `UpgradeDef` идут в общие места.
 const KNOWN_CAPS: Array[StringName] = [&"replay", &"replay2", &"sequels", &"remakes", &"qa", &"insider", &"manager"]

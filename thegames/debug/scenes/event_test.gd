@@ -89,7 +89,7 @@ func _exit_tree() -> void:
 func _context() -> Events.Context:
 	var ctx := Events.Context.new()
 	ctx.genres = [G.PLATFORMER, G.SHOOTER, G.RACING]
-	ctx.techs = [T.BIT8, T.ASCII]
+	ctx.techs = [T.BIT8, T.VECTOR]
 	ctx.settings = [Game.Setting.PIRATES, Game.Setting.SPACE, Game.Setting.CASTLES]
 	ctx.studio = "Тихая Лампа"
 	ctx.rng = rng

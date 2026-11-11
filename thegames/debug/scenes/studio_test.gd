@@ -16,9 +16,9 @@ const RUN := [
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.6, 2, 1, 1],
 	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 1],
 	[G.PLATFORMER, T.BIT8, S.SPACE, 0.6, 2, 1, 1],
-	[G.SHOOTER, T.ASCII, S.SPACE, 1.0, 0, 0, 1],
+	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1],
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2],
-	[G.PLATFORMER, T.ASCII, S.CASTLES, 0.75, 1, 0, 1],
+	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1],
 	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1],
 	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2],
 	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1],
@@ -45,7 +45,7 @@ var success: SuccessTuning
 var catalog: BugCatalog
 var pool: Array[UpgradeDef] = []
 var unlocked_genres: Array[Game.Genre] = [G.PLATFORMER, G.SHOOTER]
-var unlocked_techs: Array[Game.Tech] = [T.BIT8, T.ASCII]
+var unlocked_techs: Array[Game.Tech] = [T.BIT8, T.VECTOR]
 var unlocked_settings: Array[Game.Setting] = [S.PIRATES, S.SPACE, S.CASTLES]
 
 var market: MarketState

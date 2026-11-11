@@ -17,7 +17,7 @@ const KIND_NAMES: Array[String] = ["технология", "жанр", "возм
 @export var effect_line := ""
 @export var requires: Array[StringName] = []
 ## Для технологии и жанра: что открывает.
-@export var tech: Game.Tech = Game.Tech.ASCII
+@export var tech: Game.Tech = Game.Tech.VECTOR
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
 @export var prop := ""
 

@@ -5,13 +5,13 @@ extends RefCounted
 
 enum Aspect { OPTIMIZATION, SOUND, CONTROLS, GRAPHICS, BALANCE }
 enum Genre { PLATFORMER, RACING, SHOOTER, SPORT, FIGHTING }
-enum Tech { ASCII, BIT8, BIT16, LOWPOLY, THREED }
+enum Tech { VECTOR, BIT8, BIT16, LOWPOLY, THREED }
 ## Стартовые сеттинги; открываемые достижениями приходят в M2+.
 enum Setting { PIRATES, SPACE, CASTLES }
 
 const ASPECT_NAMES: Array[String] = ["оптимизация", "звук", "управление", "графика", "баланс"]
 const GENRE_NAMES: Array[String] = ["платформер", "гонки", "шутер", "спорт", "файтинг"]
-const TECH_NAMES: Array[String] = ["ASCII", "8-bit", "16/32-bit", "low poly 3D", "3D"]
+const TECH_NAMES: Array[String] = ["вектор", "8-bit", "16/32-bit", "low poly 3D", "3D"]
 const SETTING_NAMES: Array[String] = ["пираты", "космос", "замки"]
 
 

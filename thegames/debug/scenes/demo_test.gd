@@ -1,5 +1,5 @@
 extends Control
-## Тестовая сцена демки: запускает демку жанра и технологии (`--tech=ascii|bit8`, по умолчанию
+## Тестовая сцена демки: запускает демку жанра и технологии (`--tech=vector|bit8`, по умолчанию
 ## 8-bit), сида и набора багов из раздела «Демки»
 ## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
 ## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
@@ -41,9 +41,7 @@ func _ready() -> void:
 	var args := AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
 	if AutoTest.enabled and not args.has("no-checks"):
 		AutoTest.require("demo checks")
-		if _tech() == Game.Tech.ASCII and _genre() == Game.Genre.PLATFORMER:
-			_check_ascii_levels()
-		elif _genre() == Game.Genre.RACING:
+		if _genre() == Game.Genre.RACING:
 			_check_tracks()
 		elif _genre() == Game.Genre.SHOOTER:
 			_check_arenas()
@@ -157,22 +155,6 @@ func _check(reached: bool) -> void:
 			AutoTest.bot_mode = AutoTest.BotMode.WIN
 			AutoTest.fulfill("demo checks")
 			AutoTest.note("demo checks done: seed %d" % record.seed)
-
-
-## Платформер × ASCII (#90): сто сидов дают уровень в три экрана, проходимый прыжком на две
-## клетки, и генерация детерминирована.
-func _check_ascii_levels() -> void:
-	var t := PlatformerAsciiTuning.gen()
-	var cols := Demo.ascii_size().x
-	var coins := 0
-	for s in range(1, 101):
-		var lv := PlatformerLevelGen.generate(s, t)
-		_expect(PlatformerLevelGen.passable(lv, t), "ASCII-уровень сида %d непроходим" % s)
-		coins += lv.coins.size()
-	_expect(t.width == cols * 3, "ASCII-уровень %d колонок, а три экрана это %d" % [t.width, cols * 3])
-	_expect(PlatformerLevelGen.generate(7, t).signature() == PlatformerLevelGen.generate(7, t).signature(),
-			"ASCII-уровень сида 7 не повторяется")
-	AutoTest.note("platformer ascii: 100 сидов проходимы, монет в среднем %.1f" % (coins / 100.0))
 
 
 ## Гонки: сто сидов дают трассу, которая проходит проверку генератора (замкнутость, ширина,

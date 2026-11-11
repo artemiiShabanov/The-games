@@ -238,7 +238,7 @@ func _run_checks() -> void:
 		_expect(c.sprints == 5 and c.sprint_cost == 1400 and c.title == constructor.title if constructor else true,
 				"конфигурация: %s" % c)
 		_expect(wallet.cash == cash - 7000, "кошелёк после старта %d" % wallet.cash)
-	var q := Constructor.quick_config(Game.Genre.SHOOTER, Game.Tech.ASCII, Game.Setting.SPACE, economy, 7)
+	var q := Constructor.quick_config(Game.Genre.SHOOTER, Game.Tech.VECTOR, Game.Setting.SPACE, economy, 7)
 	_expect(q.sprints == 4 and q.sprint_cost == 1160 and q.title != "", "quick_config: %s" % q)
 	_expect(Style.format_money(12000) == "$ 12 000" and Style.format_money(-2600) == "− $ 2 600" and Style.format_money(900) == "$ 900",
 			"формат денег: %s / %s" % [Style.format_money(12000), Style.format_money(-2600)])
@@ -361,11 +361,8 @@ func _check_demo_lock() -> void:
 	_expect(constructor.is_unlocked(0, shooter), "шутер × 8-bit открыт с демкой (#50)")
 	_expect(constructor.is_unlocked(0, sport), "спорт × 8-bit открыт с демкой (#52)")
 	_expect(constructor.is_unlocked(0, fighting), "файтинг × 8-bit открыт с демкой (#54)")
-	# С #54 демка есть у каждого жанра на 8-bit, с #90 у платформера × ASCII. Закрытая пара
-	# ищется сама: первая пара каталога без демки, её жанр закрыт пилюлей «демка в работе».
-	var ascii_i := constructor.catalogs[1].index_of(Game.Tech.ASCII)
-	constructor.index[1] = ascii_i
-	_expect(constructor.is_unlocked(0, plat), "платформер × ASCII открыт с демкой (#90)")
+	# С #54 демка есть у каждого жанра на 8-bit. Закрытая пара ищется сама: первая пара
+	# каталога без демки, её жанр закрыт пилюлей «демка в работе».
 	var closed_tech := -1
 	var closed_genre := -1
 	for ti in constructor.catalogs[1].entries.size():
