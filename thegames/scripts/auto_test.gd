@@ -8,7 +8,9 @@ extends Node
 ## Ввод по кадрам (#82): `--input=30:move=960x900,40:click=960x900,60:wheel=3@300x500,
 ## 70:pan=-2@300x500,80:key=space` подаёт движение мыши, клик, колесо (знак: вниз +),
 ## жест тачпада и клавишу (space, esc, up, down, left, right, r, ctrl) в корневой вьюпорт в
-## координатах экрана 1920×1080, как от игрока. Обычно с `--bot=off`.
+## координатах экрана 1920×1080, как от игрока. Обычно с `--bot=off`. `press=XxY` и
+## `release=XxY` жмут и отпускают левую кнопку по отдельности (перетаскивание, #80): `move`
+## между ними идёт с зажатой кнопкой.
 
 ## Бот вместо игрока. Системы читают при принятии решений: WIN проходит мини-игры,
 ## LOSE проваливает, OFF играет человек.
@@ -24,6 +26,8 @@ var failures: PackedStringArray = []
 var _required: PackedStringArray = []
 var _inputs: Dictionary[int, PackedStringArray] = {}
 var _frame := 0
+## Левая кнопка зажата `press` и ещё не отпущена `release`.
+var _held := false
 
 
 func _ready() -> void:
@@ -134,7 +138,18 @@ func _inject(what: String) -> void:
 			var m := InputEventMouseMotion.new()
 			m.position = pos
 			m.global_position = pos
+			if _held:
+				m.button_mask = MOUSE_BUTTON_MASK_LEFT
 			vp.push_input(m, true)
+		"press", "release":
+			_held = kind == "press"
+			var pb := InputEventMouseButton.new()
+			pb.button_index = MOUSE_BUTTON_LEFT
+			pb.pressed = _held
+			pb.button_mask = MOUSE_BUTTON_MASK_LEFT if _held else 0
+			pb.position = pos
+			pb.global_position = pos
+			vp.push_input(pb, true)
 		"click":
 			for pressed in [true, false]:
 				var b := InputEventMouseButton.new()

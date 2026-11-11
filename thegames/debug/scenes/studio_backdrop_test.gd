@@ -6,7 +6,9 @@ extends Control
 ## (превью роста), `--card` карточка оболочки посреди (проверка читаемости), `--static` без
 ## движения, `--react=release|viral|broke`, `--busy`; `--sheet` пишет превью-лист всех спрайтов
 ## в `debug/playtest/studio_sheet.png`. Под ботом проверяет раскладку: сколько
-## людей и предметов, одинаковость при одинаковом состоянии, рост с покупками, вход новичков.
+## людей и предметов, одинаковость при одинаковом состоянии, рост с покупками, вход новичков,
+## перетаскивание мышью синтетическими событиями (`_drag_check`). Кадр с человечком в руке:
+## `--bot=off "--input=20:move=684x472,22:press=684x472,40:move=900x640" --stage=2`.
 ## Раздел «Студия фон» дебаг-меню: стадия, люди, движение, спринт, реакции, карточка.
 
 const SECTION: StringName = &"Студия фон"
@@ -58,6 +60,8 @@ func _ready() -> void:
 			func(v: bool) -> void: _each(func(b: StudioBackdrop) -> void: b.animate = v))
 	Debug.add_toggle(SECTION, "Спринт (печатают быстрее)", func() -> bool: return backdrops[0].busy,
 			func(v: bool) -> void: _each(func(b: StudioBackdrop) -> void: b.busy = v))
+	Debug.add_toggle(SECTION, "Таскать мышью", func() -> bool: return backdrops[0].drag_enabled,
+			func(v: bool) -> void: _each(func(b: StudioBackdrop) -> void: b.drag_enabled = v))
 	Debug.add_toggle(SECTION, "Карточка поверх", func() -> bool: return card, _set_card)
 	Debug.add_number(SECTION, "Сила чернил", func() -> float: return backdrops[0].strength,
 			func(v: float) -> void: _each(func(b: StudioBackdrop) -> void: b.strength = v), 0.0, 1.0, 0.1)
@@ -69,10 +73,12 @@ func _ready() -> void:
 	if args.has("sheet"):
 		var path := ProjectSettings.globalize_path("res://debug/playtest/studio_sheet.png")
 		DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-		var err := StudioSprites.sheet(backdrops[0].tuning.tones, backdrops[0].tuning.people_tone).save_png(path)
+		var err := backdrops[0].sheet_image().save_png(path)
 		AutoTest.note("лист спрайтов: %s (%s)" % [path, error_string(err)])
 	if AutoTest.enabled and not args.has("no-checks"):
 		_checks()
+		if not grid:
+			_drag_check.call_deferred()
 
 
 func _each(fn: Callable) -> void:
@@ -206,6 +212,74 @@ func _checks() -> void:
 	odd.queue_free()
 	grow.queue_free()
 	AutoTest.fulfill("backdrop checks")
+
+
+## Перетаскивание мышью синтетическими событиями во вьюпорт: человечек поднимается, висит,
+## встаёт куда отпустили, потом идёт к своему делу; на стене встаёт на пол; под элементом
+## оболочки не поднимается.
+func _drag_check() -> void:
+	AutoTest.require("backdrop drag")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var b := backdrops[0]
+	var to_screen := b.get_global_transform_with_canvas()
+	var start := to_screen * b.worker_local_rect(0).get_center()
+	_mouse(start, -1)
+	_mouse(start, 1)
+	_expect(b.worker_info(0)["held"], "нажатие на человечка его не подняло")
+	var target := start + Vector2(520, 260)
+	_mouse(target, -1)
+	_mouse(target, 0)
+	var info := b.worker_info(0)
+	_expect(not info["held"] and info["placed"], "после отпускания %s" % info)
+	var moved: float = (info["pos"] as Vector2).distance_to(info["home"])
+	_expect(moved > 60.0, "отпустили, а он в %.0f px арта от места" % moved)
+	var home := false
+	for i in 2400:
+		b._process(1.0 / 30.0)
+		var now := b.worker_info(0)
+		home = home or (now["pos"] == now["home"] and now["act"] != "walk")
+	var last := b.worker_info(0)
+	_expect(home and not last["placed"], "за 80 с не вернулся к делу: %s" % last)
+	# На стену: встаёт на пол.
+	start = to_screen * b.worker_local_rect(0).get_center()
+	_mouse(start, -1)
+	_mouse(start, 1)
+	_mouse(Vector2(start.x, 20), -1)
+	_mouse(Vector2(start.x, 20), 0)
+	var wall := b.worker_info(0)
+	_expect((wall["pos"] as Vector2).y >= StudioBackdrop.FLOOR_RECT.position.y, "встал на стену: %s" % wall)
+	for i in 2400:
+		b._process(1.0 / 30.0)
+	# Под элементом оболочки не поднимается и событие не съедается.
+	start = to_screen * b.worker_local_rect(0).get_center()
+	var cover := ColorRect.new()
+	cover.color = Color(1, 1, 1, 0.5)
+	cover.position = start - Vector2(40, 40)
+	cover.size = Vector2(80, 80)
+	add_child(cover)
+	_mouse(start, -1)
+	_mouse(start, 1)
+	_expect(not b.worker_info(0)["held"], "поднялся из-под элемента оболочки")
+	_mouse(start, 0)
+	cover.queue_free()
+	AutoTest.note("backdrop drag: сдвинут на %.0f, вернулся к делу, стена и оболочка ок" % moved)
+	AutoTest.fulfill("backdrop drag")
+
+
+## Событие мыши во вьюпорт: `button` -1 движение, 1 нажать, 0 отпустить левую.
+func _mouse(at: Vector2, button: int) -> void:
+	var e: InputEventMouse
+	if button < 0:
+		e = InputEventMouseMotion.new()
+	else:
+		var mb := InputEventMouseButton.new()
+		mb.button_index = MOUSE_BUTTON_LEFT
+		mb.pressed = button == 1
+		e = mb
+	e.position = at
+	e.global_position = at
+	get_viewport().push_input(e, true)
 
 
 func _expect(ok: bool, what: String) -> void:
