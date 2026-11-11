@@ -15,7 +15,9 @@ extends Control
 ## `bug_press`, `bug_input_tick`, `bug_stick`, `bug_take_stick`), розовые заглушки
 ## `pink_placeholders` по слотам спрайтов демки (`_placeholder_slots`, `is_pink`,
 ## `draw_pink`), чужая палитра `alien_palette` (`bug_palette` на слой мира) и мерцание 8-bit
-## `sprite_flicker` (`flicker_reset`, `flicker_hidden`). Демка зовёт эти хуки в своих местах и
+## `sprite_flicker` (`flicker_reset`, `flicker_hidden`). Векторные демки (#88) рисуют на
+## экране `vector_screen(draw_fn)`: слоты сеттинга контурами (`draw_slot`), розовая заглушка это
+## розовый квадрат с крестом вместо контура, чужая палитра на всём экране. Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -120,6 +122,9 @@ var _pink: Dictionary[String, bool] = {}
 var _palette: ShaderMaterial
 var _flicker_limit := 0
 var _line_counts: Dictionary[int, int] = {}
+## Векторный экран демки и сеттинг записи (`vector_screen`).
+var vector: VectorScreen
+var vector_set: SettingDef
 
 
 func setup(record_: GameRecord, source_: StringName) -> void:
@@ -342,6 +347,33 @@ func flicker_hidden(line: int) -> bool:
 	var n: int = _line_counts.get(line, 0) + 1
 	_line_counts[line] = n
 	return n > _flicker_limit and (Engine.get_process_frames() + n) % 2 == 1
+
+
+# --- Вектор (#88) -------------------------------------------------------------------------
+
+## Векторный экран на всю область демки, цвета сеттинга записи, чужая палитра при баге.
+## Координаты логические, по карточке демки; во встроенном режиме тот же экран уменьшен.
+func vector_screen(draw_fn: Callable) -> VectorScreen:
+	vector_set = SettingDef.of(record.setting if record != null else Game.Setting.PIRATES)
+	var logical := CardFrame.inner_size()
+	var area: Vector2 = embed_size if embedded else logical
+	vector = VectorScreen.make(area, logical, vector_set.vector_colors)
+	vector.draw_fn = draw_fn
+	vector.glow = Debug.vector_glow
+	vector.persistence = Debug.vector_persistence
+	if bug_palette() != null:
+		vector.material = bug_palette()
+	screen.add_child(vector)
+	return vector
+
+
+## Слот сеттинга контуром: `px` логических пикселей на пиксель спрайта; розовая заглушка
+## квадратом с крестом. Звать из `draw_fn`.
+func draw_slot(slot: StringName, center: Vector2, px: float, flip := false, angle := 0.0) -> void:
+	if is_pink(String(slot)):
+		vector.cross_box(center, 14.0 * px)
+		return
+	vector.shape(vector_set.vector_contours(slot), center, px, vector_set.vector_ink(slot), flip, angle)
 
 
 ## Строка пиксельными цифрами `PIXEL_DIGITS` клетками `cell` с тенью на клетку вправо-вниз.

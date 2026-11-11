@@ -10,6 +10,18 @@ extends Resource
 const DIR := "res://resources/settings/"
 const FALLBACK_SPRITES := "res://assets/settings/pirates/8bit/"
 const IDS: Array[String] = ["pirates", "space", "castles"]
+## Слоты сеттинга в векторе (#88) и 8-bit спрайт, с силуэта которого снимается контур
+## (`VectorShapes`); без своего спрайта сеттинга берётся пиратский, как в 8-bit.
+const VECTOR_SLOTS: Dictionary[StringName, String] = {
+	&"hero": "hero_run_0", &"enemy": "enemy_0", &"enemy_2": "parrot_0", &"rival": "rival_0",
+	&"vehicle": "boat_0", &"shot": "shoot_shot", &"ball": "golf_ball", &"goal": "golf_cup",
+	&"obstacle": "race_rock", &"bonus": "coin", &"finish": "flag", &"prop_a": "checkpoint",
+	&"prop_b": "shoot_chest",
+}
+## Чернила слота в векторе: 1 луч (мир), 2 акцент (герой, своё, бонусы), 3 опасность (враги).
+const VECTOR_INKS: Dictionary[StringName, int] = {
+	&"hero": 2, &"vehicle": 2, &"bonus": 2, &"enemy": 3, &"enemy_2": 3, &"rival": 3, &"shot": 3,
+}
 
 @export var setting: Game.Setting = Game.Setting.PIRATES
 @export var id: StringName = &"pirates"
@@ -23,6 +35,12 @@ const IDS: Array[String] = ["pirates", "space", "castles"]
 @export var horizon_light := Color.WHITE
 @export var silhouette := Color.WHITE
 @export var silhouette_dark := Color.WHITE
+## Вектор (#88): фон `[0]` и чернила луча: 1 мир, 2 акцент, 3 опасность. На экран один-два
+## цвета луча, третий только у врагов.
+@export var vector_colors: Array[Color] = []
+## Своя форма слота вместо снятой с силуэта, когда та не читается: замкнутые ломаные в
+## пикселях спрайта от его центра.
+@export var vector_shapes: Dictionary[StringName, Array] = {}
 
 static var _cache: Dictionary[int, SettingDef] = {}
 
@@ -43,3 +61,17 @@ func sprite(name: String) -> Texture2D:
 	if not ResourceLoader.exists(path):
 		path = FALLBACK_SPRITES + name + ".png"
 	return load(path) as Texture2D
+
+
+## Контуры слота в векторе: своя форма из ресурса или снятая с силуэта 8-bit спрайта.
+func vector_contours(slot: StringName) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	if vector_shapes.has(slot):
+		for c in vector_shapes[slot]:
+			out.append(PackedVector2Array(c))
+		return out
+	return VectorShapes.of_texture(sprite(VECTOR_SLOTS.get(slot, "coin")))
+
+
+func vector_ink(slot: StringName) -> int:
+	return VECTOR_INKS.get(slot, 1)

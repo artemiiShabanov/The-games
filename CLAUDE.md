@@ -38,7 +38,8 @@
   tools/autotest.sh --scene=demo_test --genre=sport --setting=0 --no-checks --frames=N`, без
   него окно крутит кадры быстрее 60 в секунду и `--frames` не равны времени); файтинг
   `--genre=fighting --frames=7000`, технология `--tech=vector|bit8` (по умолчанию 8-bit, так же
-  у `feed_test`); план соперника и бой ботами без окна текстом
+  у `feed_test`); векторная основа (#88): лист контуров `--scene=vector_test --frames=90`, пробная
+  демка `--probe [--bugs|--bug=<id>] [--setting=N] --frames=2500`; план соперника и бой ботами без окна текстом
   `debug/tools/dump_fight.gd -- <seed> [count]`; момент боя под скриншот `--no-checks
   --freeze=<с от запуска, с отсчётом>` (демка встаёт на этой секунде, работает у любой демки),
   скриншот паузы `--scene=demo_test --no-checks --pause --frames=240`. Уровень платформера по

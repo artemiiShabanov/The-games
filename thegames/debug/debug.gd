@@ -65,6 +65,11 @@ var demo_setting := 0
 var demo_genre := 0
 ## Технология тестовой демки (#88): `Game.Tech`, 0 вектор, 1 8-bit.
 var demo_tech := 1
+## Вектор (#88): ореол линий и послесвечение люминофора (доля прошлого кадра за 1/60 с).
+var vector_glow := true
+var vector_persistence := 0.55
+## `vector_test` запускает пробную векторную демку, а не лист контуров.
+var vector_probe := false
 var demo_bugs: Array[StringName] = []
 var active := false
 
@@ -340,6 +345,14 @@ func _register_builtin() -> void:
 						elif not v:
 							demo_bugs.erase(id))
 	add_action(SECTION_DEMOS, "Запустить демку", func() -> void: run_test_scene(DEMO_SCENE))
+	add_toggle(SECTION_DEMOS, "Вектор: ореол линий", func() -> bool: return vector_glow,
+			func(v: bool) -> void: vector_glow = v, true)
+	add_number(SECTION_DEMOS, "Вектор: послесвечение", func() -> float: return vector_persistence,
+			func(v: float) -> void: vector_persistence = v, 0.0, 0.9, 0.05, true)
+	add_action(SECTION_DEMOS, "Вектор: лист контуров", func() -> void: run_test_scene("vector_test"))
+	add_action(SECTION_DEMOS, "Вектор: пробная демка с багами раздела", func() -> void:
+		vector_probe = true
+		run_test_scene("vector_test"))
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())
