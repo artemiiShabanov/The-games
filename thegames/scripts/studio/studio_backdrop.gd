@@ -1260,7 +1260,7 @@ func _draw_light(dl: StudioDaylight) -> void:
 		var zt := wy - pane.position.y
 		var zb := wy - pane.end.y
 		if beam.a > 0.004:
-			for y in range(int(pane.end.y), int(wy + zb * f)):
+			for y in range(int(pane.end.y), mini(int(wy + zb * f), ART.y)):
 				var yy := float(y)
 				var zmin := maxf(zb, maxf(wy - yy, (yy - wy) / f))
 				if zmin > zt:
@@ -1274,7 +1274,7 @@ func _draw_light(dl: StudioDaylight) -> void:
 		var rows: Array = [[pane.position.y, mid.y], [mid.y + 1.0, pane.end.y]]
 		for r in rows:
 			var y_from := int(roundf(wy + (wy - float(r[1])) * f))
-			var y_to := int(roundf(wy + (wy - float(r[0])) * f))
+			var y_to := mini(int(roundf(wy + (wy - float(r[0])) * f)), ART.y)
 			for y in range(y_from, y_to):
 				var d := float(y) - wy
 				for c in cols:
