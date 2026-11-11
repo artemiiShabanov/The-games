@@ -1,7 +1,7 @@
 extends Control
 ## Тестовая сцена главного экрана забега (#77, #78): настоящий `RunState` проходит `--past=N`
 ## релизов быстрыми конфигурациями (разработка, отклик, лента, фаза студии, покупка первой
-## прокачки), затем `RunHub`. Раздел «Главный экран» дебаг-меню: «Заново», окна. Под ботом:
+## прокачки), затем `RunHub` на пиксельной студии. Раздел «Главный экран» дебаг-меню: «Заново», окна. Под ботом:
 ## окно денег сходится с кошельком, окно прокачки по порядку покупки, панель релиза с лентой,
 ## «Новая игра» шлёт сигнал. `--no-checks [--pop=money|upgrades|release]` держит экран для
 ## скриншота.
@@ -14,15 +14,14 @@ var past := 3
 var _checks := false
 var _pop := ""
 var _started := false
+var _bg: StudioBackdrop
 
 
 func _ready() -> void:
-	var bg := ColorRect.new()
-	bg.color = Style.BG
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bg = StudioBackdrop.new()
+	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	add_child(_bg)
 	if AutoTest.enabled:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		past = int(str(args.get("past", past)))
@@ -48,6 +47,7 @@ func _open() -> void:
 	if hub != null:
 		hub.queue_free()
 	run = _make_run(past)
+	_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
 	hub = RunHub.new()
 	hub.setup(run)
 	hub.new_game.connect(func() -> void: _started = true)

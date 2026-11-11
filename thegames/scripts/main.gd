@@ -42,7 +42,8 @@ var base: BaseOption
 var report: StudioPhase.Report
 var bugfix_offers := 0
 
-var _bg: ColorRect
+## Пиксельная студия фоном под всей оболочкой забега (#80).
+var _bg: StudioBackdrop
 var _card: Control
 var _demo_header: PanelContainer
 var _screen: Node
@@ -93,11 +94,10 @@ func _ready() -> void:
 			AutoTest.require("loop releases")
 	_expected_cash = run.wallet.cash
 
-	_bg = ColorRect.new()
-	_bg.color = Style.BG
+	_bg = StudioBackdrop.new()
 	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bg)
+	_sync_studio()
 
 	Debug.add_number(SECTION, "Деньги", func() -> int: return run.wallet.cash,
 			func(v: float) -> void: run.wallet.cash = int(v), -20000, 200000, 1000)
@@ -157,9 +157,17 @@ func _start_release(prepared := false) -> void:
 		_open_hub()
 
 
+## Студия фоном растёт с людьми и прокачкой; вызывать можно сколько угодно.
+func _sync_studio() -> void:
+	if _bg != null:
+		_bg.busy = stage in [Stage.SPRINTS, Stage.FIXING]
+		_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
+
+
 ## Главный экран забега (#77): новый релиз начинается кнопкой «Новая игра».
 func _open_hub() -> void:
 	stage = Stage.HUB
+	_sync_studio()
 	var hub := RunHub.new()
 	hub.setup(run)
 	hub.new_game.connect(_begin_next_game)
@@ -247,6 +255,7 @@ func _begin_development(config: GameConfig) -> void:
 ## Спринты релиза с `from` (продолжение из слота): сыгранные уже в записи, сид сдвинут.
 func _start_runner(from: int) -> void:
 	stage = Stage.SPRINTS
+	_sync_studio()
 	_save(&"sprints")
 	_runner = SprintRunner.new()
 	_runner.tuning = run.sprint_tuning
@@ -271,6 +280,7 @@ func _on_plan_finished(_results: Array[bool]) -> void:
 
 func _begin_playtest() -> void:
 	stage = Stage.PLAYTEST
+	_sync_studio()
 	_save(&"playtest")
 	if _runner != null:
 		_runner.queue_free()
@@ -368,6 +378,8 @@ func _finish_release() -> void:
 	_clear_all()
 	if record.score == null:
 		run.score_release(record)
+	if _bg != null:
+		_bg.react(&"viral" if record.score.viral else &"release")
 	_save(&"feed")
 	_open_feed()
 
@@ -408,7 +420,11 @@ func _open_studio() -> void:
 	if offer != null:
 		AutoTest.note("event: релиз %d, %s" % [run.release, offer.def.id])
 		screen.set_event(offer, _apply_event.bind(offer))
-	screen.upgrade_bought.connect(func(u: UpgradeDef) -> void: _expected_cash -= u.price(run.economy))
+	screen.upgrade_bought.connect(func(u: UpgradeDef) -> void:
+		_expected_cash -= u.price(run.economy)
+		_sync_studio())
+	if _bg != null and (report.rescue_due or report.game_over):
+		_bg.react(&"broke")
 	screen.finished.connect(_on_studio_finished)
 	_set_screen(screen)
 
@@ -428,6 +444,8 @@ func _apply_event(index: int, offer: Events.Offer) -> String:
 
 func _on_studio_finished() -> void:
 	_clear_all()
+	if _bg != null:
+		_bg.react(&"")
 	run.close_release(record, report)
 	_profile.add_game(record, run.run_number, run.records.size(), run.studio_name)
 	if _loop_check:
