@@ -52,7 +52,10 @@
   волны по сиду и боты без окна текстом
   `debug/tools/dump_turret.gd -- <seed> [count] [through,ice,endless,sneeze]`. Понг (спорт ×
   вектор, #93): `--scene=demo_test --genre=sport --tech=vector --frames=7000`, матч по сиду и
-  боты без окна текстом `debug/tools/dump_pong.gd -- <seed> [count] [space,bouncy,wall,frail]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  боты без окна текстом `debug/tools/dump_pong.gd -- <seed> [count] [space,bouncy,wall,frail]`. Дуэль
+  на реакцию (файтинг × вектор, #94): `--scene=demo_test --genre=fighting --tech=vector
+  --frames=4000`, план по сиду и боты без окна текстом
+  `debug/tools/dump_duel.gd -- <seed> [count] [ghost,float,immortal,frail]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks

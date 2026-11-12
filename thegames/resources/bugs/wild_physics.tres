@@ -16,6 +16,7 @@ params = Dictionary[StringName, float]({
 &"jump_mult": 3.0,
 &"grip_mult": 0.25,
 &"lane_slide": 1.0,
+&"duel_rival_mult": 0.75,
 &"pong_bounce_gain": 0.15,
 &"pong_kick_deg": 14.0,
 &"pong_speed_cap": 2000.0,

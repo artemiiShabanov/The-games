@@ -18,7 +18,8 @@ extends Control
 ## LOSE проваливается в дыры, пока не кончатся жизни. У гонок × вектор (#91) генератор заезда;
 ## WIN приходит первым, LOSE едет без газа. У шутера × вектор (#92) генератор волн; WIN отбивается от
 ## тридцати, LOSE не стреляет. У спорта × вектор (#93, понг) генератор матча; WIN выигрывает до
-## пяти, LOSE не двигает ракетку.
+## пяти, LOSE не двигает ракетку. У файтинга × вектор (#94, дуэль) генератор плана; WIN бьёт
+## сразу после вспышки, LOSE до неё.
 
 
 var demo: Demo
@@ -60,6 +61,8 @@ func _ready() -> void:
 			_check_pong()
 		elif _genre() == Game.Genre.SPORT:
 			_check_courses()
+		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.VECTOR:
+			_check_duels()
 		elif _genre() == Game.Genre.FIGHTING:
 			_check_fights()
 	_launch()
@@ -196,6 +199,29 @@ func _check_towers() -> void:
 	seconds.sort()
 	AutoTest.note("platformer vector: 100 сидов прошли проверку, дыр в среднем %.1f, врагов %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f" % [
 			holes / 100.0, enemies / 100.0, seconds[50], seconds[0], seconds[99]])
+
+
+## Файтинг × вектор, дуэль на реакцию (#94): сто сидов дают план, который проходит проверку
+## генератора (паузы и задержки соперника в своих пределах, к концу он быстрее), генерация
+## детерминирована; на каждом сиде бот WIN без окна (`DuelSim.simulate`) берёт дуэль, а бот
+## LOSE проигрывает её фальстартами.
+func _check_duels() -> void:
+	var t := FightingVectorGenTuning.load_default()
+	var dt := FightingVectorTuning.load_default()
+	var seconds := 0.0
+	for s in range(1, 101):
+		var plan := DuelPlanGen.generate(s, t)
+		var why := DuelPlanGen.validate(plan, t)
+		_expect(why == "", "дуэль сида %d: %s" % [s, why])
+		var win := DuelSim.simulate(plan, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "дуэль сида %d: бот WIN не победил, %d:%d" % [s, win.hero_wins, win.rival_wins])
+		seconds += win.time
+		var lose := DuelSim.simulate(plan, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won and lose.false_starts > 0, "дуэль сида %d: бот LOSE не проиграл фальстартами, %d:%d" % [
+				s, lose.hero_wins, lose.rival_wins])
+	_expect(DuelPlanGen.generate(7, t).signature() == DuelPlanGen.generate(7, t).signature(), "дуэль сида 7 не повторяется")
+	_expect(DuelPlanGen.generate(7, t).signature() != DuelPlanGen.generate(8, t).signature(), "дуэли сидов 7 и 8 одинаковые")
+	AutoTest.note("fighting vector: 100 сидов прошли проверку; дуэль бота WIN без окна в среднем %.1f с" % (seconds / 100.0))
 
 
 ## Гонки × вектор (#91): сто сидов дают заезд, который проходит проверку генератора (в каждом

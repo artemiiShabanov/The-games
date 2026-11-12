@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FightingVectorTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/fighting_vector_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+ready_seconds = 1.2
+strike_seconds = 0.55
+result_seconds = 1.2
+late_window = 0.8
+bot_reaction = 0.2
+bot_lose_press = 0.6
+music_db = -14.0
+sfx_db = -6.0
