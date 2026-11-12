@@ -55,7 +55,10 @@
   боты без окна текстом `debug/tools/dump_pong.gd -- <seed> [count] [space,bouncy,wall,frail]`. Дуэль
   на реакцию (файтинг × вектор, #94): `--scene=demo_test --genre=fighting --tech=vector
   --frames=4000`, план по сиду и боты без окна текстом
-  `debug/tools/dump_duel.gd -- <seed> [count] [ghost,float,immortal,frail]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  `debug/tools/dump_duel.gd -- <seed> [count] [ghost,float,immortal,frail]`. Основа 16/32-bit
+  (#95): лист спрайтов и палитры `--scene=bit16_test --frames=120`, пробные демки `--probe=side`
+  (вид сбоку с параллаксом) и `--probe=depth` (вид вглубь) `[--bugs|--bug=<id>] [--setting=N]
+  --frames=2500`; спрайты рисует `python3 tools/pixel_sprites16.py [--preview out.png]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks

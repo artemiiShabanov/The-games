@@ -50,6 +50,9 @@ step "feed sport vector" sh tools/autotest.sh --scene=feed_test --genre=sport --
 step "demo fighting vector" sh tools/autotest.sh --scene=demo_test --genre=fighting --tech=vector --frames=4000
 step "demo fighting vector bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --tech=vector --bugs --frames=5000
 step "feed fighting vector" sh tools/autotest.sh --scene=feed_test --genre=fighting --tech=vector --frames=400
+step "bit16 sheet" sh tools/autotest.sh --scene=bit16_test --frames=120
+step "bit16 probe side bugs" sh tools/autotest.sh --scene=bit16_test --probe=side --bugs --frames=2500
+step "bit16 probe depth bugs" sh tools/autotest.sh --scene=bit16_test --probe=depth --bugs --frames=2500
 step "demo racing" sh tools/autotest.sh --scene=demo_test --genre=racing --frames=5000
 step "demo racing bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --bugs --frames=5000
 step "feed racing" sh tools/autotest.sh --scene=feed_test --genre=racing --frames=400

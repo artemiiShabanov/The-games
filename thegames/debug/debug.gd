@@ -70,6 +70,8 @@ var vector_glow := true
 var vector_persistence := 0.55
 ## `vector_test` запускает пробную векторную демку, а не лист контуров.
 var vector_probe := false
+## `bit16_test` запускает пробную демку 16/32: "side" вид сбоку, "depth" вид вглубь; "" лист спрайтов.
+var bit16_probe := ""
 var demo_bugs: Array[StringName] = []
 var active := false
 
@@ -353,6 +355,13 @@ func _register_builtin() -> void:
 	add_action(SECTION_DEMOS, "Вектор: пробная демка с багами раздела", func() -> void:
 		vector_probe = true
 		run_test_scene("vector_test"))
+	add_action(SECTION_DEMOS, "16/32: лист спрайтов и палитра", func() -> void: run_test_scene("bit16_test"))
+	add_action(SECTION_DEMOS, "16/32: проба сбоку с багами раздела", func() -> void:
+		bit16_probe = "side"
+		run_test_scene("bit16_test"))
+	add_action(SECTION_DEMOS, "16/32: проба вглубь с багами раздела", func() -> void:
+		bit16_probe = "depth"
+		run_test_scene("bit16_test"))
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())

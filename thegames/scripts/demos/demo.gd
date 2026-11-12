@@ -19,7 +19,9 @@ extends Control
 ## экране `vector_screen(draw_fn)`: слоты сеттинга контурами (`draw_slot`), розовая заглушка это
 ## розовый квадрат с крестом вместо контура, чужая палитра на всём экране; баг технологии
 ## вектора `beam_lag` «луч не успевает» (#89) включается там же и живёт в самом экране
-## (`VectorScreen.set_beam_lag`), демке его звать не надо. Демка зовёт эти хуки в своих местах и
+## (`VectorScreen.set_beam_lag`), демке его звать не надо. Демки 16/32-bit (#95) рисуют на
+## экране `bit16_screen(...)`: ленты кадров сеттинга (`draw_sprite16`), заглушка это розовый
+## блок в шашку, чужая палитра на слое мира. Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -129,6 +131,9 @@ var _line_counts: Dictionary[int, int] = {}
 ## Векторный экран демки и сеттинг записи (`vector_screen`).
 var vector: VectorScreen
 var vector_set: SettingDef
+## Экран 16/32-bit демки и сеттинг записи (`bit16_screen`).
+var bit16: Bit16Screen
+var bit16_set: SettingDef
 ## Отрезки рассыпавшихся контуров (`shatter_slot`): [a, b, скорость, возраст, чернила].
 var _shards: Array[Array] = []
 var _shard_rng := RandomNumberGenerator.new()
@@ -387,6 +392,31 @@ func draw_slot(slot: StringName, center: Vector2, px: float, flip := false, angl
 		vector.cross_box(center, 14.0 * px)
 		return
 	vector.shape(vector_set.vector_contours(slot), center, px, vector_set.vector_ink(slot), flip, angle)
+
+
+# --- 16/32-bit (#95) ----------------------------------------------------------------------
+
+## Экран 16/32 на всю область демки: палитра сеттинга записи, чужая палитра при баге ложится на
+## слой мира. Демка рисует в трёх колбэках (фон, мир, HUD), каждый получает свой слой.
+func bit16_screen(draw_backdrop: Callable, draw_world: Callable, draw_hud: Callable) -> Bit16Screen:
+	bit16_set = SettingDef.of(record.setting if record != null else Game.Setting.PIRATES)
+	bit16 = Bit16Screen.make(embed_size if embedded else CardFrame.inner_size(), embedded, bit16_set.colors16())
+	bit16.draw_backdrop = draw_backdrop
+	bit16.draw_world = draw_world
+	bit16.draw_hud = draw_hud
+	if bug_palette() != null:
+		bit16.world.material = bug_palette()
+	screen.add_child(bit16)
+	return bit16
+
+
+## Кадр ленты спрайта низом в точке `feet`; слот с розовой заглушкой рисуется блоком в шашку.
+func draw_sprite16(canvas: CanvasItem, slot: String, tex: Texture2D, frame: int, feet: Vector2, flip := false,
+		scale := 1.0) -> void:
+	if is_pink(slot):
+		bit16.pink(canvas, feet, scale, float(tex.get_height()) if tex != null else 32.0)
+	else:
+		bit16.sprite(canvas, tex, frame, feet, flip, scale)
 
 
 ## Контур слота рассыпается на отрезки (враг от чиха, разбитое препятствие, потерянная жизнь):

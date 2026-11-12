@@ -7,6 +7,7 @@ script = ExtResource("1_set")
 setting = 1
 id = &"space"
 sprites_8bit = "res://assets/settings/space/8bit/"
+sprites_16bit = "res://assets/settings/space/16bit/"
 sky_bands = Array[Color]([Color(0.0431, 0.0588, 0.1647, 1), Color(0.0667, 0.0941, 0.2118, 1), Color(0.0902, 0.1255, 0.2706, 1), Color(0.1176, 0.1608, 0.3333, 1), Color(0.1490, 0.2000, 0.4000, 1), Color(0.1843, 0.2392, 0.4706, 1), Color(0.2235, 0.2824, 0.5412, 1)])
 sun = Color(0.7843, 0.4196, 0.8392, 1)
 horizon = Color(0.1020, 0.0824, 0.1882, 1)

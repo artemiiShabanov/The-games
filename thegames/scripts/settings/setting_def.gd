@@ -10,6 +10,7 @@ extends Resource
 const DIR := "res://resources/settings/"
 const FALLBACK_SPRITES := "res://assets/settings/pirates/8bit/"
 const IDS: Array[String] = ["pirates", "space", "castles"]
+const FALLBACK_SPRITES_16 := "res://assets/settings/pirates/16bit/"
 ## Слоты сеттинга в векторе (#88) и 8-bit спрайт, с силуэта которого снимается контур
 ## (`VectorShapes`); без своего спрайта сеттинга берётся пиратский, как в 8-bit.
 const VECTOR_SLOTS: Dictionary[StringName, String] = {
@@ -35,6 +36,11 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 @export var horizon_light := Color.WHITE
 @export var silhouette := Color.WHITE
 @export var silhouette_dark := Color.WHITE
+## 16/32-bit (#95): папка лент кадров 32×32 (`hero_run.png` это шесть кадров подряд) и палитра из
+## 16 цветов, индекс это роль (`Bit16Screen.K` … `PINE`). Нет своего файла или палитры: берутся
+## пиратские, так что сеттинг подключается одной папкой и одной строкой палитры.
+@export var sprites_16bit := "res://assets/settings/pirates/16bit/"
+@export var bit16_colors: Array[Color] = []
 ## Вектор (#88): фон `[0]` и чернила луча: 1 мир, 2 акцент, 3 опасность. На экран один-два
 ## цвета луча, третий только у врагов.
 @export var vector_colors: Array[Color] = []
@@ -61,6 +67,21 @@ func sprite(name: String) -> Texture2D:
 	if not ResourceLoader.exists(path):
 		path = FALLBACK_SPRITES + name + ".png"
 	return load(path) as Texture2D
+
+
+## Лента кадров 16/32 по имени из папки сеттинга, без неё пиратская.
+func sprite16(name: String) -> Texture2D:
+	var path := sprites_16bit + name + ".png"
+	if not ResourceLoader.exists(path):
+		path = FALLBACK_SPRITES_16 + name + ".png"
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
+## Палитра 16/32 сеттинга, без своей пиратская.
+func colors16() -> Array[Color]:
+	if bit16_colors.size() >= 16:
+		return bit16_colors
+	return SettingDef.of(Game.Setting.PIRATES).bit16_colors if setting != Game.Setting.PIRATES else bit16_colors
 
 
 ## Контуры слота в векторе: своя форма из ресурса или снятая с силуэта 8-bit спрайта.
