@@ -24,7 +24,9 @@ extends Control
 ## 16/32-bit (`--genre=racing --tech=bit16`, #99) генератор трассы; WIN держит свободную полосу и
 ## жмёт нитро на прямых, LOSE газует по обочине. У шутера × 16/32-bit (`--genre=shooter
 ## --tech=bit16`, #100) генератор карты; WIN идёт по клеткам к ключу и выходу и стреляет, LOSE
-## идёт к врагам без выстрелов.
+## идёт к врагам без выстрелов. У платформера × low poly (`--tech=lowpoly`, #112) генератор
+## косы; WIN бежит по безопасной полосе, прыгает ямы и ящики и обходит скелетов, LOSE сбегает с
+## тропы в воду.
 
 
 var demo: Demo
@@ -56,6 +58,8 @@ func _ready() -> void:
 			_check_towers()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.BIT16:
 			_check_trails()
+		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.LOWPOLY:
+			_check_spits()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -214,6 +218,40 @@ func _check_towers() -> void:
 	seconds.sort()
 	AutoTest.note("platformer vector: 100 сидов прошли проверку, дыр в среднем %.1f, врагов %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f" % [
 			holes / 100.0, enemies / 100.0, seconds[50], seconds[0], seconds[99]])
+
+
+## Платформер × low poly «тропа вглубь экрана» (#112): сто сидов дают косу, которая проходит
+## проверку генератора (ям не меньше нужного и не шире прыжка, у мостиков ям нет, куски
+## стыкуются и перекрываются по ширине, скелеты и ящики не у краёв), генерация детерминирована;
+## на каждом сиде бот WIN без окна (`SpitSim.simulate`) доходит до маяка, не потеряв ни одной
+## жизни, а бот LOSE теряет все.
+func _check_spits() -> void:
+	var t := PlatformerLowpolyGenTuning.load_default()
+	var dt := PlatformerLowpolyTuning.load_default()
+	var gaps := 0
+	var guards := 0
+	var crates := 0
+	var length := 0.0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var lv := SpitLevelGen.generate(s, t)
+		var why := SpitLevelGen.validate(lv, t)
+		_expect(why == "", "тропа сида %d: %s" % [s, why])
+		gaps += lv.gaps()
+		guards += lv.guards.size()
+		crates += lv.crates.size()
+		length += lv.length()
+		var win := SpitSim.simulate(lv, dt, AutoTest.BotMode.WIN)
+		_expect(win.won and win.hits == 0, "тропа сида %d: бот WIN %s за %.0f с, потерял жизней %d: %s" % [s,
+				"дошёл" if win.won else "не дошёл", win.time, win.hits, " / ".join(win.hurt_log)])
+		seconds.append(win.time)
+		var lose := SpitSim.simulate(lv, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "тропа сида %d: бот LOSE не проиграл за %.0f с" % [s, lose.time])
+	_expect(SpitLevelGen.generate(7, t).signature() == SpitLevelGen.generate(7, t).signature(), "тропа сида 7 не повторяется")
+	_expect(SpitLevelGen.generate(7, t).signature() != SpitLevelGen.generate(8, t).signature(), "тропы сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("platformer lowpoly: 100 сидов прошли проверку, длина в среднем %.0f м, ям %.1f, скелетов %.1f, ящиков %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f" % [
+			length / 100.0, gaps / 100.0, guards / 100.0, crates / 100.0, seconds[50], seconds[0], seconds[99]])
 
 
 ## Файтинг × вектор, дуэль на реакцию (#94): сто сидов дают план, который проходит проверку

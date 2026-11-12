@@ -84,6 +84,9 @@ step "lowpoly sheet" sh tools/autotest.sh --scene=lowpoly_test --frames=200
 step "lowpoly probe behind bugs" sh tools/autotest.sh --scene=lowpoly_test --probe=behind --bugs --frames=5000
 step "lowpoly probe first bugs" sh tools/autotest.sh --scene=lowpoly_test --probe=first --bugs --frames=4000
 step "look mouse and stick" sh tools/autotest.sh --scene=lowpoly_test --look --frames=600
+step "demo platformer lowpoly" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --frames=7000
+step "demo platformer lowpoly bugs" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --bugs --frames=9000
+step "feed platformer lowpoly" sh tools/autotest.sh --scene=feed_test --tech=lowpoly --frames=400
 step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --frames=7000
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400

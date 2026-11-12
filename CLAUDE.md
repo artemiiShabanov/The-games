@@ -73,7 +73,9 @@
   по сиду и боты без окна текстом `debug/tools/dump_brawl.gd -- <seed> [count] [wild,immortal,sneeze,ghost]`. Основа low poly
   (#108): лист мешей и палитры `--scene=lowpoly_test --frames=200`, пробные демки `--probe=behind`
   (камера за спиной) и `--probe=first` (от первого лица) `[--bugs|--bug=<id>] [--setting=N]
-  [--seed=N] [--bot=lose] --frames=5000`; меши пишет `python3 tools/lowpoly_meshes.py [--list]`. Обзор
+  [--seed=N] [--bot=lose] --frames=5000`; меши пишет `python3 tools/lowpoly_meshes.py [--list]`. Платформер ×
+  low poly «тропа вглубь экрана» (#112): `--scene=demo_test --tech=lowpoly --frames=7000`, коса по
+  сиду и боты без окна текстом `debug/tools/dump_spit.gd -- <seed> [count] [wild,sneeze,coins]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
   `--input` это `кадр:look=DXxDY`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
