@@ -26,7 +26,8 @@ extends Control
 ## --tech=bit16`, #100) генератор карты; WIN идёт по клеткам к ключу и выходу и стреляет, LOSE
 ## идёт к врагам без выстрелов. У платформера × low poly (`--tech=lowpoly`, #112) генератор
 ## косы; WIN бежит по безопасной полосе, прыгает ямы и ящики и обходит скелетов, LOSE сбегает с
-## тропы в воду.
+## тропы в воду. У гонок × low poly (`--genre=racing --tech=lowpoly`, #113) генератор кольца и
+## правила заезда; WIN едет по трассе и доезжает, LOSE не газует.
 
 
 var demo: Demo
@@ -60,6 +61,8 @@ func _ready() -> void:
 			_check_trails()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.LOWPOLY:
 			_check_spits()
+		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.LOWPOLY:
+			_check_rings()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -253,6 +256,99 @@ func _check_spits() -> void:
 	seconds.sort()
 	AutoTest.note("platformer lowpoly: 100 сидов прошли проверку, длина в среднем %.0f м, поворотов %.1f, рискованных мест %.1f; бот WIN без окна дошёл на всех, без потерь на %d: медиана %.1f с, от %.1f до %.1f" % [
 			length / 100.0, turns / 100.0, risks / 100.0, clean, seconds[50], seconds[0], seconds[99]])
+
+
+## Гонки × low poly «кольцо с дрифтом» (#113): сто сидов дают трассу, которая проходит проверку
+## генератора (длина круга в пределах, нет слишком крутых поворотов и слипшихся участков, есть
+## участки без бортов, грязь, ветер, трамплин на прямой вдали от старта), генерация
+## детерминирована; на каждом сиде бот WIN без окна (`RingSim.simulate`) доезжает до финиша, а
+## бот LOSE нет. Отдельно правила: дрифт копит заряд и даёт ускорение, борт держит шлюпку на
+## трассе, с участка без бортов она падает в воду и возвращается, трамплин на скорости
+## перебрасывает через промоину, а без скорости роняет.
+func _check_rings() -> void:
+	var t := RacingLowpolyGenTuning.load_default()
+	var rules := RacingLowpolyTuning.load_default()
+	var places := [0, 0, 0, 0]
+	var length := 0.0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var track := RingTrackGen.generate(s, t)
+		var why := RingTrackGen.validate(track, t)
+		_expect(why == "", "трасса сида %d: %s" % [s, why])
+		length += track.length
+		var win := RingSim.simulate(track, rules, AutoTest.BotMode.WIN)
+		_expect(win.finished, "трасса сида %d: бот WIN не доехал за %.0f с, в воде %d" % [s, win.time, win.sinks])
+		if win.finished:
+			places[win.place() - 1] += 1
+			seconds.append(win.time)
+		var lose := RingSim.simulate(track, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.finished, "трасса сида %d: бот LOSE доехал" % s)
+	_expect(RingTrackGen.generate(7, t).signature() == RingTrackGen.generate(7, t).signature(), "трасса сида 7 не повторяется")
+	_expect(RingTrackGen.generate(7, t).signature() != RingTrackGen.generate(8, t).signature(), "трассы сидов 7 и 8 одинаковые")
+	# Правила на трассе сида 1.
+	var track := RingTrackGen.generate(1, t)
+	var sim := RingSim.create(track, rules)
+	sim.countdown = 0.0
+	var me := sim.player()
+	# Дрифт: разгон, занос с рулём на секунду с лишним, отпустил: ускорение.
+	for i in 90:
+		sim.step(RingSim.DT, 0.0, 1.0, false)
+	_expect(me.speed > rules.drift_min_speed, "шлюпка не разогналась: %.1f" % me.speed)
+	for i in 90:
+		sim.step(RingSim.DT, 1.0, 1.0, true)
+		me.pos = track.at(me.s, 0.0)
+	_expect(me.drifting and me.charge >= rules.charge_min, "занос не копит заряд: %.2f" % me.charge)
+	sim.step(RingSim.DT, 0.0, 1.0, false)
+	_expect(not me.drifting and me.boost > 0.0 and sim.boosts == 1, "выход из заноса не дал ускорения")
+	# Борт: поперёк трассы на участке с бортами шлюпка остаётся на трассе.
+	var walled := 0.0
+	while track.is_open(walled) or track.is_open(walled + 10.0) or track.in_gap(walled) or absf(track.delta(walled, track.ramp_s)) < 30.0:
+		walled += 5.0
+	sim = RingSim.create(track, rules)
+	sim.countdown = 0.0
+	me = sim.player()
+	me.pos = track.at(walled, 0.0)
+	me.s = walled
+	me.yaw = track.yaw(walled) - PI / 2.0
+	for i in 120:
+		sim.step(RingSim.DT, 0.0, 1.0, false)
+	_expect(absf(me.d) <= track.half_width and sim.bumps > 0 and sim.sinks == 0, "борт не удержал: d %.1f, ударов %d" % [me.d, sim.bumps])
+	# Без бортов: поперёк трассы в воду и назад на ось.
+	sim = RingSim.create(track, rules)
+	sim.countdown = 0.0
+	me = sim.player()
+	var open_s := track.open[0].x + 12.0
+	me.pos = track.at(open_s, 0.0)
+	me.s = open_s
+	me.yaw = track.yaw(open_s) - PI / 2.0
+	for i in 150:
+		sim.step(RingSim.DT, 0.0, 1.0, false)
+	_expect(sim.sinks >= 1, "с участка без бортов шлюпка не упала")
+	for i in 150:
+		sim.step(RingSim.DT, 0.0, 0.0, false)
+	_expect(me.sunk <= 0.0 and absf(me.d) < 0.5, "после воды шлюпка не вернулась на ось: d %.1f" % me.d)
+	# Трамплин: на скорости перелетает, без скорости падает и возвращается на разбег.
+	for fast: bool in [true, false]:
+		sim = RingSim.create(track, rules)
+		sim.countdown = 0.0
+		me = sim.player()
+		var from := track.ramp_s - (8.0 if fast else 4.0)
+		me.pos = track.at(from, 0.0)
+		me.s = track.loop(from)
+		me.yaw = track.yaw(from)
+		me.speed = rules.top_speed if fast else rules.top_speed * 0.3
+		me.vel = me.forward() * me.speed
+		var flew := false
+		for i in 150:
+			sim.step(RingSim.DT, 0.0, 1.0 if fast else 0.3, false)
+			flew = flew or me.air > 0.0
+		if fast:
+			_expect(flew and sim.sinks == 0 and track.delta(track.ramp_s + track.ramp_gap, me.s) > 0.0, "трамплин на скорости не перебросил")
+		else:
+			_expect(sim.sinks == 1, "трамплин без скорости не уронил")
+	seconds.sort()
+	AutoTest.note("racing lowpoly: 100 сидов прошли проверку, круг в среднем %.0f м; бот WIN без окна доехал на всех, места %s: медиана %.1f с, от %.1f до %.1f" % [
+			length / 100.0, places, seconds[seconds.size() / 2], seconds[0], seconds[seconds.size() - 1]])
 
 
 ## Файтинг × вектор, дуэль на реакцию (#94): сто сидов дают план, который проходит проверку

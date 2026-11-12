@@ -87,6 +87,9 @@ step "look mouse and stick" sh tools/autotest.sh --scene=lowpoly_test --look --f
 step "demo platformer lowpoly" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --frames=7000
 step "demo platformer lowpoly bugs" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --bugs --frames=9000
 step "feed platformer lowpoly" sh tools/autotest.sh --scene=feed_test --tech=lowpoly --frames=400
+step "demo racing lowpoly" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=lowpoly --frames=12000
+step "demo racing lowpoly bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=lowpoly --bugs --frames=14000
+step "feed racing lowpoly" sh tools/autotest.sh --scene=feed_test --genre=racing --tech=lowpoly --frames=400
 step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --frames=7000
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400

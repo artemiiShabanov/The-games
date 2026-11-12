@@ -27,7 +27,7 @@ const BIPEDS: Array[String] = ["hero", "enemy", "captain"]
 const HELD: Array[String] = ["pistol"]
 ## Выше этого модель на листе уменьшается, метры.
 const SHEET_TALL := 3.0
-const TEXTURES: Array[String] = ["sand", "planks", "water", "rock", "sail", "grass", "road", "sky"]
+const TEXTURES: Array[String] = ["sand", "planks", "water", "rock", "sail", "grass", "road", "mud", "wind", "sky"]
 const MAX_ATLAS := 64
 const COLUMNS := 7
 const CELL := 2.7

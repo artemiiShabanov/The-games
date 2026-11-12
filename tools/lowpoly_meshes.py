@@ -1011,6 +1011,37 @@ def tex_road():
     return a
 
 
+def tex_mud():
+    """Грязь: тёмная мокрая земля с лужами и комьями."""
+    a = Atlas(64, 64, 73)
+    mud, mud_d, mud_l = rgb("4A3524"), rgb("2E2016"), rgb("6A4E34")
+    a.rect(0, 0, 64, 64, mud)
+    for _ in range(14):
+        cx, cy, r = a.rng.randrange(64), a.rng.randrange(64), a.rng.randrange(3, 7)
+        for y in range(-r, r + 1):
+            for x in range(-r * 2, r * 2 + 1):
+                if (x / 2.0) ** 2 + y ** 2 <= r * r:
+                    a.px((cx + x) % 64, (cy + y) % 64, mud_d)
+        a.px((cx - 1) % 64, (cy - 1) % 64, rgb("8A8478"))
+    for _ in range(220):
+        a.px(a.rng.randrange(64), a.rng.randrange(64), mud_l if a.rng.random() < 0.5 else mud_d)
+    a.noise(0, 0, 64, 64, 0.08)
+    return a
+
+
+def tex_wind():
+    """Попутный ветер: белые стрелки вперёд на прозрачном, текстура бежит по полосе."""
+    a = Atlas(32, 32, 75)
+    white, pale = rgb("F4F8FF"), rgb("B8DCF4")
+    for row in (0, 16):
+        for k in range(8):
+            for x in (15 - k, 16 + k):
+                a.px(x, row + 3 + k, white)
+                a.px(x, row + 4 + k, white)
+                a.px(x, row + 5 + k, pale)
+    return a
+
+
 def tex_grass():
     a = Atlas(64, 64, 55)
     g, gd, gl = rgb("4E8A3C"), rgb("386C30"), rgb("78AE4C")
@@ -1129,7 +1160,7 @@ SETS = {
                    pirate_barrel, pirate_crate, pirate_chest, pirate_cannon, pirate_palm, pirate_flag, pirate_lighthouse,
                    pirate_cart, pirate_cart_rival, pirate_pistol, pirate_hoop, pirate_keg],
         "textures": {"sand": tex_sand, "planks": tex_planks, "water": tex_water, "rock": tex_rock, "sail": tex_sail,
-                     "grass": tex_grass, "road": tex_road, "sky": tex_sky},
+                     "grass": tex_grass, "road": tex_road, "mud": tex_mud, "wind": tex_wind, "sky": tex_sky},
     },
 }
 
