@@ -399,10 +399,11 @@ func draw_slot(slot: StringName, center: Vector2, px: float, flip := false, angl
 # --- 16/32-bit (#95) ----------------------------------------------------------------------
 
 ## Экран 16/32 на всю область демки: палитра сеттинга записи, чужая палитра при баге ложится на
-## слой мира. Демка рисует в трёх колбэках (фон, мир, HUD), каждый получает свой слой.
-func bit16_screen(draw_backdrop: Callable, draw_world: Callable, draw_hud: Callable) -> Bit16Screen:
+## слой мира. Демка рисует в трёх колбэках (фон, мир, HUD), каждый получает свой слой; `scale`
+## увеличение экрана, ×3 для крупного плана.
+func bit16_screen(draw_backdrop: Callable, draw_world: Callable, draw_hud: Callable, scale := Bit16Screen.SCALE) -> Bit16Screen:
 	bit16_set = SettingDef.of(record.setting if record != null else Game.Setting.PIRATES)
-	bit16 = Bit16Screen.make(embed_size if embedded else CardFrame.inner_size(), embedded, bit16_set.colors16())
+	bit16 = Bit16Screen.make(embed_size if embedded else CardFrame.inner_size(), embedded, bit16_set.colors16(), scale)
 	bit16.draw_backdrop = draw_backdrop
 	bit16.draw_world = draw_world
 	bit16.draw_hud = draw_hud

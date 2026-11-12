@@ -5,9 +5,10 @@
 автоматически получает тень по нижнему и правому краю и чёрную обводку: так шесть кадров бега
 выходят из одной позы с разной фазой, а не из шести карт вручную.
 
-Здесь стартовый набор «Пиратов», которого хватает основе и её пробным демкам: герой сбоку и со
-спины, скелет сбоку и лицом, дублон, флаг, земля, камень, сундук и три слоя параллакса. Полный
-набор под пять демок приходит с #96. Пишет PNG в thegames/assets/settings/<сеттинг>/16bit/ и
+Здесь набор «Пиратов»: стартовый для основы и её пробных демок (герой сбоку и со спины, скелет
+сбоку и лицом, дублон, флаг, земля, камень, сундук, три слоя параллакса) и для платформера «по
+клеткам» (#98: прыжок и стойка героя, стражник, шипы, якорь, плита, сердце). Ленты
+остальных демок приходят вместе с ними (#96). Пишет PNG в thegames/assets/settings/<сеттинг>/16bit/ и
 превью-лист в --preview.
 
     python3 tools/pixel_sprites16.py                 # сгенерировать
@@ -219,6 +220,149 @@ def sailor_back(phase):
     return c.finish()
 
 
+def sailor_leap(i):
+    """Прыжок через клетку, четыре кадра: присел, толчок, поджал ноги, приземление."""
+    c = Canvas()
+    crouch = (3, 0, -1, 2)[i]
+    legs = ((2, 2), (5, -4), (3, -1), (4, 3))[i]
+    hip_y = 21 + crouch
+    c.line(15, 14 + crouch, 12 - i % 2, 11 + crouch if i in (1, 2) else 19 + crouch, TAN, 3)
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
+        foot = (15 + sign * legs[0] + (2 if i == 1 else 0), 29 if i in (0, 3) else 27 - (2 if i == 2 else 0))
+        knee = ((15 + foot[0]) / 2 + 2 + legs[1] * 0.3, (hip_y + foot[1]) / 2 + (2 if i == 2 else 0))
+        c.line(15 + sign, hip_y, knee[0], knee[1], cloth, 4)
+        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
+        c.rect(foot[0] - 1, foot[1], foot[0] + 3, foot[1] + 1, BARK)
+    _stripes(c, 11, 12 + crouch, 19, hip_y)
+    c.line(16, 14 + crouch, 20 + i % 2, 10 + crouch if i in (1, 2) else 19 + crouch, SKIN, 3)
+    c.ellipse(16, 7 + crouch, 5, 5, SKIN)
+    for y in range(1 + crouch, 6 + crouch):
+        for x in range(10, 23):
+            if c.get(x, y) == SKIN:
+                c.set(x, y, RED)
+    c.rect(9, 5 + crouch, 10, 7 + crouch, RED)
+    c.set(21, 8 + crouch, SKIN)
+    c.finish()
+    c.set(19, 7 + crouch, K)
+    return c
+
+
+def sailor_idle(i):
+    """Стойка: два кадра, матрос дышит."""
+    c = Canvas()
+    up = i
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
+        x = 15 + sign * 2
+        c.rect(x - 1, 21, x + 1, 29, cloth)
+        c.rect(x - 1, 29, x + 2, 30, BARK)
+    c.line(14, 14 - up, 13, 20 - up, TAN, 3)
+    _stripes(c, 11, 12 - up, 19, 21)
+    c.line(17, 14 - up, 18, 20 - up, SKIN, 3)
+    c.ellipse(16, 7 - up, 5, 5, SKIN)
+    for y in range(1 - up, 6 - up):
+        for x in range(10, 23):
+            if c.get(x, y) == SKIN:
+                c.set(x, y, RED)
+    c.rect(9, 5 - up, 10, 7 - up, RED)
+    c.set(21, 8 - up, SKIN)
+    c.finish()
+    c.set(19, 7 - up, K)
+    return c
+
+
+# --- Стражник ----------------------------------------------------------------------------------
+
+def guard_side(phase):
+    """Стражник сбоку, лицом влево: треуголка, красный кафтан, сабля вперёд; шаг по фазе."""
+    c = Canvas()
+    s = math.sin(phase)
+    bob = int(round(abs(s) * 1.2))
+    for sign, cloth in ((-1, BARK), (1, WOOD)):
+        a = s * sign
+        lift = max(0.0, math.cos(phase) * sign) * 2.5
+        foot = (16 - 5 * a, 29 - lift)
+        knee = ((16 + foot[0]) / 2 - 1.5, (22 - bob + foot[1]) / 2)
+        c.line(16 - sign, 22 - bob, knee[0], knee[1], cloth, 4)
+        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
+        c.rect(foot[0] - 3, foot[1], foot[0] + 1, foot[1] + 1, K)
+    # Кафтан с полой и золотым поясом.
+    c.rect(11, 12 - bob, 20, 22 - bob, RED)
+    c.poly([(11, 22 - bob), (21, 22 - bob), (22, 25 - bob), (12, 25 - bob)], RED)
+    c.rect(11, 18 - bob, 20, 19 - bob, GOLD)
+    # Рука с саблей вытянута вперёд.
+    c.line(14, 15 - bob, 9, 17 - bob + s, SKIN, 3)
+    c.line(8, 17 - bob + s, 1, 12 - bob + s, GREY, 2)
+    c.set(8, 18 - bob + s, GOLD)
+    # Голова и треуголка.
+    c.ellipse(15, 8 - bob, 4.5, 4.5, SKIN)
+    c.poly([(8, 5 - bob), (22, 5 - bob), (19, 1 - bob), (11, 2 - bob)], NAVY)
+    c.rect(8, 5 - bob, 22, 5 - bob, GOLD)
+    c.finish()
+    c.set(12, 8 - bob, K)
+    return c
+
+
+# --- Ловушки -----------------------------------------------------------------------------------
+
+def spikes(i):
+    """Шипы из палубы, четыре кадра: спрятаны, показались, наполовину, во весь рост."""
+    c = Canvas()
+    h = (0, 5, 13, 22)[i]
+    for x in (3, 11, 19, 27):
+        c.rect(x - 1, 30, x + 2, 31, BARK)
+        if h > 0:
+            c.poly([(x - 2, 31), (x + 3, 31), (x + 0.5, 31 - h)], GREY)
+            c.line(x, 30, x + 0.5, 31 - h + 2, WHITE, 1)
+    if h > 0:
+        c.shade()
+        c.outline()
+    return c
+
+
+def anchor():
+    """Якорь на цепи: лапы полумесяцем, веретено, кольцо сверху под цепь."""
+    c = Canvas()
+    c.ellipse(15.5, 18, 13, 11, GREY)
+    c.ellipse(15.5, 12, 13, 9, None)
+    for y in range(0, 14):
+        for x in range(0, 32):
+            if c.get(x, y) == GREY and ((x - 15.5) / 13.0) ** 2 + ((y - 12) / 9.0) ** 2 <= 1.0:
+                c.px[y][x] = None
+    c.rect(14, 4, 17, 20, WOOD)
+    c.ellipse(15.5, 3, 2.5, 2.5, BRASS)
+    c.line(5, 23, 26, 23, WHITE, 1)
+    return c.finish()
+
+
+def plate(i):
+    """Плита над водой, три кадра: целая, в трещинах, рассыпается."""
+    c = Canvas()
+    if i < 2:
+        c.rect(0, 0, 31, 9, WOOD)
+        c.rect(0, 0, 31, 1, GOLD)
+        c.rect(0, 9, 31, 9, BARK)
+        for x in (10, 21):
+            c.rect(x, 2, x, 8, BARK)
+        if i == 1:
+            for x0, y0, x1, y1 in ((4, 2, 8, 8), (15, 1, 13, 9), (25, 3, 28, 8)):
+                c.line(x0, y0, x1, y1, K, 1)
+    else:
+        for x0, y0, w in ((1, 2, 7), (11, 5, 8), (22, 1, 8), (6, 12, 6), (18, 14, 7)):
+            c.rect(x0, y0, x0 + w, y0 + 5, WOOD)
+            c.rect(x0, y0 + 5, x0 + w, y0 + 5, BARK)
+    return c
+
+
+def heart():
+    """Жизнь в HUD."""
+    c = Canvas()
+    c.ellipse(11, 12, 5.5, 5.5, RED)
+    c.ellipse(20, 12, 5.5, 5.5, RED)
+    c.poly([(5, 14), (26, 14), (15.5, 26)], RED)
+    c.rect(9, 9, 10, 10, WHITE)
+    return c.finish()
+
+
 # --- Скелет ------------------------------------------------------------------------------------
 
 def skeleton_side(phase):
@@ -406,6 +550,13 @@ def pirates():
     return {
         "hero_run": strip([sailor_side(p) for p in phases()]),
         "hero_jump": sailor_side(0.0, jump=True),
+        "hero_leap": strip([sailor_leap(i) for i in range(4)]),
+        "hero_idle": strip([sailor_idle(i) for i in range(2)]),
+        "guard_walk": strip([guard_side(p) for p in phases()]),
+        "spikes": strip([spikes(i) for i in range(4)]),
+        "anchor": anchor(),
+        "plate": strip([plate(i) for i in range(3)]),
+        "heart": heart(),
         "hero_back": strip([sailor_back(p) for p in phases()]),
         "enemy_walk": strip([skeleton_side(p) for p in phases()]),
         "enemy_front": strip([skeleton_front(p) for p in phases()]),

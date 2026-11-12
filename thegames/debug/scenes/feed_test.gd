@@ -5,7 +5,7 @@ extends Control
 ## спеке, сдвиги критиков, выбор стримера, сигналы кнопок. Флаги `--no-checks`, `--quality=`,
 ## `--bugs=`, `--end` (пролистать в конец), `--genre=racing`, `--genre=shooter`, `--genre=sport` или
 ## `--genre=fighting` (стрим крутит демку гонок, шутера, гольфа или файтинга), `--tech=vector`
-## (демка пары на векторе).
+## или `--tech=bit16` (демка пары на векторе или 16/32-bit).
 
 const SECTION: StringName = &"Лента"
 ## Сцена грузится при запуске, не `preload`: константная ссылка на сцену с вложенным классом
@@ -23,7 +23,7 @@ var seed_value := 1
 ## Жанр записи: стрим ленты крутит демку этой пары (`--genre=racing`, #48; `--genre=shooter`, #50;
 ## `--genre=sport`, #52; `--genre=fighting`, #54).
 var genre := Game.Genre.PLATFORMER
-## Технология записи (`--tech=vector`), по умолчанию 8-bit.
+## Технология записи (`--tech=vector|bit16`), по умолчанию 8-bit.
 var tech := Game.Tech.BIT8
 var tuning: SuccessTuning
 var catalog: BugCatalog
@@ -159,13 +159,15 @@ func _run_checks() -> void:
 			"формат просмотров")
 	var tag := Feed.hashtag(str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])))
 	_expect(content.tag == tag, "хэштег %s" % content.tag)
-	# Сдвиги: ненавистник багов ниже общей C при двух багах, любитель ретро выше на 8-bit.
+	# Сдвиги: ненавистник багов ниже общей C при двух багах, любитель ретро выше на векторе и
+	# 8-bit и ниже на технологиях новее (16/32-bit, #98).
+	var retro := tech <= Game.Tech.BIT8
 	var by_id := {}
 	for item in content.items:
 		if item.kind == K.CRITIC:
 			by_id[item.person.id] = item.score
 	var c := record.score.critics
-	_expect(by_id[&"ignat"] < c and by_id[&"marta"] > c, "сдвиги критиков %s при C %.1f" % [by_id, c])
+	_expect(by_id[&"ignat"] < c and (by_id[&"marta"] > c if retro else by_id[&"marta"] < c), "сдвиги критиков %s при C %.1f" % [by_id, c])
 	_expect(content.clip_person != null and content.clip_person.id == &"kraken", "клип у любителя багов: %s" % (content.clip_person.id if content.clip_person else ""))
 	var clip: FeedContent.Item
 	for item in content.items:
@@ -186,7 +188,10 @@ func _run_checks() -> void:
 	var clean := _make_record()
 	clean.score = Success.score_release(clean, [], MarketState.create(tuning, rng, true), tuning, catalog, rng, false)
 	var clean_feed := Feed.build(clean, clean.score, critics, streamers, texts, tuning, catalog, rng)
-	_expect(clean_feed.clip_person.id != &"kraken", "чистая сборка: клип у %s" % clean_feed.clip_person.id)
+	# На 16/32-bit ни один характер стримера не срабатывает (ретро до 8-bit, 3D с low-poly),
+	# охваты равны и клип достаётся первому в списке, поэтому проверка только там, где есть любитель.
+	if retro or tech >= Game.Tech.LOWPOLY:
+		_expect(clean_feed.clip_person.id != &"kraken", "чистая сборка: клип у %s" % clean_feed.clip_person.id)
 	_expect(Feed.critic_score(critics.people[1], clean.score, clean, tuning) > clean.score.critics, "ненавистник багов без багов")
 	# Сигнал капа (#62): с `veteran` ровно один критик называет студию ветераном.
 	var vet := Feed.build(clean, clean.score, critics, streamers, texts, tuning, catalog, rng, 0.0, true, "Тихая Лампа")

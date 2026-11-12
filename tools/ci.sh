@@ -54,6 +54,9 @@ step "feed fighting vector" sh tools/autotest.sh --scene=feed_test --genre=fight
 step "bit16 sheet" sh tools/autotest.sh --scene=bit16_test --frames=120
 step "bit16 probe side bugs" sh tools/autotest.sh --scene=bit16_test --probe=side --bugs --frames=2500
 step "bit16 probe depth bugs" sh tools/autotest.sh --scene=bit16_test --probe=depth --bugs --frames=2500
+step "demo platformer bit16" sh tools/autotest.sh --scene=demo_test --tech=bit16 --frames=5000
+step "demo platformer bit16 bugs" sh tools/autotest.sh --scene=demo_test --tech=bit16 --bugs --frames=7000
+step "feed platformer bit16" sh tools/autotest.sh --scene=feed_test --tech=bit16 --frames=400
 step "demo racing" sh tools/autotest.sh --scene=demo_test --genre=racing --frames=5000
 step "demo racing bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --bugs --frames=5000
 step "feed racing" sh tools/autotest.sh --scene=feed_test --genre=racing --frames=400

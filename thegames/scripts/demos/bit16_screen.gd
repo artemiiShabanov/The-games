@@ -7,7 +7,8 @@ extends SubViewportContainer
 ## палитра), `hud`; демка рисует в колбэках `draw_backdrop`, `draw_world`, `draw_hud`.
 ## Спрайт это лента кадров 32 пикселя шириной (`frames`, `sprite`). Палитра сеттинга из 16
 ## цветов, индекс это роль (`K` обводка … `PINE` тень зелени, как в `tools/pixel_sprites16.py`).
-## Во встроенном режиме (стрим ленты) увеличение ×1 и экран размером с рамку.
+## Демке с крупным планом можно взять ×3 (554×277). Во встроенном режиме (стрим ленты)
+## увеличение на ступень меньше, экран размером с рамку.
 ## Баг технологии 16/32 `layer_tear` (#97, `set_tear`): раз в несколько секунд кадр рвёт, две
 ## горизонтальные полосы экрана на полсекунды уезжают вбок. Живёт здесь, поэтому работает в
 ## любой демке 16/32; вторая половина бага, слои фона вразнобой, в `Parallax16`.
@@ -60,10 +61,11 @@ var _tear_rng := RandomNumberGenerator.new()
 var _tear_material: ShaderMaterial
 
 
-## Экран в области `area`: во встроенном режиме мельче и без увеличения.
-static func make(area: Vector2, embedded: bool, palette_: Array[Color]) -> Bit16Screen:
+## Экран в области `area` с увеличением `scale` (по умолчанию ×2; демка с крупным планом берёт
+## ×3); во встроенном режиме увеличение на ступень меньше.
+static func make(area: Vector2, embedded: bool, palette_: Array[Color], scale := SCALE) -> Bit16Screen:
 	var s := Bit16Screen.new()
-	var shrink := EMBED_SCALE if embedded else SCALE
+	var shrink := maxi(scale - 1, EMBED_SCALE) if embedded else scale
 	s.palette = palette_
 	s.view = (area / shrink).floor()
 	s.position = ((area - s.view * shrink) / 2.0).floor()

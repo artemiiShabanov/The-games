@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="PlatformerBit16GenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_bit16_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+width = 110
+start_flat = 4
+end_flat = 5
+rest_min = 2
+rest_max = 3
+weight_pit = 2.0
+weight_spikes = 2.0
+weight_spikes_pair = 1.5
+weight_anchor = 2.0
+weight_plates = 1.5
+weight_guard = 2.0
+weight_pit_spikes = 1.0
+pits_min = 2
+spike_period_first = 2.2
+spike_period_last = 1.6
+anchor_period_first = 2.4
+anchor_period_last = 1.9
+plates_min = 2
+plates_max = 3
+guard_min = 4
+guard_max = 6
+guard_step_first = 0.5
+guard_step_last = 0.4
+coin_trap_chance = 0.8
+coin_rest_chance = 0.35

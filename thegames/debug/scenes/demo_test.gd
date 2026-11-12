@@ -1,5 +1,5 @@
 extends Control
-## Тестовая сцена демки: запускает демку жанра и технологии (`--tech=vector|bit8`, по умолчанию
+## Тестовая сцена демки: запускает демку жанра и технологии (`--tech=vector|bit8|bit16`, по умолчанию
 ## 8-bit), сида и набора багов из раздела «Демки»
 ## дебаг-меню (`Debug.demo_genre`, `Debug.demo_seed`, `Debug.demo_bugs`). После экрана итога
 ## показывает, куда «вернулись», A запускает снова. Под ботом: WIN добегает до флага (гонки:
@@ -19,7 +19,8 @@ extends Control
 ## WIN приходит первым, LOSE едет без газа. У шутера × вектор (#92) генератор волн; WIN отбивается от
 ## тридцати, LOSE не стреляет. У спорта × вектор (#93, понг) генератор матча; WIN выигрывает до
 ## пяти, LOSE не двигает ракетку. У файтинга × вектор (#94, дуэль) генератор плана; WIN бьёт
-## сразу после вспышки, LOSE до неё.
+## сразу после вспышки, LOSE до неё. У платформера × 16/32-bit (`--tech=bit16`, #98) генератор
+## клеток; WIN проходит ловушки по плану, LOSE идёт вправо в первую яму.
 
 
 var demo: Demo
@@ -49,6 +50,8 @@ func _ready() -> void:
 		AutoTest.require("demo checks")
 		if _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.VECTOR:
 			_check_towers()
+		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.BIT16:
+			_check_grids()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
@@ -222,6 +225,34 @@ func _check_duels() -> void:
 	_expect(DuelPlanGen.generate(7, t).signature() == DuelPlanGen.generate(7, t).signature(), "дуэль сида 7 не повторяется")
 	_expect(DuelPlanGen.generate(7, t).signature() != DuelPlanGen.generate(8, t).signature(), "дуэли сидов 7 и 8 одинаковые")
 	AutoTest.note("fighting vector: 100 сидов прошли проверку; дуэль бота WIN без окна в среднем %.1f с" % (seconds / 100.0))
+
+
+## Платформер × 16/32-bit «по клеткам» (#98): сто сидов дают уровень, который проходит проверку
+## генератора (ямы и ловушки с полом по краям, места возврата на полу и не на пути стражников,
+## ровные края), генерация детерминирована; на каждом сиде бот WIN без окна (`GridSim.simulate`)
+## доходит до флага, не потеряв ни одной жизни, а бот LOSE теряет все.
+func _check_grids() -> void:
+	var t := PlatformerBit16GenTuning.load_default()
+	var dt := PlatformerBit16Tuning.load_default()
+	var traps := 0
+	var seconds: Array[float] = []
+	for s in range(1, 101):
+		var lv := GridLevelGen.generate(s, t)
+		var why := GridLevelGen.validate(lv, t)
+		_expect(why == "", "клетки сида %d: %s" % [s, why])
+		var kinds := lv.counts()
+		traps += kinds[GridLevel.Cell.PIT] + kinds[GridLevel.Cell.SPIKES] + kinds[GridLevel.Cell.ANCHOR] + lv.guards.size()
+		var win := GridSim.simulate(lv, dt, AutoTest.BotMode.WIN)
+		_expect(win.won and win.deaths == 0, "клетки сида %d: бот WIN %s, клетка %d из %d, потеряно жизней %d" % [s,
+				"дошёл" if win.won else "не дошёл", win.cell, lv.flag, win.deaths])
+		seconds.append(win.time)
+		var lose := GridSim.simulate(lv, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "клетки сида %d: бот LOSE не проиграл за %.0f с" % [s, lose.time])
+	_expect(GridLevelGen.generate(7, t).signature() == GridLevelGen.generate(7, t).signature(), "клетки сида 7 не повторяются")
+	_expect(GridLevelGen.generate(7, t).signature() != GridLevelGen.generate(8, t).signature(), "клетки сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("platformer bit16: 100 сидов прошли проверку, ловушек и стражников в среднем %.1f; бот WIN без окна: медиана %.1f с, от %.1f до %.1f" % [
+			traps / 100.0, seconds[50], seconds[0], seconds[99]])
 
 
 ## Гонки × вектор (#91): сто сидов дают заезд, который проходит проверку генератора (в каждом
