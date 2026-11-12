@@ -62,6 +62,8 @@ func _ready() -> void:
 			_check_holds()
 		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.BIT16:
 			_check_soccer()
+		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.BIT16:
+			_check_brawl()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
@@ -235,6 +237,30 @@ func _check_duels() -> void:
 	_expect(DuelPlanGen.generate(7, t).signature() == DuelPlanGen.generate(7, t).signature(), "дуэль сида 7 не повторяется")
 	_expect(DuelPlanGen.generate(7, t).signature() != DuelPlanGen.generate(8, t).signature(), "дуэли сидов 7 и 8 одинаковые")
 	AutoTest.note("fighting vector: 100 сидов прошли проверку; дуэль бота WIN без окна в среднем %.1f с" % (seconds / 100.0))
+
+
+## Битемап × 16/32-bit (#102): сто сидов дают волны, которые проходят проверку генератора (три
+## экрана, на каждом один-три врага, на третьем боцман), генерация детерминирована; на каждом сиде
+## бот WIN без окна (`BrawlSim.simulate`) побивает все три экрана, бот LOSE проигрывает.
+func _check_brawl() -> void:
+	var dt := FightingBit16Tuning.load_default()
+	var seconds: Array[float] = []
+	var deaths := 0
+	for s in range(1, 101):
+		var w := BrawlWavesGen.generate(s, dt.depth)
+		var why := BrawlWavesGen.validate(w)
+		_expect(why == "", "волны сида %d: %s" % [s, why])
+		var win := BrawlSim.simulate(w, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "волны сида %d: бот WIN проиграл на экране %d" % [s, win.screen + 1])
+		seconds.append(win.time)
+		deaths += win.deaths
+		var lose := BrawlSim.simulate(w, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "волны сида %d: бот LOSE выиграл" % s)
+	_expect(BrawlWavesGen.generate(7).signature() == BrawlWavesGen.generate(7).signature(), "волны сида 7 не повторяются")
+	_expect(BrawlWavesGen.generate(7).signature() != BrawlWavesGen.generate(8).signature(), "волны сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("fighting bit16: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, теряет жизней в среднем %.2f" % [
+			seconds[50], seconds[0], seconds[99], deaths / 100.0])
 
 
 ## Футбол × 16/32-bit «один на одного» (#101): сто сидов дают план соперника в разбросах
