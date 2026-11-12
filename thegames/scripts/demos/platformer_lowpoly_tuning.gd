@@ -34,9 +34,9 @@ const PATH := "res://resources/demos/platformer_lowpoly.tres"
 @export var bot_guard_margin := 1.4
 @export var bot_edge_margin := 0.7
 ## Камера за спиной: расстояние, высота, высота точки взгляда.
-@export var cam_distance := 5.4
-@export var cam_height := 2.9
-@export var cam_look := 1.0
+@export var cam_distance := 4.0
+@export var cam_height := 2.1
+@export var cam_look := 1.2
 ## Стоп-кадр на потере жизни, секунды.
 @export var hit_stop := 0.12
 @export var music_db := -10.0
