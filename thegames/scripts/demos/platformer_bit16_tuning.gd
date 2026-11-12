@@ -1,35 +1,53 @@
 class_name PlatformerBit16Tuning
 extends Resource
-## Темп и правила демки платформер × 16/32-bit «по клеткам» (#98), ресурс
-## `res://resources/demos/platformer_bit16.tres`. Секунды и клетки.
+## Физика и правила демки платформер × 16/32-bit «тропа» (#98), ресурс
+## `res://resources/demos/platformer_bit16.tres`. Пиксели мира, секунды; мир шагает 60 раз в
+## секунду.
 
 const PATH := "res://resources/demos/platformer_bit16.tres"
 
-## Жизни: одна за яму, шипы, якорь и стражника.
 @export var lives := 3
-## Шаг на клетку и прыжок через одну клетку: 12 и 24 кадра при 60 в секунду.
-@export var step_seconds := 0.2
-@export var jump_seconds := 0.4
-## Нажатый заранее прыжок ждёт конца шага столько секунд.
-@export var jump_buffer := 0.25
-@export var fall_seconds := 0.45
-@export var hurt_seconds := 0.7
-@export var invulnerable_seconds := 1.2
-## Шипы: доля периода, когда они торчат, и доля перед этим, когда показываются кончики.
-@export var spike_up := 0.45
-@export var spike_warn := 0.12
-## Якорь: доля периода, когда он внизу (падает и лежит), и доля перед этим, когда он дрожит.
-@export var anchor_down := 0.3
-@export var anchor_warn := 0.15
-## Плита осыпается через столько после первого шага на неё.
-@export var plate_seconds := 0.6
-## Стражник стоит на краю участка столько, прежде чем повернуть.
-@export var guard_pause := 0.5
-## Бот WIN: запас по времени вокруг ловушек, горизонт плана в шагах героя и сколько секунд он
-## ждёт без плана, прежде чем пойти наудачу.
-@export var bot_margin := 0.09
-@export var bot_horizon := 50
-@export var bot_patience := 4.0
+@export var gravity := 980.0
+## Прыжок: скорость вверх (высота v²/2g ≈ 59 пикселей), запас после края и нажатие заранее.
+@export var jump_speed := 340.0
+@export var coyote := 0.08
+@export var jump_buffer := 0.12
+## Бег с инерцией: разгон, торможение без стрелки, разворот, наибольшая скорость; в воздухе
+## разгон слабее.
+@export var run_max := 150.0
+@export var run_accel := 420.0
+@export var run_friction := 520.0
+@export var run_turn := 900.0
+@export var air_accel := 300.0
+## Склон тянет вниз долей тяжести; в гору наибольшая скорость меньше на долю наклона.
+@export var slope_pull := 0.55
+@export var uphill_slow := 0.5
+## Слайд: с места толчок до `slide_start`, на ходу прибавка `slide_boost`, трение, под
+## потолком ползком не медленнее `slide_crawl`, кончается при скорости ниже `slide_stop`.
+@export var slide_start := 130.0
+@export var slide_boost := 40.0
+@export var slide_max := 280.0
+@export var slide_friction := 150.0
+@export var slide_crawl := 50.0
+@export var slide_stop := 40.0
+## Лиана: хват за нижние доли длины, раскачка стрелкой, затухание, прибавка вверх при отпуске,
+## сколько нельзя схватить ту же лиану снова.
+@export var vine_grab_from := 0.35
+@export var vine_grab_radius := 11.0
+@export var vine_pump := 260.0
+@export var vine_damping := 0.15
+@export var vine_max_deg := 72.0
+@export var vine_release_up := 150.0
+@export var vine_regrab := 0.35
+## Удар врага: отброс, неуязвимость; падение в воду, потом возврат.
+@export var hurt_knock := 140.0
+@export var hurt_up := 200.0
+@export var invulnerable_seconds := 1.4
+@export var drown_seconds := 0.7
+## Бот WIN: решение раз в столько секунд, горизонт прогона вариантов и добор до приземления.
+@export var bot_every := 0.1
+@export var bot_horizon := 1.1
+@export var bot_land_extra := 1.2
 @export var music_db := -12.0
 @export var sfx_db := -6.0
 

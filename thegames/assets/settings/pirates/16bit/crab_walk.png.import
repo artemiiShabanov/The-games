@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwe8tlaldurml"
-path="res://.godot/imported/anchor.png-a2b18609cda7ad6a9bbd30836f77d6b7.ctex"
+uid="uid://bmqekb8v8j6ut"
+path="res://.godot/imported/crab_walk.png-2f5d739ee3151375a0b4a3d776c6ecb6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/16bit/anchor.png"
-dest_files=["res://.godot/imported/anchor.png-a2b18609cda7ad6a9bbd30836f77d6b7.ctex"]
+source_file="res://assets/settings/pirates/16bit/crab_walk.png"
+dest_files=["res://.godot/imported/crab_walk.png-2f5d739ee3151375a0b4a3d776c6ecb6.ctex"]
 
 [params]
 

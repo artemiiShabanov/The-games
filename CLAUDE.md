@@ -59,8 +59,8 @@
   (#95): лист спрайтов и палитры `--scene=bit16_test --frames=120`, пробные демки `--probe=side`
   (вид сбоку с параллаксом) и `--probe=depth` (вид вглубь) `[--bugs|--bug=<id>] [--setting=N]
   --frames=2500`; спрайты рисует `python3 tools/pixel_sprites16.py [--preview out.png]`. Платформер ×
-  16/32-bit «по клеткам» (#98): `--scene=demo_test --tech=bit16 --frames=5000`, уровень по сиду и
-  боты без окна текстом `debug/tools/dump_grid.gd -- <seed> [count] [wild,sneeze,coins]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  16/32-bit «тропа» (#98): `--scene=demo_test --tech=bit16 --frames=5000`, уровень по сиду и
+  боты без окна текстом `debug/tools/dump_trail.gd -- <seed> [count] [wild,sneeze,coins]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks

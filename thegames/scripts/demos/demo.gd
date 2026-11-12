@@ -418,8 +418,9 @@ func bit16_screen(draw_backdrop: Callable, draw_world: Callable, draw_hud: Calla
 
 ## Фон вида сбоку для демки 16/32. С багом технологии `layer_tear` (#97) слои едут вразнобой:
 ## облака навстречу, берег быстрее и в свою сторону, вода назад; ленты слоёв рвёт пополам.
-func parallax16() -> Parallax16:
-	var p := Parallax16.of(bit16_set)
+## Свои слои демки: имена лент, доли скорости и верх на экране (`Parallax16.of_layers`).
+func parallax16(names: Array[String] = [], factors: Array[float] = [], tops: Array[float] = []) -> Parallax16:
+	var p := Parallax16.of(bit16_set) if names.is_empty() else Parallax16.of_layers(bit16_set, names, factors, tops)
 	if has_bug(&"layer_tear"):
 		p.bug_dir = [bug_param(&"layer_tear", &"dir_sky", -3.0), bug_param(&"layer_tear", &"dir_far", 2.2),
 				bug_param(&"layer_tear", &"dir_mid", -1.0)]

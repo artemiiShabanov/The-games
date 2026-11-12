@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://deqge10v5xjf6"
-path="res://.godot/imported/spikes.png-194c56aa5e035ab2f7f27ae8a74c7643.ctex"
+uid="uid://bdjbus1h35hfo"
+path="res://.godot/imported/parrot_fly.png-21249993463e2fe0234b9759ff7ca59c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/16bit/spikes.png"
-dest_files=["res://.godot/imported/spikes.png-194c56aa5e035ab2f7f27ae8a74c7643.ctex"]
+source_file="res://assets/settings/pirates/16bit/parrot_fly.png"
+dest_files=["res://.godot/imported/parrot_fly.png-21249993463e2fe0234b9759ff7ca59c.ctex"]
 
 [params]
 

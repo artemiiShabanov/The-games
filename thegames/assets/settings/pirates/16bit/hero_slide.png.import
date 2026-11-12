@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5hpgm2snlwsl"
-path="res://.godot/imported/plate.png-d1ea5175874373398c06f693d139edf4.ctex"
+uid="uid://24uon0gusfl4"
+path="res://.godot/imported/hero_slide.png-66b56991bed320c6eec0ad206656e30c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/16bit/plate.png"
-dest_files=["res://.godot/imported/plate.png-d1ea5175874373398c06f693d139edf4.ctex"]
+source_file="res://assets/settings/pirates/16bit/hero_slide.png"
+dest_files=["res://.godot/imported/hero_slide.png-66b56991bed320c6eec0ad206656e30c.ctex"]
 
 [params]
 

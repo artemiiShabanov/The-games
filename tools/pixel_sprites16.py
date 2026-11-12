@@ -6,9 +6,10 @@
 выходят из одной позы с разной фазой, а не из шести карт вручную.
 
 Здесь набор «Пиратов»: стартовый для основы и её пробных демок (герой сбоку и со спины, скелет
-сбоку и лицом, дублон, флаг, земля, камень, сундук, три слоя параллакса) и для платформера «по
-клеткам» (#98: прыжок и стойка героя, стражник, шипы, якорь, плита, сердце). Ленты
-остальных демок приходят вместе с ними (#96). Пишет PNG в thegames/assets/settings/<сеттинг>/16bit/ и
+сбоку и лицом, дублон, флаг, земля, камень, сундук, три слоя параллакса) и для платформера
+«тропа» (#98: прыжок, стойка и сердце здесь, остальное в `pixel_trail16.py`: слайд и вис героя,
+краб, попугай, детальный фон и передний план в своих палитрах). Ленты остальных демок приходят
+вместе с ними (#96). Пишет PNG в thegames/assets/settings/<сеттинг>/16bit/ и
 превью-лист в --preview.
 
     python3 tools/pixel_sprites16.py                 # сгенерировать
@@ -270,89 +271,6 @@ def sailor_idle(i):
     return c
 
 
-# --- Стражник ----------------------------------------------------------------------------------
-
-def guard_side(phase):
-    """Стражник сбоку, лицом влево: треуголка, красный кафтан, сабля вперёд; шаг по фазе."""
-    c = Canvas()
-    s = math.sin(phase)
-    bob = int(round(abs(s) * 1.2))
-    for sign, cloth in ((-1, BARK), (1, WOOD)):
-        a = s * sign
-        lift = max(0.0, math.cos(phase) * sign) * 2.5
-        foot = (16 - 5 * a, 29 - lift)
-        knee = ((16 + foot[0]) / 2 - 1.5, (22 - bob + foot[1]) / 2)
-        c.line(16 - sign, 22 - bob, knee[0], knee[1], cloth, 4)
-        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
-        c.rect(foot[0] - 3, foot[1], foot[0] + 1, foot[1] + 1, K)
-    # Кафтан с полой и золотым поясом.
-    c.rect(11, 12 - bob, 20, 22 - bob, RED)
-    c.poly([(11, 22 - bob), (21, 22 - bob), (22, 25 - bob), (12, 25 - bob)], RED)
-    c.rect(11, 18 - bob, 20, 19 - bob, GOLD)
-    # Рука с саблей вытянута вперёд.
-    c.line(14, 15 - bob, 9, 17 - bob + s, SKIN, 3)
-    c.line(8, 17 - bob + s, 1, 12 - bob + s, GREY, 2)
-    c.set(8, 18 - bob + s, GOLD)
-    # Голова и треуголка.
-    c.ellipse(15, 8 - bob, 4.5, 4.5, SKIN)
-    c.poly([(8, 5 - bob), (22, 5 - bob), (19, 1 - bob), (11, 2 - bob)], NAVY)
-    c.rect(8, 5 - bob, 22, 5 - bob, GOLD)
-    c.finish()
-    c.set(12, 8 - bob, K)
-    return c
-
-
-# --- Ловушки -----------------------------------------------------------------------------------
-
-def spikes(i):
-    """Шипы из палубы, четыре кадра: спрятаны, показались, наполовину, во весь рост."""
-    c = Canvas()
-    h = (0, 5, 13, 22)[i]
-    for x in (3, 11, 19, 27):
-        c.rect(x - 1, 30, x + 2, 31, BARK)
-        if h > 0:
-            c.poly([(x - 2, 31), (x + 3, 31), (x + 0.5, 31 - h)], GREY)
-            c.line(x, 30, x + 0.5, 31 - h + 2, WHITE, 1)
-    if h > 0:
-        c.shade()
-        c.outline()
-    return c
-
-
-def anchor():
-    """Якорь на цепи: лапы полумесяцем, веретено, кольцо сверху под цепь."""
-    c = Canvas()
-    c.ellipse(15.5, 18, 13, 11, GREY)
-    c.ellipse(15.5, 12, 13, 9, None)
-    for y in range(0, 14):
-        for x in range(0, 32):
-            if c.get(x, y) == GREY and ((x - 15.5) / 13.0) ** 2 + ((y - 12) / 9.0) ** 2 <= 1.0:
-                c.px[y][x] = None
-    c.rect(14, 4, 17, 20, WOOD)
-    c.ellipse(15.5, 3, 2.5, 2.5, BRASS)
-    c.line(5, 23, 26, 23, WHITE, 1)
-    return c.finish()
-
-
-def plate(i):
-    """Плита над водой, три кадра: целая, в трещинах, рассыпается."""
-    c = Canvas()
-    if i < 2:
-        c.rect(0, 0, 31, 9, WOOD)
-        c.rect(0, 0, 31, 1, GOLD)
-        c.rect(0, 9, 31, 9, BARK)
-        for x in (10, 21):
-            c.rect(x, 2, x, 8, BARK)
-        if i == 1:
-            for x0, y0, x1, y1 in ((4, 2, 8, 8), (15, 1, 13, 9), (25, 3, 28, 8)):
-                c.line(x0, y0, x1, y1, K, 1)
-    else:
-        for x0, y0, w in ((1, 2, 7), (11, 5, 8), (22, 1, 8), (6, 12, 6), (18, 14, 7)):
-            c.rect(x0, y0, x0 + w, y0 + 5, WOOD)
-            c.rect(x0, y0 + 5, x0 + w, y0 + 5, BARK)
-    return c
-
-
 def heart():
     """Жизнь в HUD."""
     c = Canvas()
@@ -552,10 +470,6 @@ def pirates():
         "hero_jump": sailor_side(0.0, jump=True),
         "hero_leap": strip([sailor_leap(i) for i in range(4)]),
         "hero_idle": strip([sailor_idle(i) for i in range(2)]),
-        "guard_walk": strip([guard_side(p) for p in phases()]),
-        "spikes": strip([spikes(i) for i in range(4)]),
-        "anchor": anchor(),
-        "plate": strip([plate(i) for i in range(3)]),
         "heart": heart(),
         "hero_back": strip([sailor_back(p) for p in phases()]),
         "enemy_walk": strip([skeleton_side(p) for p in phases()]),
@@ -573,8 +487,19 @@ def pirates():
 
 
 def sets():
-    """Наборы: имя папки сеттинга → (палитра, спрайты)."""
-    return {"pirates": (PIRATES, pirates())}
+    """Наборы: имя папки сеттинга → (палитра, спрайты, палитры отдельных лент). Фон и передний план
+    тропы (#98) в своих палитрах, как слои у 16-битных приставок."""
+    import pixel_trail16 as trail
+    sprites = pirates()
+    sprites.update(trail.sprites())
+    own = {}
+    for key, canvas in trail.backdrop().items():
+        sprites[key] = canvas
+        own[key] = trail.PIRATES_BG
+    for key, canvas in trail.foreground().items():
+        sprites[key] = canvas
+        own[key] = trail.PIRATES_FG
+    return {"pirates": (PIRATES, sprites, own)}
 
 
 def rgba_rows(canvas, palette, scale=1, back=None):
@@ -594,27 +519,32 @@ def rgba_rows(canvas, palette, scale=1, back=None):
 
 
 def main():
-    for name, (palette, sprites) in sets().items():
+    for name, (palette, sprites, own) in sets().items():
         out = os.path.join(ROOT, "thegames", "assets", "settings", name, "16bit")
         os.makedirs(out, exist_ok=True)
         for key, canvas in sprites.items():
             with open(os.path.join(out, key + ".png"), "wb") as f:
-                f.write(png_bytes(canvas.w, canvas.h, rgba_rows(canvas, palette)))
+                f.write(png_bytes(canvas.w, canvas.h, rgba_rows(canvas, own.get(key, palette))))
         print("%s: %d спрайтов в %s" % (name, len(sprites), out))
     if "--preview" in sys.argv:
         path = sys.argv[sys.argv.index("--preview") + 1]
-        palette, sprites = sets()["pirates"]
-        scale = 4
+        palette, sprites, own = sets()["pirates"]
+        scale = 2
         pad = 8
-        width = max(c.w for c in sprites.values()) + 2 * pad
-        height = sum(c.h + pad for c in sprites.values()) + pad
-        sheet = Canvas(width, height)
-        y = pad
-        for canvas in sprites.values():
-            sheet.paste(canvas, pad, y)
-            y += canvas.h + pad
+        back = (0x3A, 0x56, 0x7A, 255)
+        width = (max(c.w for c in sprites.values()) + 2 * pad) * scale
+        rows = []
+        blank = list(back) * (width // scale) * scale
+        for _ in range(pad * scale):
+            rows.append(blank[:])
+        for key, canvas in sprites.items():
+            for row in rgba_rows(canvas, own.get(key, palette), scale, back):
+                line = list(back) * pad * scale + row
+                rows.append(line + list(back) * ((len(blank) - len(line)) // 4))
+            for _ in range(pad * scale):
+                rows.append(blank[:])
         with open(path, "wb") as f:
-            f.write(png_bytes(sheet.w * scale, sheet.h * scale, rgba_rows(sheet, palette, scale, (0x3A, 0x56, 0x7A, 255))))
+            f.write(png_bytes(width, len(rows), rows))
         print("превью: %s" % path)
 
 
