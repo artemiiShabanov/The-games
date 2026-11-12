@@ -16,3 +16,6 @@ horizon_light = Color(0.2314, 0.5255, 0.7686, 1)
 silhouette = Color(0.1686, 0.4196, 0.3098, 1)
 silhouette_dark = Color(0.1216, 0.3098, 0.2314, 1)
 vector_colors = Array[Color]([Color(0.0235, 0.0353, 0.0510, 1), Color(0.4039, 0.8314, 0.9098, 1), Color(1.0000, 0.8196, 0.4000, 1), Color(1.0000, 0.4196, 0.3569, 1)])
+meshes_lowpoly = "res://assets/settings/pirates/lowpoly/"
+lowpoly_colors = Array[Color]([Color(0.8902, 0.7882, 0.5451, 1), Color(0.1843, 0.4353, 0.7098, 1), Color(0.5412, 0.3529, 0.1961, 1), Color(0.9451, 0.9255, 0.8745, 1), Color(0.9373, 0.7608, 0.6039, 1), Color(0.8235, 0.2706, 0.2314, 1), Color(0.9490, 0.7137, 0.1961, 1), Color(0.2314, 0.2275, 0.2902, 1)])
+lowpoly_sky = Color(0.7059, 0.8627, 0.9255, 1)

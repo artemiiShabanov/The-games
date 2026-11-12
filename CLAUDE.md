@@ -70,7 +70,10 @@
   16/32-bit (#101): `--scene=demo_test --genre=sport --tech=bit16 --frames=7000`, план по сиду и
   боты без окна текстом `debug/tools/dump_soccer.gd -- <seed> [count] [wild,narrow,sneeze,space]`.
   Битемап × 16/32-bit (#102): `--scene=demo_test --genre=fighting --tech=bit16 --frames=7500`, волны
-  по сиду и боты без окна текстом `debug/tools/dump_brawl.gd -- <seed> [count] [wild,immortal,sneeze,ghost]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  по сиду и боты без окна текстом `debug/tools/dump_brawl.gd -- <seed> [count] [wild,immortal,sneeze,ghost]`. Основа low poly
+  (#108): лист мешей и палитры `--scene=lowpoly_test --frames=200`, пробные демки `--probe=behind`
+  (камера за спиной) и `--probe=first` (от первого лица) `[--bugs|--bug=<id>] [--setting=N]
+  [--seed=N] [--bot=lose] --frames=5000`; меши пишет `python3 tools/lowpoly_meshes.py [--list]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks

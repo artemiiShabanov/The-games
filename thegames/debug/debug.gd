@@ -72,6 +72,11 @@ var vector_persistence := 0.55
 var vector_probe := false
 ## `bit16_test` запускает пробную демку 16/32: "side" вид сбоку, "depth" вид вглубь; "" лист спрайтов.
 var bit16_probe := ""
+## `lowpoly_test` запускает пробную демку low poly: "behind" камера за спиной, "first" от первого
+## лица; "" лист мешей.
+var lowpoly_probe := ""
+## Увеличение экрана low poly (0 из `LowpolyTuning`).
+var lowpoly_scale := 0
 ## Демки рисуют поверх хитбоксы героя и врагов (#98, тропа 16/32); под автотестом `--hitboxes`.
 var hitboxes := false
 var demo_bugs: Array[StringName] = []
@@ -366,6 +371,15 @@ func _register_builtin() -> void:
 	add_action(SECTION_DEMOS, "16/32: проба вглубь с багами раздела", func() -> void:
 		bit16_probe = "depth"
 		run_test_scene("bit16_test"))
+	add_action(SECTION_DEMOS, "Low poly: лист мешей и палитра", func() -> void: run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Low poly: проба за спиной с багами раздела", func() -> void:
+		lowpoly_probe = "behind"
+		run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Low poly: проба от первого лица с багами раздела", func() -> void:
+		lowpoly_probe = "first"
+		run_test_scene("lowpoly_test"))
+	add_number(SECTION_DEMOS, "Low poly: увеличение экрана (0 из ресурса)", func() -> int: return lowpoly_scale,
+			func(v: float) -> void: lowpoly_scale = int(v), 0, 4, 1, true)
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:
 		close_menu()
 		save_screenshot())

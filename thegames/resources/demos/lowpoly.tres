@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="LowpolyTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/lowpoly_tuning.gd" id="1_lp"]
+
+[resource]
+script = ExtResource("1_lp")
+screen_scale = 3
+vertex_snap = 2.0
+affine = 0.85
+color_levels = 31.0
+dither = 1.0
+fov = 60.0
+far = 140.0
+sun_pitch = -52.0
+sun_yaw = 38.0
+sun_energy = 0.75
+ambient_energy = 0.5
+fog_begin = 30.0
+fog_end = 90.0
+shadow_alpha = 0.4
+follow_distance = 5.5
+follow_height = 2.6
+follow_look_height = 1.2
+follow_lag = 7.0
+follow_turn = 2.2
+eye_height = 1.55
+look_speed = 2.4
+pitch_limit = 1.2

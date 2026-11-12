@@ -11,6 +11,7 @@ const DIR := "res://resources/settings/"
 const FALLBACK_SPRITES := "res://assets/settings/pirates/8bit/"
 const IDS: Array[String] = ["pirates", "space", "castles"]
 const FALLBACK_SPRITES_16 := "res://assets/settings/pirates/16bit/"
+const FALLBACK_MESHES := "res://assets/settings/pirates/lowpoly/"
 ## Слоты сеттинга в векторе (#88) и 8-bit спрайт, с силуэта которого снимается контур
 ## (`VectorShapes`); без своего спрайта сеттинга берётся пиратский, как в 8-bit.
 const VECTOR_SLOTS: Dictionary[StringName, String] = {
@@ -41,6 +42,13 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 ## пиратские, так что сеттинг подключается одной папкой и одной строкой палитры.
 @export var sprites_16bit := "res://assets/settings/pirates/16bit/"
 @export var bit16_colors: Array[Color] = []
+## Low poly (#108): папка мешей слотов с атласами (`hero.tres`, `hero.png`) и текстур уровня
+## (`tex_sand.png`), всё пишет `tools/lowpoly_meshes.py`; восемь цветов HUD (индекс это роль
+## `LowpolyScreen.GROUND` … `DARK`) и цвет тумана у горизонта. Нет своего файла или цветов:
+## берутся пиратские. 3D (#118) берёт те же меши.
+@export var meshes_lowpoly := "res://assets/settings/pirates/lowpoly/"
+@export var lowpoly_colors: Array[Color] = []
+@export var lowpoly_sky := Color(0.61, 0.8, 0.91)
 ## Вектор (#88): фон `[0]` и чернила луча: 1 мир, 2 акцент, 3 опасность. На экран один-два
 ## цвета луча, третий только у врагов.
 @export var vector_colors: Array[Color] = []
@@ -82,6 +90,36 @@ func colors16() -> Array[Color]:
 	if bit16_colors.size() >= 16:
 		return bit16_colors
 	return SettingDef.of(Game.Setting.PIRATES).bit16_colors if setting != Game.Setting.PIRATES else bit16_colors
+
+
+## Меш слота low poly по имени из папки сеттинга, без него пиратский.
+func model(name: String) -> LowpolyModelDef:
+	var path := meshes_lowpoly + name + ".tres"
+	if not ResourceLoader.exists(path):
+		path = FALLBACK_MESHES + name + ".tres"
+	return load(path) as LowpolyModelDef if ResourceLoader.exists(path) else null
+
+
+## Текстура уровня low poly по имени (`sand`, `planks`, `water`, `rock`, `sail`, `sky`), без неё
+## пиратская.
+func texture_lowpoly(name: String) -> Texture2D:
+	var path := meshes_lowpoly + "tex_" + name + ".png"
+	if not ResourceLoader.exists(path):
+		path = FALLBACK_MESHES + "tex_" + name + ".png"
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
+## Цвета HUD low poly сеттинга, без своих пиратские; с ними и пиратский туман.
+func colors_lowpoly() -> Array[Color]:
+	if lowpoly_colors.size() >= LowpolyScreen.ROLES or setting == Game.Setting.PIRATES:
+		return lowpoly_colors
+	return SettingDef.of(Game.Setting.PIRATES).lowpoly_colors
+
+
+func sky_lowpoly() -> Color:
+	if lowpoly_colors.size() >= LowpolyScreen.ROLES or setting == Game.Setting.PIRATES:
+		return lowpoly_sky
+	return SettingDef.of(Game.Setting.PIRATES).lowpoly_sky
 
 
 ## Контуры слота в векторе: своя форма из ресурса или снятая с силуэта 8-bit спрайта.
