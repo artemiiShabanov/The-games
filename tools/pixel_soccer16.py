@@ -87,13 +87,38 @@ def kit_strip(shirt, shorts, hair=BARK, shirt2=None):
     return strip(frames)
 
 
+# Мяч 8×8 попиксельно (плейтест 2026-11-12: размер прежний, но чтобы читался как футбольный):
+# чёрный пятиугольник в центре, пятна по краю, тень снизу справа, блик; во втором кадре пятна
+# сдвинуты, при качении мяч крутится. o обводка, W белый, g тень, k пятно.
+BALL_MAPS = (
+    ("..oooo..",
+     ".oWWkWo.",
+     "oWWkkWWo",
+     "okWkkWgo",
+     "oWWWWWko",
+     "oWkWWgWo",
+     ".oWggWo.",
+     "..oooo.."),
+    ("..oooo..",
+     ".okWWWo.",
+     "oWWWkkWo",
+     "oWWkkkgo",
+     "okWWkWgo",
+     "oWWWWWko",
+     ".ogWkgo.",
+     "..oooo.."),
+)
+
+
 def ball(i):
     c = Canvas(8, 8)
-    c.ellipse(3.5, 3.5, 3, 3, WHITE)
-    for k, (x, y) in enumerate(((2, 2), (5, 3), (3, 5))):
-        if (k + i) % 2 == 0:
-            c.set(x, y, K)
-    return c.finish()
+    ink = {"o": K, "W": WHITE, "g": GREY, "k": K}
+    for y, row in enumerate(BALL_MAPS[i % 2]):
+        for x, ch in enumerate(row):
+            if ch in ink:
+                c.set(x, y, ink[ch])
+    c.set(2, 1, WHITE)
+    return c
 
 
 def grass():

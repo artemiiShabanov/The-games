@@ -32,7 +32,7 @@
 бочки, ящики, фонарь, пушка, сундук, штурвал); пистоль `pistol` 128×96 (2), лицо `face` (5
 выражений), `key`, `medkit`, пули `shot` (скелета) и `bullet` (героя). Футбол (#101) из `tools/pixel_soccer16.py`: игроки 16×16
 `soccer_hero`, `soccer_rival_0`..`2`, `soccer_keeper_hero`, `soccer_keeper_rival` (8 направлений
-по 3 кадра бега, 8 подкатов, 8 лежит), мяч `soccer_ball` 8×8 (2), трава `soccer_grass` 64×64. Битемап (#102) из `tools/pixel_brawl16.py`:
+по 3 кадра бега, 8 подкатов, 8 лежит), мяч `soccer_ball` 8×8 (2, пятиугольник и пятна попиксельно), трава `soccer_grass` 64×64. Битемап (#102) из `tools/pixel_brawl16.py`:
 бойцы 96×112 `brawl_hero` (37 кадров), `brawl_thug`, `brawl_knife` (по 23), боцман 128×136
 `brawl_boss` (27), лица для HUD `brawl_face_hero`, `_thug`, `_knife`, `_boss` 32×32; улица
 `brawl_street` 1664×416 (первые этажи, тротуар, мостовая); эффекты `brawl_fx_hit` 40×40 (4),
