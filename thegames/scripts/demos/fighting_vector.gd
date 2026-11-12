@@ -1,14 +1,16 @@
 extends Demo
 ## Демка файтинг × вектор, каталог `docs/specs/demos_catalog.md`: дуэль на реакцию (#94). Два
-## бойца контурами стоят друг против друга, после паузы случайной длины вспыхивает `!`. Кто
-## первым нажал A после вспышки, тот бьёт: рывок через противника, и проигравший рассыпается на
-## отрезки. Нажал до вспышки: фальстарт, раунд сопернику. Раундов пять, побеждает взявший
+## бойца контурами стоят друг против друга, после паузы случайной длины между ними вспыхивает
+## звезда лучами и загорается рамка экрана (плейтест 2026-11-12: сигнал там, куда смотришь, а
+## не знак наверху). Кто первым нажал A после вспышки, тот бьёт: рывок через противника, и
+## проигравший рассыпается на отрезки. Нажал до вспышки: фальстарт, раунд сопернику. Раундов пять, побеждает взявший
 ## больше; дуэль кончается раньше, когда отставшему уже не догнать. Соперник от раунда к раунду
 ## бьёт всё раньше.
 ## План из `DuelPlanGen` по сиду записи: пауза и задержка соперника в каждом раунде. Правила и
 ## боты живут в `DuelSim` (без окна, им же проверяются сто сидов); демка ведёт его шагами,
 ## рисует и озвучивает его события. Рисуется на `VectorScreen` в логических пикселях карточки:
-## земля, светило, бойцы и реквизит контурами слотов сеттинга, сигнал и счёт раундов штрихами.
+## земля, светило, бойцы и реквизит контурами слотов сеттинга, вспышка лучами, счёт раундов
+## клетками.
 ##
 ## Баги по флагам записи (параметры в `resources/bugs/<id>.tres`). Общие (#44) и баг технологии
 ## `beam_lag` живут в `Demo` и `VectorScreen`, демка только зовёт хуки: фризы `bug_frame` (в
@@ -30,6 +32,12 @@ const INK_WORLD := 1
 const INK_HERO := 2
 const INK_DANGER := 3
 const DASH := 240.0
+## Вспышка-сигнал между бойцами: лучей, их длина (длинный и короткий) и за сколько секунд она
+## раскрывается.
+const BURST_RAYS := 16
+const BURST_LONG := 170.0
+const BURST_SHORT := 96.0
+const BURST_OPEN := 0.07
 const WHIFF_SECONDS := 0.3
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "prop_a", "prop_b"]
 const MELODY := [0, null, null, null, null, null, 3, null, null, null, null, null, -2, null, null, null,
@@ -298,12 +306,26 @@ func _draw_vector(v: VectorScreen) -> void:
 		if at.y < size.y + 120.0 and at.x > -120.0 and at.x < size.x + 120.0:
 			draw_slot(&"hero" if _fly_side == 0 else &"enemy", at, PX, false, _fly_t * 7.0 * dir)
 	draw_shards()
-	# Сигнал: `!` после вспышки, `x` на фальстарте.
-	if sim.state == DuelSim.State.SIGNAL or (struck and sim.how != DuelSim.How.FALSE_START and sim.state == DuelSim.State.STRIKE):
-		var pulse := 1.0 + 0.12 * sin(_time * 30.0)
-		v.digits(Vector2(mid - 0.275 * 190.0 * pulse, 110.0), "!", 190.0 * pulse, INK_HERO, 5.0)
+	# Сигнал: звезда лучами между бойцами на уровне глаз и рамка экрана; в ударе гаснет. На
+	# фальстарте там же красный крест.
+	var eye := Vector2(mid, y - 16.0)
+	if sim.state == DuelSim.State.SIGNAL or (sim.state == DuelSim.State.STRIKE and sim.how != DuelSim.How.FALSE_START):
+		var open := clampf(sim.since_signal / BURST_OPEN, 0.3, 1.0)
+		var glow := 1.0 - clampf(sim.t / tuning.strike_seconds, 0.0, 1.0) if sim.state == DuelSim.State.STRIKE else 1.0
+		var pulse := 1.0 + 0.1 * sin(_time * 34.0)
+		for i in BURST_RAYS:
+			var d := Vector2.from_angle(TAU * i / BURST_RAYS)
+			var reach := (BURST_LONG if i % 2 == 0 else BURST_SHORT) * open * pulse
+			v.line(eye + d * 30.0 * open, eye + d * reach, INK_HERO, 5.0 if i % 2 == 0 else 3.0, glow)
+		v.poly(PackedVector2Array([eye + Vector2(0, -22), eye + Vector2(22, 0), eye + Vector2(0, 22), eye + Vector2(-22, 0)]),
+				INK_HERO, true, 4.0, glow)
+		_draw_frame(v, size, INK_HERO, glow * (0.75 + 0.25 * sin(_time * 34.0)))
 	elif struck and sim.how == DuelSim.How.FALSE_START:
-		v.digits(Vector2(mid - 0.275 * 150.0, 130.0), "x", 150.0, INK_DANGER, 5.0)
+		var fade := 1.0 - 0.6 * clampf(sim.t / tuning.strike_seconds, 0.0, 1.0) if sim.state == DuelSim.State.STRIKE else 0.4
+		v.line(eye + Vector2(-90, -90), eye + Vector2(90, 90), INK_DANGER, 6.0, fade)
+		v.line(eye + Vector2(90, -90), eye + Vector2(-90, 90), INK_DANGER, 6.0, fade)
+		if sim.state == DuelSim.State.STRIKE:
+			_draw_frame(v, size, INK_DANGER, fade)
 	# Реакция героя в сотых секунды под ним, пока раунд не сменился.
 	if struck and sim.last_reaction < INF:
 		var ms := "%d" % int(round(sim.last_reaction * 100.0))
@@ -322,3 +344,9 @@ func _draw_vector(v: VectorScreen) -> void:
 			v.line(box[0], box[2], ink_i, 2.5)
 			v.line(box[1], box[3], ink_i, 2.5)
 
+
+## Рамка по краю экрана: загорается вместе с сигналом.
+func _draw_frame(v: VectorScreen, size: Vector2, ink_i: int, alpha: float) -> void:
+	var m := 10.0
+	v.poly(PackedVector2Array([Vector2(m, m), Vector2(size.x - m, m), Vector2(size.x - m, size.y - m), Vector2(m, size.y - m)]),
+			ink_i, true, 6.0, alpha)
