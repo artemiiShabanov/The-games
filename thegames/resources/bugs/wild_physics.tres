@@ -12,6 +12,7 @@ tweet = "Герой улетает за верх экрана, скелеты н
 clip = "Герой уходит за верх экрана, внизу мелькает скелет"
 spectacular = true
 params = Dictionary[StringName, float]({
+&"road_rival_mult": 1.15,
 &"enemy_speed_mult": 2.0,
 &"jump_mult": 3.0,
 &"grip_mult": 0.25,

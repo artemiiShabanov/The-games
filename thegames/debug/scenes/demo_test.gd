@@ -20,7 +20,9 @@ extends Control
 ## тридцати, LOSE не стреляет. У спорта × вектор (#93, понг) генератор матча; WIN выигрывает до
 ## пяти, LOSE не двигает ракетку. У файтинга × вектор (#94, дуэль) генератор плана; WIN бьёт
 ## сразу после вспышки, LOSE до неё. У платформера × 16/32-bit (`--tech=bit16`, #98) генератор
-## тропы; WIN прогоняет варианты на копии мира, LOSE бежит вправо в первую яму.
+## тропы; WIN прогоняет варианты на копии мира, LOSE бежит вправо в первую яму. У гонок ×
+## 16/32-bit (`--genre=racing --tech=bit16`, #99) генератор трассы; WIN держит свободную полосу и
+## жмёт нитро на прямых, LOSE газует по обочине.
 
 
 var demo: Demo
@@ -52,6 +54,8 @@ func _ready() -> void:
 			_check_towers()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.BIT16:
 			_check_trails()
+		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
+			_check_roads()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
@@ -225,6 +229,32 @@ func _check_duels() -> void:
 	_expect(DuelPlanGen.generate(7, t).signature() == DuelPlanGen.generate(7, t).signature(), "дуэль сида 7 не повторяется")
 	_expect(DuelPlanGen.generate(7, t).signature() != DuelPlanGen.generate(8, t).signature(), "дуэли сидов 7 и 8 одинаковые")
 	AutoTest.note("fighting vector: 100 сидов прошли проверку; дуэль бота WIN без окна в среднем %.1f с" % (seconds / 100.0))
+
+
+## Гонки × 16/32-bit «псевдо-3D» (#99): сто сидов дают трассу, которая проходит проверку
+## генератора (изгиб не круче крутого, уклон не круче 0,6, пропы на обочине, монеты на дороге
+## до финиша, одиннадцать соперников), генерация детерминирована; на каждом сиде бот WIN без
+## окна (`RoadSim.simulate`) финиширует в тройке, бот LOSE нет.
+func _check_roads() -> void:
+	var t := RacingBit16GenTuning.load_default()
+	var dt := RacingBit16Tuning.load_default()
+	var seconds: Array[float] = []
+	var places := 0
+	for s in range(1, 101):
+		var tr := RoadTrackGen.generate(s, t)
+		var why := RoadTrackGen.validate(tr, t)
+		_expect(why == "", "трасса сида %d: %s" % [s, why])
+		var win := RoadSim.simulate(tr, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "трасса сида %d: бот WIN на %d месте" % [s, win.place])
+		seconds.append(win.time)
+		places += win.place
+		var lose := RoadSim.simulate(tr, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "трасса сида %d: бот LOSE в тройке" % s)
+	_expect(RoadTrackGen.generate(7, t).signature() == RoadTrackGen.generate(7, t).signature(), "трасса сида 7 не повторяется")
+	_expect(RoadTrackGen.generate(7, t).signature() != RoadTrackGen.generate(8, t).signature(), "трассы сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("racing bit16: 100 сидов прошли проверку; бот WIN без окна: среднее место %.2f, медиана %.1f с, от %.1f до %.1f" % [
+			places / 100.0, seconds[50], seconds[0], seconds[99]])
 
 
 ## Платформер × 16/32-bit «тропа» (#98): сто сидов дают уровень, который проходит проверку

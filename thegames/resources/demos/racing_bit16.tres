@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="RacingBit16Tuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/racing_bit16_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+max_speed = 12000.0
+accel = 2400.0
+coast = 2000.0
+offroad_decel = 6000.0
+offroad_limit = 0.3
+steer = 2.0
+centrifugal = 0.25
+nitros = 3
+nitro_seconds = 2.0
+nitro_mult = 1.35
+car_width = 0.3
+bump_keep = 0.8
+prop_width = 0.28
+crash_speed = 0.15
+hit_seconds = 0.8
+coin_width = 0.25
+rival_look = 10
+rival_steer = 0.8
+bot_look = 14
+bot_nitro_straight = 30
+max_seconds = 240.0
+countdown = 3.0
+cam_height = 1000.0
+fov = 100.0
+draw_distance = 200
+band_len = 3
+backdrop_shift = 0.004
+music_db = -12.0
+sfx_db = -6.0

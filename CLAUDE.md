@@ -61,7 +61,10 @@
   --frames=2500`; спрайты рисует `python3 tools/pixel_sprites16.py [--preview out.png]`. Платформер ×
   16/32-bit «тропа» (#98): `--scene=demo_test --tech=bit16 --frames=5000` (хитбоксы поверх кадра
   `--hitboxes`), уровень по сиду и
-  боты без окна текстом `debug/tools/dump_trail.gd -- <seed> [count] [wild,sneeze,coins]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  боты без окна текстом `debug/tools/dump_trail.gd -- <seed> [count] [wild,sneeze,coins]`. Гонки ×
+  16/32-bit «псевдо-3D» (#99): `--scene=demo_test --genre=racing --tech=bit16 --frames=9000`,
+  трасса по сиду и боты без окна текстом `debug/tools/dump_road.gd -- <seed> [count]
+  [wild,sneeze,walls,finish]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks

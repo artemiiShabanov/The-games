@@ -499,6 +499,16 @@ def sets():
     for key, canvas in trail.foreground().items():
         sprites[key] = canvas
         own[key] = trail.PIRATES_FG
+    # Гонка «псевдо-3D» (#99): повозки и пропы в палитре спрайтов, горизонт в своей, цвета
+    # дороги лентой.
+    import pixel_road16 as road
+    sprites.update(road.sprites())
+    for key, canvas in road.horizon().items():
+        sprites[key] = canvas
+        own[key] = road.PIRATES_SKY
+    for key, canvas in road.road_palette().items():
+        sprites[key] = canvas
+        own[key] = road.ROAD_COLORS
     return {"pirates": (PIRATES, sprites, own)}
 
 
