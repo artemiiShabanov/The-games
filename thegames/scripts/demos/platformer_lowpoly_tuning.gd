@@ -20,8 +20,13 @@ const PATH := "res://resources/demos/platformer_lowpoly.tres"
 ## Ящик: половина стороны и скорость отскока вверх после того, как герой его разбил.
 @export var crate_half := 0.425
 @export var crate_bounce := 6.5
-## На сколько ниже тропы герой считается упавшим в воду.
-@export var fall_depth := 2.5
+## Бочка на боку: радиус и половина длины. Ядро: радиус и высота полёта над тропой.
+@export var barrel_radius := 0.37
+@export var barrel_half := 0.43
+@export var ball_radius := 0.22
+@export var ball_height := 0.9
+## Кусок короче этого не точка возврата (камни-ступеньки): возвращает на последний длинный.
+@export var safe_length := 6.0
 ## Маяк засчитан на таком расстоянии от конца тропы.
 @export var finish_distance := 1.6
 ## Возврат после потери жизни: на столько от начала куска тропы.
@@ -33,6 +38,15 @@ const PATH := "res://resources/demos/platformer_lowpoly.tres"
 @export var bot_wait_distance := 3.2
 @export var bot_guard_margin := 1.4
 @export var bot_edge_margin := 0.7
+## Бот: за сколько до уступа прыгать, запас до ядра и до края плота, окно времени до бочки, в
+## которое пора прыгать.
+@export var bot_step_distance := 0.9
+@export var bot_ball_margin := 1.1
+@export var bot_raft_margin := 0.6
+@export var bot_barrel_min := 0.2
+@export var bot_barrel_max := 0.36
+## Как быстро камера разворачивается за поворотом тропы, 1/с.
+@export var cam_turn := 2.6
 ## Камера за спиной: расстояние, высота, высота точки взгляда.
 @export var cam_distance := 4.0
 @export var cam_height := 2.1
