@@ -23,11 +23,15 @@ const TILE := 32.0
 const BACKDROP: Array[String] = ["par3_back", "par3_trees", "par3_bushes"]
 const BACKDROP_FACTORS: Array[float] = [0.12, 0.35, 0.6]
 const BACKDROP_TOPS: Array[float] = [0.0, 0.0, 128.0]
+## Грунт под поверхностью темнеет: с такой глубины начинается переход и на такой кончается.
+const DARK_FROM := 18.0
+const DARK_TO := 64.0
+const DARK := Color(0.07, 0.04, 0.07)
 ## Листва над кадром едет быстрее мира: она ближе к зрителю.
 const CANOPY_FACTOR := 1.15
 const PLACEHOLDER_SLOTS: Array[String] = ["crab", "parrot", "coin", "flag", "bush"]
-const SPRITES: Array[String] = ["hero_run", "hero_idle", "hero_leap", "hero_slide", "hero_hang", "crab_walk",
-		"parrot_fly", "heart", "coin", "flag", "trail_soil", "trail_edge", "arch_bark", "arch_root", "arch_lip",
+const SPRITES: Array[String] = ["hero_run", "hero_idle", "hero_leap", "hero_slide", "hero_hang", "hero_crouch",
+		"crab_walk", "parrot_fly", "heart", "coin", "flag", "trail_soil", "trail_edge", "arch_bark",
 		"dec_grass", "dec_tuft", "dec_fern", "dec_bush", "dec_rock", "dec_flowers", "dec_mush", "canopy_front"]
 const DECOR_NAMES: Array[String] = ["dec_grass", "dec_tuft", "dec_bush", "dec_fern", "dec_rock", "dec_flowers", "dec_mush"]
 const MELODY := [0, null, 3, 5, 7, null, 5, 3, 0, null, 3, 5, 7, 10, 7, null,
@@ -39,6 +43,12 @@ var level: TrailLevel
 var sim: TrailSim
 var parallax: Parallax16
 var tex := {}
+## Середина тела в кадре каждой ленты (по непрозрачным пикселям первого кадра): вокруг неё
+## спрайт отражается при развороте, иначе фигура прыгает вбок.
+var pivots := {}
+## Переход грунта в темноту: столбец градиента от прозрачного к тёмному.
+var _depth: GradientTexture2D
+var _show_boxes := false
 var cam_x := 0.0
 ## Сдвиг мира по высоте под экран: 0 на полном, минус на низком.
 var oy := 0.0
@@ -70,7 +80,17 @@ func _on_start() -> void:
 	parallax = parallax16(BACKDROP, BACKDROP_FACTORS, BACKDROP_TOPS)
 	for name in SPRITES:
 		tex[name] = bit16_set.sprite16(name)
+		pivots[name] = _body_center(tex[name])
 	cam_x = _cam_target()
+	_show_boxes = Debug.hitboxes or (AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("hitboxes"))
+	var grad := Gradient.new()
+	grad.set_color(0, Color(DARK, 0.0))
+	grad.set_color(1, DARK)
+	_depth = GradientTexture2D.new()
+	_depth.gradient = grad
+	_depth.fill_to = Vector2(0.0, 1.0)
+	_depth.width = 1
+	_depth.height = int(DARK_TO - DARK_FROM)
 	_setup_audio()
 
 
@@ -252,6 +272,8 @@ func _draw_world(canvas: CanvasItem) -> void:
 	_draw_hero(canvas)
 	_draw_decor(canvas, lo, hi, true)
 	_draw_canopy(canvas)
+	if _show_boxes:
+		_draw_boxes(canvas)
 
 
 ## Вода в ямах: тёмная гладь, светлая кромка, блики; брызги, когда герой упал.
@@ -264,12 +286,9 @@ func _draw_water(canvas: CanvasItem, lo: float, hi: float) -> void:
 		var x := _sx(a)
 		var w := roundf(b - a)
 		var y := level.water_y
-		# Глубина ямы: темнота от земли до воды, сверху переход шашкой.
+		# Глубина ямы: темнота от земли до воды.
 		var top := roundf(minf(level.height_at(a - 0.5), level.height_at(b + 0.5))) + 10.0
-		canvas.draw_rect(Rect2(x, top, w, y - top), bit16.ink(Bit16Screen.K))
-		for k in 3:
-			for px in range(0, int(w), 2):
-				canvas.draw_rect(Rect2(x + px + (k % 2), top - 2.0 - k * 2.0, 1.0, 1.0), bit16.ink(Bit16Screen.K))
+		canvas.draw_rect(Rect2(x, top, w, y - top), DARK)
 		canvas.draw_rect(Rect2(x, y, w, bit16.view.y - oy - y), bit16.ink(Bit16Screen.NAVY))
 		canvas.draw_rect(Rect2(x, y, w, 2.0), bit16.ink(Bit16Screen.SEA))
 		for k in 3:
@@ -318,12 +337,17 @@ func _draw_ground(canvas: CanvasItem, lo: float, hi: float) -> void:
 			if ex > 0.0 and ex < level.width and ex >= lo and ex <= hi:
 				var top := roundf(_h(ex, runs[r], runs[r + 1]))
 				canvas.draw_rect(Rect2(_sx(ex) + float(side[1]), top + 6.0, 2.0, bottom - top), bit16.ink(Bit16Screen.K))
-	# Кромка травы: столбец текстуры на каждый пиксель экрана, поверхность на строке 4.
+	# По столбцу на пиксель экрана: грунт плавно уходит в темноту от `DARK_FROM` до `DARK_TO` под
+	# поверхностью, ниже сплошная темнота; сверху кромка травы, поверхность на её строке 4.
 	for sx in int(bit16.view.x):
 		var wx := float(sx) + _cam()
 		var h := level.height_at(wx)
 		if h == INF:
 			continue
+		h = roundf(h)
+		canvas.draw_texture_rect(_depth, Rect2(sx, h + DARK_FROM, 1.0, DARK_TO - DARK_FROM), false)
+		if h + DARK_TO < bottom:
+			canvas.draw_rect(Rect2(sx, h + DARK_TO, 1.0, bottom - h - DARK_TO), DARK)
 		canvas.draw_texture_rect_region(edge, Rect2(sx, roundf(h) - 4.0, 1.0, edge.get_height()),
 				Rect2(fposmod(wx, edge.get_width()), 0.0, 1.0, edge.get_height()))
 
@@ -349,26 +373,22 @@ func _draw_decor(canvas: CanvasItem, lo: float, hi: float, front: bool) -> void:
 				Rect2(frame * w, 0.0, w, t.get_height()))
 
 
-## Арка: ствол корой от верха экрана до просвета, бахрома корней над просветом, корни по краям.
+## Арка: толстый ствол корой от верха экрана до просвета, под ним темнота, чтобы фон не
+## просвечивал; низ ствола тёмной кромкой.
 func _draw_arch(canvas: CanvasItem, a: TrailLevel.Arch) -> void:
 	var ground := level.height_at(a.from)
 	var ceil := ground - a.gap
 	var x0 := _sx(a.from)
 	var x1 := _sx(a.to)
-	var pts := PackedVector2Array([Vector2(x0, -2.0), Vector2(x1, -2.0), Vector2(x1, ceil - 6.0), Vector2(x0, ceil - 6.0)])
+	canvas.draw_rect(Rect2(x0, ceil, x1 - x0, a.gap + 2.0), DARK)
+	var pts := PackedVector2Array([Vector2(x0, -2.0), Vector2(x1, -2.0), Vector2(x1, ceil), Vector2(x0, ceil)])
 	var uvs := PackedVector2Array()
 	for p in pts:
 		uvs.append(Vector2(p.x + _cam(), p.y) / TILE)
 	canvas.draw_colored_polygon(pts, Color.WHITE, uvs, tex["arch_bark"])
-	var lip: Texture2D = tex["arch_lip"]
-	var x := x0
-	while x < x1:
-		var w := minf(32.0, x1 - x)
-		canvas.draw_texture_rect_region(lip, Rect2(x, ceil - 8.0, w, lip.get_height()), Rect2(0.0, 0.0, w, lip.get_height()))
-		x += 32.0
-	var root: Texture2D = tex["arch_root"]
-	canvas.draw_texture_rect_region(root, Rect2(x0 - 20.0, ground - 47.0, 32.0, 48.0), Rect2(0.0, 0.0, 32.0, 48.0))
-	canvas.draw_texture_rect_region(root, Rect2(x1 - 12.0, ground - 47.0, 32.0, 48.0), Rect2(32.0, 0.0, 32.0, 48.0))
+	canvas.draw_rect(Rect2(x0, ceil - 2.0, x1 - x0, 2.0), bit16.ink(Bit16Screen.K))
+	canvas.draw_rect(Rect2(x0, -2.0, 2.0, ceil + 2.0), bit16.ink(Bit16Screen.K))
+	canvas.draw_rect(Rect2(x1 - 2.0, -2.0, 2.0, ceil + 2.0), bit16.ink(Bit16Screen.K))
 
 
 ## Лиана: верёвка из листвы от подвеса; со схватившимся героем она натянута до рук и висит
@@ -402,11 +422,11 @@ func _draw_foes(canvas: CanvasItem, lo: float, hi: float) -> void:
 				continue
 			drop = t * t * 500.0
 		var crab := level.foes[i].kind == TrailLevel.FoeKind.CRAB
-		var feet := Vector2(_sx(f.x), roundf(f.y + (7.0 if crab else 14.0) + drop))
+		var feet := Vector2(_sx(f.x), roundf(f.y + (10.0 if crab else 14.0) + drop) + 1.0)
 		if crab:
-			draw_sprite16(canvas, "crab", tex["crab_walk"], int(_time * 10.0), feet)
+			draw_sprite16(canvas, "crab", tex["crab_walk"], int(_time * 10.0), _place(feet, "crab_walk", false))
 		else:
-			draw_sprite16(canvas, "parrot", tex["parrot_fly"], int(_time * 12.0), feet, f.z < 0.0)
+			draw_sprite16(canvas, "parrot", tex["parrot_fly"], int(_time * 12.0), _place(feet, "parrot_fly", f.z < 0.0), f.z < 0.0)
 
 
 ## Герой по состоянию: стойка, бег (кадр от пройденного пути), прыжок, слайд, вис на лиане;
@@ -430,11 +450,55 @@ func _draw_hero(canvas: CanvasItem) -> void:
 		TrailSim.State.SLIDE:
 			name = "hero_slide"
 			frame = int(_time * 10.0)
+		TrailSim.State.CROUCH:
+			name = "hero_crouch"
+			frame = int(sim.pos.x / 7.0)
 		TrailSim.State.VINE:
 			name = "hero_hang"
 			frame = 0 if sim.vine_speed >= 0.0 else 1
 			feet.y += 9.0
-	bit16.sprite(canvas, tex[name], frame, feet, sim.facing < 0)
+	bit16.sprite(canvas, tex[name], frame, _place(feet, name, sim.facing < 0), sim.facing < 0)
+
+
+## Точка, куда ставить кадр, чтобы середина тела (`pivots`) встала ровно в `feet` в обе стороны.
+## `Bit16Screen.sprite` ставит середину кадра (между 15 и 16 пикселем), и фигура, нарисованная не
+## по центру, сдвинута вбок: при развороте прыгает, на склоне ступни выше или ниже земли.
+func _place(feet: Vector2, name: String, flip: bool) -> Vector2:
+	var p := float(pivots.get(name, 15.5))
+	return feet + Vector2(roundf(p - 15.0) if flip else roundf(16.0 - p), 0.0)
+
+
+## Середина непрозрачных пикселей первого кадра ленты по горизонтали.
+static func _body_center(t: Texture2D) -> float:
+	if t == null:
+		return 15.5
+	var img := t.get_image()
+	if img == null:
+		return 15.5
+	var lo := 31
+	var hi := 0
+	for y in img.get_height():
+		for x in mini(32, img.get_width()):
+			if img.get_pixel(x, y).a > 0.0:
+				lo = mini(lo, x)
+				hi = maxi(hi, x)
+	return (lo + hi) / 2.0 if hi >= lo else 15.5
+
+
+## Хитбоксы поверх (дебаг-меню «Хитбоксы поверх демки», `--hitboxes`): герой зелёным, враги
+## красным, потолок арки жёлтым, точка героя белым.
+func _draw_boxes(canvas: CanvasItem) -> void:
+	var cam := Vector2(_cam(), 0.0)
+	var me := sim.hero_box()
+	canvas.draw_rect(Rect2(me.position - cam, me.size), Color(0.2, 1.0, 0.3), false, 1.0)
+	canvas.draw_rect(Rect2(sim.pos - cam - Vector2(0.5, 0.5), Vector2(1.0, 1.0)), Color.WHITE)
+	for i in level.foes.size():
+		if not sim.foe_dead.has(i):
+			var b := sim.foe_box(i, sim.time)
+			canvas.draw_rect(Rect2(b.position - cam, b.size), Color(1.0, 0.2, 0.2), false, 1.0)
+	for a in level.arches:
+		var ceil := level.height_at(a.from) - a.gap
+		canvas.draw_line(Vector2(_sx(a.from), ceil), Vector2(_sx(a.to), ceil), Color(1.0, 0.9, 0.2))
 
 
 ## Листва над кадром спереди, едет чуть быстрее мира.

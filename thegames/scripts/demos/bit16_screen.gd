@@ -169,8 +169,10 @@ func sprite(canvas: CanvasItem, tex: Texture2D, frame: int, feet: Vector2, flip 
 	var w := roundf(FRAME * scale)
 	var dst := Rect2(roundf(feet.x - w / 2.0), roundf(feet.y - h * scale), w, roundf(h * scale))
 	if flip:
-		# Отрицательная ширина отражает текстуру, позиция прямоугольника при этом не сдвигается.
-		dst = Rect2(dst.position.x + dst.size.x, dst.position.y, -dst.size.x, dst.size.y)
+		# Отрицательная ширина отражает текстуру внутри того же прямоугольника: Godot берёт модуль
+		# ширины и не двигает позицию. Прибавлять ширину к позиции нельзя: до #98 так отражённый
+		# спрайт съезжал на кадр вправо от своей точки.
+		dst = Rect2(dst.position.x, dst.position.y, -dst.size.x, dst.size.y)
 	canvas.draw_texture_rect_region(tex, dst, src, tint)
 
 

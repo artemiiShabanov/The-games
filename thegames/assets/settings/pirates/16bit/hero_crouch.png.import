@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://i5y3r6eaogym"
-path="res://.godot/imported/arch_lip.png-78ff63eaa4082b76819198744407692d.ctex"
+uid="uid://ddxsqn37ipgoq"
+path="res://.godot/imported/hero_crouch.png-164924f3ce71adf85e687ec01a1dc395.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/16bit/arch_lip.png"
-dest_files=["res://.godot/imported/arch_lip.png-78ff63eaa4082b76819198744407692d.ctex"]
+source_file="res://assets/settings/pirates/16bit/hero_crouch.png"
+dest_files=["res://.godot/imported/hero_crouch.png-164924f3ce71adf85e687ec01a1dc395.ctex"]
 
 [params]
 

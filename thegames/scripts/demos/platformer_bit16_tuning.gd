@@ -22,14 +22,16 @@ const PATH := "res://resources/demos/platformer_bit16.tres"
 ## Склон тянет вниз долей тяжести; в гору наибольшая скорость меньше на долю наклона.
 @export var slope_pull := 0.55
 @export var uphill_slow := 0.5
-## Слайд: с места толчок до `slide_start`, на ходу прибавка `slide_boost`, трение, под
-## потолком ползком не медленнее `slide_crawl`, кончается при скорости ниже `slide_stop`.
-@export var slide_start := 130.0
+## Присед на B: медленный шаг в приседе (разгон и предел), рост ниже. Слайд: B на скорости не
+## ниже `slide_min`, прибавка `slide_boost`, трение; когда скорость падает ниже `slide_to_crouch`,
+## герой переходит в присед (или встаёт, если B уже отпущена и над ним нет потолка).
+@export var crouch_max := 55.0
+@export var crouch_accel := 400.0
+@export var slide_min := 110.0
 @export var slide_boost := 40.0
 @export var slide_max := 280.0
 @export var slide_friction := 150.0
-@export var slide_crawl := 50.0
-@export var slide_stop := 40.0
+@export var slide_to_crouch := 60.0
 ## Лиана: хват за нижние доли длины, раскачка стрелкой, затухание, прибавка вверх при отпуске,
 ## сколько нельзя схватить ту же лиану снова.
 @export var vine_grab_from := 0.35

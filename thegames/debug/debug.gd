@@ -72,6 +72,8 @@ var vector_persistence := 0.55
 var vector_probe := false
 ## `bit16_test` запускает пробную демку 16/32: "side" вид сбоку, "depth" вид вглубь; "" лист спрайтов.
 var bit16_probe := ""
+## Демки рисуют поверх хитбоксы героя и врагов (#98, тропа 16/32); под автотестом `--hitboxes`.
+var hitboxes := false
 var demo_bugs: Array[StringName] = []
 var active := false
 
@@ -355,6 +357,8 @@ func _register_builtin() -> void:
 	add_action(SECTION_DEMOS, "Вектор: пробная демка с багами раздела", func() -> void:
 		vector_probe = true
 		run_test_scene("vector_test"))
+	add_toggle(SECTION_DEMOS, "Хитбоксы поверх демки", func() -> bool: return hitboxes,
+			func(v: bool) -> void: hitboxes = v, true)
 	add_action(SECTION_DEMOS, "16/32: лист спрайтов и палитра", func() -> void: run_test_scene("bit16_test"))
 	add_action(SECTION_DEMOS, "16/32: проба сбоку с багами раздела", func() -> void:
 		bit16_probe = "side"

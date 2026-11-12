@@ -5,19 +5,21 @@ extends RefCounted
 ## `simulate` гоняет бота по сиду целиком (проверки `demo_test`, `debug/tools/dump_trail.gd`).
 ## Мир шагает ровно 60 раз в секунду (`step`), поэтому прогон без окна совпадает с демкой.
 ## Правила: бег с инерцией (разгон, торможение, разворот), склон тянет вниз; прыжок с запасом
-## после края и нажатием заранее; слайд на B: ниже ростом, по склону вниз разгоняется, под
-## аркой из корней ползёт, пока не выйдет; лиана хватается в прыжке, стрелка раскачивает, A
+## после края и нажатием заранее; B присед: ниже ростом, шаг медленный; B на скорости слайд:
+## ещё ниже, по склону вниз разгоняется, на малой скорости переходит в присед; под аркой из
+## корней встать нельзя; лиана хватается в прыжке, стрелка раскачивает, A
 ## отпускает с прибавкой вверх. Краб и попугай убить нельзя: касание стоит жизни и отбрасывает,
 ## потом неуязвимость. Вода в яме стоит жизни, герой продолжает с последнего места возврата.
 ## Баги приходят числами: `jump_mult` прыжок выше во столько раз, `enemy_mult` скорость врагов,
 ## `coins_high` монеты подняты выше любого прыжка, `sneeze` враг падает от касания.
 
-enum State { GROUND, AIR, SLIDE, VINE, HURT, DROWN }
+enum State { GROUND, AIR, SLIDE, CROUCH, VINE, HURT, DROWN }
 
 const DT := 1.0 / 60.0
 const HALF_W := 6.0
 const STAND_H := 26.0
 const SLIDE_H := 12.0
+const CROUCH_H := 14.0
 ## Ступенька, которую бег берёт без прыжка; выше это стена.
 const STEP_UP := 6.0
 ## Руки героя над ступнями: этой точкой он висит на лиане.
@@ -131,9 +133,16 @@ func copy() -> TrailSim:
 	return s
 
 
-## Рост героя сейчас: в слайде ниже.
+## Рост героя сейчас: в слайде и приседе ниже.
 func height() -> float:
-	return SLIDE_H if state == State.SLIDE else STAND_H
+	if state == State.SLIDE:
+		return SLIDE_H
+	return CROUCH_H if state == State.CROUCH else STAND_H
+
+
+## Низко ли герой: в слайде или приседе, под аркой.
+func low() -> bool:
+	return state == State.SLIDE or state == State.CROUCH
 
 
 ## Положение врага `i` в момент `at`: x, высота середины тела и направление.
@@ -142,8 +151,21 @@ func foe_at(i: int, at: float) -> Vector3:
 	var p := TrailLevel.foe_pos(f, at, enemy_mult)
 	var ground := level.height_at(p.x)
 	if f.kind == TrailLevel.FoeKind.CRAB:
-		return Vector3(p.x, ground - 7.0, p.y)
+		return Vector3(p.x, ground - 10.0, p.y)
 	return Vector3(p.x, ground - 23.0 + roundf(sin(at * 6.0 + f.phase * TAU) * 2.0), p.y)
+
+
+## Хитбокс героя: ступни в `pos`, ширина `2 * HALF_W`, рост по состоянию.
+func hero_box() -> Rect2:
+	var h := height()
+	return Rect2(pos.x - HALF_W, pos.y - h, 2.0 * HALF_W, h)
+
+
+## Хитбокс врага `i` в момент `at`: краб с поднятыми клешнями ниже их кончиков, попугай телом.
+func foe_box(i: int, at: float) -> Rect2:
+	var f := foe_at(i, at)
+	var half := Vector2(11.0, 10.0) if level.foes[i].kind == TrailLevel.FoeKind.CRAB else Vector2(9.0, 5.0)
+	return Rect2(f.x - half.x, f.y - half.y, 2.0 * half.x, 2.0 * half.y)
 
 
 ## Монета `i` на экране мира: с багом «не достать» выше любого прыжка.
@@ -162,7 +184,7 @@ func step(axis: float, jump: bool, slide: bool) -> void:
 	_regrab_t = maxf(_regrab_t - DT, 0.0)
 	_buffer = tuning.jump_buffer if jump else maxf(_buffer - DT, 0.0)
 	match state:
-		State.GROUND, State.SLIDE:
+		State.GROUND, State.SLIDE, State.CROUCH:
 			_ground(axis, slide)
 		State.AIR:
 			_air(axis, true)
@@ -180,7 +202,7 @@ func step(axis: float, jump: bool, slide: bool) -> void:
 	_touch_foes()
 	if not _probe:
 		_collect()
-	if not ended and pos.x >= level.flag_x and (state == State.GROUND or state == State.SLIDE):
+	if not ended and pos.x >= level.flag_x and (state == State.GROUND or low()):
 		ended = true
 		won = true
 		_emit([&"win"])
@@ -205,19 +227,32 @@ func _ground(axis: float, slide: bool) -> void:
 	var pull := tuning.gravity * sin_a
 	var ceiling := _under_arch(pos.x)
 	if state == State.GROUND and slide:
-		var dir := float(facing) if absf(vel.x) < 10.0 else signf(vel.x)
-		vel.x = dir * clampf(maxf(absf(vel.x) + tuning.slide_boost, tuning.slide_start), 0.0, tuning.slide_max)
-		facing = int(dir)
-		_to(State.SLIDE)
-		_emit([&"slide"])
+		# B на скорости это слайд, медленнее присед.
+		if absf(vel.x) >= tuning.slide_min:
+			vel.x = signf(vel.x) * minf(absf(vel.x) + tuning.slide_boost, tuning.slide_max)
+			facing = 1 if vel.x > 0.0 else -1
+			_to(State.SLIDE)
+			_emit([&"slide"])
+		else:
+			_to(State.CROUCH)
+	if state == State.CROUCH and not slide and not ceiling:
+		_to(State.GROUND)
 	if state == State.SLIDE:
 		vel.x += pull * DT
 		vel.x = move_toward(vel.x, 0.0, tuning.slide_friction * DT)
-		if ceiling and absf(vel.x) < tuning.slide_crawl:
-			vel.x = tuning.slide_crawl * facing
 		vel.x = clampf(vel.x, -tuning.slide_max, tuning.slide_max)
-		if not ceiling and (not slide or absf(vel.x) < tuning.slide_stop):
+		if absf(vel.x) < tuning.slide_to_crouch:
+			_to(State.CROUCH if slide or ceiling else State.GROUND)
+		elif not slide and not ceiling:
 			_to(State.GROUND)
+	elif state == State.CROUCH:
+		vel.x += pull * tuning.slope_pull * DT
+		if axis != 0.0:
+			facing = 1 if axis > 0.0 else -1
+			var rate := tuning.crouch_accel if absf(vel.x) <= tuning.crouch_max or vel.x * axis < 0.0 else tuning.run_friction
+			vel.x = move_toward(vel.x, signf(axis) * tuning.crouch_max, rate * DT)
+		else:
+			vel.x = move_toward(vel.x, 0.0, tuning.run_friction * DT)
 	else:
 		vel.x += pull * tuning.slope_pull * DT
 		if axis != 0.0:
@@ -249,7 +284,7 @@ func _jump() -> void:
 
 func _move_ground() -> void:
 	var nx := pos.x + vel.x * DT
-	if state != State.SLIDE and _arch_wall(nx, pos.y):
+	if not low() and _arch_wall(nx, pos.y):
 		vel.x = 0.0
 		return
 	var h := level.height_at(nx)
@@ -269,8 +304,7 @@ func _move_ground() -> void:
 		_to(State.AIR)
 		return
 	pos = Vector2(nx, h)
-	if state == State.GROUND or state == State.SLIDE:
-		max_x = maxf(max_x, pos.x)
+	max_x = maxf(max_x, pos.x)
 
 
 ## Над точкой x арка: потолок ниже роста стоя.
@@ -391,14 +425,14 @@ func _swing(axis: float) -> void:
 # --- Враги, вода, монеты -----------------------------------------------------------------------
 
 func _touch_foes() -> void:
-	var top := pos.y - height()
+	var me := hero_box()
 	for i in level.foes.size():
 		if foe_dead.has(i):
 			continue
-		var f := foe_at(i, time)
-		var half := Vector2(10.0, 7.0) if level.foes[i].kind == TrailLevel.FoeKind.CRAB else Vector2(9.0, 5.0)
-		if absf(pos.x - f.x) > HALF_W + half.x or top > f.y + half.y or pos.y < f.y - half.y:
+		var box := foe_box(i, time)
+		if not me.intersects(box):
 			continue
+		var f := foe_at(i, time)
 		if sneeze:
 			foe_dead[i] = time
 			_emit([&"foe_down", i])
@@ -522,6 +556,7 @@ func _decide() -> Dictionary:
 		cands.append(_cand(1.0, 0.0, true, d, 0.0))
 	for d in [0.0, 0.15, 0.3]:
 		cands.append(_cand(1.0, 0.0, false, 0.0, 0.7, d))
+	cands.append(_cand(1.0, 0.0, false, 0.0, 1.6, 0.0))
 	cands.append(_cand(0.0, 0.3, false, 0.0, 0.0))
 	cands.append(_cand(0.0, 0.6, false, 0.0, 0.0))
 	cands.append(_cand(-1.0, 0.3, false, 0.0, 0.0))

@@ -275,42 +275,6 @@ def arch_bark():
     return c
 
 
-def arch_root(right):
-    """Корень у края арки, 32×48: расходится к земле, низ на строке 47."""
-    c = Canvas(32, 48)
-    for y in range(48):
-        k = y / 47.0
-        w = 14 + int(16 * k * k)
-        x0 = 0 if not right else 31 - w
-        c.rect(x0, y, x0 + w, y, W1)
-        c.set(x0 + (w if not right else 0), y, W2)
-        c.set(x0 + (w - 1 if not right else 1), y, W2)
-    for i in range(3):
-        x = 6 + i * 7
-        for y in range(48):
-            c.set(x if not right else 31 - x, y, W2)
-            c.set((x - 1) if not right else 32 - x, y, W0 if y % 6 < 3 else W1)
-    for x in range(32):
-        if c.get(x, 2) is not None and x % 4:
-            c.rect(x, 0, x, 1 + (x % 3), G2)
-    c.outline(FK)
-    return c
-
-
-def arch_lip():
-    """Нижний край ствола над просветом, 32×10: корни бахромой, мох свисает."""
-    rng = random.Random(54)
-    c = Canvas(32, 10)
-    for x in range(32):
-        d = 3 + int(2 + 2 * math.sin(x * 2 * math.pi / 32 * 3)) + rng.randint(0, 1)
-        c.rect(x, 0, x, d, W1)
-        c.set(x, d, W2)
-        c.set(x, d + 1, FK)
-        if rng.random() < 0.25:
-            c.rect(x, d - 1, x, d + rng.randint(1, 3), G2)
-    return c
-
-
 def _blade(c, x, h, bend, col, side):
     for j in range(int(h)):
         k = j / h
@@ -435,23 +399,46 @@ def _head(c, x, y, face=1):
 
 
 def sailor_slide(i):
-    """Слайд: матрос почти лежит, ноги вперёд, корпус откинут; два кадра, пыль из-под ног."""
+    """Слайд: матрос лежит на спине почти плашмя, ноги вперёд, голова сзади низко; макушка на
+    17-й строке, не выше хитбокса слайда (12) больше чем на пару пикселей. Два кадра, пыль."""
     c = Canvas()
-    y0 = 24
-    c.line(20, y0 + 3, 29, y0 + 4, SEA, 4)
-    c.line(19, y0 + 1, 28, y0 + 1 - i, NAVY, 3)
-    c.rect(28, y0 + 3, 31, y0 + 5, BARK)
-    c.rect(27, y0 - i, 30, y0 + 1 - i, BARK)
-    for k in range(6):
-        c.line(8 + k, y0 - 2 - k // 2, 19 + k // 2, y0 + 2, WHITE if k % 2 == 0 else SEA, 1)
-    c.line(9, y0 - 1, 15, y0 + 5, TAN, 3)
-    c.line(12, y0 - 3, 4, y0 + 2, SKIN, 3)
-    _head(c, 9, y0 - 8)
+    c.line(19, 27, 29, 28, SEA, 4)
+    c.line(18, 25, 28, 25 - i, NAVY, 3)
+    c.rect(28, 27, 31, 29, BARK)
+    c.rect(27, 24 - i, 30, 25 - i, BARK)
+    for k in range(5):
+        c.line(10 + k * 2, 22, 11 + k * 2, 28, WHITE if k % 2 == 0 else SEA, 1)
+    c.line(12, 24, 17, 29, TAN, 3)
+    c.line(11, 25, 5, 29, SKIN, 3)
+    _head(c, 7, 22)
     c.finish()
-    c.set(12, y0 - 9, K)
-    for k, (x, y) in enumerate(((2, 29), (5, 30), (1, 27))):
+    c.set(10, 21, K)
+    for k, (x, y) in enumerate(((2, 30), (4, 31), (1, 29))):
         if (k + i) % 2 == 0:
             c.set(x, y, GREY)
+    return c
+
+
+def sailor_crouch(i):
+    """Присед: корпус наклонён вперёд, голова впереди на уровне плеч, колени согнуты; макушка на
+    14-й строке, ниже прохода под аркой. Два кадра шага вприсядку."""
+    c = Canvas()
+    step = (-1, 1)[i]
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
+        hip = (12 + sign, 25)
+        knee = (17 + sign * 2 + step * sign, 25)
+        foot = (13 + sign * 3 - step * sign, 29)
+        c.line(hip[0], hip[1], knee[0], knee[1], cloth, 4)
+        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
+        c.rect(foot[0] - 1, foot[1], foot[0] + 3, foot[1] + 1, BARK)
+    c.line(14, 21, 19, 26, TAN, 3)
+    c.poly([(9, 25), (10, 20), (18, 18), (19, 24)], WHITE)
+    for k in range(4):
+        c.line(10 + k * 2, 25, 11 + k * 2, 19, SEA if k % 2 else WHITE, 1)
+    c.line(17, 21, 23, 26, SKIN, 3)
+    _head(c, 21, 19)
+    c.finish()
+    c.set(24, 19, K)
     return c
 
 
@@ -478,48 +465,58 @@ def sailor_hang(i):
     return c
 
 
+def _danger(c):
+    """Враг: тень как у всех, но обводка красная, а не чёрная: опасен, убить нельзя."""
+    c.shade()
+    c.outline(RED)
+    return c
+
+
 def crab(i):
-    """Краб, четыре кадра: ноги по очереди, клешни щёлкают, глаза на стебельках."""
+    """Краб, четыре кадра: ноги по очереди, клешни щёлкают, глаза на стебельках. Панцирь рыжий,
+    чтобы красная обводка опасности читалась."""
     c = Canvas()
     for k in range(3):
         for sign in (-1, 1):
             lift = 1 if (k + i) % 2 == 0 else 0
             x = 16 + sign * (6 + k * 3)
-            c.line(16 + sign * (3 + k * 2), 24, x, 30 - lift, BARK, 2)
-    c.ellipse(16, 23, 10, 5.5, RED)
-    c.ellipse(16, 21.5, 7, 3, WOOD)
+            c.line(16 + sign * (3 + k * 2), 24, x, 29 - lift, BARK, 2)
+    c.ellipse(16, 23, 10, 5.5, WOOD)
+    c.ellipse(15, 21.5, 6.5, 2.5, GOLD)
     for sign in (-1, 1):
         open_ = 1 + (i % 2)
-        cx = 16 + sign * 11
-        c.line(16 + sign * 7, 22, cx, 16, RED, 2)
-        c.ellipse(cx, 14, 3.5, 3, RED)
-        c.rect(cx - 1, 10 - open_, cx + 1, 11 - open_ + 1, RED)
-        c.rect(cx + sign * 2, 10 - open_, cx + sign * 2, 12, RED)
+        cx = 16 + sign * 10
+        c.line(16 + sign * 7, 22, cx, 16, WOOD, 2)
+        c.ellipse(cx, 14, 3, 3, WOOD)
+        c.rect(cx - 1, 10 - open_, cx + 1, 12 - open_, WOOD)
+        c.rect(cx + sign * 2, 10 - open_, cx + sign * 2, 12, WOOD)
     for sign in (-1, 1):
         c.line(16 + sign * 3, 19, 16 + sign * 3, 15, BARK, 1)
         c.ellipse(16 + sign * 3, 14, 1.5, 1.5, WHITE)
-    c.finish()
-    c.set(16 - 3, 14, K)
-    c.set(16 + 3, 14, K)
+    _danger(c)
+    c.set(13, 14, K)
+    c.set(19, 14, K)
     return c
 
 
 def parrot(i):
-    """Попугай летит вправо: красное тело, крыло синее с золотом, длинный хвост; четыре кадра
-    взмаха (вверх, середина, вниз, середина)."""
+    """Попугай летит вправо: зелёное тело, крыло синее с золотом, длинный хвост, красная обводка
+    опасности; четыре кадра взмаха (вверх, середина, вниз, середина). Тело по центру кадра,
+    чтобы при развороте не прыгало."""
     c = Canvas()
-    wing = (-9, -2, 6, -2)[i]
-    c.poly([(4, 18), (12, 15), (13, 19), (5, 22)], SEA)
-    c.line(1, 20, 6, 19, RED, 2)
-    c.ellipse(17, 17, 7, 4.5, RED)
-    c.ellipse(24, 13, 4, 4, RED)
-    c.poly([(27, 12), (31, 14), (27, 16)], GOLD)
-    c.set(27, 15, K)
-    c.ellipse(24, 15, 2, 1.5, WHITE)
-    c.poly([(13, 15), (21, 15), (17 - 4, 15 + wing), (17 + 2, 15 + wing)], SEA)
-    c.line(14, 15, 15 - 2, 15 + wing * 0.7, GOLD, 2)
-    c.finish()
-    c.set(25, 12, K)
+    wing = (-8, -2, 6, -2)[i]
+    c.poly([(3, 19), (10, 16), (11, 20), (4, 22)], SEA)
+    c.line(3, 21, 7, 20, GOLD, 1)
+    c.ellipse(15.5, 17, 7, 4.5, LEAF)
+    c.ellipse(15.5, 19, 5, 2, GOLD)
+    c.ellipse(22, 13, 4, 4, LEAF)
+    c.poly([(25, 12), (29, 14), (25, 16)], GOLD)
+    c.ellipse(22, 15, 2, 1.5, WHITE)
+    c.poly([(12, 15), (20, 15), (12, 15 + wing), (18, 15 + wing)], SEA)
+    c.line(13, 15, 13, 15 + wing * 0.7, GOLD, 2)
+    _danger(c)
+    c.set(23, 12, K)
+    c.set(25, 15, K)
     return c
 
 
@@ -528,6 +525,7 @@ def sprites():
     return {
         "hero_slide": strip([sailor_slide(i) for i in range(2)]),
         "hero_hang": strip([sailor_hang(i) for i in range(2)]),
+        "hero_crouch": strip([sailor_crouch(i) for i in range(2)]),
         "crab_walk": strip([crab(i) for i in range(4)]),
         "parrot_fly": strip([parrot(i) for i in range(4)]),
     }
@@ -545,8 +543,6 @@ def foreground():
         "trail_soil": trail_soil(),
         "trail_edge": trail_edge(),
         "arch_bark": arch_bark(),
-        "arch_root": strip([arch_root(False), arch_root(True)]),
-        "arch_lip": arch_lip(),
         "dec_grass": strip([dec_grass(i) for i in range(2)]),
         "dec_tuft": strip([dec_tuft(i) for i in range(2)]),
         "dec_fern": dec_fern(),
