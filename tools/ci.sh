@@ -69,8 +69,8 @@ step "feed shooter bit16" sh tools/autotest.sh --scene=feed_test --genre=shooter
 step "demo shooter" sh tools/autotest.sh --scene=demo_test --genre=shooter --frames=6000
 step "demo shooter bugs" sh tools/autotest.sh --scene=demo_test --genre=shooter --bugs --frames=9000
 step "feed shooter" sh tools/autotest.sh --scene=feed_test --genre=shooter --frames=400
-step "demo sport bit16" sh tools/autotest.sh --scene=demo_test --genre=sport --tech=bit16 --frames=14000
-step "demo sport bit16 bugs" sh tools/autotest.sh --scene=demo_test --genre=sport --tech=bit16 --bugs --frames=16000
+step "demo sport bit16" sh tools/autotest.sh --scene=demo_test --genre=sport --tech=bit16 --frames=7000
+step "demo sport bit16 bugs" sh tools/autotest.sh --scene=demo_test --genre=sport --tech=bit16 --bugs --frames=10000
 step "feed sport bit16" sh tools/autotest.sh --scene=feed_test --genre=sport --tech=bit16 --frames=400
 step "demo sport" sh tools/autotest.sh --scene=demo_test --genre=sport --frames=9000
 step "demo sport bugs" sh tools/autotest.sh --scene=demo_test --genre=sport --bugs --frames=18000

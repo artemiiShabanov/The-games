@@ -1,6 +1,6 @@
 class_name SportBit16Tuning
 extends Resource
-## Физика и правила футбола × 16/32-bit «один на одного» (#101), ресурс
+## Физика и правила футбола × 16/32-bit (#101, два на два с вратарями), ресурс
 ## `res://resources/demos/sport_bit16.tres`. Пиксели мира, секунды; мир шагает 60 раз в секунду.
 ## Поле лежит горизонтально: ворота героя слева, соперника справа.
 
@@ -18,6 +18,8 @@ const PATH := "res://resources/demos/sport_bit16.tres"
 @export var max_seconds := 300.0
 ## Игрок: бег, радиус, подкат (скорость, длительность, перезарядка), лежит после подката по нему.
 @export var run_speed := 120.0
+## С мячом у ноги бег медленнее, доля от обычного (плейтест 2026-11-12).
+@export var dribble_speed := 0.8
 @export var radius := 6.0
 @export var slide_speed := 230.0
 @export var slide_seconds := 0.35
@@ -49,13 +51,17 @@ const PATH := "res://resources/demos/sport_bit16.tres"
 @export var dive_window := 1.0
 ## Ошибка вратаря в угадывании места удара, пиксели в обе стороны.
 @export var keeper_error := 52.0
+## У вратаря героя ошибка меньше: против живого игрока соперник забивал всё (плейтест).
+@export var hero_keeper_error := 26.0
 ## В прыжке ловит мяч ближе этого.
 @export var dive_catch := 10.0
 ## После гола: пауза перед розыгрышем с центра.
 @export var goal_pause := 1.4
 ## Бот WIN: бьёт с такого расстояния до ворот, с такой зарядкой.
-@export var bot_shot_range := 250.0
+@export var bot_shot_range := 300.0
 @export var bot_charge := 0.55
+## Пас: короткое нажатие, доля зарядки.
+@export var pass_charge := 0.25
 @export var bot_tackle := 1.4
 @export var music_db := -12.0
 @export var sfx_db := -6.0

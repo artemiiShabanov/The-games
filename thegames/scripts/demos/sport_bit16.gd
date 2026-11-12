@@ -1,9 +1,11 @@
 extends Demo
 ## Демка спорт × 16/32-bit «футбол один на одного» (#101, решение 2026-11-12,
 ## `docs/specs/demos_catalog.md`), графика по Sensible Soccer: вид сверху, крошечные стоящие
-## игроки в восьми направлениях, мяч с высотой и тенью, камера за мячом. Ты против одного
-## соперника, у обоих вратари-боты. Стрелки бег, A держать: зарядка удара, отпустить: удар
-## (сразу после удара стрелка поперёк подкручивает мяч), B подкат. Матч до трёх голов.
+## игроки в восьми направлениях, мяч с высотой и тенью, камера за мячом. Два на два с
+## вратарями-ботами (плейтест 2026-11-12): в атаке играешь за того, у кого мяч, в защите за
+## последнего; над ним жёлтая метка. Стрелки бег (с мячом медленнее), A держать: зарядка удара,
+## отпустить: удар, короткое нажатие пас (сразу после удара стрелка поперёк подкручивает мяч),
+## B подкат. Матч до трёх голов.
 ## План соперника из `SoccerPlanGen` по сиду записи, правила и боты в `SoccerSim` (без окна, им же
 ## проверяются сиды); демка шагает им ровно 60 раз в секунду, рисует и озвучивает события.
 ##
@@ -145,6 +147,8 @@ func _on_event(ev: Array) -> void:
 			_play(String(ev[0]))
 		&"tackle":
 			_play("tackle")
+		&"switch":
+			_play("bounce")
 		&"goal":
 			_goal_t = 0.0
 			_play("goal")
@@ -175,7 +179,7 @@ func _draw_world(canvas: CanvasItem) -> void:
 	_draw_goal(canvas, 0.0, -1.0, SoccerSim.HERO)
 	_draw_goal(canvas, tuning.pitch_w, 1.0, SoccerSim.RIVAL)
 	# Игроки по y: кто ниже, тот ближе.
-	var order := [0, 1, 2, 3]
+	var order := [0, 1, 2, 3, 4, 5]
 	order.sort_custom(func(a: int, b: int) -> bool: return sim.players[a].pos.y < sim.players[b].pos.y)
 	var shadow := Color(0.0, 0.0, 0.0, 0.3)
 	canvas.draw_rect(Rect2(_to_screen(Vector2(sim.ball.x, sim.ball.y)) - Vector2(3.0, 1.0), Vector2(6.0, 3.0)), shadow)
@@ -248,8 +252,11 @@ func _draw_goal(canvas: CanvasItem, x: float, out: float, team: int) -> void:
 ## Игрок: кадр по направлению взгляда и бегу; подкат, лежит; у героя полоска зарядки удара.
 func _draw_player(canvas: CanvasItem, i: int) -> void:
 	var p := sim.players[i]
-	var t: Texture2D = tex["soccer_hero"] if i == SoccerSim.HERO else (tex["rival"] if i == SoccerSim.RIVAL else (
-			tex["soccer_keeper_hero"] if i == SoccerSim.HERO_KEEPER else tex["soccer_keeper_rival"]))
+	var t: Texture2D
+	if p.keeper:
+		t = tex["soccer_keeper_hero"] if p.team == SoccerSim.HERO else tex["soccer_keeper_rival"]
+	else:
+		t = tex["soccer_hero"] if p.team == SoccerSim.HERO else tex["rival"]
 	var d := posmod(int(round(atan2(p.facing.y, p.facing.x) / (PI / 4.0))), 8)
 	var frame := d * 3
 	if p.down > 0.0:
@@ -259,12 +266,12 @@ func _draw_player(canvas: CanvasItem, i: int) -> void:
 	elif p.vel.length() > 5.0:
 		frame = d * 3 + 1 + int(_time * 10.0) % 2
 	var at := _to_screen(p.pos) - Vector2(FRAME * 0.5, FRAME - 2.0)
-	if i == SoccerSim.RIVAL and is_pink("rival"):
+	if p.team == SoccerSim.RIVAL and not p.keeper and is_pink("rival"):
 		canvas.draw_rect(Rect2(at, Vector2(FRAME, FRAME)), Color(1.0, 0.4, 0.8))
 	else:
 		canvas.draw_texture_rect_region(t, Rect2(at, Vector2(FRAME, FRAME)), Rect2(frame * FRAME, 0.0, FRAME, FRAME))
-	if i == SoccerSim.HERO:
-		# Метка героя: треугольник над головой; при зарядке полоска силы.
+	if i == sim.ctrl:
+		# Метка того, кем управляешь: треугольник над головой; при зарядке полоска силы.
 		var top := at + Vector2(FRAME * 0.5, -4.0)
 		canvas.draw_colored_polygon(PackedVector2Array([top + Vector2(-3.0, -3.0), top + Vector2(3.0, -3.0), top]),
 				bit16.ink(Bit16Screen.GOLD))
