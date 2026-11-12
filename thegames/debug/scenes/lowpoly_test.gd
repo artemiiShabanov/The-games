@@ -18,7 +18,7 @@ extends Control
 const ProbeBehind := preload("res://debug/scenes/lowpoly_probe_behind.gd")
 const ProbeFirst := preload("res://debug/scenes/lowpoly_probe_first.gd")
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
-		&"pink_placeholders", &"alien_palette"]
+		&"pink_placeholders", &"alien_palette", &"mesh_holes"]
 ## Меши стартового набора; у двуногих есть ноги и руки.
 const MODELS: Array[String] = ["palm", "lighthouse", "hoop", "flag", "cannon", "cart", "cart_rival", "hero", "enemy", "captain",
 		"chest", "barrel", "crate", "rock", "pistol", "coin", "bottle", "ball", "keg"]
@@ -161,6 +161,17 @@ func _check_assets() -> void:
 				_expect(m.bounds().size.y > 1.6 and m.bounds().size.y < 1.95 and m.bounds().size.x < 0.75, "%s: у %s не человеческие пропорции: %s" % [id, name, m.bounds().size])
 			var box := m.bounds()
 			_expect(HELD.has(name) or box.position.y > -0.01 and box.size.y > 0.1 and box.size.y < 10.0, "%s: меш %s стоит не на нуле или не того роста: %s" % [id, name, box])
+	# Провал «Проверни» (мини-игра технологии low poly) даёт баг «дыры в моделях» (#111), и у бага
+	# есть слова под все пять жанров.
+	var doorway := MinigamePool.find(MinigamePool.load_all(), &"doorway")
+	_expect(doorway != null and doorway.scene != null, "«Проверни» всё ещё заглушка")
+	var failed := GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.LOWPOLY, 1, "Провал")
+	var given := BugCatalog.load_default().apply_fail(doorway, failed)
+	_expect(given != null and given.id == &"mesh_holes", "провал «Проверни» дал баг %s, не mesh_holes" % [given.id if given else &""])
+	var holes_bug := BugCatalog.load_default().by_id(&"mesh_holes")
+	_expect(holes_bug != null and holes_bug.spectacular, "mesh_holes не зрелищный")
+	for g in Game.Genre.size():
+		_expect(holes_bug != null and holes_bug.tweet_by_genre.has(g) and holes_bug.clip_by_genre.has(g), "mesh_holes: нет слов для жанра %d" % g)
 	AutoTest.note("lowpoly: мешей %d, в меше до %d треугольников, текстур уровня %d" % [MODELS.size(), most, TEXTURES.size()])
 
 
@@ -221,6 +232,17 @@ func _check_screen() -> void:
 	_expect(s.alien and is_equal_approx(float(mat.get_shader_parameter("hue_shift")), 0.45), "чужая палитра не сдвинула оттенок")
 	_expect(is_equal_approx(float(s.tex_material(pirates.texture_lowpoly("rock")).get_shader_parameter("hue_shift")), 0.45), "новый материал без чужой палитры")
 	_expect(is_zero_approx(float((s.sky_dome.mesh.surface_get_material(0) as ShaderMaterial).get_shader_parameter("hue_shift"))), "чужая палитра тронула небо")
+	# Дыры в моделях (#111): выключены без бага, включаются на старых и новых материалах, небо цело;
+	# у каждой грани свой номер, у модели и уровня разная метка.
+	_expect(is_zero_approx(s.holes) and is_zero_approx(float(mat.get_shader_parameter("holes"))), "дыры в моделях без бага")
+	s.set_holes(0.24, 0.05, 0.14, 1.4)
+	_expect(is_equal_approx(float(mat.get_shader_parameter("holes")), 0.24) and is_equal_approx(float(mat.get_shader_parameter("holes_level")), 0.05), "дыры не дошли до материала")
+	_expect(is_equal_approx(float(s.tex_material(pirates.texture_lowpoly("sail")).get_shader_parameter("holes")), 0.24), "новый материал без дыр")
+	_expect(is_zero_approx(float((s.sky_dome.mesh.surface_get_material(0) as ShaderMaterial).get_shader_parameter("holes"))), "дыры в небе")
+	var marks: PackedColorArray = (hero.part(&"body").mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+	var crate_marks: PackedColorArray = (crate.mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+	_expect(marks.size() > 6 and is_equal_approx(marks[0].r, marks[2].r) and not is_equal_approx(marks[0].r, marks[3].r)
+			and is_zero_approx(marks[0].g) and is_equal_approx(crate_marks[0].g, 1.0), "номера граней или метка уровня")
 	s.queue_free()
 
 
@@ -402,6 +424,8 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 			probe.lowpoly.pink_count, record.has_bug(&"pink_placeholders")])
 	_expect(probe.lowpoly.alien == record.has_bug(&"alien_palette"), "чужая палитра %s при баге %s" % [probe.lowpoly.alien,
 			record.has_bug(&"alien_palette")])
+	_expect((probe.lowpoly.holes > 0.0) == record.has_bug(&"mesh_holes"), "дыры в моделях %.2f при баге %s" % [probe.lowpoly.holes,
+			record.has_bug(&"mesh_holes")])
 	if win:
 		_expect(int(probe.get("collected")) > 0, "бот не собрал ни одного дублона")
 	else:

@@ -27,6 +27,7 @@ func _run() -> void:
 	await _pairs()
 	await _mash()
 	await _stack()
+	await _doorway()
 	await _flood_fill()
 	await _tune()
 	await _beam()
@@ -168,6 +169,25 @@ func _stack() -> void:
 	await _click(Vector2(960, 540))
 	_check(game.mouse_last_action == GameInput.A, "stack: клик не A")
 	_check(int(game.get("phase")) != 0, "stack: клик не уронил блок")
+
+
+## «Проверни» (#111): колесо крутит фигуру шагами, ведение с зажатой кнопкой плавно, клик сам
+## ничего не жмёт.
+func _doorway() -> void:
+	await _open(&"doorway")
+	var before := float(game.get("angle"))
+	await _wheel(Vector2(960, 540), false)
+	_check(is_equal_approx(wrapf(float(game.get("angle")) - before, -180.0, 180.0), 15.0), "doorway: колесо вниз не повернуло на шаг по часовой")
+	await _wheel(Vector2(960, 540), true)
+	_check(is_equal_approx(float(game.get("angle")), before), "doorway: колесо вверх не вернуло фигуру")
+	await _button(Vector2(900, 540), MOUSE_BUTTON_LEFT, true)
+	await _move(Vector2(1000, 540), Vector2(100, 0))
+	await _button(Vector2(1000, 540), MOUSE_BUTTON_LEFT, false)
+	_check(is_equal_approx(wrapf(float(game.get("angle")) - before, -180.0, 180.0), 45.0), "doorway: ведение на 100 пикселей повернуло на %.1f, не на 45" % wrapf(float(game.get("angle")) - before, -180.0, 180.0))
+	var held := float(game.get("angle"))
+	await _move(Vector2(1100, 540), Vector2(100, 0))
+	_check(is_equal_approx(float(game.get("angle")), held), "doorway: фигура крутится без зажатой кнопки")
+	_check(not Input.is_action_pressed(GameInput.A), "doorway: клик зажал A")
 
 
 func _flood_fill() -> void:

@@ -1,6 +1,21 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/doorway.tscn" id="1_g8atx"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_vj05j"]
+
+[sub_resource type="Curve" id="Curve_mfgdi"]
+_limits = [0.99, 2.9, 0.0, 1.0]
+_data = [Vector2(0, 2.9), 0.0, 0.0, 0, 0, Vector2(1, 2.1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_5t5tg"]
+_limits = [0.99, 22.0, 0.0, 1.0]
+_data = [Vector2(0, 22), 0.0, 0.0, 0, 0, Vector2(1, 11), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_njcpt"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_vj05j")
@@ -9,4 +24,11 @@ kind = 1
 tech = 3
 verb = "Проверни"
 hint = "Влево-вправо вращай фигуру под вырез в стене"
+scene = ExtResource("1_g8atx")
 inputs = Array[StringName]([&"move_left", &"move_right"])
+mouse_hint = "колесо или тяни вбок: вращай"
+params = Dictionary[StringName, Curve]({
+&"gap": SubResource("Curve_5t5tg"),
+&"hard": SubResource("Curve_njcpt"),
+&"travel": SubResource("Curve_mfgdi")
+})

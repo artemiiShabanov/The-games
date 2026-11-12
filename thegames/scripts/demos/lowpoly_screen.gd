@@ -12,7 +12,7 @@ extends SubViewportContainer
 ## сеттинга и разбито на мелкие грани, чтобы аффинное наложение не рвало картинку. Небо:
 ## панорама на цилиндре вокруг камеры. Общие баги: розовая заглушка это розовый ящик в шашку по
 ## габаритам модели (`pink_model`), чужая палитра сдвигает оттенок всех материалов мира
-## (`set_alien`). Во встроенном режиме (стрим ленты) увеличение на ступень меньше.
+## (`set_alien`). Баг технологии «дыры в моделях» (#111, `set_holes`): грани пропадают и чернеют. Во встроенном режиме (стрим ленты) увеличение на ступень меньше.
 
 ## Роли цветов HUD сеттинга: земля, вода, дерево, светлое, кожа, опасность, бонус, тёмное.
 enum { GROUND, GROUND_2, WALL, LIGHT, SKIN, DANGER, BONUS, DARK }
@@ -22,6 +22,8 @@ const MAX_TRIS := 300
 const EMBED_SCALE := 1
 ## Грань уровня длиннее этого режется на части, метры.
 const MAX_FACE := 2.5
+## Плоскость шире этого считается дальним планом: баг «дыры в моделях» её не трогает.
+const FAR_PLANE := 100.0
 const PS1_SHADER := preload("res://scripts/demos/lowpoly_ps1.gdshader")
 ## Глубина цвета и дизеринг поверх кадра: матрица 4×4 по пикселям экрана демки.
 const DITHER_SHADER := """
@@ -70,6 +72,11 @@ var tuning: LowpolyTuning
 ## Чужая палитра включена (проверки).
 var alien := false
 var hue_shift := 0.0
+## Баг технологии «дыры в моделях» (#111): доля пропавших граней моделей, 0 выключен (проверки).
+var holes := 0.0
+var _holes_level := 0.0
+var _flipped := 0.0
+var _hole_rate := 1.4
 ## Сколько розовых заглушек создано (проверки).
 var pink_count := 0
 var _materials: Dictionary[String, ShaderMaterial] = {}
@@ -182,6 +189,7 @@ func _new_material(tex: Texture2D, extra := {}) -> ShaderMaterial:
 	m.set_shader_parameter("fog_begin", tuning.fog_begin)
 	m.set_shader_parameter("fog_end", tuning.fog_end)
 	m.set_shader_parameter("hue_shift", hue_shift)
+	_apply_holes(m)
 	for key: String in extra:
 		m.set_shader_parameter(key, extra[key])
 	return m
@@ -202,6 +210,25 @@ func set_alien(shift: float) -> void:
 	hue_shift = shift
 	for m: ShaderMaterial in _materials.values():
 		m.set_shader_parameter("hue_shift", shift)
+
+
+## Баг технологии low poly «дыры в моделях» (#111): у моделей пропадает доля граней `share`, у
+## уровня `share_level`, ещё доля `flipped` у моделей вывернута и чернеет; набор меняется `rate`
+## раз в секунду. Живёт в шейдере, поэтому работает в любой демке low poly; небо не трогает.
+func set_holes(share: float, share_level: float, flipped: float, rate: float) -> void:
+	holes = clampf(share, 0.0, 1.0)
+	_holes_level = clampf(share_level, 0.0, 1.0)
+	_flipped = clampf(flipped, 0.0, 1.0)
+	_hole_rate = rate
+	for m: ShaderMaterial in _materials.values():
+		_apply_holes(m)
+
+
+func _apply_holes(m: ShaderMaterial) -> void:
+	m.set_shader_parameter("holes", holes)
+	m.set_shader_parameter("holes_level", _holes_level)
+	m.set_shader_parameter("flipped", _flipped)
+	m.set_shader_parameter("hole_rate", _hole_rate)
 
 
 # --- Модели ------------------------------------------------------------------------------------
@@ -263,7 +290,7 @@ func _part_mesh(def: LowpolyModelDef, part: int, start: int) -> ArrayMesh:
 			verts.append(def.vertices[t * 3 + k])
 			normals.append(def.normals[t * 3 + k])
 			uvs.append(def.uvs[t * 3 + k])
-	var mesh := _commit(verts, normals, uvs, tex_material(def.texture))
+	var mesh := _commit(verts, normals, uvs, tex_material(def.texture), 0.0)
 	_meshes[key] = mesh
 	return mesh
 
@@ -297,7 +324,8 @@ func add_plane(at: Vector3, size: Vector2, tex: Texture2D, tile := 2.0, extra :=
 	var uvs := PackedVector2Array()
 	_face(verts, normals, uvs, Vector3(-size.x / 2.0, 0.0, size.y / 2.0), Vector3(size.x, 0, 0), Vector3(0, 0, -size.y), tile,
 			maxf(MAX_FACE, maxf(size.x, size.y) / 24.0))
-	return _add_mesh(_commit(verts, normals, uvs, tex_material(tex, extra)), at, parent)
+	# Плоскость до горизонта (море) режется на огромные клетки: дыра в ней закрыла бы пол-экрана.
+	return _add_mesh(_commit(verts, normals, uvs, tex_material(tex, extra), 2.0 if maxf(size.x, size.y) > FAR_PLANE else 1.0), at, parent)
 
 
 ## Тень-блин под героем или вещью: тёмный полупрозрачный восьмиугольник, демка кладёт его на землю.
@@ -396,12 +424,22 @@ static func flip_last(verts: PackedVector3Array, normals: PackedVector3Array, uv
 		uvs[i + 2] = u
 
 
-static func _commit(verts: PackedVector3Array, normals: PackedVector3Array, uvs: PackedVector2Array, mat: Material) -> ArrayMesh:
+## Меш из троек вершин. В цвет вершины кладётся номер грани (красный, 0..1, один на тройку) и
+## `level` (0 модель, 1 геометрия уровня, 2 дальний план: зелёный и синий каналы): по ним шейдер выбирает грани для бага
+## «дыры в моделях».
+static func _commit(verts: PackedVector3Array, normals: PackedVector3Array, uvs: PackedVector2Array, mat: Material,
+		level := 1.0) -> ArrayMesh:
+	var colors := PackedColorArray()
+	colors.resize(verts.size())
+	for i in verts.size():
+		# Цвет вершины хранится байтами 0..1, поэтому дальний план отдельным каналом.
+		colors[i] = Color(fposmod((i / 3) * 0.6180339, 1.0), minf(level, 1.0), 1.0 if level > 1.5 else 0.0)
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
 	arrays[Mesh.ARRAY_NORMAL] = normals
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_COLOR] = colors
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	mesh.surface_set_material(0, mat)

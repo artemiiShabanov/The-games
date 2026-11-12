@@ -27,7 +27,8 @@ extends Control
 ## на экране `lowpoly_screen(draw_hud)`: модели слотов через `spawn_model`, заглушка это розовый
 ## ящик в шашку по габаритам модели, чужая палитра сдвигает оттенок материалов. Демки от первого
 ## лица (#109) включают обзор мышью и правым стиком `look_start()` и забирают поворот
-## `look_take(delta)`; курсор захвачен, пока демка идёт, пауза и итог его отпускают. Демка зовёт эти хуки в своих местах и
+## `look_take(delta)`; баг технологии low poly `mesh_holes` «дыры в моделях» (#111) включается в
+## `lowpoly_screen` и живёт в шейдере экрана, демке его звать не надо; курсор захвачен, пока демка идёт, пауза и итог его отпускают. Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -530,6 +531,9 @@ func lowpoly_screen(draw_hud: Callable) -> LowpolyScreen:
 	lowpoly.draw_hud = draw_hud
 	if has_bug(&"alien_palette"):
 		lowpoly.set_alien(bug_param(&"alien_palette", &"hue_shift", 0.45))
+	if has_bug(&"mesh_holes"):
+		lowpoly.set_holes(bug_param(&"mesh_holes", &"share", 0.24), bug_param(&"mesh_holes", &"share_level", 0.05),
+				bug_param(&"mesh_holes", &"flipped", 0.14), bug_param(&"mesh_holes", &"rate", 1.4))
 	screen.add_child(lowpoly)
 	return lowpoly
 

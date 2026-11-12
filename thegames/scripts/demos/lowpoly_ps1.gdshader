@@ -25,6 +25,13 @@ uniform float hue_shift = 0.0;
 uniform vec2 uv_scroll = vec2(0.0);
 // Белая заливка на кадр попадания.
 uniform float flash = 0.0;
+// Баг технологии «дыры в моделях» (#111): доля пропавших граней у моделей и у уровня, доля
+// вывернутых (чернеют), сколько раз в секунду набор меняется. Номер грани в COLOR.r, в COLOR.g
+// метка: 0 модель, 1 геометрия уровня; в COLOR.b единица у дальнего плана без дыр.
+uniform float holes = 0.0;
+uniform float holes_level = 0.0;
+uniform float flipped = 0.0;
+uniform float hole_rate = 1.4;
 
 varying vec3 uvw;
 varying vec3 light;
@@ -46,6 +53,17 @@ void vertex() {
 	float w = mix(1.0, max(clip.w, 0.001), affine);
 	uvw = vec3((UV + uv_scroll * TIME) * w, w);
 	fog = clamp((-view.z - fog_begin) / max(fog_end - fog_begin, 0.001), 0.0, 1.0) * fog_amount;
+	if (holes > 0.0 || holes_level > 0.0) {
+		float roll = fract(sin((COLOR.r * 97.0 + floor(TIME * hole_rate) * 0.37) * 91.7) * 43758.5453);
+		// Синий канал: дальний план (море), его баг не трогает.
+		float share = COLOR.b > 0.5 ? 0.0 : mix(holes, holes_level, COLOR.g);
+		if (roll < share) {
+			// Все три вершины грани уходят в одну точку за экраном: грань пропадает.
+			POSITION = vec4(2.0, 2.0, 2.0, 1.0);
+		} else if (COLOR.g < 0.5 && roll < share + flipped) {
+			light *= 0.22;
+		}
+	}
 }
 
 void fragment() {
