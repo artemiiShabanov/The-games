@@ -617,7 +617,7 @@ def reshade(canvas, palette=None):
 
 def wants_reshade(key, canvas):
     """Кого красить рампами: силуэты в палитре сеттинга, кроме слоёв дали и крошечного футбола."""
-    if key.startswith("par_") or key.startswith("soccer_"):
+    if key.startswith("par_") or key in ("soccer_grass",):
         return False
     return any(v is None for row in canvas.px for v in row)
 

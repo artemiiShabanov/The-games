@@ -17,7 +17,14 @@ extends Demo
 
 const ZOOM := 3
 const MARGIN := 48.0
-const FRAME := 16.0
+## Кадр игрока (плейтест 2026-11-12: крупнее, 24 вместо 16) и раскладка ленты: на направление
+## 9 кадров (стоит, бег 6 фаз, замах, удар), потом 8 подкатов и 8 лежит.
+const FRAME := 24.0
+const PER_DIR := 9
+const SLIDE0 := 72
+const DOWN0 := 80
+## Мяч 12×12, 4 кадра качения.
+const BALL := 12.0
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "ball"]
 const KITS: Array[String] = ["soccer_rival_0", "soccer_rival_1", "soccer_rival_2"]
 ## Песок (или трава, реголит) за линиями до аута.
@@ -48,6 +55,11 @@ var _acc := 0.0
 var _slide_pressed := false
 var _goal_t := 9.0
 var _theme := "pirates"
+## Когда игрок последний раз бил или пасовал (кадр удара), и пройденный путь (фаза бега).
+var _kick_at: Dictionary[int, float] = {}
+var _walked: Dictionary[int, float] = {}
+var _last_pos: Dictionary[int, Vector2] = {}
+var _ball_roll := 0.0
 var _music: AudioStreamPlayer
 var _sfx := {}
 
@@ -135,6 +147,11 @@ func _on_tick(delta: float) -> void:
 
 func _step(dt: float) -> void:
 	_time += dt
+	for i in sim.players.size():
+		var pos := sim.players[i].pos
+		_walked[i] = float(_walked.get(i, 0.0)) + pos.distance_to(_last_pos.get(i, pos))
+		_last_pos[i] = pos
+	_ball_roll += Vector2(sim.ball_vel.x, sim.ball_vel.y).length() * dt
 	_goal_t += dt
 	bug_input_tick()
 	_acc = minf(_acc + dt, 0.25)
@@ -162,6 +179,11 @@ func _on_event(ev: Array) -> void:
 	match ev[0] as StringName:
 		&"kick", &"bounce", &"save", &"out", &"space":
 			_play(String(ev[0]))
+			if ev[0] == &"kick" and ev.size() > 1:
+				_kick_at[int(ev[1])] = _time
+		&"pass":
+			if ev.size() > 1:
+				_kick_at[int(ev[1])] = _time
 		&"tackle":
 			_play("tackle")
 		&"switch":
@@ -199,18 +221,28 @@ func _draw_world(canvas: CanvasItem) -> void:
 	var order := [0, 1, 2, 3, 4, 5]
 	order.sort_custom(func(a: int, b: int) -> bool: return sim.players[a].pos.y < sim.players[b].pos.y)
 	var shadow := Color(0.0, 0.0, 0.0, 0.3)
-	canvas.draw_rect(Rect2(_to_screen(Vector2(sim.ball.x, sim.ball.y)) - Vector2(3.0, 1.0), Vector2(6.0, 3.0)), shadow)
+	canvas.draw_rect(Rect2(_to_screen(Vector2(sim.ball.x, sim.ball.y)) - Vector2(4.0, 1.0), Vector2(8.0, 3.0)), shadow)
+	canvas.draw_rect(Rect2(_to_screen(Vector2(sim.ball.x, sim.ball.y)) - Vector2(3.0, 2.0), Vector2(6.0, 5.0)), shadow)
+	for i in order:
+		var pp := _to_screen(sim.players[i].pos)
+		canvas.draw_rect(Rect2(pp - Vector2(6.0, 1.0), Vector2(12.0, 3.0)), shadow)
+		canvas.draw_rect(Rect2(pp - Vector2(4.0, 2.0), Vector2(8.0, 5.0)), shadow)
 	for i in order:
 		_draw_player(canvas, i)
 	var lift := sim.ball.z
 	var bp := _to_screen(Vector2(sim.ball.x, sim.ball.y - lift))
 	var bt: Texture2D = tex["soccer_ball"]
 	if is_pink("ball"):
-		canvas.draw_rect(Rect2(bp - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Color(1.0, 0.4, 0.8))
+		canvas.draw_rect(Rect2(bp - Vector2(6.0, 6.0), Vector2(12.0, 12.0)), Color(1.0, 0.4, 0.8))
 	else:
-		var size := 8.0 + clampf(lift / 30.0, 0.0, 4.0)
-		var frame := int(sim.time * 10.0) % 2 if Vector2(sim.ball_vel.x, sim.ball_vel.y).length() > 5.0 else 0
-		canvas.draw_texture_rect_region(bt, Rect2(bp - Vector2(size, size) * 0.5, Vector2(size, size)), Rect2(frame * 8.0, 0.0, 8.0, 8.0))
+		# Мяч в воздухе крупнее целыми шагами (без мыла), кадр качения по пройденному пути.
+		var size := BALL + 2.0 * clampf(floorf(lift / 40.0), 0.0, 2.0)
+		var frame := int(_ball_roll / 5.0) % 4
+		var flip := sim.ball_vel.x < 0.0
+		var dst := Rect2((bp - Vector2(size, size) * 0.5).round(), Vector2(size, size))
+		if flip:
+			dst = Rect2(dst.position, Vector2(-size, size))
+		canvas.draw_texture_rect_region(bt, dst, Rect2(frame * BALL, 0.0, BALL, BALL))
 
 
 ## Поле по сеттингу: аут тайлами (у пиратов море с барашками), поле с запасом за линиями
@@ -310,14 +342,19 @@ func _draw_player(canvas: CanvasItem, i: int) -> void:
 	else:
 		t = tex["soccer_hero"] if p.team == SoccerSim.HERO else tex["rival"]
 	var d := posmod(int(round(atan2(p.facing.y, p.facing.x) / (PI / 4.0))), 8)
-	var frame := d * 3
+	var frame := d * PER_DIR
 	if p.down > 0.0:
-		frame = 32 + d
+		frame = DOWN0 + d
 	elif p.slide > 0.0 or p.dive > 0.0:
-		frame = 24 + (d if p.slide > 0.0 else (2 if p.dive_dir.y > 0.0 else 6))
+		frame = SLIDE0 + (d if p.slide > 0.0 else (2 if p.dive_dir.y > 0.0 else 6))
+	elif _time - float(_kick_at.get(i, -9.0)) < 0.2:
+		frame = d * PER_DIR + 8
+	elif p.charge >= 0.0:
+		frame = d * PER_DIR + 7
 	elif p.vel.length() > 5.0:
-		frame = d * 3 + 1 + int(_time * 10.0) % 2
-	var at := _to_screen(p.pos) - Vector2(FRAME * 0.5, FRAME - 2.0)
+		# Фаза бега по пройденному пути: ноги не скользят по земле.
+		frame = d * PER_DIR + 1 + int(float(_walked.get(i, 0.0)) / 4.0) % 6
+	var at := _to_screen(p.pos) - Vector2(FRAME * 0.5, FRAME - 3.0)
 	if p.team == SoccerSim.RIVAL and not p.keeper and is_pink("rival"):
 		canvas.draw_rect(Rect2(at, Vector2(FRAME, FRAME)), Color(1.0, 0.4, 0.8))
 	else:
