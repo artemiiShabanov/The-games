@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ngrj4xxmqvib"
-path="res://.godot/imported/brawl_far.png-789ac87f67c4dedbe29755fbcfe710d0.ctex"
+uid="uid://b3scwbmbw8lqk"
+path="res://.godot/imported/brawl_face_knife.png-c8623b7864a70484fc5f63b2203a27a2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/16bit/brawl_far.png"
-dest_files=["res://.godot/imported/brawl_far.png-789ac87f67c4dedbe29755fbcfe710d0.ctex"]
+source_file="res://assets/settings/pirates/16bit/brawl_face_knife.png"
+dest_files=["res://.godot/imported/brawl_face_knife.png-c8623b7864a70484fc5f63b2203a27a2.ctex"]
 
 [params]
 

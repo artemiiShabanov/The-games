@@ -19,8 +19,7 @@ func _process(_delta: float) -> bool:
 	var dt := FightingBit16Tuning.load_default()
 	var setup := func(s: BrawlSim) -> void:
 		if bugs.has("wild"):
-			s.jump_mult = 3.0
-			s.launch = 120.0
+			s.launch = 180.0
 		s.immortal = bugs.has("immortal")
 		s.sneeze = bugs.has("sneeze")
 		s.ghost_every = 2 if bugs.has("ghost") else 0

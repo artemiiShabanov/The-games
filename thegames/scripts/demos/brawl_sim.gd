@@ -4,21 +4,23 @@ extends RefCounted
 ## враги по волнам, три экрана улицы, боты. Демка `fighting_bit16.gd` рисует это состояние и
 ## озвучивает события; `simulate` гоняет бота по сиду целиком (проверки `demo_test`,
 ## `debug/tools/dump_brawl.gd`). Мир шагает ровно 60 раз в секунду.
-## Правила: улица идёт вправо, x вдоль, y вглубь полосы, z прыжок. Экран встаёт, пока не побиты
-## его враги, потом стрелка «вперёд» и следующий. Герой: ход в восьми направлениях; A удар,
-## три подряд это комбо (два тычка и пинок, пинок валит); B прыжок, A в прыжке удар ногой
-## (валит); вошёл во врага вплотную и постоял: захват, A колено, третье A бросок назад, брошенный
-## сбивает других. Враги идут к герою, в атаке не больше двоих, остальные ждут поодаль; удар с
-## замахом, который видно. Боцман на третьем экране: крепче, раз в несколько секунд рывок через
-## экран. Здоровье героя кончилось: жизнь минус, неуязвимость и волна, сбивающая врагов рядом.
+## Правила: улица идёт вправо, x вдоль, y вглубь полосы, z высота полёта. Экран встаёт, пока
+## не побиты его враги, потом стрелка «вперёд» и следующий. Герой: ход в восьми направлениях;
+## A удар, три подряд это комбо (два тычка и пинок, пинок валит); B тяжёлый удар (долгий замах,
+## далеко, валит всех перед собой; плейтест 2026-11-12: вместо прыжка); вошёл во врага вплотную
+## и постоял: захват, A колено, третье A бросок назад, брошенный сбивает других. Каждое
+## попадание останавливает мир на доли секунды (`hitstop`) и заливает белым того, по кому
+## попали. Враги идут к герою, в атаке не больше двоих, остальные ждут поодаль; удар с замахом,
+## который видно. Боцман на третьем экране: крепче, раз в несколько секунд рывок через экран.
+## Здоровье героя кончилось: жизнь минус, неуязвимость и волна, сбивающая врагов рядом.
 ## Побиты все три экрана: победа; жизни кончились: поражение.
-## Баги приходят числами: `jump_mult` прыжок выше, `launch` от удара летят по дуге; `immortal`
+## Баги приходят числами: `launch` от удара летят выше и дальше по дуге; `immortal`
 ## боцман бессмертен; `sneeze` враг падает от любого удара; `ghost_every` каждый такой удар
 ## героя проходит сквозь.
 
 const DT := 1.0 / 60.0
 
-enum State { IDLE, WALK, ATTACK, JUMP, HURT, DOWN, GETUP, GRAB, GRABBED, THROWN, WINDUP, STRIKE, CHARGE, DEAD }
+enum State { IDLE, WALK, ATTACK, HEAVY, HURT, DOWN, GETUP, GRAB, GRABBED, THROWN, WINDUP, STRIKE, CHARGE, DEAD }
 
 class Fighter:
 	var kind := BrawlWaves.Kind.THUG
@@ -41,10 +43,11 @@ class Fighter:
 	var name := ""
 	var charge_t := 0.0
 	var gone := false
+	## Белая заливка после попадания, секунды.
+	var flash := 0.0
 
 var tuning: FightingBit16Tuning
 var waves: BrawlWaves
-var jump_mult := 1.0
 var launch := 0.0
 var immortal := false
 var sneeze := false
@@ -65,9 +68,12 @@ var kills := 0
 var deaths := 0
 ## Захваченный враг (индекс) или −1.
 var held := -1
-## События шага: `[имя, …]`. `swing` (кто), `hit` (кого, урон), `down` (кого), `kill` (кого),
-## `hurt`, `jump`, `land`, `grab`, `knee`, `throw`, `windup` (кто), `charge`, `wave` (экран),
-## `go`, `boss`, `life`, `ghost`, `win`, `lose`. Демка читает и чистит.
+## Стоп-кадр после попадания: секунды, пока мир стоит.
+var hitstop := 0.0
+## События шага: `[имя, …]`. `swing` (кто: −1 герой, иначе индекс; вид: jab, kick, heavy, foe),
+## `impact` (x, y, z, тяжёлый ли), `hit` (кого, урон), `down` (кого), `kill` (кого), `hurt`,
+## `grab`, `knee`, `throw`, `windup` (кто), `charge`, `wave` (экран), `go`, `boss`, `life`,
+## `ghost`, `win`, `lose`. Демка читает и чистит.
 var events: Array[Array] = []
 ## Ввод бота на этом шаге.
 var bot_a := false
@@ -112,6 +118,13 @@ func step(axis: Vector2, a: bool, b: bool) -> void:
 	if time >= tuning.max_seconds:
 		_end(false)
 		return
+	# Стоп-кадр: мир стоит, ввод теряется (нажатие во время стоп-кадра не пропадёт у человека:
+	# демка держит его до следующего шага).
+	if hitstop > 0.0:
+		hitstop -= DT
+		return
+	for f in [hero] + foes:
+		f.flash = maxf(f.flash - DT, 0.0)
 	_screen_step()
 	_hero_step(axis, a, b)
 	for i in foes.size():
@@ -166,7 +179,7 @@ func _spawn(sp: BrawlWaves.Spawn) -> void:
 		_:
 			f.hp = tuning.thug_health
 	f.max_hp = f.hp
-	f.pos = Vector2(cam_x + (tuning.screen_w + 20.0 if sp.side > 0.0 else -20.0), sp.y)
+	f.pos = Vector2(cam_x + (tuning.screen_w + 40.0 if sp.side > 0.0 else -40.0), sp.y * tuning.depth / 70.0)
 	f.facing = -sp.side
 	f.cooldown = 0.6
 	f.charge_t = tuning.boss_charge_every
@@ -199,21 +212,14 @@ func _hero_step(axis: Vector2, a: bool, b: bool) -> void:
 			if h.state_t >= tuning.getup_seconds:
 				_to(h, State.IDLE)
 			return
-		State.JUMP:
-			h.pos.x += axis.x * tuning.walk_x * DT
-			h.vz -= tuning.gravity * DT
-			h.z += h.vz * DT
-			if a and h.combo == 0:
-				h.combo = 9
-				events.append([&"swing", -1])
-			if h.combo == 9:
-				_hero_hits(tuning.kick_reach, tuning.jump_kick_damage, true)
-			if h.z <= 0.0:
-				h.z = 0.0
-				h.combo = 0
+		State.HEAVY:
+			# Замах, удар, долгое восстановление.
+			if not h.hit_done and h.state_t >= tuning.heavy_windup:
+				h.hit_done = true
+				events.append([&"swing", -1, &"heavy"])
+				_hero_hits(tuning.heavy_reach, tuning.heavy_damage, true)
+			if h.state_t >= tuning.heavy_seconds:
 				_to(h, State.IDLE)
-				events.append([&"land"])
-			_clamp(h)
 			return
 		State.ATTACK:
 			var kick := h.combo == 2
@@ -221,6 +227,7 @@ func _hero_step(axis: Vector2, a: bool, b: bool) -> void:
 			var at := tuning.kick_hit if kick else tuning.jab_hit
 			if not h.hit_done and h.state_t >= at:
 				h.hit_done = true
+				events.append([&"swing", -1, &"kick" if kick else &"jab"])
 				_hero_hits(tuning.kick_reach if kick else tuning.jab_reach, tuning.kick_damage if kick else tuning.jab_damage, kick)
 			if h.state_t >= dur:
 				_to(h, State.IDLE)
@@ -234,13 +241,12 @@ func _hero_step(axis: Vector2, a: bool, b: bool) -> void:
 		h.combo = (h.combo + 1) % 3 if h.combo_t < tuning.combo_window else 0
 		h.hit_done = false
 		_to(h, State.ATTACK)
-		events.append([&"swing", -1])
 		return
 	if b:
-		h.vz = tuning.jump_speed * sqrt(jump_mult)
+		h.hit_done = false
 		h.combo = 0
-		_to(h, State.JUMP)
-		events.append([&"jump"])
+		_to(h, State.HEAVY)
+		events.append([&"windup", -1])
 		return
 	var v := Vector2(axis.x * tuning.walk_x, axis.y * tuning.walk_y)
 	if absf(axis.x) > 0.1:
@@ -266,7 +272,7 @@ func _grab_target() -> int:
 	for i in foes.size():
 		var f := foes[i]
 		if f.state in [State.IDLE, State.WALK, State.HURT] and f.kind != BrawlWaves.Kind.BOSS \
-				and absf(f.pos.x - hero.pos.x) < tuning.grab_reach and absf(f.pos.y - hero.pos.y) < 6.0 \
+				and absf(f.pos.x - hero.pos.x) < tuning.grab_reach and absf(f.pos.y - hero.pos.y) < 9.0 \
 				and signf(f.pos.x - hero.pos.x) == hero.facing:
 			return i
 	return -1
@@ -280,7 +286,7 @@ func _grab_step(a: bool) -> void:
 		held = -1
 		return
 	var f := foes[held]
-	f.pos = h.pos + Vector2(h.facing * 14.0, 0.0)
+	f.pos = h.pos + Vector2(h.facing * 26.0, 0.0)
 	if a and h.knees < 2:
 		h.knees += 1
 		events.append([&"knee"])
@@ -304,15 +310,13 @@ func _hero_hits(reach: float, dmg: int, heavy: bool) -> void:
 		if f.state in [State.DOWN, State.GETUP, State.DEAD, State.THROWN] or f.invuln > 0.0:
 			continue
 		var dx := (f.pos.x - hero.pos.x) * hero.facing
-		if dx < 0.0 or dx > reach or absf(f.pos.y - hero.pos.y) > tuning.hit_depth or absf(f.z - hero.z) > 24.0:
+		if dx < 0.0 or dx > reach or absf(f.pos.y - hero.pos.y) > tuning.hit_depth or f.z > 40.0:
 			continue
 		hits += 1
 		# Призрачные удары: каждый такой проходит сквозь.
 		if ghost_every > 0 and hits % ghost_every == 0:
 			events.append([&"ghost"])
 			continue
-		if hero.combo == 9:
-			hero.combo = 10
 		_damage(f, dmg, heavy, i)
 
 
@@ -324,6 +328,9 @@ func _damage(f: Fighter, dmg: int, heavy: bool, index: int) -> void:
 		dmg = f.hp
 	f.hp = maxi(f.hp - dmg, 0)
 	events.append([&"hit", index, dmg])
+	events.append([&"impact", f.pos.x - (f.facing if f != hero else -hero.facing) * 6.0, f.pos.y, f.z, heavy])
+	f.flash = tuning.flash
+	hitstop = maxf(hitstop, tuning.hitstop_heavy if heavy else tuning.hitstop)
 	if f.hp <= 0:
 		if f == hero:
 			_lose_life()
@@ -344,7 +351,7 @@ func _damage(f: Fighter, dmg: int, heavy: bool, index: int) -> void:
 func _knock(f: Fighter) -> void:
 	var away := signf(f.pos.x - hero.pos.x) if f != hero else -hero.facing
 	f.vx = away * (tuning.knock_back + launch)
-	f.vz = 120.0 + launch
+	f.vz = 200.0 + launch
 	_to(f, State.DOWN)
 
 
@@ -411,7 +418,7 @@ func _foe_step(i: int) -> void:
 			# Брошенный сбивает тех, в кого влетел.
 			for j in foes.size():
 				var o := foes[j]
-				if j != i and o.state in [State.IDLE, State.WALK, State.WINDUP] and absf(o.pos.x - f.pos.x) < 14.0 and absf(o.pos.y - f.pos.y) < 10.0:
+				if j != i and o.state in [State.IDLE, State.WALK, State.WINDUP] and absf(o.pos.x - f.pos.x) < 26.0 and absf(o.pos.y - f.pos.y) < 14.0:
 					_damage(o, tuning.throw_hit_damage, true, j)
 			if f.z <= 0.0 and f.state_t > 0.1:
 				_to(f, State.DOWN)
@@ -442,11 +449,11 @@ func _foe_step(i: int) -> void:
 			return
 		State.CHARGE:
 			f.pos.x += f.facing * tuning.boss_charge_speed * DT
-			if not hero.state in [State.DOWN, State.GETUP] and hero.invuln <= 0.0 and absf(hero.pos.x - f.pos.x) < 18.0 \
-					and absf(hero.pos.y - f.pos.y) < 12.0 and hero.z < 20.0:
+			if not hero.state in [State.DOWN, State.GETUP] and hero.invuln <= 0.0 and absf(hero.pos.x - f.pos.x) < 34.0 \
+					and absf(hero.pos.y - f.pos.y) < 16.0 and hero.z < 30.0:
 				_hero_hurt(tuning.boss_charge_damage, true)
-			if f.pos.x < cam_x + 20.0 or f.pos.x > cam_x + tuning.screen_w - 20.0 or f.state_t > 2.0:
-				f.pos.x = clampf(f.pos.x, cam_x + 20.0, cam_x + tuning.screen_w - 20.0)
+			if f.pos.x < cam_x + 30.0 or f.pos.x > cam_x + tuning.screen_w - 30.0 or f.state_t > 2.0:
+				f.pos.x = clampf(f.pos.x, cam_x + 30.0, cam_x + tuning.screen_w - 30.0)
 				_to(f, State.IDLE)
 				f.charge_t = tuning.boss_charge_every
 			return
@@ -491,7 +498,7 @@ func _foe_ai(i: int) -> void:
 	f.facing = signf(to.x) if absf(to.x) > 2.0 else f.facing
 	if f.kind == BrawlWaves.Kind.BOSS:
 		f.charge_t -= DT
-		if f.charge_t <= 0.0 and absf(to.y) < 14.0 and absf(to.x) > 60.0:
+		if f.charge_t <= 0.0 and absf(to.y) < 20.0 and absf(to.x) > 90.0:
 			_to(f, State.CHARGE)
 			events.append([&"charge"])
 			return
@@ -502,9 +509,9 @@ func _foe_ai(i: int) -> void:
 	var side := -1.0 if f.pos.x < hero.pos.x else 1.0
 	var spot := hero.pos + Vector2(side * tuning.foe_reach * 0.9, 0.0)
 	if rank >= tuning.attackers:
-		spot = hero.pos + Vector2(side * tuning.wait_distance, (f.pos.y - hero.pos.y) * 0.5 + (12.0 if i % 2 == 0 else -12.0))
+		spot = hero.pos + Vector2(side * tuning.wait_distance, (f.pos.y - hero.pos.y) * 0.5 + (18.0 if i % 2 == 0 else -18.0))
 	var d := spot - f.pos
-	var aligned := absf(to.y) < 6.0 and absf(absf(to.x) - tuning.foe_reach * 0.9) < 6.0
+	var aligned := absf(to.y) < 8.0 and absf(absf(to.x) - tuning.foe_reach * 0.9) < 9.0
 	if rank < tuning.attackers and aligned and f.cooldown <= 0.0 and hero.state != State.DOWN and hero.invuln <= 0.0:
 		_to(f, State.WINDUP)
 		events.append([&"windup", i])
@@ -520,9 +527,9 @@ func _foe_ai(i: int) -> void:
 
 
 func _foe_strike(f: Fighter) -> void:
-	events.append([&"swing", 1])
+	events.append([&"swing", foes.find(f), &"foe"])
 	var dx := (hero.pos.x - f.pos.x) * f.facing
-	if dx < 0.0 or dx > tuning.foe_reach + 6.0 or absf(hero.pos.y - f.pos.y) > tuning.hit_depth or hero.z > 20.0:
+	if dx < 0.0 or dx > tuning.foe_reach + 10.0 or absf(hero.pos.y - f.pos.y) > tuning.hit_depth or hero.z > 30.0:
 		return
 	if hero.invuln > 0.0 or hero.state in [State.DOWN, State.GETUP]:
 		return
@@ -534,6 +541,9 @@ func _hero_hurt(dmg: int, heavy: bool) -> void:
 		_to(foes[held], State.IDLE)
 		held = -1
 	events.append([&"hurt"])
+	events.append([&"impact", hero.pos.x + hero.facing * 6.0, hero.pos.y, hero.z, heavy])
+	hero.flash = tuning.flash
+	hitstop = maxf(hitstop, tuning.hitstop_heavy if heavy else tuning.hitstop)
 	hero.hp = maxi(hero.hp - dmg, 0)
 	if hero.hp <= 0:
 		_lose_life()
@@ -567,7 +577,7 @@ func bot(mode: AutoTest.BotMode) -> Vector2:
 	for f in foes:
 		if f.state == State.DEAD:
 			continue
-		if f.state == State.CHARGE and absf(f.pos.y - hero.pos.y) < 20.0:
+		if f.state == State.CHARGE and absf(f.pos.y - hero.pos.y) < 30.0:
 			return Vector2(0.0, -1.0 if hero.pos.y > tuning.depth * 0.5 else 1.0)
 		if target == null or f.pos.distance_to(hero.pos) < target.pos.distance_to(hero.pos):
 			target = f
@@ -577,11 +587,20 @@ func bot(mode: AutoTest.BotMode) -> Vector2:
 	var spot := target.pos + Vector2(side * tuning.bot_gap, 0.0)
 	var d := spot - hero.pos
 	var facing_ok := signf(target.pos.x - hero.pos.x) == hero.facing
-	var can_hit := absf(d.y) < 5.0 and absf(d.x) < 8.0 and facing_ok and not target.state in [State.DOWN, State.GETUP, State.THROWN]
+	var can_hit := absf(d.y) < 7.0 and absf(d.x) < 12.0 and facing_ok and not target.state in [State.DOWN, State.GETUP, State.THROWN]
 	if can_hit and hero.state in [State.IDLE, State.WALK]:
-		bot_a = true
+		# Двое и больше перед собой или боцман без замаха: тяжёлый удар, иначе комбо.
+		var front := 0
+		for f in foes:
+			if f.state != State.DEAD and (f.pos.x - hero.pos.x) * hero.facing > 0.0 and absf(f.pos.x - hero.pos.x) < tuning.heavy_reach \
+					and absf(f.pos.y - hero.pos.y) < tuning.hit_depth:
+				front += 1
+		if front >= 2 or (target.kind == BrawlWaves.Kind.BOSS and target.state != State.WINDUP and int(time * 2.0) % 3 == 0):
+			bot_b = true
+		else:
+			bot_a = true
 		return Vector2.ZERO
-	if absf(d.x) < 8.0 and absf(d.y) < 5.0 and not facing_ok:
+	if absf(d.x) < 12.0 and absf(d.y) < 7.0 and not facing_ok:
 		return Vector2(-side, 0.0)
-	var v := Vector2(clampf(d.x / 10.0, -1.0, 1.0), clampf(d.y / 6.0, -1.0, 1.0))
+	var v := Vector2(clampf(d.x / 14.0, -1.0, 1.0), clampf(d.y / 8.0, -1.0, 1.0))
 	return v

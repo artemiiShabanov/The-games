@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vva4m482pphb"
-path="res://.godot/imported/brawl_floor.png-93782b33da2009578abd14af85bb2bbb.ctex"
+uid="uid://bmrt7a3h7raip"
+path="res://.godot/imported/brawl_fx_heavy.png-2af616f778b49405ca3f90e18491111f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/16bit/brawl_floor.png"
-dest_files=["res://.godot/imported/brawl_floor.png-93782b33da2009578abd14af85bb2bbb.ctex"]
+source_file="res://assets/settings/pirates/16bit/brawl_fx_heavy.png"
+dest_files=["res://.godot/imported/brawl_fx_heavy.png-2af616f778b49405ca3f90e18491111f.ctex"]
 
 [params]
 

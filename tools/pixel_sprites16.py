@@ -509,9 +509,11 @@ def sets():
     # Футбол «один на одного» (#101): игроки, мяч, трава в палитре спрайтов.
     import pixel_soccer16 as soccer
     sprites.update(soccer.sprites())
-    # Битемап (#102): бойцы, улица в палитре спрайтов.
+    # Битемап (#102): бойцы, улица, эффекты и лица, у каждой ленты своя палитра.
     import pixel_brawl16 as brawl
-    sprites.update(brawl.sprites())
+    for key, (canvas, colors) in brawl.sprites_own().items():
+        sprites[key] = canvas
+        own[key] = colors
     for key, canvas in road.horizon().items():
         sprites[key] = canvas
         own[key] = road.PIRATES_SKY

@@ -33,7 +33,9 @@
 выражений), `key`, `medkit`, пули `shot` (скелета) и `bullet` (героя). Футбол (#101) из `tools/pixel_soccer16.py`: игроки 16×16
 `soccer_hero`, `soccer_rival_0`..`2`, `soccer_keeper_hero`, `soccer_keeper_rival` (8 направлений
 по 3 кадра бега, 8 подкатов, 8 лежит), мяч `soccer_ball` 8×8 (2), трава `soccer_grass` 64×64. Битемап (#102) из `tools/pixel_brawl16.py`:
-бойцы 48×64 `brawl_hero` (15 поз), `brawl_thug`, `brawl_knife` (по 10 поз), боцман 64×80
-`brawl_boss`; улица: даль `brawl_far` 512×110, фасады `brawl_facade` 512×150, причал
-`brawl_floor` 128×90. Остальное под пять демок приходит с #96. У космоса и замков своих лент пока нет,
+бойцы 96×112 `brawl_hero` (37 кадров), `brawl_thug`, `brawl_knife` (по 23), боцман 128×136
+`brawl_boss` (27), лица для HUD `brawl_face_hero`, `_thug`, `_knife`, `_boss` 32×32; улица
+`brawl_street` 1664×416 (первые этажи, тротуар, мостовая); эффекты `brawl_fx_hit` 40×40 (4),
+`brawl_fx_heavy` 80×64 (5), `brawl_fx_whoosh` 64×40 (3), `brawl_fx_dust` 56×28 (5), стрелка
+`brawl_go` 72×44 (2). Ленты битемапа в своих палитрах (у бойца рампы по четыре тона). Остальное под пять демок приходит с #96. У космоса и замков своих лент пока нет,
 берутся пиратские: сеттинг подключается папкой `assets/settings/<id>/16bit/` и строкой палитры.
