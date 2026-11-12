@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SportBit16GenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/sport_bit16_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+rival_speed_min = 100.0
+rival_speed_max = 118.0
+shot_range_min = 200.0
+shot_range_max = 300.0
+charge_min = 0.5
+charge_max = 0.8
+tackle_min = 0.3
+tackle_max = 0.8
+react_min = 0.1
+react_max = 0.3
+keeper_reach_min = 28.0
+keeper_reach_max = 40.0
+keeper_react_min = 0.12
+keeper_react_max = 0.3

@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="SportBit16Tuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/sport_bit16_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+pitch_w = 960.0
+pitch_h = 560.0
+goal_w = 104.0
+goal_h = 26.0
+box_w = 150.0
+box_h = 300.0
+goals_to_win = 3
+max_seconds = 300.0
+run_speed = 120.0
+radius = 6.0
+slide_speed = 230.0
+slide_seconds = 0.35
+slide_cooldown = 0.8
+down_seconds = 0.7
+tackle_rate = 1.5
+gravity = 600.0
+bounce = 0.5
+friction = 170.0
+dribble_ahead = 8.0
+control_speed = 260.0
+charge_max = 0.7
+kick_min = 220.0
+kick_max = 520.0
+loft_lin = 60.0
+loft_sq = 150.0
+aftertouch_seconds = 0.35
+aftertouch = 260.0
+keeper_speed = 60.0
+dive_speed = 170.0
+dive_seconds = 0.35
+keeper_hold = 0.8
+dive_window = 1.0
+keeper_error = 52.0
+dive_catch = 10.0
+goal_pause = 1.4
+bot_shot_range = 250.0
+bot_charge = 0.55
+bot_tackle = 1.4
+music_db = -12.0
+sfx_db = -6.0

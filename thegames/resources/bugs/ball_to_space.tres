@@ -13,6 +13,7 @@ tweet = "Бочонок увяз в бархане, подумал и улете
 clip = "Бочонок наполовину в песке дрожит и выстреливает вверх за край экрана"
 spectacular = true
 params = Dictionary[StringName, float]({
+&"soccer_space_s": 9.0,
 &"stick_every": 3.0,
 &"pong_stick_every": 4.0,
 &"sink_s": 0.3,

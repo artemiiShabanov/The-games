@@ -506,6 +506,9 @@ def sets():
     # Шутер «до выхода» (#100): текстуры, скелеты, оружие, лицо в палитре спрайтов.
     import pixel_hold16 as hold
     sprites.update(hold.sprites())
+    # Футбол «один на одного» (#101): игроки, мяч, трава в палитре спрайтов.
+    import pixel_soccer16 as soccer
+    sprites.update(soccer.sprites())
     for key, canvas in road.horizon().items():
         sprites[key] = canvas
         own[key] = road.PIRATES_SKY

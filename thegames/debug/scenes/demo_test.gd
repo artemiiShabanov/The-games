@@ -60,6 +60,8 @@ func _ready() -> void:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
 			_check_holds()
+		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.BIT16:
+			_check_soccer()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
@@ -233,6 +235,36 @@ func _check_duels() -> void:
 	_expect(DuelPlanGen.generate(7, t).signature() == DuelPlanGen.generate(7, t).signature(), "дуэль сида 7 не повторяется")
 	_expect(DuelPlanGen.generate(7, t).signature() != DuelPlanGen.generate(8, t).signature(), "дуэли сидов 7 и 8 одинаковые")
 	AutoTest.note("fighting vector: 100 сидов прошли проверку; дуэль бота WIN без окна в среднем %.1f с" % (seconds / 100.0))
+
+
+## Футбол × 16/32-bit «один на одного» (#101): сто сидов дают план соперника в разбросах
+## генератора, генерация детерминирована. Бот WIN без окна (`SoccerSim.simulate`) выигрывает
+## матч до трёх голов не меньше чем на `SOCCER_WINS` сидах (это матч, соперник забивает тоже),
+## бот LOSE не выигрывает ни одного.
+const SOCCER_WINS := 92
+
+
+func _check_soccer() -> void:
+	var t := SportBit16GenTuning.load_default()
+	var dt := SportBit16Tuning.load_default()
+	var seconds: Array[float] = []
+	var wins := 0
+	for s in range(1, 101):
+		var p := SoccerPlanGen.generate(s, t)
+		var why := SoccerPlanGen.validate(p, t)
+		_expect(why == "", "план сида %d: %s" % [s, why])
+		var win := SoccerSim.simulate(p, dt, AutoTest.BotMode.WIN)
+		wins += 1 if win.won else 0
+		if win.won:
+			seconds.append(win.time)
+		var lose := SoccerSim.simulate(p, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "план сида %d: бот LOSE выиграл" % s)
+	_expect(wins >= SOCCER_WINS, "бот WIN выиграл %d матчей из 100, нужно %d" % [wins, SOCCER_WINS])
+	_expect(SoccerPlanGen.generate(7, t).signature() == SoccerPlanGen.generate(7, t).signature(), "план сида 7 не повторяется")
+	_expect(SoccerPlanGen.generate(7, t).signature() != SoccerPlanGen.generate(8, t).signature(), "планы сидов 7 и 8 одинаковые")
+	seconds.sort()
+	var n := seconds.size()
+	AutoTest.note("sport bit16: 100 сидов прошли проверку; бот WIN выиграл %d, медиана %.1f с" % [wins, seconds[n / 2] if n > 0 else 0.0])
 
 
 ## Шутер × 16/32-bit «до выхода» (#100): сто сидов дают карту, которая проходит проверку

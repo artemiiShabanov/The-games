@@ -11,6 +11,7 @@ manifestation = "Цель видно, а не достать"
 tweet = "Награду видно, а не взять. Кто это тестировал?"
 clip = "Награда висит там, куда не добраться"
 params = Dictionary[StringName, float]({
+&"soccer_goal_mult": 0.5,
 &"road_finish_late": 150.0,
 &"lift_rows": 5.0,
 &"lane_finish_early": 1500.0,

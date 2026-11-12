@@ -66,7 +66,9 @@
   трасса по сиду и боты без окна текстом `debug/tools/dump_road.gd -- <seed> [count]
   [wild,sneeze,walls,finish,nonitro]`. Шутер × 16/32-bit «до выхода» (#100):
   `--scene=demo_test --genre=shooter --tech=bit16 --frames=5000`, карта по сиду и боты без окна
-  текстом `debug/tools/dump_hold.gd -- <seed> [count] [wild,sneeze,pass,endless,walls]`. Весь план из 8 с проверкой багов: без `--minigame`,
+  текстом `debug/tools/dump_hold.gd -- <seed> [count] [wild,sneeze,pass,endless,walls]`. Футбол ×
+  16/32-bit (#101): `--scene=demo_test --genre=sport --tech=bit16 --frames=14000`, план по сиду и
+  боты без окна текстом `debug/tools/dump_soccer.gd -- <seed> [count] [wild,narrow,sneeze,space]`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks
