@@ -31,7 +31,7 @@ func _placeholder_slots() -> Array[String]:
 
 func _on_start() -> void:
 	bit16_screen(_draw_backdrop, _draw_world, _draw_hud)
-	parallax = Parallax16.of(bit16_set)
+	parallax = parallax16()
 	for name in ["hero_run", "hero_jump", "enemy_walk", "coin", "flag", "ground", "ground_inner", "rock", "chest"]:
 		tex[name] = bit16_set.sprite16(name)
 	for i in 12:

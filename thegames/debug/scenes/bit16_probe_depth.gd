@@ -35,7 +35,7 @@ func _placeholder_slots() -> Array[String]:
 func _on_start() -> void:
 	bit16_screen(_draw_backdrop, _draw_world, _draw_hud)
 	scaler = Scaler16.make(bit16.view)
-	parallax = Parallax16.of(bit16_set)
+	parallax = parallax16()
 	for name in ["hero_back", "enemy_front", "coin", "rock", "flag"]:
 		tex[name] = bit16_set.sprite16(name)
 	var rng := RandomNumberGenerator.new()

@@ -1,6 +1,22 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/stack.tscn" id="1_emiij"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_jhshd"]
+
+[sub_resource type="Curve" id="Curve_jlicf"]
+_limits = [0.99, 600.0, 0.0, 1.0]
+_data = [Vector2(0, 380), 0.0, 0.0, 0, 0, Vector2(1, 600), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_k3hhe"]
+_limits = [0.99, 340.0, 0.0, 1.0]
+_data = [Vector2(0, 340), 0.0, 0.0, 0, 0, Vector2(1, 300), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_ipvwg"]
+_limits = [0.0, 0.7, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.7), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_jhshd")
@@ -9,4 +25,11 @@ kind = 1
 tech = 2
 verb = "Поставь"
 hint = "A роняет блок на башню, свес отрезается"
+mouse_hint = "клик роняет блок"
+scene = ExtResource("1_emiij")
 inputs = Array[StringName]([&"action_a"])
+params = Dictionary[StringName, Curve]({
+&"flip": SubResource("Curve_ipvwg"),
+&"speed": SubResource("Curve_jlicf"),
+&"width": SubResource("Curve_k3hhe")
+})

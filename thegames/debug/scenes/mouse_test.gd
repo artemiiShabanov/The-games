@@ -26,6 +26,7 @@ func _run() -> void:
 	await _mole()
 	await _pairs()
 	await _mash()
+	await _stack()
 	await _flood_fill()
 	await _tune()
 	await _beam()
@@ -158,6 +159,15 @@ func _mash() -> void:
 	await _click(Vector2(960, 540))
 	await _click(Vector2(960, 540))
 	_check(int(game.get("presses")) == 3, "mash: левая дважды толкнула дважды")
+
+
+## «Поставь» (#97): клик роняет блок, как A.
+func _stack() -> void:
+	await _open(&"stack")
+	_check(int(game.get("phase")) == 0, "stack: блок не едет до клика")
+	await _click(Vector2(960, 540))
+	_check(game.mouse_last_action == GameInput.A, "stack: клик не A")
+	_check(int(game.get("phase")) != 0, "stack: клик не уронил блок")
 
 
 func _flood_fill() -> void:

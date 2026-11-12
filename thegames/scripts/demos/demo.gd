@@ -21,7 +21,9 @@ extends Control
 ## вектора `beam_lag` «луч не успевает» (#89) включается там же и живёт в самом экране
 ## (`VectorScreen.set_beam_lag`), демке его звать не надо. Демки 16/32-bit (#95) рисуют на
 ## экране `bit16_screen(...)`: ленты кадров сеттинга (`draw_sprite16`), заглушка это розовый
-## блок в шашку, чужая палитра на слое мира. Демка зовёт эти хуки в своих местах и
+## блок в шашку, чужая палитра на слое мира; баг технологии 16/32 `layer_tear` «слои
+## вразнобой» (#97) включается там же (разрывы кадра в `Bit16Screen`) и в фоне `parallax16()`
+## (слои едут в разные стороны), демке его звать не надо. Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -406,8 +408,22 @@ func bit16_screen(draw_backdrop: Callable, draw_world: Callable, draw_hud: Calla
 	bit16.draw_hud = draw_hud
 	if bug_palette() != null:
 		bit16.world.material = bug_palette()
+	if has_bug(&"layer_tear"):
+		bit16.set_tear(bug_param(&"layer_tear", &"period_s", 2.4), bug_param(&"layer_tear", &"tear_s", 0.5),
+				bug_param(&"layer_tear", &"shift_px", 18.0), hash(str(record.seed, ":tear")))
 	screen.add_child(bit16)
 	return bit16
+
+
+## Фон вида сбоку для демки 16/32. С багом технологии `layer_tear` (#97) слои едут вразнобой:
+## облака навстречу, берег быстрее и в свою сторону, вода назад; ленты слоёв рвёт пополам.
+func parallax16() -> Parallax16:
+	var p := Parallax16.of(bit16_set)
+	if has_bug(&"layer_tear"):
+		p.bug_dir = [bug_param(&"layer_tear", &"dir_sky", -3.0), bug_param(&"layer_tear", &"dir_far", 2.2),
+				bug_param(&"layer_tear", &"dir_mid", -1.0)]
+		p.bug_tear = bug_param(&"layer_tear", &"strip_tear_px", 14.0)
+	return p
 
 
 ## Кадр ленты спрайта низом в точке `feet`; слот с розовой заглушкой рисуется блоком в шашку.

@@ -33,6 +33,7 @@ step "bugfix_test" sh tools/autotest.sh --scene=bugfix_test --time-scale=4 --fra
 step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=4 --frames=4500
 step "demo bugs" sh tools/autotest.sh --scene=demo_test --bugs --frames=3000
 step "minigame mash" sh tools/autotest.sh --scene=sprint_runner_test --minigame=mash --frames=1500
+step "minigame stack" sh tools/autotest.sh --scene=sprint_runner_test --minigame=stack --frames=2500
 step "vector sheet" sh tools/autotest.sh --scene=vector_test --frames=90
 step "vector probe bugs" sh tools/autotest.sh --scene=vector_test --probe --bugs --frames=2500
 step "demo platformer vector" sh tools/autotest.sh --scene=demo_test --tech=vector --frames=5000

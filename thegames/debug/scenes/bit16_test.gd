@@ -5,13 +5,15 @@ extends Control
 ## сходится, цвета пиратских спрайтов не выходят из палитры, вид вглубь уменьшает дальнее,
 ## обе пробные демки идут во встроенном режиме. `--probe=side` или `--probe=depth` (или
 ## «16/32: проба сбоку», «16/32: проба вглубь» в дебаг-меню) запускает пробную демку в карточке:
-## бот WIN добирается до конца; `--bugs` все общие баги, `--bug=<id>` один, `--setting=N`,
-## `--no-checks` без проверок.
+## бот WIN добирается до конца; `--bugs` все общие баги и баг технологии `layer_tear` «слои
+## вразнобой» (#97), `--bug=<id>` один, `--setting=N`, `--no-checks` без проверок. Проверки
+## `layer_tear`: с багом кадр рвёт и слои фона развёрнуты, без бага ни того, ни другого; провал
+## «Поставь» даёт именно этот баг.
 
 const ProbeSide := preload("res://debug/scenes/bit16_probe_side.gd")
 const ProbeDepth := preload("res://debug/scenes/bit16_probe_depth.gd")
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
-		&"pink_placeholders", &"alien_palette"]
+		&"pink_placeholders", &"alien_palette", &"layer_tear"]
 ## Ленты стартового набора и сколько в каждой кадров; 0 значит не лента кадров, а слой фона.
 const SPRITES := {"hero_run": 6, "hero_jump": 1, "hero_back": 6, "enemy_walk": 6, "enemy_front": 6, "coin": 6,
 		"flag": 6, "ground": 1, "ground_inner": 1, "rock": 1, "chest": 1, "par_sky": 0, "par_far": 0, "par_mid": 0}
@@ -136,6 +138,15 @@ func _check_assets() -> void:
 				_expect(tex.get_width() == frames * Bit16Screen.FRAME and Bit16Screen.frames(tex) == frames,
 						"%s: лента %s шириной %d, а кадров должно быть %d" % [id, name, tex.get_width(), frames])
 				_expect(tex.get_height() == 32 or tex.get_height() == 64, "%s: лента %s высотой %d" % [id, name, tex.get_height()])
+	# Провал «Поставь» (мини-игра технологии 16/32) даёт баг «слои вразнобой» (#97), и у бага
+	# есть слова под все пять жанров.
+	var stack := MinigamePool.find(MinigamePool.load_all(), &"stack")
+	var failed := GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT16, 1, "Провал")
+	var given := BugCatalog.load_default().apply_fail(stack, failed)
+	_expect(given != null and given.id == &"layer_tear", "провал «Поставь» дал баг %s, не layer_tear" % [given.id if given else &""])
+	var tear := BugCatalog.load_default().by_id(&"layer_tear")
+	for g in Game.Genre.size():
+		_expect(tear != null and tear.tweet_by_genre.has(g) and tear.clip_by_genre.has(g), "layer_tear: нет слов для жанра %d" % g)
 	# Пиратские спрайты нарисованы только цветами своей палитры.
 	var stray := 0
 	for name: String in SPRITES:
@@ -176,6 +187,7 @@ func _check_embedded() -> void:
 		_expect(d.bit16 != null and d.bit16.size.x <= 480.5 and d.bit16.size.y <= 270.5, "встроенный экран 16/32 не в рамке")
 		var moved := float(d.get("hero_x")) > 90.0 if script == ProbeSide else float(d.get("dist")) > 60.0
 		_expect(moved, "встроенный бот стоит")
+		_expect(d.bit16.tear_period == 0.0 and d.bit16.material == null, "кадр рвёт без бага")
 		holder.queue_free()
 
 
@@ -212,8 +224,13 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 			record.has_bug(&"pink_placeholders")])
 	_expect((probe.bit16.world.material != null) == record.has_bug(&"alien_palette"), "чужая палитра не на слое мира")
 	_expect(int(probe.get("collected")) > 0, "бот не собрал ни одного дублона")
-	AutoTest.note("bit16 probe %s: дублонов %d, %.1f с, экран %s, баги %s" % [_probe, int(probe.get("collected")), probe.elapsed,
-			probe.bit16.view, record.bug_ids])
+	# Слои вразнобой (#97): с багом кадр рвало и слои фона развёрнуты, без бага нет.
+	var torn := record.has_bug(&"layer_tear")
+	var layers: Parallax16 = probe.get("parallax")
+	_expect((probe.bit16.tears > 0) == torn, "разрывов кадра %d при баге %s" % [probe.bit16.tears, torn])
+	_expect((layers.bug_dir != [1.0, 1.0, 1.0] and layers.bug_tear != 0.0) == torn, "слои фона %s при баге %s" % [layers.bug_dir, torn])
+	AutoTest.note("bit16 probe %s: дублонов %d, %.1f с, экран %s, разрывов кадра %d, баги %s" % [_probe, int(probe.get("collected")),
+			probe.elapsed, probe.bit16.view, probe.bit16.tears, record.bug_ids])
 	probe.queue_free()
 	AutoTest.fulfill("bit16 probe")
 

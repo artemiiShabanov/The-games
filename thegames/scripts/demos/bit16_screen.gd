@@ -8,10 +8,29 @@ extends SubViewportContainer
 ## Спрайт это лента кадров 32 пикселя шириной (`frames`, `sprite`). Палитра сеттинга из 16
 ## цветов, индекс это роль (`K` обводка … `PINE` тень зелени, как в `tools/pixel_sprites16.py`).
 ## Во встроенном режиме (стрим ленты) увеличение ×1 и экран размером с рамку.
+## Баг технологии 16/32 `layer_tear` (#97, `set_tear`): раз в несколько секунд кадр рвёт, две
+## горизонтальные полосы экрана на полсекунды уезжают вбок. Живёт здесь, поэтому работает в
+## любой демке 16/32; вторая половина бага, слои фона вразнобой, в `Parallax16`.
 
 const FRAME := 32
 const SCALE := 2
 const EMBED_SCALE := 1
+## Разрыв кадра: строки двух полос берутся из картинки со сдвигом по горизонтали.
+const TEAR_SHADER := """
+shader_type canvas_item;
+uniform vec3 band_a = vec3(0.0);
+uniform vec3 band_b = vec3(0.0);
+void fragment() {
+	vec2 uv = UV;
+	if (uv.y >= band_a.x && uv.y < band_a.y) {
+		uv.x = fract(uv.x + band_a.z);
+	}
+	if (uv.y >= band_b.x && uv.y < band_b.y) {
+		uv.x = fract(uv.x + band_b.z);
+	}
+	COLOR = texture(TEXTURE, uv);
+}
+"""
 ## Роли цветов палитры 16/32.
 enum { K, NAVY, SEA, AQUA, SKY, WHITE, GREY, SKIN, TAN, GOLD, BRASS, WOOD, BARK, RED, LEAF, PINE }
 
@@ -28,6 +47,17 @@ var draw_hud := Callable()
 ## Розовых заглушек нарисовано за прошлый кадр (проверки).
 var pink_drawn := 0
 var _pinks := 0
+## Баг «слои вразнобой»: период между разрывами (0 выключен), их длина, сдвиг в пикселях экрана.
+var tear_period := 0.0
+var tear_seconds := 0.5
+var tear_shift := 18.0
+## Сколько раз кадр рвало и рвёт ли сейчас (проверки).
+var tears := 0
+var tearing := false
+var _tear_timer := 0.0
+var _tear_left := 0.0
+var _tear_rng := RandomNumberGenerator.new()
+var _tear_material: ShaderMaterial
 
 
 ## Экран в области `area`: во встроенном режиме мельче и без увеличения.
@@ -60,11 +90,51 @@ static func make(area: Vector2, embedded: bool, palette_: Array[Color]) -> Bit16
 	return s
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if backdrop != null:
 		backdrop.queue_redraw()
 		world.queue_redraw()
 		hud.queue_redraw()
+	if tear_period > 0.0:
+		_step_tear(delta)
+
+
+## Включить баг «слои вразнобой»: разрыв раз в `period` секунд на `seconds`, сдвиг `shift`.
+func set_tear(period: float, seconds: float, shift: float, seed_ := 1) -> void:
+	tear_period = maxf(period, 0.0)
+	tear_seconds = seconds
+	tear_shift = shift
+	_tear_rng.seed = seed_
+	_tear_timer = tear_period * 0.5
+	if tear_period > 0.0 and _tear_material == null:
+		var shader := Shader.new()
+		shader.code = TEAR_SHADER
+		_tear_material = ShaderMaterial.new()
+		_tear_material.shader = shader
+		material = _tear_material
+
+
+func _step_tear(delta: float) -> void:
+	if _tear_left > 0.0:
+		_tear_left -= delta
+		if _tear_left <= 0.0:
+			tearing = false
+			_tear_material.set_shader_parameter("band_a", Vector3.ZERO)
+			_tear_material.set_shader_parameter("band_b", Vector3.ZERO)
+		return
+	_tear_timer -= delta
+	if _tear_timer > 0.0:
+		return
+	_tear_timer = tear_period * _tear_rng.randf_range(0.7, 1.3)
+	_tear_left = tear_seconds
+	tearing = true
+	tears += 1
+	# Две полосы в разных половинах экрана, каждая уезжает в свою сторону.
+	for name: String in ["band_a", "band_b"]:
+		var top := _tear_rng.randf_range(0.05, 0.4) + (0.45 if name == "band_b" else 0.0)
+		var height := _tear_rng.randf_range(0.06, 0.16)
+		var side := 1.0 if name == "band_a" else -1.0
+		_tear_material.set_shader_parameter(name, Vector3(top, top + height, side * tear_shift / maxf(view.x, 1.0) * _tear_rng.randf_range(0.6, 1.4)))
 
 
 func _draw_layer(layer: int) -> void:
