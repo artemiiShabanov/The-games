@@ -2,8 +2,8 @@ extends Demo
 ## Пробная демка low poly от первого лица (#108) для `lowpoly_test`: не жанр, а проверка основы.
 ## Палуба за фальшбортом, на ней мачты, бочки, сундуки и пушки; надо собрать все дублоны, не
 ## попадаясь скелетам, которые ходят туда-сюда. Задел скелет: минус жизнь и отбрасывает, жизней
-## три. WASD ход и стрейф, стрелки влево, вправо обзор (`GameInput.walk`, `look`); мышь и правый
-## стик придут в #109 через `LowpolyFirstPerson.look_by`. Модели слотов через `spawn_model`,
+## три. WASD ход и стрейф, стрелки влево, вправо обзор (`GameInput.walk`, `look`), мышь и правый
+## стик смотрят по сторонам и вверх-вниз (`Demo.look_take`, #109). Модели слотов через `spawn_model`,
 ## общие баги через хуки `Demo`. Бот WIN идёт к ближайшему дублону и обходит помехи стрейфом,
 ## LOSE идёт на скелетов.
 
@@ -57,6 +57,7 @@ func _placeholder_slots() -> Array[String]:
 func _on_start() -> void:
 	lowpoly_screen(_draw_hud)
 	fp = LowpolyFirstPerson.make(lowpoly.tuning)
+	look_start()
 	_build_level()
 	var quiet := -80.0 if embedded else 0.0
 	var music := Sfx.music(Sfx.tracker_loop(MELODY, BASS, 120.0), -10.0 + quiet)
@@ -173,6 +174,7 @@ func _on_tick(delta: float) -> void:
 		_look = GameInput.look()
 	bug_audio_tick(delta)
 	bug_input_tick()
+	fp.look_by(look_take(delta))
 	bug_frame(delta, _moving, _step)
 
 

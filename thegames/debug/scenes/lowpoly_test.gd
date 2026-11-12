@@ -10,7 +10,10 @@ extends Control
 ## демки идут во встроенном режиме. `--probe=behind` или `--probe=first` (или «Low poly: проба
 ## за спиной», «Low poly: проба от первого лица» в дебаг-меню) запускает пробную демку в
 ## карточке: бот WIN добирается до конца; `--bugs` все общие баги, `--bug=<id>` один,
-## `--setting=N`, `--seed=N`, `--no-checks` без проверок.
+## `--setting=N`, `--seed=N`, `--no-checks` без проверок. `--look` проверяет обзор мышью и правым
+## стиком (#109): движение мыши поворачивает и наклоняет камеру пробы от первого лица и курс
+## рейкастера 16/32 по чувствительности из настроек, пауза его глушит, стик считает мёртвую зону,
+## правый стик снят с действий `look_left` и `look_right`.
 
 const ProbeBehind := preload("res://debug/scenes/lowpoly_probe_behind.gd")
 const ProbeFirst := preload("res://debug/scenes/lowpoly_probe_first.gd")
@@ -43,6 +46,11 @@ func _ready() -> void:
 	_args = AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
 	_probe = str(_args.get("probe", "")) if AutoTest.enabled else Debug.lowpoly_probe
 	Debug.lowpoly_probe = ""
+	if AutoTest.enabled and _args.has("look"):
+		AutoTest.require("look checks")
+		await _check_look()
+		AutoTest.fulfill("look checks")
+		return
 	if _probe != "":
 		if AutoTest.enabled and not _args.has("no-checks"):
 			AutoTest.require("lowpoly probe")
@@ -256,6 +264,99 @@ func _check_embedded() -> void:
 		_expect(float(d.get("travelled")) > 1.0, "встроенный бот стоит: %.2f м" % float(d.get("travelled")))
 		_expect(not d.lowpoly.alien and d.lowpoly.pink_count == 0, "баги без бага во встроенной пробе")
 		holder.queue_free()
+
+
+# --- Обзор мышью и стиком (#109) ----------------------------------------------------------------
+
+func _check_look() -> void:
+	AutoTest.bot_mode = AutoTest.BotMode.OFF
+	var look := LookTuning.load_default()
+	var saved := Vector2(Options.mouse_look, Options.stick_look)
+	Options.mouse_look = 0.5
+	Options.stick_look = 0.5
+	for action: StringName in [GameInput.LOOK_LEFT, GameInput.LOOK_RIGHT]:
+		for ev in InputMap.action_get_events(action):
+			_expect(not ev is InputEventJoypadMotion, "правый стик остался клавишей в %s" % action)
+	# Проба от первого лица: мышь вправо и вниз.
+	var probe: Demo = ProbeFirst.new()
+	probe.setup(GameRecord.create(Game.Genre.SHOOTER, Game.Tech.LOWPOLY, 1, "Обзор"), &"debug")
+	add_child(probe)
+	probe.start()
+	await _until_running(probe)
+	var fp: LowpolyFirstPerson = probe.get("fp")
+	_expect(probe.look_enabled and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "обзор не включён или автотест захватил курсор")
+	var yaw := fp.yaw
+	await _mouse(Vector2(200, 50))
+	var per_px := look.mouse_speed(0.5)
+	_expect(is_equal_approx(fp.yaw, yaw - 200.0 * per_px) and is_equal_approx(fp.pitch, -50.0 * per_px), "мышь: курс %.3f → %.3f, наклон %.3f, ждали −%.3f и −%.3f" % [
+			yaw, fp.yaw, fp.pitch, 200.0 * per_px, 50.0 * per_px])
+	Options.mouse_look = 1.0
+	yaw = fp.yaw
+	await _mouse(Vector2(-100, 0))
+	_expect(is_equal_approx(fp.yaw, yaw + 100.0 * look.mouse_max) and look.mouse_max > per_px, "чувствительность мыши из настроек не действует")
+	await _mouse(Vector2(0, 100000))
+	_expect(is_equal_approx(fp.pitch, -fp.pitch_limit), "наклон мышью без предела: %.2f" % fp.pitch)
+	# Пауза глушит обзор и после неё ничего не накоплено.
+	probe._open_pause()
+	yaw = fp.yaw
+	await _mouse(Vector2(300, 0))
+	probe._resume()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect(is_equal_approx(fp.yaw, yaw), "мышь на паузе повернула камеру")
+	# Правый стик: мёртвая зона, скорость по настройке, наклон медленнее.
+	_expect(probe.look_stick(Vector2(look.stick_deadzone * 0.9, 0.0), 1.0) == Vector2.ZERO, "стик в мёртвой зоне поворачивает")
+	var full := probe.look_stick(Vector2(1.0, 0.0), 0.5)
+	_expect(is_equal_approx(full.x, look.stick_speed(0.5) * 0.5) and is_zero_approx(full.y), "стик до упора: %s" % full)
+	var down := probe.look_stick(Vector2(0.0, 1.0), 1.0)
+	_expect(is_equal_approx(down.y, look.stick_speed(0.5) * look.stick_pitch), "наклон стиком: %s" % down)
+	Options.stick_look = 0.0
+	_expect(is_equal_approx(probe.look_stick(Vector2(1.0, 0.0), 1.0).x, look.stick_min) and look.stick_min < look.stick_max, "чувствительность стика из настроек не действует")
+	probe.queue_free()
+	await get_tree().process_frame
+	# Во встроенном режиме (стрим ленты) обзора нет.
+	var stream: Demo = ProbeFirst.new()
+	stream.setup(GameRecord.create(Game.Genre.SHOOTER, Game.Tech.LOWPOLY, 1, "Стрим"), &"feed")
+	stream.embed(Vector2(480, 270))
+	add_child(stream)
+	stream.start()
+	_expect(not stream.look_enabled, "обзор включён во встроенной демке")
+	stream.queue_free()
+	# Рейкастер 16/32: мышь поворачивает курс.
+	Options.mouse_look = 0.5
+	var shooter := DemoCatalog.create(GameRecord.create(Game.Genre.SHOOTER, Game.Tech.BIT16, 1, "Обзор"))
+	_expect(shooter != null, "нет демки шутер × 16/32")
+	if shooter != null:
+		shooter.setup(GameRecord.create(Game.Genre.SHOOTER, Game.Tech.BIT16, 1, "Обзор"), &"debug")
+		add_child(shooter)
+		shooter.start()
+		await _until_running(shooter)
+		var sim: HoldSim = shooter.get("sim")
+		var angle := sim.angle
+		await _mouse(Vector2(100, 0))
+		_expect(is_equal_approx(angle_difference(angle, sim.angle), 100.0 * per_px), "рейкастер: курс %.3f → %.3f, ждали +%.3f" % [angle, sim.angle, 100.0 * per_px])
+		shooter.queue_free()
+	Options.mouse_look = saved.x
+	Options.stick_look = saved.y
+	AutoTest.note("look: мышь %.4f рад/пиксель на середине, стик %.1f рад/с, пауза глушит, рейкастер поворачивает" % [per_px, look.stick_speed(0.5)])
+
+
+func _until_running(d: Demo) -> void:
+	for i in 240:
+		if d.running:
+			return
+		await get_tree().process_frame
+
+
+## Движение захваченной мыши на `rel` пикселей и два кадра на обработку.
+func _mouse(rel: Vector2) -> void:
+	var m := InputEventMouseMotion.new()
+	m.relative = rel
+	m.screen_relative = rel
+	get_viewport().push_input(m, true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 
 # --- Пробные демки -----------------------------------------------------------------------------

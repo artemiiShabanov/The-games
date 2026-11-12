@@ -45,11 +45,19 @@ func _check() -> void:
 	screen.change(OptionsScreen.Row.GLYPHS, 1)
 	_expect(GameInput.device == GameInput.Device.GAMEPAD, "подписи: геймпад")
 	screen.change(OptionsScreen.Row.GLYPHS, 1)
+	# Чувствительность обзора (#109): шагом 10 %, полосой по месту, в границах 0..1.
+	var look := Options.mouse_look
+	screen.change(OptionsScreen.Row.MOUSE_LOOK, 1)
+	_expect(is_equal_approx(Options.mouse_look, look + 0.1), "обзор мышью +10 %%: %.2f" % Options.mouse_look)
+	screen.set_volume(OptionsScreen.Row.STICK_LOOK, 2.0)
+	_expect(is_equal_approx(Options.stick_look, 1.0), "обзор стиком за границей: %.2f" % Options.stick_look)
+	Options.mouse_look = look
+	Options.stick_look = 0.5
 	screen.close()
 	_expect(_closed, "«Готово» закрывает")
 	_expect(not FileAccess.file_exists(Options.PATH) or FileAccess.get_modified_time(Options.PATH) < Time.get_unix_time_from_system() - 5,
 			"файл настроек под автотестом не тронут")
-	AutoTest.note("options: шины, громкость, тишина, движение, подписи, закрытие")
+	AutoTest.note("options: шины, громкость, тишина, движение, подписи, обзор мышью и стиком, закрытие")
 	AutoTest.fulfill("options checks")
 
 

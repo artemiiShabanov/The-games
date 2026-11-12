@@ -25,7 +25,9 @@ extends Control
 ## вразнобой» (#97) включается там же (разрывы кадра в `Bit16Screen`) и в фоне `parallax16()`
 ## (слои едут в разные стороны), демке его звать не надо. Демки low poly (#108) строят 3D-сцену
 ## на экране `lowpoly_screen(draw_hud)`: модели слотов через `spawn_model`, заглушка это розовый
-## ящик в шашку по габаритам модели, чужая палитра сдвигает оттенок материалов. Демка зовёт эти хуки в своих местах и
+## ящик в шашку по габаритам модели, чужая палитра сдвигает оттенок материалов. Демки от первого
+## лица (#109) включают обзор мышью и правым стиком `look_start()` и забирают поворот
+## `look_take(delta)`; курсор захвачен, пока демка идёт, пауза и итог его отпускают. Демка зовёт эти хуки в своих местах и
 ## не держит механику у себя; баги баланса и жанра (недостижимая цель, враги от чиха, дикая
 ## физика) остаются проявлениями самой демки. Встроенный режим (`embed(size)`, #26): без карточки и
 ## ввода, своего размера, бот играет сам, звук выключен; так демка крутится как запись стрима
@@ -141,6 +143,10 @@ var bit16_set: SettingDef
 ## Экран low poly демки и сеттинг записи (`lowpoly_screen`).
 var lowpoly: LowpolyScreen
 var lowpoly_set: SettingDef
+## Обзор от первого лица мышью и правым стиком (#109): включает `look_start`, читает `look_take`.
+var look_enabled := false
+var look_tuning: LookTuning
+var _look_mouse := Vector2.ZERO
 ## Отрезки рассыпавшихся контуров (`shatter_slot`): [a, b, скорость, возраст, чернила].
 var _shards: Array[Array] = []
 var _shard_rng := RandomNumberGenerator.new()
@@ -180,6 +186,7 @@ func start() -> void:
 	_on_start()
 	await card.raise_card()
 	running = true
+	_look_capture()
 	demo_started.emit(record, source)
 
 
@@ -442,6 +449,76 @@ func draw_sprite16(canvas: CanvasItem, slot: String, tex: Texture2D, frame: int,
 		bit16.sprite(canvas, tex, frame, feet, flip, scale)
 
 
+# --- Обзор от первого лица (#109) ----------------------------------------------------------
+
+## Включить обзор мышью и правым стиком: курсор захвачен, пока демка идёт; пауза, итог и выход
+## его отпускают. Во встроенном режиме не включается.
+func look_start() -> void:
+	if embedded:
+		return
+	look_enabled = true
+	look_tuning = LookTuning.load_default()
+	_look_capture()
+
+
+## Поворот взгляда с прошлого вызова в радианах: x вправо, y вниз. Мышь по пройденным пикселям,
+## правый стик по времени `delta`; чувствительность из настроек. Демка зовёт раз за кадр мира.
+func look_take(delta: float) -> Vector2:
+	if not look_enabled:
+		return Vector2.ZERO
+	var out := _look_mouse * look_tuning.mouse_speed(Options.mouse_look)
+	_look_mouse = Vector2.ZERO
+	return out + look_stick(_right_stick(), delta)
+
+
+## Вклад правого стика за `delta`: за мёртвой зоной скорость растёт до упора, наклон медленнее.
+func look_stick(stick: Vector2, delta: float) -> Vector2:
+	if look_tuning == null or stick.length() <= look_tuning.stick_deadzone:
+		return Vector2.ZERO
+	var k := minf((stick.length() - look_tuning.stick_deadzone) / (1.0 - look_tuning.stick_deadzone), 1.0)
+	var speed := look_tuning.stick_speed(Options.stick_look) * delta
+	return stick.normalized() * k * Vector2(speed, speed * look_tuning.stick_pitch)
+
+
+func _right_stick() -> Vector2:
+	for pad in Input.get_connected_joypads():
+		var stick := Vector2(Input.get_joy_axis(pad, JOY_AXIS_RIGHT_X), Input.get_joy_axis(pad, JOY_AXIS_RIGHT_Y))
+		if stick.length() > look_tuning.stick_deadzone:
+			return stick
+	return Vector2.ZERO
+
+
+## Выстрел кнопкой мыши, пока курсор захвачен.
+func look_fire() -> bool:
+	return look_enabled and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+
+
+## Курсор захвачен, пока демка с обзором идёт и не на паузе. Под автотестом и без окна курсор
+## не трогаем: события мыши приходят из `--input=look=`.
+func _look_capture() -> void:
+	if not look_enabled:
+		return
+	_look_mouse = Vector2.ZERO
+	if AutoTest.enabled or DisplayServer.get_name() == "headless":
+		return
+	var want := Input.MOUSE_MODE_CAPTURED if running and not paused and not _closing else Input.MOUSE_MODE_VISIBLE
+	if Input.mouse_mode != want:
+		Input.mouse_mode = want
+
+
+func _input(event: InputEvent) -> void:
+	var motion := event as InputEventMouseMotion
+	if motion == null or not look_enabled or not running or paused:
+		return
+	if AutoTest.enabled or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_look_mouse += motion.relative
+
+
+func _exit_tree() -> void:
+	if look_enabled and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
 # --- Low poly (#108) -----------------------------------------------------------------------
 
 ## Экран low poly на всю область демки: 3D-сцена в духе первой PlayStation с небом сеттинга
@@ -538,6 +615,7 @@ func end_demo(goal: bool) -> void:
 		return
 	running = false
 	paused = false
+	_look_capture()
 	reached = goal
 	_on_end(goal)
 	if not embedded:
@@ -551,6 +629,7 @@ func quit_demo() -> void:
 		return
 	running = false
 	paused = false
+	_look_capture()
 	_close(false)
 
 
@@ -631,6 +710,7 @@ static func _is_escape(event: InputEvent) -> bool:
 
 func _open_pause() -> void:
 	paused = true
+	_look_capture()
 	_menu_index = 0
 	_show_overlay("пауза", "", Style.INK)
 	_menu_row.visible = true
@@ -641,6 +721,7 @@ func _open_pause() -> void:
 func _resume() -> void:
 	paused = false
 	_overlay.visible = false
+	_look_capture()
 
 
 # --- Переопределяемое -----------------------------------------------------------------------

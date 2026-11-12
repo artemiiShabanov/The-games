@@ -99,6 +99,7 @@ func _on_start() -> void:
 	tuning = ShooterBit16Tuning.load_default()
 	map = HoldMapGen.generate(record.seed if record != null else 1)
 	sim = HoldSim.create(map, tuning)
+	look_start()
 	if has_bug(&"wild_physics"):
 		sim.ice = bug_param(&"wild_physics", &"ice_response", 2.5)
 		sim.foe_mult = bug_param(&"wild_physics", &"foe_speed_mult", 1.5)
@@ -225,7 +226,9 @@ func _step(dt: float) -> void:
 			move = walk.y
 			strafe = walk.x
 			turn = GameInput.look()
-			fire = GameInput.a_pressed()
+			fire = GameInput.a_pressed() or look_fire()
+			# Мышь и правый стик (#109): поворот сразу в курс, наклона у рейкастера нет.
+			sim.angle = fposmod(sim.angle + look_take(HoldSim.DT).x, TAU)
 		sim.step(move, turn, strafe, fire)
 		for ev in sim.events:
 			_on_event(ev)

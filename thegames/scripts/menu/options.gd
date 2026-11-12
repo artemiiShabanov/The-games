@@ -2,7 +2,8 @@ class_name Options
 extends RefCounted
 ## Настройки игры (#81), `user://settings.cfg`: громкость общая, музыки и звуков (шины
 ## `Master`, `Music`, `Sfx`), окно или полный экран, движение интерфейса (мармелад и студия,
-## `Jelly.enabled`), подписи клавиш (авто, клавиатура, геймпад). Применяются сразу
+## `Jelly.enabled`), подписи клавиш (авто, клавиатура, геймпад), чувствительность обзора мышью и
+## правым стиком в демках от первого лица (#109, 0..1, числа в `LookTuning`). Применяются сразу
 ## (`apply`). Под автотестом файл не читается и не пишется: прогоны идут с умолчаниями и не
 ## трогают настройки игрока.
 
@@ -20,6 +21,8 @@ static var sfx := 0.9
 static var fullscreen := false
 static var motion := true
 static var glyphs := Glyphs.AUTO
+static var mouse_look := 0.5
+static var stick_look := 0.5
 
 
 ## На старте игры: шины, чтение файла, применение.
@@ -55,6 +58,8 @@ static func load_saved() -> void:
 	fullscreen = bool(cfg.get_value("video", "fullscreen", fullscreen))
 	motion = bool(cfg.get_value("video", "motion", motion))
 	glyphs = clampi(int(cfg.get_value("input", "glyphs", glyphs)), 0, Glyphs.size() - 1) as Glyphs
+	mouse_look = clampf(float(cfg.get_value("input", "mouse_look", mouse_look)), 0.0, 1.0)
+	stick_look = clampf(float(cfg.get_value("input", "stick_look", stick_look)), 0.0, 1.0)
 
 
 static func save() -> void:
@@ -67,6 +72,8 @@ static func save() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "motion", motion)
 	cfg.set_value("input", "glyphs", int(glyphs))
+	cfg.set_value("input", "mouse_look", mouse_look)
+	cfg.set_value("input", "stick_look", stick_look)
 	cfg.save(PATH)
 
 

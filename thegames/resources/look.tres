@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="LookTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/look_tuning.gd" id="1_look"]
+
+[resource]
+script = ExtResource("1_look")
+mouse_min = 0.0008
+mouse_max = 0.0052
+stick_min = 1.2
+stick_max = 4.8
+stick_pitch = 0.6
+stick_deadzone = 0.2

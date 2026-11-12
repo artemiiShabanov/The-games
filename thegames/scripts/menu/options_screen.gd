@@ -1,7 +1,8 @@
 class_name OptionsScreen
 extends Control
 ## Экран настроек (#81) поверх меню или паузы: карточка со строками громкости (общая, музыка,
-## звуки), полного экрана, движения интерфейса и подписей клавиш, внизу «Готово». ↑ ↓ строка,
+## звуки), полного экрана, движения интерфейса, подписей клавиш и чувствительности обзора мышью
+## и стиком (#109), внизу «Готово». ↑ ↓ строка,
 ## ← → меняют значение (громкость шагом 10 %), ␣ переключает или закрывает на «Готово».
 ## Мышь: наведение берёт строку, клик по полосе громкости ставит значение по месту, клик по
 ## переключателю меняет его, колесо и тачпад над строкой крутят значение. Esc или Ctrl
@@ -11,15 +12,18 @@ extends Control
 signal closed
 
 const WIDTH := 880.0
-const ROW_HEIGHT := 72.0
+const ROW_HEIGHT := 64.0
 const BAR := Vector2(320, 12)
 const STEP := 0.1
 ## Зазор между строками (плейтест 2026-11-11: строки слипались).
-const ROW_GAP := 20
+const ROW_GAP := 14
 
-enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, GLYPHS, DONE }
+enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
 
-const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Мармелад и суета", "Подписи клавиш", "Готово"]
+const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Мармелад и суета", "Подписи клавиш",
+		"Обзор мышью", "Обзор стиком", "Готово"]
+## Строки с полосой: громкости и чувствительность обзора.
+const BARS: Array[int] = [Row.MASTER, Row.MUSIC, Row.SFX, Row.MOUSE_LOOK, Row.STICK_LOOK]
 
 var index := 0
 var _rows: Array[PanelContainer] = []
@@ -54,7 +58,7 @@ func _ready() -> void:
 	column.add_child(_spacer(8))
 	for i in TITLES.size():
 		column.add_child(_make_row(i))
-		if i == Row.SFX or i == Row.GLYPHS:
+		if i == Row.SFX or i == Row.MOTION or i == Row.STICK_LOOK:
 			column.add_child(_spacer(12))
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -87,6 +91,10 @@ func change(row: int, dir: int) -> void:
 			Options.motion = not Options.motion
 		Row.GLYPHS:
 			Options.glyphs = wrapi(int(Options.glyphs) + (dir if dir != 0 else 1), 0, Options.Glyphs.size()) as Options.Glyphs
+		Row.MOUSE_LOOK:
+			Options.mouse_look = _step(Options.mouse_look, dir)
+		Row.STICK_LOOK:
+			Options.stick_look = _step(Options.stick_look, dir)
 		_:
 			return
 	Options.apply()
@@ -104,6 +112,10 @@ func set_volume(row: int, v: float) -> void:
 			Options.music = v
 		Row.SFX:
 			Options.sfx = v
+		Row.MOUSE_LOOK:
+			Options.mouse_look = v
+		Row.STICK_LOOK:
+			Options.stick_look = v
 		_:
 			return
 	Options.apply()
@@ -129,6 +141,10 @@ func _volume_of(row: int) -> float:
 			return Options.music
 		Row.SFX:
 			return Options.sfx
+		Row.MOUSE_LOOK:
+			return Options.mouse_look
+		Row.STICK_LOOK:
+			return Options.stick_look
 	return 0.0
 
 
@@ -143,6 +159,8 @@ func _value_text(row: int) -> String:
 			return "всё пружинит" if Options.motion else "спокойно"
 		Row.GLYPHS:
 			return Options.GLYPH_NAMES[Options.glyphs]
+		Row.MOUSE_LOOK, Row.STICK_LOOK:
+			return "%d %%" % roundi(_volume_of(row) * 100.0)
 	return ""
 
 
@@ -171,7 +189,7 @@ func _input(event: InputEvent) -> void:
 			close()
 		elif at >= 0:
 			index = at
-			if at <= Row.SFX and MouseUi.hit(_bars[at], event):
+			if BARS.has(at) and MouseUi.hit(_bars[at], event):
 				var r := MouseUi.rect_of(_bars[at])
 				set_volume(at, ((event as InputEventMouse).position.x - r.position.x) / r.size.x)
 			else:
@@ -197,7 +215,7 @@ func _input(event: InputEvent) -> void:
 	elif GameInput.is_a(event) and not event.is_echo():
 		if index == Row.DONE:
 			close()
-		elif index > Row.SFX:
+		elif not BARS.has(index):
 			change(index, 1)
 	elif key == null:
 		return
@@ -235,7 +253,7 @@ func _make_row(i: int) -> PanelContainer:
 	h.add_child(name_label)
 	var bar := Control.new()
 	var fill := ColorRect.new()
-	if i <= Row.SFX:
+	if BARS.has(i):
 		bar.custom_minimum_size = BAR
 		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var track := Panel.new()
@@ -271,7 +289,7 @@ func _refresh() -> void:
 		(h.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
 		_values[i].text = _value_text(i)
 		_values[i].add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK_2)
-		if i <= Row.SFX:
+		if BARS.has(i):
 			_fills[i].size = Vector2(BAR.x * _volume_of(i), BAR.y)
 			_fills[i].color = Style.SURFACE_SOLID if on else Style.INK
 			var track := _bars[i].get_child(0) as Panel

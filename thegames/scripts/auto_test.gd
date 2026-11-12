@@ -189,6 +189,12 @@ func _inject(what: String) -> void:
 				w.position = pos
 				w.global_position = pos
 				vp.push_input(w, true)
+		"look":
+			# Движение захваченной мыши: `look=DXxDY` в пикселях, без места на экране (#109).
+			var lm := InputEventMouseMotion.new()
+			lm.relative = pos
+			lm.screen_relative = pos
+			vp.push_input(lm, true)
 		"pan":
 			var g := InputEventPanGesture.new()
 			g.delta = Vector2(0, amount)
