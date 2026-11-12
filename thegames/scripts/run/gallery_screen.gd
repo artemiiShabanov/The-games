@@ -475,7 +475,7 @@ func _game_row(e: GalleryEntry, w: float) -> PanelContainer:
 		row.add_child(_pill("вирусная", Style.TINT_PLUS, Style.MONEY, 0.0))
 	for id in e.bug_ids:
 		var bug := _bugs.by_id(id)
-		row.add_child(_pill(bug.stamp_for(e.genre) if bug != null else String(id), Style.BUG, Style.SURFACE_SOLID, -4.0))
+		row.add_child(_pill(bug.stamp_for(e.genre, e.tech) if bug != null else String(id), Style.BUG, Style.SURFACE_SOLID, -4.0))
 	col.add_child(_label("Забег %d · релиз %d%s" % [e.run_number, e.release, (" · «%s»" % e.studio) if e.studio != "" else ""],
 			Style.FONT_CAPTION, Style.INK_3))
 	h.add_child(_shot_view(e))

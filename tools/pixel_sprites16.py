@@ -509,6 +509,9 @@ def sets():
     # Футбол «один на одного» (#101): игроки, мяч, трава в палитре спрайтов.
     import pixel_soccer16 as soccer
     sprites.update(soccer.sprites())
+    for key, (canvas, colors) in soccer.fields().items():
+        sprites[key] = canvas
+        own[key] = colors
     # Битемап (#102): бойцы, улица, эффекты и лица, у каждой ленты своя палитра.
     import pixel_brawl16 as brawl
     for key, (canvas, colors) in brawl.sprites_own().items():
@@ -520,7 +523,103 @@ def sets():
     for key, canvas in road.road_palette().items():
         sprites[key] = canvas
         own[key] = road.ROAD_COLORS
+    # Мелкие эффекты для тропы, гонки и шутера в своей палитре.
+    import pixel_fx16 as fx16
+    for key, (canvas, colors) in fx16.sprites_own().items():
+        sprites[key] = canvas
+        own[key] = colors
+    for key in list(sprites):
+        if key not in own and wants_reshade(key, sprites[key]):
+            sprites[key], own[key] = reshade(sprites[key])
     return {"pirates": (PIRATES, sprites, own)}
+
+
+# --- Светотень как в битемапе (плейтест 2026-11-12) -----------------------------------------------
+# Персонажи и предметы получают свою палитру: у каждого цвета рампа из четырёх тонов со сдвигом
+# оттенка (блик теплее, тень и глубокая тень холоднее), тон пикселя по маске материала: свет
+# сверху слева, тень снизу справа, тёмный угол. Тельняшка и штаны одна ткань, кожа, золото,
+# дерево, красное, зелень отдельно; на стыке материалов кромка темнее, как у частей бойцов.
+
+GROUPS = {WHITE: "cloth", GREY: "cloth", SEA: "cloth", NAVY: "cloth", AQUA: "cloth", SKY: "cloth",
+          SKIN: "skin", TAN: "skin", GOLD: "gold", BRASS: "gold", WOOD: "wood", BARK: "wood", RED: "red",
+          LEAF: "green", PINE: "green"}
+
+
+def _hsv(c):
+    import colorsys
+    return colorsys.rgb_to_hsv(c[0] / 255.0, c[1] / 255.0, c[2] / 255.0)
+
+
+def _rgb(h, s, v):
+    import colorsys
+    r, g, b = colorsys.hsv_to_rgb(h % 1.0, max(0.0, min(1.0, s)), max(0.0, min(1.0, v)))
+    return (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
+
+
+def _toward(h, target, k):
+    d = ((target - h + 0.5) % 1.0) - 0.5
+    return h + d * k
+
+
+def ramp_of(c):
+    """Четыре тона цвета: глубокая тень, тень, цвет, блик; тени к синему, блик к жёлтому."""
+    h, s, v = _hsv(c)
+    if s < 0.08:
+        # Серые и белые: тени чуть синее, блик белее.
+        return [_rgb(0.66, s + 0.12, v * 0.52), _rgb(0.64, s + 0.06, v * 0.76), c, _rgb(0.12, s * 0.5, min(1.0, v * 1.08 + 0.04))]
+    return [_rgb(_toward(h, 0.70, 0.18), s * 1.12, v * 0.52), _rgb(_toward(h, 0.68, 0.08), s * 1.06, v * 0.76), c,
+            _rgb(_toward(h, 0.15, 0.10), s * 0.8, min(1.0, v * 1.16 + 0.05))]
+
+
+def _tone(S, x, y):
+    R = (x + 1, y) not in S
+    B = (x, y + 1) not in S
+    L = (x - 1, y) not in S
+    U = (x, y - 1) not in S
+    if (R and L) or (U and B):
+        return 2
+    if R and B:
+        return 0
+    if R or B:
+        return 1
+    if L or U:
+        return 3
+    return 2
+
+
+def reshade(canvas, palette=None):
+    """Холст в индексах палитры сеттинга → холст в своей палитре с рампами (0 обводка)."""
+    palette = palette or PIRATES
+    used = sorted({v for row in canvas.px for v in row if v is not None and v != K})
+    colors = [palette[K]]
+    base = {}
+    for i in used:
+        base[i] = len(colors)
+        colors.extend(ramp_of(palette[i]))
+    masks = {}
+    for y in range(canvas.h):
+        for x in range(canvas.w):
+            v = canvas.px[y][x]
+            if v is not None and v != K:
+                masks.setdefault(GROUPS.get(v, v), set()).add((x, y))
+    out = Canvas(canvas.w, canvas.h)
+    for y in range(canvas.h):
+        for x in range(canvas.w):
+            v = canvas.px[y][x]
+            if v is None:
+                continue
+            if v == K:
+                out.px[y][x] = 0
+                continue
+            out.px[y][x] = base[v] + _tone(masks[GROUPS.get(v, v)], x, y)
+    return out, colors
+
+
+def wants_reshade(key, canvas):
+    """Кого красить рампами: силуэты в палитре сеттинга, кроме слоёв дали и крошечного футбола."""
+    if key.startswith("par_") or key.startswith("soccer_"):
+        return False
+    return any(v is None for row in canvas.px for v in row)
 
 
 def rgba_rows(canvas, palette, scale=1, back=None):

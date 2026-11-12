@@ -175,7 +175,9 @@ func _run_checks() -> void:
 			clip = item
 	# Штамп клипа по жанру записи (#51): у платформера «ПРЫЖОК ×3», у гонок, шутера, спорта (#53)
 	# и файтинга (#55) свой.
-	var want_stamp := "ПРЫЖОК ×3" if genre == Game.Genre.PLATFORMER else Feed.clip_bug(record, catalog).stamp_for(genre)
+	# У векторных и 16/32-демок строки под пару «жанр × технология» (#103).
+	var want_stamp := Feed.clip_bug(record, catalog).stamp_for(genre, record.tech)
+	_expect(record.tech != Game.Tech.BIT8 or genre != Game.Genre.PLATFORMER or want_stamp == "ПРЫЖОК ×3", "штамп платформера 8-bit %s" % want_stamp)
 	_expect(clip != null and clip.stamp == want_stamp, "штамп клипа %s, ждали %s" % [clip.stamp if clip else "", want_stamp])
 	_expect(genre not in [Game.Genre.RACING, Game.Genre.SHOOTER, Game.Genre.SPORT, Game.Genre.FIGHTING] or want_stamp != "ПРЫЖОК ×3", "штамп платформера в клипе жанра %d" % genre)
 	for item in content.items:

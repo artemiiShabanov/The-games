@@ -19,6 +19,8 @@ extends Demo
 
 ## Экран ×3 (554×277): повозка героя на его глубине пиксель в пиксель.
 const ZOOM := 3
+## Финишная черта в столько сегментов шашкой (в один её не видно).
+const FINISH_ROWS := 4
 const BACKDROP: Array[String] = ["road_sky", "road_islands", "road_sea"]
 const BACKDROP_FACTORS: Array[float] = [0.4, 0.8, 1.0]
 const PROP_SPRITES: Array[String] = ["palm", "road_rock", "road_barrel", "sign_left", "sign_right", "road_hut"]
@@ -27,6 +29,10 @@ const MELODY := [0, null, 4, 7, 12, null, 11, 7, 9, null, 7, 4, 5, 7, 4, 2,
 	0, null, 4, 7, 12, 14, 12, 11, 9, 7, 9, 11, 12, null, 7, null]
 const BASS := [-12, -12, -5, -5, -7, -7, -3, -3, -10, -10, -5, -5, -7, -7, -5, -5]
 
+## Ложные финиши бага «финиш на пляже» (#103): первый на этом сегменте, дальше через столько;
+## 0 без бага.
+var _fake_first := 0
+var _fake_every := 0
 var tuning: RacingBit16Tuning
 var track: RoadTrack
 var sim: RoadSim
@@ -48,6 +54,8 @@ var _bounce := 0.0
 ## Старт: 0 ждём A, 1 отсчёт, 2 гонка; секунды отсчёта и с начала гонки.
 var _phase := 0
 var _count_t := 0.0
+## Звёзды ударов и искры монет (`Fx16`) в координатах экрана.
+var fx: Fx16
 var _go_t := 9.0
 ## Частицы на экране: пыль и искры. `[позиция, скорость, жизнь, размер, цвет]`.
 var _parts: Array[Array] = []
@@ -77,7 +85,10 @@ func _on_start() -> void:
 	sim.walls_open = has_bug(&"through_walls")
 	if has_bug(&"unreachable_coins"):
 		sim.finish_late = bug_param(&"unreachable_coins", &"road_finish_late", 150.0) * RoadTrack.SEG
+		_fake_first = int(bug_param(&"unreachable_coins", &"road_fake_first", 240.0))
+		_fake_every = maxi(int(bug_param(&"unreachable_coins", &"road_fake_every", 500.0)), 1)
 	bit16_screen(_draw_backdrop, _draw_world, _draw_hud, ZOOM)
+	fx = Fx16.create(bit16_set)
 	var horizon := bit16.view.y * 0.5
 	parallax = parallax16(BACKDROP, BACKDROP_FACTORS, [0.0, horizon - 62.0, horizon - 24.0])
 	for name in PROP_SPRITES + ["cart_hero", "cart_0", "cart_1", "cart_2", "cart_3", "palm_b", "coin", "road_colors", "heart"]:
@@ -185,6 +196,7 @@ func _step(dt: float) -> void:
 	_go_t += dt
 	bug_input_tick()
 	_step_parts(dt)
+	fx.step(dt)
 	if _phase == 0:
 		# Бот жмёт старт сам.
 		if bot_driven() and _time > 0.4:
@@ -231,6 +243,12 @@ func _on_event(ev: Array) -> void:
 			_play(String(ev[0]))
 			if ev[0] == &"bump" or ev[0] == &"crash":
 				_sparks(ev[0] == &"crash")
+				fx.add("star", Vector2(bit16.view.x * 0.5 + randf_range(-30.0, 30.0), bit16.view.y - 96.0))
+				if ev[0] == &"crash":
+					fx.add("star", Vector2(bit16.view.x * 0.5 + randf_range(-50.0, 50.0), bit16.view.y - 70.0), true)
+			elif ev[0] == &"coin":
+				fx.add("spark", Vector2(bit16.view.x * 0.5, bit16.view.y - 110.0))
+
 		&"win":
 			end_demo(true)
 		&"lose":
@@ -293,6 +311,7 @@ func _draw_world(canvas: CanvasItem) -> void:
 	for k in range(n - 1, 0, -1):
 		_draw_segment_sprites(canvas, k, _seg_no[k])
 	_draw_hero(canvas)
+	fx.draw(canvas, func(p: Vector2) -> Vector2: return p)
 
 
 ## Изгиб и высота сегмента по номеру без оборота: до старта ровная прямая.
@@ -314,13 +333,19 @@ func _draw_segment(canvas: CanvasItem, i: int, p1: Vector4, p2: Vector4) -> void
 	_quad(canvas, p1.x - p1.z - r1, p1.y, p1.x - p1.z, p2.x - p2.z - r2, p2.y, p2.x - p2.z, road_ink[2] if light else road_ink[3])
 	_quad(canvas, p1.x + p1.z + r1, p1.y, p1.x + p1.z, p2.x + p2.z + r2, p2.y, p2.x + p2.z, road_ink[2] if light else road_ink[3])
 	_quad(canvas, p1.x - p1.z, p1.y, p1.x + p1.z, p2.x - p2.z, p2.y, p2.x + p2.z, road_ink[0] if light else road_ink[1])
-	if i == track.finish:
-		# Финишная черта шашкой (с багом «финиш на пляже» черта стоит на песке у обочины).
-		var off := 2.6 * p1.z if sim.finish_late > 0.0 else 0.0
+	# С багом «финиш на пляже» шашечные черты стоят на песке у обочины по всей трассе, первая на
+	# первых секундах (#103), а засчитывают невидимую дальше настоящей.
+	var row := i - track.finish
+	if _fake_every > 0 and i < track.finish - _fake_every / 2 and i % _fake_every >= _fake_first:
+		row = i % _fake_every - _fake_first
+	if row >= 0 and row < FINISH_ROWS:
+		# Финишная черта шашкой в несколько сегментов, ряды со сдвигом (с багом «финиш на пляже»
+		# черта стоит на песке у обочины).
+		var off := 2.05 * p1.z if sim.finish_late > 0.0 else 0.0
 		for c in 8:
 			var a := lerpf(p1.x - p1.z, p1.x + p1.z, c / 8.0) + off
 			var b := lerpf(p1.x - p1.z, p1.x + p1.z, (c + 1) / 8.0) + off
-			canvas.draw_rect(Rect2(a, p2.y, b - a, maxf(p1.y - p2.y, 1.0)), Color.WHITE if c % 2 == 0 else Color.BLACK)
+			canvas.draw_rect(Rect2(a, p2.y, b - a, maxf(p1.y - p2.y, 1.0)), Color.WHITE if (c + row) % 2 == 0 else Color.BLACK)
 	elif light:
 		for lane: float in [-1.0 / 3.0, 1.0 / 3.0]:
 			var lw1 := p1.z / 40.0
@@ -427,18 +452,19 @@ func _draw_hero(canvas: CanvasItem) -> void:
 		canvas.draw_rect(Rect2(Vector2.ZERO, bit16.view), Color(1.0, 0.95, 0.7, 0.45 * (1.0 - since / 0.25)))
 
 
-## Нитро: два языка пламени из-под короба к зрителю, поверх повозки (белое ядро, золото,
-## красный край), дрожат.
+## Нитро: два языка огня (`fx16_fire`, 4 кадра) из-под короба к зрителю, поверх повозки;
+## дрожат, кадры у левого и правого вразнобой.
 func _draw_flames(canvas: CanvasItem, cx: float, cy: float) -> void:
+	var t: Texture2D = fx.tex.get("fire")
+	if t == null:
+		return
 	for side in [-1.0, 1.0]:
-		var bx: float = cx + side * 34.0
-		var flick := 1.0 + 0.3 * sin(_time * 55.0 + side * 2.0)
-		for layer in 3:
-			var len_: float = (46.0 - layer * 12.0) * flick
-			var half: float = 13.0 - layer * 4.0
-			var ink: Color = [bit16.ink(Bit16Screen.RED), bit16.ink(Bit16Screen.GOLD), bit16.ink(Bit16Screen.WHITE)][layer]
-			canvas.draw_colored_polygon(PackedVector2Array([Vector2(bx - half, cy), Vector2(bx + half, cy),
-					Vector2(bx + half * 0.4, cy + len_ * 0.6), Vector2(bx, cy + len_), Vector2(bx - half * 0.4, cy + len_ * 0.6)]), ink)
+		var frame := (int(_time * 20.0) + (1 if side > 0.0 else 3)) % 4
+		var stretch := 1.0 + 0.12 * sin(_time * 47.0 + side * 2.0)
+		var dst := Rect2(roundf(cx + side * 34.0 - 20.0), roundf(cy - 6.0), 40.0, roundf(64.0 * stretch))
+		if side > 0.0:
+			dst = Rect2(dst.position.x, dst.position.y, -40.0, dst.size.y)
+		canvas.draw_texture_rect_region(t, dst, Rect2(frame * 40.0, 0.0, 40.0, 64.0))
 
 
 ## Полосы скорости в нитро: белые штрихи от середины экрана к краям.
@@ -504,31 +530,35 @@ func _draw_parts(canvas: CanvasItem) -> void:
 
 # --- HUD -------------------------------------------------------------------------------------
 
+## HUD в латунных рамках, как у битемапа: место крупно пиксельным шрифтом (в тройке золотом),
+## под ним полоска пути; справа нитро слотами (заряд горит, потраченный пустой) и монеты.
 func _draw_hud(canvas: CanvasItem) -> void:
-	var white := bit16.ink(Bit16Screen.WHITE)
-	var black := bit16.ink(Bit16Screen.K)
-	var gold := bit16.ink(Bit16Screen.GOLD)
-	draw_pixel_text(canvas, Vector2(14.0, 10.0), "%d/%d" % [sim.place, sim.rivals.size() + 1],
-			gold if sim.place <= 3 else white, black, 3.0)
-	# Полоса пройденного пути.
-	var k := clampf(sim.z / track.finish_z(), 0.0, 1.0)
-	canvas.draw_rect(Rect2(14.0, 36.0, 120.0, 4.0), black)
-	canvas.draw_rect(Rect2(14.0, 36.0, 120.0 * k, 4.0), gold)
-	# Нитро: заряд это яркий жёлтый кружок, потраченный пустое кольцо.
+	var gold: Array[Color] = [Color("#7a3a10"), Color("#d0781c"), Color("#f8c040"), Color("#fff2a0")]
+	Fx16.frame_box(canvas, Rect2(6.0, 6.0, 132.0, 46.0))
+	PixelFont16.draw(canvas, Vector2(14.0, 11.0), "МЕСТО", Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
+	var place := "%d/%d" % [sim.place, sim.rivals.size() + 1]
+	var top3 := sim.place <= 3
+	PixelFont16.draw(canvas, Vector2(56.0, 11.0), place, gold[3] if top3 else Color.WHITE, gold[2] if top3 else Color("#b8c0d0"),
+			Fx16.INK, 2.0)
+	Fx16.bar(canvas, Rect2(14.0, 36.0, 116.0, 6.0), clampf(sim.z / track.finish_z(), 0.0, 1.0), gold)
+	var slots := float(tuning.nitros)
+	var nr := Rect2(bit16.view.x - 14.0 - slots * 18.0, 6.0, slots * 18.0 + 8.0, 26.0)
+	Fx16.frame_box(canvas, nr, sim.nitro_left > 0.0 and fmod(_time, 0.2) < 0.1)
 	for n in tuning.nitros:
-		var c := Vector2(bit16.view.x - 22.0 - (tuning.nitros - 1 - n) * 18.0, 18.0)
-		canvas.draw_circle(c, 7.0, black)
+		var c := Vector2(nr.position.x + 13.0 + n * 18.0, 19.0)
+		canvas.draw_circle(c, 7.0, Fx16.INK)
 		if n < sim.nitros:
-			canvas.draw_circle(c, 5.5, gold)
-			canvas.draw_rect(Rect2(c + Vector2(-2.0, -3.0), Vector2(2.0, 2.0)), white)
+			canvas.draw_circle(c, 6.0, gold[1])
+			canvas.draw_circle(c + Vector2(-0.5, -0.5), 4.5, gold[2])
+			canvas.draw_rect(Rect2(c + Vector2(-3.0, -4.0), Vector2(2.0, 2.0)), gold[3])
 		else:
-			canvas.draw_arc(c, 5.0, 0.0, TAU, 16, gold, 1.5)
-			canvas.draw_circle(c, 3.5, black)
-	# Монеты под нитро, по правому краю.
-	var count := str(sim.coins_got)
-	var tx := bit16.view.x - 14.0 - count.length() * 8.0
-	draw_pixel_text(canvas, Vector2(tx, 34.0), count, white, black, 2.0)
-	bit16.sprite(canvas, tex["coin"], 0, Vector2(tx - 12.0, 56.0))
+			canvas.draw_arc(c, 5.0, 0.0, TAU, 16, gold[0], 1.5)
+	var count := "×%02d" % sim.coins_got
+	var cw := PixelFont16.width(count, 2.0)
+	var cr := Rect2(bit16.view.x - 14.0 - cw - 26.0, 38.0, cw + 34.0, 24.0)
+	Fx16.frame_box(canvas, cr)
+	bit16.sprite(canvas, tex["coin"], int(_time * 8.0), Vector2(cr.position.x + 14.0, cr.end.y + 2.0), false, 0.75)
+	PixelFont16.draw(canvas, Vector2(cr.position.x + 26.0, 43.0), count, gold[3], gold[2], Fx16.INK, 2.0)
 	_draw_start(canvas)
 
 
@@ -549,8 +579,10 @@ func _draw_start(canvas: CanvasItem) -> void:
 		return
 	if _phase == 1:
 		var digit := str(int(tuning.countdown) - int(_count_t))
-		var cell := 12.0
-		draw_pixel_text(canvas, mid - Vector2(1.5 * cell, 2.5 * cell), digit, bit16.ink(Bit16Screen.GOLD), black, cell)
+		var cell := 8.0 + (1.0 - fmod(_count_t, 1.0)) * 4.0
+		cell = roundf(cell)
+		PixelFont16.draw(canvas, (mid - Vector2(PixelFont16.width(digit, cell), 7.0 * cell) * 0.5).round(), digit,
+				Color("#fff2a0"), Color("#d0781c"), Fx16.INK, cell)
 		return
 	if _go_t < 0.8:
 		canvas.draw_circle(mid, 30.0, black)

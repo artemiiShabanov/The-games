@@ -28,6 +28,13 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var manifestation_by_genre: Dictionary[int, String] = {}
 @export var tweet_by_genre: Dictionary[int, String] = {}
 @export var clip_by_genre: Dictionary[int, String] = {}
+## Строки под пару «жанр × технология» (#103): ключ `жанр * 10 + технология`. Векторные и
+## 16/32-демки играются иначе, чем 8-bit (понг вместо гольфа, битемап вместо дуэли на палубе),
+## поэтому у них свои слова; без записи для пары берутся строки жанра, потом общие.
+@export var stamp_by_pair: Dictionary[int, String] = {}
+@export var manifestation_by_pair: Dictionary[int, String] = {}
+@export var tweet_by_pair: Dictionary[int, String] = {}
+@export var clip_by_pair: Dictionary[int, String] = {}
 ## Зрелищный баг: чаще попадает в клипы и даёт вирусность.
 @export var spectacular := false
 ## Вес при выборе среди подходящих багов, которых ещё нет в записи (#38).
@@ -36,20 +43,26 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var params: Dictionary[StringName, float] = {}
 
 
-func stamp_for(genre: Game.Genre) -> String:
-	return stamp_by_genre.get(int(genre), stamp)
+## Ключ пары «жанр × технология» в словарях `*_by_pair`.
+static func pair_key(genre: Game.Genre, tech: int) -> int:
+	return int(genre) * 10 + tech
 
 
-func manifestation_for(genre: Game.Genre) -> String:
-	return manifestation_by_genre.get(int(genre), manifestation)
+## Штамп под жанр и технологию записи; `tech` −1: только по жанру.
+func stamp_for(genre: Game.Genre, tech := -1) -> String:
+	return stamp_by_pair.get(pair_key(genre, tech), stamp_by_genre.get(int(genre), stamp))
 
 
-func tweet_for(genre: Game.Genre) -> String:
-	return tweet_by_genre.get(int(genre), tweet)
+func manifestation_for(genre: Game.Genre, tech := -1) -> String:
+	return manifestation_by_pair.get(pair_key(genre, tech), manifestation_by_genre.get(int(genre), manifestation))
 
 
-func clip_for(genre: Game.Genre) -> String:
-	return clip_by_genre.get(int(genre), clip)
+func tweet_for(genre: Game.Genre, tech := -1) -> String:
+	return tweet_by_pair.get(pair_key(genre, tech), tweet_by_genre.get(int(genre), tweet))
+
+
+func clip_for(genre: Game.Genre, tech := -1) -> String:
+	return clip_by_pair.get(pair_key(genre, tech), clip_by_genre.get(int(genre), clip))
 
 
 func param(name: StringName, default: float) -> float:

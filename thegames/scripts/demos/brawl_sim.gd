@@ -15,7 +15,7 @@ extends RefCounted
 ## Здоровье героя кончилось: жизнь минус, неуязвимость и волна, сбивающая врагов рядом.
 ## Побиты все три экрана: победа; жизни кончились: поражение.
 ## Баги приходят числами: `launch` от удара летят выше и дальше по дуге; `immortal`
-## боцман бессмертен; `sneeze` враг падает от любого удара; `ghost_every` каждый такой удар
+## враги бессмертны (удар валит, полоска не убывает); `sneeze` враг падает от любого удара; `ghost_every` каждый такой удар
 ## героя проходит сквозь.
 
 const DT := 1.0 / 60.0
@@ -322,10 +322,12 @@ func _hero_hits(reach: float, dmg: int, heavy: bool) -> void:
 
 ## Урон бойцу: оглушение или нокдаун; у врага смерть, у героя потеря жизни.
 func _damage(f: Fighter, dmg: int, heavy: bool, index: int) -> void:
-	if f.kind == BrawlWaves.Kind.BOSS and immortal:
-		dmg = 0
 	if sneeze and f != hero:
 		dmg = f.hp
+	# Бессмертие (#103: видно на первом же головорезе, а не на боцмане к 35-й секунде): удар
+	# попадает, валит и оглушает, а полоска не убывает; сильнее чиха.
+	if immortal and f != hero:
+		dmg = 0
 	f.hp = maxi(f.hp - dmg, 0)
 	events.append([&"hit", index, dmg])
 	events.append([&"impact", f.pos.x - (f.facing if f != hero else -hero.facing) * 6.0, f.pos.y, f.z, heavy])

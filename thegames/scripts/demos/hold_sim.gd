@@ -11,7 +11,7 @@ extends RefCounted
 ## здоровье кончилось: поражение. Баги приходят числами: `ice` лёд на палубе (скорость героя
 ## догоняет ввод медленно, его заносит) и `foe_mult` скелеты и пули быстрее; `sneeze` скелет
 ## падает с одного попадания и от касания; `pass_every` каждый такой выстрел проходит сквозь
-## врага; `extra_per_kill` враги без конца: убитый зовёт новых в дальней комнате;
+## врага; `extra_per_kill` враги без конца: на месте убитого встают новые;
 ## `walls_open` герой проходит сквозь стены.
 
 const DT := 1.0 / 60.0
@@ -45,6 +45,9 @@ var ice := 0.0
 var sneeze := false
 var pass_every := 0
 var extra_per_kill := 0
+## Скелеты, которые встанут: [время, место]; через сколько встают (параметр бага).
+var _rising: Array[Array] = []
+var rise_seconds := 2.0
 var walls_open := false
 ## Скорость героя (на льду с инерцией).
 var vel := Vector2.ZERO
@@ -134,6 +137,7 @@ func step(move: float, turn: float, strafe: float, fire: bool) -> void:
 	_move(vel * DT)
 	if fire and cooldown <= 0.0:
 		_fire()
+	_step_rising()
 	_step_foes()
 	_step_shots()
 	_pickups()
@@ -163,7 +167,10 @@ func _move(dv: Vector2) -> void:
 		if dv[axis] == 0.0 or walls_open and map.cell(c.x, c.y) != HoldMap.Cell.STONE or not map.solid_at(probe):
 			pos = np
 	if walls_open:
-		pos = pos.clamp(Vector2(1.5, 1.5), Vector2(map.width - 1.5, map.height - 1.5))
+		# Каменный край карты держит, но не дальше радиуса героя: дверь выхода бывает в крайней
+		# стене, и при зазоре в полклетки герой упирался в неё, не дотянувшись.
+		var edge := 1.0 + tuning.radius + 0.01
+		pos = pos.clamp(Vector2(edge, edge), Vector2(map.width - edge, map.height - edge))
 
 
 func _fire() -> void:
@@ -188,7 +195,7 @@ func _hit_foe(i: int) -> void:
 		f.died_at = time
 		kills += 1
 		events.append([&"kill", i])
-		_respawn_extra()
+		_respawn_extra(f.pos)
 	else:
 		events.append([&"hit", i])
 
@@ -253,17 +260,22 @@ func _step_foes() -> void:
 			events.append([&"foe_fire", i])
 
 
-## Враги без конца: убитый зовёт `extra_per_kill` новых в комнате, дальней от героя.
-func _respawn_extra() -> void:
+## Враги без конца: на месте убитого через `rise_seconds` встают `extra_per_kill` новых (#103:
+## видно с первого убитого, а не где-то в дальней комнате).
+func _respawn_extra(at: Vector2) -> void:
 	for k in extra_per_kill:
-		var far := map.rooms[0]
-		for r in map.rooms:
-			if r.center().distance_to(pos) > far.center().distance_to(pos):
-				far = r
+		_rising.append([time + rise_seconds, at + Vector2(0.15 * k, 0.0)])
+
+
+func _step_rising() -> void:
+	for k in range(_rising.size() - 1, -1, -1):
+		if time < float(_rising[k][0]):
+			continue
+		var at: Vector2 = _rising[k][1]
+		_rising.remove_at(k)
 		var f := Foe.new()
-		f.pos = far.center() + Vector2(0.5, 0.5)
-		if map.solid_at(f.pos):
-			f.pos = far.center()
+		f.pos = at
+		events.append([&"rise", foes.size()])
 		f.hp = tuning.foe_health
 		foes.append(f)
 
@@ -425,10 +437,24 @@ func _dodge() -> void:
 
 
 ## Идти к точке по клеткам: развернуться к следующей клетке пути и шагать, когда смотрит на неё.
+## По прямой до точки нет камня (с багом сквозь стены держит только он).
+func _through_line(a: Vector2, b: Vector2) -> bool:
+	var n := int(ceil(a.distance_to(b) * 4.0))
+	for i in range(1, n + 1):
+		var p := a.lerp(b, float(i) / n)
+		if map.cell(int(floor(p.x)), int(floor(p.y))) == HoldMap.Cell.STONE:
+			return false
+	return true
+
+
 func _go_to(target: Vector2, plan: bool) -> Vector2:
 	var aim := target
 	_bot_repath -= DT
-	if plan:
+	if plan and walls_open and _through_line(pos, target):
+		# Стены не держат (#103): бот идёт к цели напрямую сквозь стены залов, это видно сразу;
+		# каменный край карты держит, через него по пути.
+		pass
+	elif plan:
 		if _bot_repath <= 0.0 or _bot_path.is_empty():
 			var goal := Vector2i(floor(target))
 			_bot_path = map.path(Vector2i(floor(pos)), goal)

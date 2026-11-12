@@ -60,6 +60,9 @@ var _jump_pressed := false
 var _foe_fall: Dictionary[int, float] = {}
 ## Брызги: место и секунды.
 var _splash := Vector3(0.0, 0.0, 9.0)
+## Пыль, искры, звёзды (`Fx16`) и вертикальная темнота стенок ямы.
+var fx: Fx16
+var _pit_grad: GradientTexture2D
 var _music: AudioStreamPlayer
 var _sfx := {}
 
@@ -88,6 +91,13 @@ func _on_start() -> void:
 	grad.set_color(1, DARK)
 	_depth = GradientTexture2D.new()
 	_depth.gradient = grad
+	fx = Fx16.create(bit16_set)
+	_pit_grad = GradientTexture2D.new()
+	_pit_grad.gradient = grad
+	_pit_grad.fill_from = Vector2(0.0, 0.0)
+	_pit_grad.fill_to = Vector2(0.0, 1.0)
+	_pit_grad.width = 4
+	_pit_grad.height = 64
 	_depth.fill_to = Vector2(0.0, 1.0)
 	_depth.width = 1
 	_depth.height = int(DARK_TO - DARK_FROM)
@@ -167,6 +177,7 @@ func _step(dt: float) -> void:
 	for i: int in _foe_fall.keys():
 		_foe_fall[i] += dt
 	_splash.z += dt
+	fx.step(dt)
 	bug_input_tick()
 	_acc = minf(_acc + dt, 0.25)
 	while _acc >= TrailSim.DT - 0.0001:
@@ -207,14 +218,22 @@ func _on_event(ev: Array) -> void:
 	match ev[0] as StringName:
 		&"jump":
 			_play("jump")
+			fx.add("dust", sim.pos + Vector2(0.0, -4.0))
 			# Залипание: прыжок повторится после приземления (`Demo.bug_stick`).
 			bug_stick()
 		&"land":
 			_play("land")
+			fx.add("dust", sim.pos + Vector2(-6.0, -4.0))
+			fx.add("dust", sim.pos + Vector2(6.0, -4.0), true)
 			if bug_take_stick():
 				_jump_pressed = true
-		&"slide", &"grab", &"release", &"coin", &"respawn":
+		&"slide", &"grab", &"release", &"respawn":
 			_play(String(ev[0]))
+			if ev[0] == &"slide":
+				fx.add("dust", sim.pos + Vector2(-sim.facing * 8.0, -4.0), sim.facing > 0)
+		&"coin":
+			_play("coin")
+			fx.add("spark", sim.pos + Vector2(0.0, -16.0))
 		&"fall":
 			bug_clear_stick()
 			_splash = Vector3(sim.pos.x, level.water_y, 0.0)
@@ -222,10 +241,13 @@ func _on_event(ev: Array) -> void:
 		&"hurt":
 			bug_clear_stick()
 			_play("hurt")
+			fx.add("star", sim.pos + Vector2(0.0, -16.0))
 			if AutoTest.enabled and not embedded:
 				AutoTest.note("platformer bit16: жизнь %d потеряна (%s) у x %d на %.1f с" % [sim.deaths, ev[1], int(sim.pos.x), elapsed])
 		&"foe_down":
 			_foe_fall[int(ev[1])] = 0.0
+			var f := sim.foe_at(int(ev[1]), sim.time)
+			fx.add("star", Vector2(f.x, f.y))
 			_play("foe_down")
 		&"win":
 			end_demo(true)
@@ -270,6 +292,7 @@ func _draw_world(canvas: CanvasItem) -> void:
 	draw_sprite16(canvas, "flag", tex["flag"], int(_time * 8.0), Vector2(_sx(level.flag_x), level.height_at(level.flag_x)))
 	_draw_foes(canvas, lo, hi)
 	_draw_hero(canvas)
+	fx.draw(canvas, func(p: Vector2) -> Vector2: return Vector2(_sx(p.x), p.y))
 	_draw_decor(canvas, lo, hi, true)
 	_draw_canopy(canvas)
 	if _show_boxes:
@@ -286,14 +309,31 @@ func _draw_water(canvas: CanvasItem, lo: float, hi: float) -> void:
 		var x := _sx(a)
 		var w := roundf(b - a)
 		var y := level.water_y
-		# Глубина ямы: темнота от земли до воды.
+		# Глубина ямы: стенки тем же грунтом, темнеют книзу; у воды почти чёрные.
 		var top := roundf(minf(level.height_at(a - 0.5), level.height_at(b + 0.5))) + 10.0
-		canvas.draw_rect(Rect2(x, top, w, y - top), DARK)
-		canvas.draw_rect(Rect2(x, y, w, bit16.view.y - oy - y), bit16.ink(Bit16Screen.NAVY))
-		canvas.draw_rect(Rect2(x, y, w, 2.0), bit16.ink(Bit16Screen.SEA))
-		for k in 3:
-			var gx := fposmod(_time * 14.0 + k * 23.0 + a, maxf(w - 6.0, 1.0))
-			canvas.draw_rect(Rect2(x + roundf(gx), y + 5.0 + k * 6.0, 5.0, 1.0), bit16.ink(Bit16Screen.SEA))
+		var soil: Texture2D = tex["trail_soil"]
+		var wall := Rect2(x, top, w, y - top)
+		if soil != null:
+			canvas.draw_texture_rect_region(soil, wall, Rect2(Vector2(a, top) + Vector2(4096.0, 0.0), wall.size), Color(0.55, 0.5, 0.55))
+		canvas.draw_texture_rect(_pit_grad, wall, false)
+		canvas.draw_rect(Rect2(x, top, w, y - top), Color(DARK, 0.35))
+		# Вода: полосы глубины, у кромки светлая рябь, бегущие блики и отражение стенок.
+		var deep: Array[Color] = [bit16.ink(Bit16Screen.SEA), bit16.ink(Bit16Screen.NAVY), bit16.ink(Bit16Screen.NAVY).darkened(0.35),
+				DARK]
+		var bottom := bit16.view.y - oy
+		var band := 0
+		var yy := y
+		while yy < bottom:
+			var hgt := 3.0 + band * 3.0
+			canvas.draw_rect(Rect2(x, yy, w, minf(hgt, bottom - yy)), deep[mini(band, deep.size() - 1)])
+			yy += hgt
+			band += 1
+		for k in int(w / 6.0):
+			var wave := roundf(sin(_time * 3.0 + k * 0.9 + a) * 1.0)
+			canvas.draw_rect(Rect2(x + k * 6.0, y + wave, 4.0, 1.0), bit16.ink(Bit16Screen.AQUA))
+		for k in 4:
+			var gx := fposmod(_time * 14.0 + k * 23.0 + a, maxf(w - 8.0, 1.0))
+			canvas.draw_rect(Rect2(x + roundf(gx), y + 5.0 + k * 5.0, 6.0 - k, 1.0), bit16.ink(Bit16Screen.AQUA if k == 0 else Bit16Screen.SEA))
 	if _splash.z < 0.5:
 		var k := _splash.z / 0.5
 		for d in [-1.0, 1.0]:
@@ -511,10 +551,14 @@ func _draw_canopy(canvas: CanvasItem) -> void:
 		x += w
 
 
-## HUD: сердца по числу жизней и счёт монет.
+## HUD: латунная плашка (как у битемапа), в ней сердца по жизням (потерянные тёмными), монета и
+## счёт пиксельным шрифтом с градиентом.
 func _draw_hud(canvas: CanvasItem) -> void:
-	for i in sim.lives:
-		bit16.sprite(canvas, tex["heart"], 0, Vector2(20.0 + i * 26.0, 34.0))
-	var x := 20.0 + tuning.lives * 26.0 + 12.0
-	bit16.sprite(canvas, tex["coin"], 0, Vector2(x, 34.0))
-	draw_pixel_text(canvas, Vector2(x + 18.0, 12.0), str(sim.coins_got), bit16.ink(Bit16Screen.WHITE), bit16.ink(Bit16Screen.K), 2.0)
+	var w := 10.0 + tuning.lives * 24.0 + 70.0
+	Fx16.frame_box(canvas, Rect2(6.0, 6.0, w, 32.0))
+	for i in tuning.lives:
+		var tint := Color.WHITE if i < sim.lives else Color(0.25, 0.2, 0.3)
+		bit16.sprite(canvas, tex["heart"], 0, Vector2(24.0 + i * 24.0, 38.0), false, 1.0, tint)
+	var x := 24.0 + tuning.lives * 24.0 + 6.0
+	bit16.sprite(canvas, tex["coin"], int(_time * 8.0), Vector2(x, 38.0))
+	PixelFont16.draw(canvas, Vector2(x + 14.0, 15.0), "×%02d" % sim.coins_got, Color("#fff2a0"), Color("#d8a440"), Fx16.INK, 2.0)

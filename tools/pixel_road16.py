@@ -185,8 +185,15 @@ def cart(lean, phase, accent, driver=True):
         c.ellipse(x0 + 8, 16, 7, 7, SKIN)
         c.ellipse(x0 + 8, 13, 7, 5, RED)
         c.rect(x0 + 14, 14, x0 + 18, 18, RED)
-        c.line(x0, 26, x0 - 5, 36, SKIN, 3)
-        c.line(x0 + 16, 26, x0 + 21, 36, SKIN, 3)
+        # Руки (плейтест 2026-11-12: были тонкими палками): плечо, мускулистое плечо и
+        # предплечье к вожжам, кулак.
+        for side in (-1, 1):
+            sx = x0 + (0 if side < 0 else 16)
+            c.ellipse(sx, 26, 3.5, 3.5, SKIN)
+            c.line(sx, 26, sx + side * 6, 34, SKIN, 6)
+            c.line(sx + side * 6, 34, sx + side * 3, 41, SKIN, 5)
+            c.ellipse(sx + side * 2.5, 42, 3, 2.5, SKIN)
+            c.line(sx + side * 6, 33, sx + side * 5, 36, TAN, 1)
     c.finish()
     return c
 

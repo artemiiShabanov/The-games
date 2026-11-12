@@ -20,6 +20,8 @@ extends Demo
 ## сквозь врага; `unreachable_coins` враги без конца; `sneeze_enemies` скелет падает с одного
 ## попадания и от касания; `through_walls` герой ходит сквозь стены.
 
+## Высота нижней панели (здоровье, лицо, побито и ключ).
+const STATUS_H := 38.0
 const ZOOM := 3
 ## Высота стены в клетках (глаз на 0,5): потолок выше, залы просторнее (плейтест 2026-11-12).
 const WALL_H := 1.5
@@ -85,6 +87,8 @@ var _acc := 0.0
 var _fire_t := 9.0
 var _hurt_t := 9.0
 var _grin_t := 9.0
+## Звёзды попаданий (`Fx16`) в координатах экрана.
+var fx: Fx16
 var _foe_fire_t: Dictionary[int, float] = {}
 var _slash_t: Dictionary[int, float] = {}
 var _music: AudioStreamPlayer
@@ -102,9 +106,11 @@ func _on_start() -> void:
 		sim.pass_every = maxi(int(bug_param(&"through_enemies", &"pass_every", 2.0)), 1)
 	if has_bug(&"unreachable_coins"):
 		sim.extra_per_kill = maxi(int(bug_param(&"unreachable_coins", &"extra_per_kill", 1.0)), 1)
+		sim.rise_seconds = bug_param(&"unreachable_coins", &"hold_rise_seconds", 2.0)
 	sim.sneeze = has_bug(&"sneeze_enemies")
 	sim.walls_open = has_bug(&"through_walls")
 	bit16_screen(Callable(), _draw_world, _draw_hud, ZOOM)
+	fx = Fx16.create(bit16_set)
 	# Стена выше клетки: текстура повторяется по высоте.
 	bit16.world.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	for name in SPRITES:
@@ -197,6 +203,8 @@ func _step(dt: float) -> void:
 	_fire_t += dt
 	_hurt_t += dt
 	_grin_t += dt
+	if fx != null:
+		fx.step(dt)
 	bug_input_tick()
 	_acc = minf(_acc + dt, 0.25)
 	while _acc >= HoldSim.DT - 0.0001 and not sim.ended:
@@ -235,6 +243,8 @@ func _on_event(ev: Array) -> void:
 			_play("fire")
 		&"hit", &"kill":
 			_play(String(ev[0]))
+			var mid := Vector2(bit16.view.x * 0.5, (bit16.view.y - STATUS_H) * 0.5)
+			fx.add("star", mid + Vector2(randf_range(-6.0, 6.0), randf_range(-10.0, 6.0)), randf() < 0.5)
 			if ev[0] == &"kill":
 				_grin_t = 0.0
 		&"foe_fire":
@@ -287,6 +297,7 @@ func _draw_world(canvas: CanvasItem) -> void:
 	_draw_walls(canvas)
 	_draw_sprites(canvas)
 	_draw_weapon(canvas)
+	fx.draw(canvas, func(p: Vector2) -> Vector2: return p)
 	# Боль: красная вспышка, ключ и аптечка: золотая.
 	if _hurt_t < 0.3:
 		canvas.draw_rect(Rect2(Vector2.ZERO, bit16.view), Color(0.8, 0.05, 0.05, 0.35 * (1.0 - _hurt_t / 0.3)))
@@ -473,13 +484,27 @@ func _draw_weapon(canvas: CanvasItem) -> void:
 ## Панель снизу как в Doom: здоровье числом слева, лицо героя по центру (смотрит по сторонам,
 ## морщится от попадания, ухмыляется от ключа, аптечки и убитого), ключ справа.
 func _draw_hud(canvas: CanvasItem) -> void:
-	var bar := Rect2(0.0, bit16.view.y - 34.0, bit16.view.x, 34.0)
-	canvas.draw_rect(bar, bit16.ink(Bit16Screen.BARK))
-	canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x, 2.0)), bit16.ink(Bit16Screen.WOOD))
-	canvas.draw_rect(Rect2(bar.position + Vector2(0.0, 2.0), Vector2(bar.size.x, 1.0)), bit16.ink(Bit16Screen.K))
-	var black := bit16.ink(Bit16Screen.K)
-	var health_ink := bit16.ink(Bit16Screen.RED) if sim.health <= 30 else bit16.ink(Bit16Screen.GOLD)
-	draw_pixel_text(canvas, Vector2(18.0, bar.position.y + 7.0), str(sim.health), health_ink, black, 4.0)
+	# Панель как у Doom, но в латуни и дереве: доска с фаской, три отсека в рамках (здоровье с
+	# полоской, лицо, побито и ключ), подписи пиксельным шрифтом.
+	var bar := Rect2(0.0, bit16.view.y - STATUS_H, bit16.view.x, STATUS_H)
+	canvas.draw_rect(bar, Color("#4a2c1a"))
+	for x in range(0, int(bar.size.x), 24):
+		canvas.draw_rect(Rect2(x, bar.position.y + 2.0, 1.0, bar.size.y - 2.0), Color("#2e1a10"))
+		canvas.draw_rect(Rect2(x + 1.0, bar.position.y + 2.0, 1.0, bar.size.y - 2.0), Color("#6a4428"))
+	canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x, 1.0)), Fx16.INK)
+	canvas.draw_rect(Rect2(bar.position + Vector2(0.0, 1.0), Vector2(bar.size.x, 1.0)), Fx16.BRASS[2])
+	var low := sim.health <= 30
+	var blink := low and fmod(_time, 0.5) < 0.25
+	var hr := Rect2(8.0, bar.position.y + 5.0, 150.0, STATUS_H - 9.0)
+	Fx16.frame_box(canvas, hr, blink)
+	PixelFont16.draw(canvas, hr.position + Vector2(6.0, 4.0), "ЗДОРОВЬЕ", Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
+	var red: Array[Color] = [Color("#5a1018"), Color("#a8242a"), Color("#e2483a"), Color("#ff9a78")]
+	var gold: Array[Color] = [Color("#7a3a10"), Color("#d0781c"), Color("#f8c040"), Color("#fff2a0")]
+	var ramp := red if low else gold
+	# Полоска сначала, число поверх: иначе рамка полоски закрывала низ цифр.
+	Fx16.bar(canvas, Rect2(hr.position + Vector2(6.0, 21.0), Vector2(hr.size.x - 12.0, 3.0)),
+			float(sim.health) / tuning.health, ramp, blink)
+	PixelFont16.draw(canvas, hr.position + Vector2(98.0, 3.0), str(sim.health), ramp[3], ramp[2], Fx16.INK, 2.0)
 	var face := 0
 	if _hurt_t < 0.6:
 		face = 3
@@ -488,10 +513,17 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	else:
 		face = [0, 0, 1, 0, 0, 2][int(_time * 1.2) % 6]
 	var fc := Vector2(bit16.view.x * 0.5, bar.end.y - 1.0)
-	canvas.draw_rect(Rect2(fc - Vector2(19.0, 33.0), Vector2(38.0, 33.0)), black)
+	Fx16.frame_box(canvas, Rect2(fc - Vector2(21.0, STATUS_H - 3.0), Vector2(42.0, STATUS_H - 4.0)), _hurt_t < 0.2)
 	bit16.sprite(canvas, tex["face"], face, fc)
-	var key_box := Rect2(bit16.view.x - 52.0, bar.position.y + 5.0, 36.0, 26.0)
-	canvas.draw_rect(key_box, black)
+	var kr := Rect2(bit16.view.x - 158.0, bar.position.y + 5.0, 150.0, STATUS_H - 9.0)
+	Fx16.frame_box(canvas, kr, _grin_t < 0.2)
+	PixelFont16.draw(canvas, kr.position + Vector2(6.0, 4.0), "ПОБИТО", Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
+	PixelFont16.draw(canvas, kr.position + Vector2(8.0, 13.0), "%02d" % sim.kills, Color.WHITE, Color("#b8c0d0"), Fx16.INK, 2.0)
+	var key_box := Rect2(kr.end.x - 40.0, kr.position.y + 3.0, 34.0, kr.size.y - 6.0)
+	canvas.draw_rect(key_box, Fx16.INK)
+	canvas.draw_rect(key_box.grow(-1.0), Color("#4a3a18") if sim.has_key else Color("#2a1c30"))
 	if sim.has_key:
 		bit16.sprite(canvas, tex["key"], 0, key_box.get_center() + Vector2(0.0, 14.0))
-	draw_pixel_text(canvas, Vector2(bit16.view.x - 120.0, bar.position.y + 10.0), str(sim.kills), bit16.ink(Bit16Screen.WHITE), black, 3.0)
+	else:
+		PixelFont16.draw(canvas, key_box.position + Vector2(5.0, 9.0), "КЛЮЧ", Color("#6a5a7a"), Color("#4a3e58"), Fx16.INK, 1.0,
+				false)

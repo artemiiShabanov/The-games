@@ -20,6 +20,19 @@ const MARGIN := 48.0
 const FRAME := 16.0
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "ball"]
 const KITS: Array[String] = ["soccer_rival_0", "soccer_rival_1", "soccer_rival_2"]
+## Песок (или трава, реголит) за линиями до аута.
+const APRON := 26.0
+## Поле и аут по сеттингу (плейтест 2026-11-12): тайлы `soccer_field_<сеттинг>` и
+## `soccer_out_<сеттинг>` (4 кадра), кромка поля: внутренняя тень и линия у аута (у пиратов
+## мокрый песок и пена прибоя).
+const EDGE := {"pirates": [Color(0.42, 0.3, 0.16, 0.45), Color("#f4fbff")],
+		"castles": [Color(0.0, 0.0, 0.0, 0.3), Color("#a8a2ac")],
+		"space": [Color(0.0, 0.0, 0.0, 0.35), Color("#7fd8ff")]}
+## Цвета формы соперника для табло (как ленты `soccer_rival_*`) и HUD в духе битемапа.
+const RIVAL_INK: Array[Color] = [Color("#d9432f"), Color("#f2c85a"), Color("#2a2630")]
+const HERO_INK := Color("#f4efe6")
+const BRASS: Array[Color] = [Color("#3a240c"), Color("#8a5a1c"), Color("#d8a440"), Color("#fff0a0")]
+const INK := Color("#1a1218")
 const MELODY := [0, 4, 7, 4, 9, 7, 4, 2, 0, 4, 7, 12, 11, 7, 9, null,
 	5, 9, 12, 9, 14, 12, 9, 7, 5, 4, 2, 4, 7, null, 0, null]
 const BASS := [-12, -12, -5, -5, -7, -7, -8, -8, -12, -12, -5, -5, -7, -7, -10, -10]
@@ -34,6 +47,7 @@ var _time := 0.0
 var _acc := 0.0
 var _slide_pressed := false
 var _goal_t := 9.0
+var _theme := "pirates"
 var _music: AudioStreamPlayer
 var _sfx := {}
 
@@ -53,6 +67,9 @@ func _on_start() -> void:
 	bit16.world.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	for name in ["soccer_hero", "soccer_keeper_hero", "soccer_keeper_rival", "soccer_ball", "soccer_grass"]:
 		tex[name] = bit16_set.sprite16(name)
+	_theme = String(bit16_set.id) if EDGE.has(String(bit16_set.id)) else "pirates"
+	tex["field"] = bit16_set.sprite16("soccer_field_" + _theme)
+	tex["out"] = bit16_set.sprite16("soccer_out_" + _theme)
 	tex["rival"] = bit16_set.sprite16(KITS[plan.rival_kit % KITS.size()])
 	cam = _cam_target()
 	_setup_audio()
@@ -196,22 +213,57 @@ func _draw_world(canvas: CanvasItem) -> void:
 		canvas.draw_texture_rect_region(bt, Rect2(bp - Vector2(size, size) * 0.5, Vector2(size, size)), Rect2(frame * 8.0, 0.0, 8.0, 8.0))
 
 
-## Поле: трава полосами по миру, вокруг темнее; разметка белым.
+## Поле по сеттингу: аут тайлами (у пиратов море с барашками), поле с запасом за линиями
+## (песок), на кромке тень внутрь и линия прибоя наружу; разметка белым.
 func _draw_pitch(canvas: CanvasItem) -> void:
 	var view := bit16.view
-	var grass: Texture2D = tex["soccer_grass"]
-	var o := -Vector2(fposmod(cam.x, 64.0), fposmod(cam.y, 64.0))
-	canvas.draw_texture_rect(grass, Rect2(o.round(), view + Vector2(128.0, 128.0)), true)
 	var w := tuning.pitch_w
 	var h := tuning.pitch_h
-	var out_ink := Color(0.0, 0.0, 0.0, 0.18)
+	var out: Texture2D = tex["out"]
+	var field: Texture2D = tex["field"]
+	if out == null or field == null:
+		var grass: Texture2D = tex["soccer_grass"]
+		var o := -Vector2(fposmod(cam.x, 64.0), fposmod(cam.y, 64.0))
+		canvas.draw_texture_rect(grass, Rect2(o.round(), view + Vector2(128.0, 128.0)), true)
+	else:
+		# Аут: кадр тайла по времени, плитка привязана к миру.
+		var fr := int(_time * 3.0) % 4
+		var ox := -fposmod(roundf(cam.x), 64.0)
+		var oy := -fposmod(roundf(cam.y), 64.0)
+		var y := oy
+		while y < view.y:
+			var x := ox
+			while x < view.x:
+				canvas.draw_texture_rect_region(out, Rect2(x, y, 64.0, 64.0), Rect2(fr * 64.0, 0.0, 64.0, 64.0))
+				x += 64.0
+			y += 64.0
+		# Поле с запасом за линиями: тайл по координатам мира (повтор текстуры включён).
+		var a := Vector2(-APRON, -APRON)
+		var rect := Rect2(_to_screen(a), Vector2(w, h) + Vector2(APRON, APRON) * 2.0)
+		canvas.draw_texture_rect_region(field, rect, Rect2(a + Vector2(1024.0, 1024.0), rect.size))
+		var edge: Array = EDGE[_theme]
+		var shade: Color = edge[0]
+		canvas.draw_rect(Rect2(rect.position, Vector2(rect.size.x, 3.0)), shade)
+		canvas.draw_rect(Rect2(rect.position, Vector2(3.0, rect.size.y)), shade)
+		canvas.draw_rect(Rect2(rect.position.x, rect.end.y - 3.0, rect.size.x, 3.0), Color(shade, shade.a * 0.6))
+		canvas.draw_rect(Rect2(rect.end.x - 3.0, rect.position.y, 3.0, rect.size.y), Color(shade, shade.a * 0.6))
+		# Линия у аута: у пиратов пена прибоя пунктиром, бежит по времени.
+		var foam: Color = edge[1]
+		var step := 6.0
+		var shift := fmod(_time * 8.0, step * 2.0)
+		var k := -step * 2.0 + shift
+		while k < rect.size.x + step:
+			canvas.draw_rect(Rect2(rect.position.x + k, rect.position.y - 2.0, step, 2.0), foam)
+			canvas.draw_rect(Rect2(rect.position.x + rect.size.x - k - step, rect.end.y, step, 2.0), foam)
+			k += step * 2.0
+		k = -step * 2.0 + shift
+		while k < rect.size.y + step:
+			canvas.draw_rect(Rect2(rect.position.x - 2.0, rect.position.y + rect.size.y - k - step, 2.0, step), foam)
+			canvas.draw_rect(Rect2(rect.end.x, rect.position.y + k, 2.0, step), foam)
+			k += step * 2.0
 	var tl := _to_screen(Vector2.ZERO)
 	var br := _to_screen(Vector2(w, h))
-	canvas.draw_rect(Rect2(Vector2(-2.0, -2.0), Vector2(view.x + 4.0, tl.y + 2.0)), out_ink)
-	canvas.draw_rect(Rect2(Vector2(-2.0, br.y), Vector2(view.x + 4.0, view.y - br.y + 2.0)), out_ink)
-	canvas.draw_rect(Rect2(Vector2(-2.0, tl.y), Vector2(tl.x + 2.0, br.y - tl.y)), out_ink)
-	canvas.draw_rect(Rect2(Vector2(br.x, tl.y), Vector2(view.x - br.x + 2.0, br.y - tl.y)), out_ink)
-	var white := bit16.ink(Bit16Screen.WHITE)
+	var white := Color(1.0, 1.0, 1.0, 0.9)
 	canvas.draw_rect(Rect2(tl, br - tl), white, false, 2.0)
 	var mx := _to_screen(Vector2(w * 0.5, 0.0)).x
 	canvas.draw_rect(Rect2(mx - 1.0, tl.y, 2.0, br.y - tl.y), white)
@@ -283,17 +335,47 @@ func _draw_player(canvas: CanvasItem, i: int) -> void:
 
 # --- HUD -------------------------------------------------------------------------------------
 
-## Счёт сверху по центру: квадрат цвета формы и число у каждой команды; после гола мигает.
+## Табло в латунной рамке, как HUD битемапа: цвет формы, название, счёт пиксельным шрифтом с
+## градиентом; после гола табло вспыхивает и над полем «ГОЛ!».
 func _draw_hud(canvas: CanvasItem) -> void:
-	var black := bit16.ink(Bit16Screen.K)
-	var white := bit16.ink(Bit16Screen.WHITE)
-	var cx := bit16.view.x * 0.5
+	var cx := roundf(bit16.view.x * 0.5)
 	var flash := _goal_t < 1.2 and fmod(_goal_t, 0.3) < 0.15
-	var cell := 4.0 if not flash else 5.0
-	canvas.draw_rect(Rect2(cx - 70.0, 8.0, 140.0, 30.0), Color(0.0, 0.0, 0.0, 0.45))
-	canvas.draw_rect(Rect2(cx - 62.0, 15.0, 14.0, 14.0), bit16.ink(Bit16Screen.RED))
-	draw_pixel_text(canvas, Vector2(cx - 40.0, 12.0), str(sim.score[0]), white, black, cell)
-	draw_pixel_text(canvas, Vector2(cx + 16.0, 12.0), str(sim.score[1]), white, black, cell)
-	var rival_ink: Color = [bit16.ink(Bit16Screen.SEA), bit16.ink(Bit16Screen.GOLD), white][plan.rival_kit % 3]
-	canvas.draw_rect(Rect2(cx + 48.0, 15.0, 14.0, 14.0), rival_ink)
-	canvas.draw_rect(Rect2(cx - 3.0, 20.0, 6.0, 3.0), white)
+	var box := Rect2(cx - 92.0, 6.0, 184.0, 26.0)
+	_frame_box(canvas, box, flash)
+	var rival_ink: Color = RIVAL_INK[plan.rival_kit % RIVAL_INK.size()]
+	_chip(canvas, Vector2(box.position.x + 8.0, 13.0), HERO_INK, Color("#2f6fb5"))
+	_chip(canvas, Vector2(box.end.x - 20.0, 13.0), rival_ink, rival_ink.darkened(0.35))
+	PixelFont16.draw(canvas, Vector2(box.position.x + 26.0, 15.0), "МАТРОСЫ", Color.WHITE, Color("#b8c8e0"), INK, 1.0)
+	PixelFont16.draw(canvas, Vector2(box.end.x - 26.0 - PixelFont16.width("ГОСТИ"), 15.0), "ГОСТИ", Color.WHITE,
+			Color("#b8c8e0"), INK, 1.0)
+	var score := "%d:%d" % [sim.score[0], sim.score[1]]
+	var cell := 2.0
+	PixelFont16.draw(canvas, Vector2(cx - roundf(PixelFont16.width(score, cell) * 0.5), 11.0), score, BRASS[3], BRASS[2],
+			INK, cell)
+	if _goal_t < 1.6:
+		var big := 4.0
+		var t := "ГОЛ!"
+		var k := minf(_goal_t * 5.0, 1.0)
+		var y := roundf(lerpf(-40.0, bit16.view.y * 0.35, k))
+		PixelFont16.draw(canvas, Vector2(cx - roundf(PixelFont16.width(t, big) * 0.5), y), t, Color.WHITE, BRASS[2], INK, big)
+
+
+## Квадрат цвета формы с полосой второго цвета и обводкой.
+func _chip(canvas: CanvasItem, at: Vector2, a: Color, b: Color) -> void:
+	canvas.draw_rect(Rect2(at - Vector2(1.0, 1.0), Vector2(14.0, 14.0)), INK)
+	canvas.draw_rect(Rect2(at, Vector2(12.0, 12.0)), a)
+	canvas.draw_rect(Rect2(at + Vector2(0.0, 4.0), Vector2(12.0, 2.0)), b)
+	canvas.draw_rect(Rect2(at + Vector2(0.0, 8.0), Vector2(12.0, 2.0)), b)
+	canvas.draw_rect(Rect2(at, Vector2(12.0, 1.0)), Color(1.0, 1.0, 1.0, 0.5))
+
+
+## Латунная рамка с фаской и тёмной лункой (как в битемапе); при вспышке светлее.
+func _frame_box(canvas: CanvasItem, r: Rect2, bright: bool) -> void:
+	canvas.draw_rect(r.grow(1.0), INK)
+	canvas.draw_rect(r, BRASS[2] if bright else BRASS[1])
+	canvas.draw_rect(Rect2(r.position, Vector2(r.size.x, 1.0)), BRASS[3])
+	canvas.draw_rect(Rect2(r.position, Vector2(1.0, r.size.y)), BRASS[3])
+	canvas.draw_rect(Rect2(r.position.x, r.end.y - 1.0, r.size.x, 1.0), BRASS[0])
+	canvas.draw_rect(Rect2(r.end.x - 1.0, r.position.y, 1.0, r.size.y), BRASS[0])
+	canvas.draw_rect(r.grow(-2.0), INK)
+	canvas.draw_rect(r.grow(-3.0), Color("#3a2a5a") if bright else Color("#140e1c"))

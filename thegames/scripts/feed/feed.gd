@@ -98,7 +98,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var bug := clip_bug(record, catalog)
 	var vars := {
 		"title": record.title, "genre": Game.genre_name(record.genre), "setting": Game.setting_name(record.setting),
-		"tech": Game.tech_name(record.tech), "bug": bug.manifestation_for(record.genre).to_lower() if bug != null else "", "tag": c.tag,
+		"tech": Game.tech_name(record.tech), "bug": bug.manifestation_for(record.genre, record.tech).to_lower() if bug != null else "", "tag": c.tag,
 		"studio": studio if studio != "" else "студия"}
 	seed(rng.seed + rng.state)  # Array.shuffle использует глобальный генератор: сидим его от rng.
 	var handles := texts.handles.duplicate()
@@ -111,8 +111,8 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	tweet_pool.append_array(texts.tweets_viral if score.viral else texts.tweets_quiet)
 	tweet_pool.shuffle()
 	var tweets: Array[String] = []
-	if bug != null and bug.tweet_for(record.genre) != "":
-		tweets.append(bug.tweet_for(record.genre) + " " + c.tag)
+	if bug != null and bug.tweet_for(record.genre, record.tech) != "":
+		tweets.append(bug.tweet_for(record.genre, record.tech) + " " + c.tag)
 	for s in tweet_pool:
 		if tweets.size() >= 4:
 			break
@@ -172,7 +172,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		clip.kind = FeedContent.Kind.CLIP
 		clip.person = streamer
 		clip.reach = streamer_reach(streamer, score, record, t)
-		clip.stamp = bug.stamp_for(record.genre) if bug != null else ""
+		clip.stamp = bug.stamp_for(record.genre, record.tech) if bug != null else ""
 		clip.text = _fill(_pick(texts.clip_bug if bug != null else texts.clip_clean, rng), vars)
 		c.views = views_for(score.streamers, t, rng)
 		c.online = int(round(c.views / t.online_divisor / 100.0)) * 100

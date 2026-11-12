@@ -270,7 +270,7 @@ func bot(mode: AutoTest.BotMode) -> float:
 	var curve := track.curve[seg]
 	# На крутом повороте держаться внутренней полосы: вынос тянет наружу.
 	if absf(curve) > 3.0:
-		target = clampf(target + signf(curve) * 0.4, -0.6, 0.6)
+		target = clampf(target + signf(curve) * 0.4, -1.8 if walls_open else -0.6, 1.8 if walls_open else 0.6)
 	var drift := -pct * pct * curve * tuning.centrifugal * tuning.steer
 	# Руль на цель с поправкой на вынос; не хватает руля и уже выносит наружу, отпустить газ.
 	var need := ((target - x) * 3.0 - drift / maxf(tuning.steer * pct, 0.3))
@@ -286,8 +286,13 @@ func bot(mode: AutoTest.BotMode) -> float:
 func _bot_lane() -> float:
 	var best := x
 	var best_score := -INF
-	for lane in [-0.6, 0.0, 0.6]:
-		var score := -absf(lane - x) * 0.5
+	var lanes: Array[float] = [-0.6, 0.0, 0.6]
+	if walls_open:
+		# Обочина не тормозит и пропы не держат (#103): по песку быстрее и свободнее, бот едет там
+		# сквозь пальмы, это видно с первых секунд.
+		lanes.append_array([-1.7, 1.7])
+	for lane in lanes:
+		var score := -absf(lane - x) * 0.5 + (1.5 if absf(lane) > 1.0 else 0.0)
 		for c in rivals:
 			var gap := c.z - z
 			if c.finished or gap < -RoadTrack.SEG * 0.5 or gap > tuning.bot_look * RoadTrack.SEG:

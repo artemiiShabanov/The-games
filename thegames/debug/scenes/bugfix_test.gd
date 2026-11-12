@@ -121,7 +121,7 @@ func _on_sprint_finished(_def: MinigameDef, success: bool) -> void:
 	var names: PackedStringArray = []
 	for id in _fixed:
 		var b := catalog.by_id(id)
-		names.append(b.stamp_for(record.genre) if b != null else String(id))
+		names.append(b.stamp_for(record.genre, record.tech) if b != null else String(id))
 	_show(("Починено: %s" % ", ".join(names) if success else "Провал: ничего не починено") +
 			"\nОсталось багов: %d · деньги %s\n\nA снова, F1 меню" % [record.bug_ids.size(), wallet])
 	# «Отдел QA»: второе предложение, есть баги или нет.
