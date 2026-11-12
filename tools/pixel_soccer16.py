@@ -75,211 +75,29 @@ def player(d, frame, shirt, shorts, hair=BARK, mode="run", shirt2=None):
     return c.finish()
 
 
-# --- Игроки 24×24 (плейтест 2026-11-12: крупнее, видно удар, бег реалистичнее) -----------------
-# Кукла в объёме: точки суставов на поле (x вправо, y вниз по полю) и высота z, поворот по
-# направлению взгляда, проекция сверху под углом (y сжат вдвое, z вверх). Части рисуются от
-# дальних к ближним; бег в шесть фаз (нога выносится вперёд с подъёмом стопы, руки навстречу,
-# корпус качается), замах ногой назад, удар ногой вперёд, подкат, лежит. Светотень и своя
-# палитра у всех лент даёт `reshade` в pixel_sprites16.py.
-
-P = 24
-
-
-def _proj(v):
-    return (P / 2 + v[0], P - 3 - (v[1] * 0.5 + v[2]))
-
-
-def _pt(base, f, s, along, side, z):
-    return (base[0] + f[0] * along + s[0] * side, base[1] + f[1] * along + s[1] * side, z)
-
-
-def puppet(d, shirt, shorts, hair, shirt2=None, pose="idle", phase=0.0):
-    c = Canvas(P, P)
-    a = d * math.pi / 4.0
-    f = (math.cos(a), math.sin(a))
-    s_ = (-math.sin(a), math.cos(a))
-    o = (0.0, 0.0)
-    bob = 0.0
-    lean = 0.0
-    legs = {}
-    arms = {}
-    if pose in ("idle", "run"):
-        sw = math.sin(phase) if pose == "run" else 0.0
-        bob = abs(math.cos(phase)) * 0.8 if pose == "run" else 0.0
-        lean = 0.8 if pose == "run" else 0.0
-        for side, sg in (("l", -1), ("r", 1)):
-            k = sw * sg
-            lift = max(0.0, math.cos(phase) * sg) * 2.2 if pose == "run" else 0.0
-            legs[side] = (k * 5.0, sg * 1.8, lift * 1.3)
-            arms[side] = (-k * 4.0, sg * 4.0, 9.5 + bob)
-    elif pose == "windup":
-        lean = -0.6
-        legs["l"] = (1.5, -2.0, 0.0)
-        legs["r"] = (-6.0, 1.8, 4.0)
-        arms["l"] = (3.5, -5.0, 11.5)
-        arms["r"] = (-2.5, 5.0, 12.0)
-    elif pose == "kick":
-        lean = 1.4
-        legs["l"] = (-1.5, -2.0, 0.0)
-        legs["r"] = (8.5, 1.2, 4.5)
-        arms["l"] = (-3.5, -5.4, 12.0)
-        arms["r"] = (2.5, 5.6, 11.5)
-    hip = (o[0] + f[0] * lean * 0.3, o[1] + f[1] * lean * 0.3, 8.0 + bob)
-    neck = _pt(hip, f, s_, lean * 1.3, 0.0, 14.5 + bob)
-    head = _pt(neck, f, s_, lean * 0.4, 0.0, 18.0 + bob)
-    parts = []
-    if pose in ("idle", "run", "windup", "kick"):
-        for side, sg in (("l", -1), ("r", 1)):
-            fa, fs, fz = legs[side]
-            hp = _pt(hip, f, s_, 0.0, sg * 1.8, hip[2])
-            foot = _pt(o, f, s_, fa, fs, fz)
-            knee = ((hp[0] + foot[0]) / 2 + f[0] * 0.8, (hp[1] + foot[1]) / 2 + f[1] * 0.8, (hp[2] + foot[2]) / 2 + 0.6)
-            parts.append(("leg", foot[1], (hp, knee, foot)))
-            sh = _pt(neck, f, s_, 0.0, sg * 3.0, neck[2] - 1.0)
-            aa, asd, az = arms[side]
-            hand = _pt(hip, f, s_, aa, asd, az)
-            parts.append(("arm", sh[1] + 0.1, (sh, hand)))
-        parts.append(("torso", hip[1] + 0.05, (hip, neck)))
-        parts.append(("head", head[1] + 0.2, (head,)))
-    # Дальние раньше: меньше y на поле и для торса после ног одной глубины.
-    order = {"leg": 0, "torso": 1, "arm": 2, "head": 3}
-    parts.sort(key=lambda q: (round(q[1], 1), order[q[0]]))
-    for kind, _, pts in parts:
-        if kind == "leg":
-            hp, knee, foot = (_proj(q) for q in pts)
-            c.line(hp[0], hp[1], knee[0], knee[1], shorts, 3)
-            c.line(knee[0], knee[1], foot[0], foot[1] - 1, SKIN, 2)
-            mid = ((knee[0] + foot[0]) / 2, (knee[1] + foot[1]) / 2)
-            c.line(mid[0], mid[1], foot[0], foot[1] - 1, shirt, 2)
-            c.rect(foot[0] - 1, foot[1] - 1, foot[0] + 1 + (1 if f[0] > 0.3 else 0), foot[1], K)
-        elif kind == "arm":
-            sh, hand = (_proj(q) for q in pts)
-            c.line(sh[0], sh[1], hand[0], hand[1], SKIN, 2)
-            c.line(sh[0], sh[1], (sh[0] * 2 + hand[0]) / 3, (sh[1] * 2 + hand[1]) / 3, shirt, 3)
-        elif kind == "torso":
-            hp, nk = (_proj(q) for q in pts)
-            c.line(hp[0], hp[1] + 1, hp[0], hp[1], shorts, 6)
-            for k in range(7):
-                t = k / 6.0
-                x = hp[0] + (nk[0] - hp[0]) * t
-                y = hp[1] + (nk[1] - hp[1]) * t
-                c.ellipse(x, y, 3.4 + t * 0.4, 1.6, shirt)
-            if shirt2 is not None:
-                for y in range(int(nk[1]), int(hp[1]) + 1):
-                    if (y - int(nk[1])) % 2 == 1:
-                        for x in range(int(hp[0]) - 5, int(hp[0]) + 6):
-                            if c.get(x, y) == shirt:
-                                c.set(x, y, shirt2)
-        else:
-            (hd,) = (_proj(q) for q in pts)
-            c.ellipse(hd[0], hd[1], 3.0, 3.0, SKIN)
-            # Волосы или бандана: сверху и с затылка (против взгляда).
-            for y in range(int(hd[1]) - 4, int(hd[1]) + 4):
-                for x in range(int(hd[0]) - 4, int(hd[0]) + 5):
-                    if c.get(x, y) != SKIN:
-                        continue
-                    back = (x - hd[0]) * f[0] + (y - hd[1]) * f[1] * 2.0
-                    if y < hd[1] - 0.5 or back < -0.8:
-                        c.set(x, y, hair)
-            if f[1] > -0.3:
-                ex = hd[0] + f[0] * 1.6
-                c.set(ex - 0.8 * abs(f[1]), hd[1] + 0.5, K)
-                if abs(f[0]) < 0.8:
-                    c.set(ex + 1.0, hd[1] + 0.5, K)
-    c.outline()
-    return c
-
-
-def puppet_lying(d, shirt, shorts, hair, shirt2=None, slide=False):
-    """Подкат (нога вперёд по ходу, корпус откинут) или лежит поперёк."""
-    c = Canvas(P, P)
-    a = d * math.pi / 4.0
-    f = (math.cos(a), math.sin(a))
-    if slide:
-        sx, sy = f[0], f[1] * 0.5
-        hip = (P / 2, P - 7)
-        c.line(hip[0] - sx * 5, hip[1] - sy * 5 - 3, hip[0], hip[1] - 2, shirt, 4)
-        c.line(hip[0], hip[1], hip[0] + sx * 7, hip[1] + sy * 7, SKIN, 2)
-        c.line(hip[0], hip[1], hip[0] + sx * 3, hip[1] + sy * 3, shorts, 3)
-        c.rect(hip[0] + sx * 7 - 1, hip[1] + sy * 7 - 1, hip[0] + sx * 7 + 1, hip[1] + sy * 7, K)
-        c.line(hip[0] - 1, hip[1] - 1, hip[0] - sx * 3 + 2, hip[1] + 2, SKIN, 2)
-        hx, hy = hip[0] - sx * 7, hip[1] - sy * 7 - 4
-        c.ellipse(hx, hy, 2.4, 2.4, SKIN)
-        c.rect(hx - 2, hy - 2, hx + 2, hy - 1, hair)
-    else:
-        y = P - 6
-        c.rect(5, y - 2, 13, y + 1, shirt)
-        if shirt2 is not None:
-            for x in range(5, 14, 2):
-                c.rect(x, y - 2, x, y + 1, shirt2)
-        c.rect(13, y - 2, 15, y + 1, shorts)
-        c.line(15, y - 1, 21, y - 2, SKIN, 2)
-        c.line(15, y + 1, 21, y + 2, SKIN, 2)
-        c.ellipse(3, y, 2.4, 2.4, SKIN)
-        c.rect(1, y - 2, 2, y + 2, hair)
-        c.line(7, y - 3, 9, y - 6, SKIN, 2)
-    c.outline()
-    return c
-
-
 def kit_strip(shirt, shorts, hair=BARK, shirt2=None):
-    """Лента игрока: на каждое из 8 направлений 9 кадров (стоит, бег 6 фаз, замах, удар), потом
-    8 подкатов и 8 лежит."""
     frames = []
     for d in range(8):
-        frames.append(puppet(d, shirt, shorts, hair, shirt2, "idle"))
-        for k in range(6):
-            frames.append(puppet(d, shirt, shorts, hair, shirt2, "run", k * math.pi / 3.0))
-        frames.append(puppet(d, shirt, shorts, hair, shirt2, "windup"))
-        frames.append(puppet(d, shirt, shorts, hair, shirt2, "kick"))
+        for fr in range(3):
+            frames.append(player(d, fr, shirt, shorts, hair, shirt2=shirt2))
     for d in range(8):
-        frames.append(puppet_lying(d, shirt, shorts, hair, shirt2, True))
+        frames.append(player(d, 0, shirt, shorts, hair, "slide", shirt2))
     for d in range(8):
-        frames.append(puppet_lying(d, shirt, shorts, hair, shirt2, False))
+        frames.append(player(d, 0, shirt, shorts, hair, "down", shirt2))
     return strip(frames)
 
 
-def _pentagon(cx, cy, rad, rot):
-    return [(cx + math.cos(rot + k * 2 * math.pi / 5) * rad, cy + math.sin(rot + k * 2 * math.pi / 5) * rad) for k in range(5)]
-
-
-def ball12(i):
-    """Мяч 12×12: белый шар, тень полумесяцем снизу справа, блик; чёрный пятиугольник и пять
-    половинок по краю, при качении сдвигаются по кадрам."""
-    c = Canvas(12, 12)
-    inside = set()
-    for y in range(12):
-        for x in range(12):
-            dx, dy = x - 5.5, y - 5.5
-            if dx * dx + dy * dy <= 5.4 * 5.4:
-                inside.add((x, y))
-                c.set(x, y, GREY if (dx + 0.8) ** 2 + (dy + 0.8) ** 2 > 5.4 * 5.4 else WHITE)
-    rot = i * (2 * math.pi / 5) / 4
-    shift = (i - 1.5) * 0.6
-    patches = [_pentagon(5.5 + shift, 5.5, 1.7, rot - math.pi / 2)]
-    for k in range(5):
-        a = rot + k * 2 * math.pi / 5 - math.pi / 2
-        patches.append(_pentagon(5.5 + shift + math.cos(a) * 4.9, 5.5 + math.sin(a) * 4.9, 1.2, a + math.pi))
-    for pts in patches:
-        ys = [q[1] for q in pts]
-        for y in range(int(min(ys)), int(max(ys)) + 2):
-            xs = []
-            for a_, b_ in zip(pts, pts[1:] + pts[:1]):
-                if (a_[1] <= y + 0.5 < b_[1]) or (b_[1] <= y + 0.5 < a_[1]):
-                    xs.append(a_[0] + (y + 0.5 - a_[1]) * (b_[0] - a_[0]) / (b_[1] - a_[1]))
-            xs.sort()
-            for m in range(0, len(xs) - 1, 2):
-                for x in range(int(round(xs[m])), int(round(xs[m + 1])) + 1):
-                    if (x, y) in inside:
-                        c.set(x, y, K)
-    c.set(3, 2, WHITE)
-    c.set(2, 3, WHITE)
-    c.outline()
-    return c
+def ball(i):
+    c = Canvas(8, 8)
+    c.ellipse(3.5, 3.5, 3, 3, WHITE)
+    for k, (x, y) in enumerate(((2, 2), (5, 3), (3, 5))):
+        if (k + i) % 2 == 0:
+            c.set(x, y, K)
+    return c.finish()
 
 
 def grass():
-    """Трава 64×64 (запасная, если у сеттинга нет поля): полосы по 32, травинки."""
+    """Трава 64×64: полоса светлая и тёмная по 32, мелкие травинки."""
     c = Canvas(64, 64)
     for x in range(64):
         for y in range(64):
@@ -300,7 +118,7 @@ def sprites():
         "soccer_rival_2": kit_strip(K, GREY, RED),
         "soccer_keeper_hero": kit_strip(PINE, K),
         "soccer_keeper_rival": kit_strip(GREY, K, K),
-        "soccer_ball": strip([ball12(i) for i in range(4)]),
+        "soccer_ball": strip([ball(i) for i in range(2)]),
         "soccer_grass": grass(),
     }
 
