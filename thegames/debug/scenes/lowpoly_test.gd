@@ -20,15 +20,17 @@ const ProbeFirst := preload("res://debug/scenes/lowpoly_probe_first.gd")
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
 		&"pink_placeholders", &"alien_palette"]
 ## Меши стартового набора; у двуногих есть ноги и руки.
-const MODELS: Array[String] = ["palm", "lighthouse", "flag", "cannon", "chest", "hero", "enemy", "captain", "barrel", "crate",
-		"coin", "bottle", "ball", "rock"]
+const MODELS: Array[String] = ["palm", "lighthouse", "hoop", "flag", "cannon", "cart", "cart_rival", "hero", "enemy", "captain",
+		"chest", "barrel", "crate", "rock", "pistol", "coin", "bottle", "ball", "keg"]
 const BIPEDS: Array[String] = ["hero", "enemy", "captain"]
+## Модели в руке: ноль в рукояти, на земле не стоят.
+const HELD: Array[String] = ["pistol"]
 ## Выше этого модель на листе уменьшается, метры.
 const SHEET_TALL := 3.0
-const TEXTURES: Array[String] = ["sand", "planks", "water", "rock", "sail", "grass", "sky"]
+const TEXTURES: Array[String] = ["sand", "planks", "water", "rock", "sail", "grass", "road", "sky"]
 const MAX_ATLAS := 64
-const COLUMNS := 5
-const CELL := 2.9
+const COLUMNS := 7
+const CELL := 2.7
 
 var demo: Demo
 var record: GameRecord
@@ -95,7 +97,7 @@ func _build_sheet() -> void:
 		var is_pink := i == names.size() - 1
 		var at := Vector3((i % COLUMNS - (COLUMNS - 1) / 2.0) * CELL, 0.0, (i / COLUMNS - (rows - 1) / 2.0) * CELL)
 		var m := _sheet.pink_model(def) if is_pink else _sheet.model(def)
-		m.position = at
+		m.position = at + (Vector3(0.0, 0.9, 0.0) if HELD.has(names[i]) else Vector3.ZERO)
 		var tall := def.bounds().size.y if def != null else 1.0
 		if tall > SHEET_TALL:
 			m.scale = Vector3.ONE * SHEET_TALL / tall
@@ -104,7 +106,7 @@ func _build_sheet() -> void:
 		_models.append(m)
 		_labels.append("заглушка" if is_pink else "%s %d%s" % [names[i], def.triangles() if def != null else 0,
 				" (1:%d)" % roundi(tall / SHEET_TALL) if tall > SHEET_TALL else ""])
-	_sheet.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 5.2, 9.4)).looking_at(Vector3(0.0, 0.9, 0.0))
+	_sheet.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 6.0, 10.6)).looking_at(Vector3(0.0, 0.8, 0.0))
 
 
 func _draw_sheet_hud(canvas: CanvasItem) -> void:
@@ -158,7 +160,7 @@ func _check_assets() -> void:
 					_expect(m.part_index(limb) >= 0, "%s: у %s нет части %s" % [id, name, limb])
 				_expect(m.bounds().size.y > 1.6 and m.bounds().size.y < 1.95 and m.bounds().size.x < 0.75, "%s: у %s не человеческие пропорции: %s" % [id, name, m.bounds().size])
 			var box := m.bounds()
-			_expect(box.position.y > -0.01 and box.size.y > 0.1 and box.size.y < 10.0, "%s: меш %s стоит не на нуле или не того роста: %s" % [id, name, box])
+			_expect(HELD.has(name) or box.position.y > -0.01 and box.size.y > 0.1 and box.size.y < 10.0, "%s: меш %s стоит не на нуле или не того роста: %s" % [id, name, box])
 	AutoTest.note("lowpoly: мешей %d, в меше до %d треугольников, текстур уровня %d" % [MODELS.size(), most, TEXTURES.size()])
 
 

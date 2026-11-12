@@ -189,6 +189,12 @@ def quad(tl, tr, br, bl, region, double=True):
     return tris
 
 
+def flip(tris):
+    """Изнанка: тот же набор граней лицом внутрь (сетка кольца, внутренность трубы)."""
+    return [([vs[0], vs[2], vs[1]], [uvs[0], uvs[2], uvs[1]], [tuple(-c for c in n) for n in (ns[0], ns[2], ns[1])])
+            for vs, uvs, ns in tris]
+
+
 def rot(tris, rx=0.0, ry=0.0, rz=0.0):
     """Поворот в градусах вокруг X, потом Y, потом Z."""
     def turn(v):
@@ -620,20 +626,7 @@ def pirate_cannon():
     planks(a, 0, 16, 32, 12, False, 4)
     a.rect(0, 16, 32, 1, IRON), a.rect(0, 27, 32, 1, IRON)
     carriage = a.region(0, 16, 32, 12)
-    # Колесо: обод, спицы, ступица.
-    a.rect(40, 0, 16, 16, WOOD)
-    for i in range(16):
-        for j in range(16):
-            d = math.hypot(i - 7.5, j - 7.5)
-            if d > 7.6:
-                a.clear(40 + i, j)
-            elif d > 5.6:
-                a.px(40 + i, j, WOOD_D)
-            elif d < 1.8:
-                a.px(40 + i, j, IRON_L)
-            elif abs(i - 7.5) > 0.9 and abs(j - 7.5) > 0.9 and abs(abs(i - 7.5) - abs(j - 7.5)) > 1.2:
-                a.px(40 + i, j, BLACK)
-    wheel = a.region(40, 0, 16, 16)
+    wheel = paint_wheel(a, 40, 0)
     a.rect(56, 0, 8, 4, WOOD_D)
     rim = a.region(56, 0, 8, 4)
     m = Model("cannon", a)
@@ -843,6 +836,181 @@ def pirate_lighthouse():
                                        + loft([(8.0, 0.95, 0.95), (9.0, 0.04, 0.04)], roof, 8, caps=(stone, None)))
 
 
+def paint_wheel(a, x0, y0):
+    """Колесо 16×16: обод, спицы, железная ступица; вокруг прозрачно."""
+    a.rect(x0, y0, 16, 16, WOOD)
+    for i in range(16):
+        for j in range(16):
+            d = math.hypot(i - 7.5, j - 7.5)
+            if d > 7.6:
+                a.clear(x0 + i, y0 + j)
+            elif d > 5.6:
+                a.px(x0 + i, y0 + j, WOOD_D)
+            elif d < 1.8:
+                a.px(x0 + i, y0 + j, IRON_L)
+            elif abs(i - 7.5) > 0.9 and abs(j - 7.5) > 0.9 and abs(abs(i - 7.5) - abs(j - 7.5)) > 1.2:
+                a.px(x0 + i, y0 + j, BLACK)
+    return a.region(x0, y0, 16, 16)
+
+
+def make_cart(name, rival):
+    """Сухопутная шлюпка под парусом: транспорт гонок. Оси с колёсами отдельными частями, крутятся.
+
+    У героя борт с красной полосой и белый парус в синюю полоску, у соперника чёрный борт и
+    чёрный парус с черепом.
+    """
+    a = Atlas(64, 64, 61 if not rival else 63)
+    planks(a, 0, 0, 64, 12, False, 4)
+    a.rect(0, 2, 64, 3, BLACK if rival else RED)
+    a.rect(0, 5, 64, 1, GOLD_D if rival else WHITE)
+    for x in range(3, 64, 8):
+        a.px(x, 9, IRON_L)
+    a.shade(0, 0, 64, 12, 1.08, 0.8, 1.0)
+    hull = a.region(0, 0, 64, 12)
+    planks(a, 0, 12, 16, 16, True, 4)
+    deck = a.region(0, 12, 16, 16)
+    wheel = paint_wheel(a, 16, 12)
+    a.rect(32, 12, 8, 4, WOOD_D)
+    rim = a.region(32, 12, 8, 4)
+    planks(a, 40, 12, 8, 16, True, 4)
+    mast = a.region(40, 12, 8, 16)
+    if rival:
+        a.rect(0, 32, 32, 28, BLACK)
+        a.rect(12, 38, 8, 7, BONE), a.rect(13, 45, 6, 2, BONE)
+        a.rect(13, 40, 2, 3, BLACK), a.rect(17, 40, 2, 3, BLACK)
+        for i in range(10):
+            a.px(11 + i, 48 + i // 2, BONE), a.px(20 - i, 48 + i // 2, BONE)
+    else:
+        stripes(a, 0, 32, 32, 28, rgb("E2DCC8"), rgb("E2DCC8"), 4)
+        for y in (38, 39, 48, 49):
+            a.rect(0, y, 32, 1, NAVY)
+    for x in (0, 16):
+        a.rect(x, 32, 1, 28, mul(a.get(x, 33), 0.8))
+    a.noise(0, 32, 32, 28, 0.07)
+    sail = a.region(0, 32, 32, 28)
+    m = Model(name, a)
+    m.part("body", (0.0, 0.0, 0.0),
+           at(box((1.0, 0.36, 2.0), hull, deck, deck, (1.12, 1.0)), 0.0, 0.58)
+           + at(box((0.62, 0.3, 0.55), hull, deck, deck, (0.5, 0.6)), 0.0, 0.6, -1.22)
+           + at(box((0.8, 0.12, 0.3), deck, deck, deck), 0.0, 0.84, 0.55)
+           + at(loft([(0.0, 0.05, 0.05), (2.0, 0.035, 0.035)], mast, 4), 0.0, 0.76, -0.25)
+           + at(box((1.5, 0.07, 0.07), mast, mast, mast), 0.0, 2.62, -0.25)
+           + quad((-0.72, 2.6, -0.28), (0.72, 2.6, -0.28), (0.62, 1.2, -0.38), (-0.62, 1.2, -0.38), sail))
+    for part, z in (("axle_f", -0.72), ("axle_r", 0.72)):
+        tris = []
+        for x in (-0.6, 0.6):
+            tris += at(rot(loft([(-0.05, 0.32, 0.32), (0.05, 0.32, 0.32)], rim, 8, caps=(wheel, wheel), flat=True), rz=90.0), x, 0.32, z)
+        m.part(part, (0.0, 0.32, z), tris, "body")
+    return m
+
+
+def pirate_cart():
+    return make_cart("cart", False)
+
+
+def pirate_cart_rival():
+    return make_cart("cart_rival", True)
+
+
+def pirate_pistol():
+    """Кремнёвый пистолет в руке: оружие вида от первого лица, ствол смотрит в −Z, ноль в рукояти."""
+    a = Atlas(32, 32, 65)
+    a.rect(0, 0, 16, 8, IRON)
+    a.rect(0, 2, 16, 1, IRON_L), a.rect(0, 6, 16, 1, BLACK)
+    a.rect(0, 0, 16, 1, GOLD_D)
+    a.noise(0, 0, 16, 8, 0.1)
+    iron = a.region(0, 0, 16, 8)
+    a.rect(16, 0, 4, 4, BLACK)
+    bore = a.region(16, 0, 4, 4)
+    planks(a, 0, 8, 16, 8, False, 4)
+    a.rect(0, 8, 16, 1, GOLD_D)
+    a.px(4, 12, GOLD), a.px(11, 12, GOLD)
+    wood = a.region(0, 8, 16, 8)
+    a.rect(0, 16, 16, 8, SKIN)
+    a.rect(0, 19, 16, 1, SKIN_D)
+    for x in (3, 7, 11):
+        a.rect(x, 16, 1, 3, SKIN_D)
+    a.shade(0, 16, 16, 8, 1.05, 0.85, 0.8)
+    a.noise(0, 16, 16, 8, 0.05)
+    hand = a.region(0, 16, 16, 8)
+    stripes(a, 16, 8, 16, 16, WHITE, NAVY)
+    a.shade(16, 8, 16, 16, 1.0, 0.85, 0.75)
+    a.noise(16, 8, 16, 16, 0.06)
+    sleeve = a.region(16, 8, 16, 16)
+    return Model("pistol", a).part("body", (0.0, 0.0, 0.0),
+                                   at(rot(loft([(-0.17, 0.024, 0.024), (0.17, 0.02, 0.02)], iron, 6, caps=(bore, bore)), rx=-90.0), 0.0, 0.06, -0.2)
+                                   + at(box((0.045, 0.05, 0.3), wood, wood, wood), 0.0, 0.02, -0.14)
+                                   + at(rot(box((0.045, 0.15, 0.06), wood, wood, wood), rx=-20.0), 0.0, -0.05, 0.03)
+                                   + at(box((0.02, 0.05, 0.04), iron, iron, iron), 0.0, 0.1, -0.02)
+                                   + at(box((0.085, 0.1, 0.1), hand, hand, hand), 0.0, -0.04, 0.03)
+                                   + at(rot(loft([(0.0, 0.045, 0.045), (0.5, 0.06, 0.06)], sleeve, 4, math.pi / 4.0), rx=65.0), 0.0, -0.08, 0.07))
+
+
+def pirate_hoop():
+    """Кольцо на мачте: цель спорта. Щит из досок с белой рамкой, железный обруч, верёвочная сетка."""
+    a = Atlas(64, 64, 67)
+    planks(a, 0, 0, 32, 24, False, 6)
+    for x, y, w, h in ((10, 9, 12, 1), (10, 18, 12, 1), (10, 9, 1, 10), (21, 9, 1, 10)):
+        a.rect(x, y, w, h, WHITE)
+    a.rect(0, 0, 32, 1, WOOD_D), a.rect(0, 23, 32, 1, WOOD_D), a.rect(0, 0, 1, 24, WOOD_D), a.rect(31, 0, 1, 24, WOOD_D)
+    board = a.region(0, 0, 32, 24)
+    a.rect(32, 0, 16, 4, RED)
+    a.rect(32, 0, 16, 1, mul(RED, 1.3)), a.rect(32, 3, 16, 1, RED_D)
+    ring = a.region(32, 0, 16, 4)
+    rope = rgb("D8CCA8")
+    for y in range(16):
+        for x in range(32):
+            if (x + y) % 4 == 0 or (x - y) % 4 == 0:
+                a.px(32 + x, 8 + y, rope if (x + y) % 8 else mul(rope, 0.8))
+    net = a.region(32, 8, 32, 16)
+    planks(a, 0, 24, 8, 32, True, 4)
+    post = a.region(0, 24, 8, 32)
+    rim_y, rim_z = 3.05, -0.42
+    ring_tris = []
+    for k in range(8):
+        a0, a1 = 2 * math.pi * k / 8, 2 * math.pi * (k + 1) / 8
+        p = lambda r, t: (r * math.sin(t), rim_y, rim_z + r * math.cos(t))
+        ring_tris += quad(p(0.19, a0), p(0.19, a1), p(0.245, a1), p(0.245, a0), ring)
+    basket = at(loft([(rim_y - 0.42, 0.13, 0.13), (rim_y, 0.215, 0.215)], net, 8), 0.0, 0.0, rim_z)
+    return Model("hoop", a).part("body", (0.0, 0.0, 0.0),
+                                 loft([(0.0, 0.09, 0.09), (3.9, 0.07, 0.07)], post, 5)
+                                 + at(box((1.3, 0.95, 0.06), board, board, board), 0.0, 3.4, -0.12)
+                                 + at(box((0.06, 0.06, 0.2), ring, ring, ring), 0.0, rim_y, -0.2)
+                                 + ring_tris + basket + flip(basket))
+
+
+def pirate_keg():
+    """Бочонок: мяч. Маленький, с обручами, летит и крутится."""
+    a = Atlas(16, 16, 69)
+    planks(a, 0, 0, 16, 12, True, 4)
+    a.rect(0, 2, 16, 1, IRON_L), a.rect(0, 9, 16, 1, IRON_L)
+    a.shade(0, 0, 16, 12, 1.15, 0.75, 0.85)
+    side = a.region(0, 0, 16, 12)
+    a.rect(0, 12, 4, 4, WOOD_D)
+    a.px(1, 13, WOOD_L)
+    lid = a.region(0, 12, 4, 4)
+    return Model("keg", a).part("body", (0.0, 0.15, 0.0),
+                                loft([(0.0, 0.1, 0.1), (0.08, 0.15, 0.15), (0.22, 0.15, 0.15), (0.3, 0.1, 0.1)], side, 6, caps=(lid, lid)))
+
+
+def tex_road():
+    """Укатанная грунтовая дорога: колеи, камешки, следы."""
+    a = Atlas(64, 64, 71)
+    dirt, dirt_d, dirt_l = rgb("8E7250"), rgb("6A5238"), rgb("A88C62")
+    a.rect(0, 0, 64, 64, dirt)
+    for x in (18, 19, 44, 45):
+        a.rect(x, 0, 1, 64, dirt_d)
+    for x in (20, 46):
+        a.rect(x, 0, 1, 64, dirt_l)
+    for _ in range(200):
+        a.px(a.rng.randrange(64), a.rng.randrange(64), dirt_d if a.rng.random() < 0.55 else dirt_l)
+    for _ in range(16):
+        x, y = a.rng.randrange(62), a.rng.randrange(62)
+        a.px(x, y, STONE_L), a.px(x + 1, y, STONE), a.px(x, y + 1, STONE_D)
+    a.noise(0, 0, 64, 64, 0.07)
+    return a
+
+
 def tex_grass():
     a = Atlas(64, 64, 55)
     g, gd, gl = rgb("4E8A3C"), rgb("386C30"), rgb("78AE4C")
@@ -958,9 +1126,10 @@ def tex_sky():
 SETS = {
     "pirates": {
         "models": [pirate_hero, pirate_enemy, pirate_captain, pirate_coin, pirate_bottle, pirate_ball, pirate_rock,
-                   pirate_barrel, pirate_crate, pirate_chest, pirate_cannon, pirate_palm, pirate_flag, pirate_lighthouse],
+                   pirate_barrel, pirate_crate, pirate_chest, pirate_cannon, pirate_palm, pirate_flag, pirate_lighthouse,
+                   pirate_cart, pirate_cart_rival, pirate_pistol, pirate_hoop, pirate_keg],
         "textures": {"sand": tex_sand, "planks": tex_planks, "water": tex_water, "rock": tex_rock, "sail": tex_sail,
-                     "grass": tex_grass, "sky": tex_sky},
+                     "grass": tex_grass, "road": tex_road, "sky": tex_sky},
     },
 }
 
