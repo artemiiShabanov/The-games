@@ -55,6 +55,8 @@ var _screen: Node
 var _runner: SprintRunner
 var _demo: Demo
 var _bot_timer := 0.0
+## `--remake`: бот выбирает ремейк, когда он открыт.
+var _bot_remake := false
 var _loop_check := false
 var _loop_releases := 3
 ## Автотест `--ledger=path`: ведомость каждого релиза в JSON (сверка модели, #72).
@@ -107,6 +109,22 @@ func _ready() -> void:
 		_ledger_path = str(args.get("ledger", ""))
 		if args.has("releases"):
 			_loop_releases = int(str(args["releases"]))
+		# Поток ремейка (#104): студия со старта с вектором и «Ремейками», бот со второго релиза
+		# берёт ремейк прошлой игры; конструктор, демка другой технологии, лента и галерея.
+		_bot_remake = args.has("remake")
+		# Сверка модели на трёх технологиях (#105): `--techs` студия со старта с вектором и 16/32,
+		# бот ведомости перебирает и технологию.
+		var pre: Array[StringName] = []
+		if _bot_remake:
+			pre.append_array([&"tech_vector", &"remakes"])
+		if args.has("techs"):
+			pre.append_array([&"tech_vector", &"tech_bit16"])
+		if not pre.is_empty():
+			var pool := UpgradePool.load_all()
+			for id: StringName in pre:
+				var def := UpgradePool.find(pool, id)
+				if def != null and not run.studio.has(id):
+					run.studio.buy(def, 0)
 		if _loop_check:
 			AutoTest.require("loop releases")
 	_expected_cash = run.wallet.cash
@@ -754,6 +772,12 @@ func _check_release() -> void:
 
 ## Бот сверки модели (#72): каждый третий релиз сиквел первой открытой игры, иначе новая.
 func _bot_base(chooser: BaseChooser) -> BaseOption:
+	if _bot_remake:
+		for list: Array in chooser.options:
+			for o: BaseOption in list:
+				if o.kind == GameConfig.Kind.REMAKE and o.open:
+					AutoTest.note("remake: релиз %d, ремейк «%s» (%s)" % [run.release, o.parent.title, Game.tech_name(o.parent.tech)])
+					return o
 	if _ledger_path != "" and run.release % 3 == 0 and chooser.options.size() > 1:
 		for o: BaseOption in chooser.options[1]:
 			if o.open:
@@ -761,10 +785,10 @@ func _bot_base(chooser: BaseChooser) -> BaseOption:
 	return chooser.options[0][0]
 
 
-## Бот сверки модели: жанр и сеттинг по кругу среди открытых, чтобы ведомость видела новизну,
-## повторы и насыщение, а не одну тройку двенадцать раз.
+## Бот сверки модели: жанр, технология и сеттинг по кругу среди открытых, чтобы ведомость видела
+## новизну, повторы и насыщение, а не одну тройку двенадцать раз.
 func _bot_vary(c: Constructor) -> void:
-	for kind in [0, 2]:
+	for kind in [0, 1, 2]:
 		if c.is_locked_column(kind):
 			continue
 		var open: Array[int] = []
@@ -772,7 +796,8 @@ func _bot_vary(c: Constructor) -> void:
 			if c.is_unlocked(kind, i):
 				open.append(i)
 		if not open.is_empty():
-			c.select(kind, open[(run.release * (kind + 1)) % open.size()])
+			# Сдвиг по колонке: раньше сеттинг брал `release * 3`, и при трёх сеттингах это всегда 0.
+			c.select(kind, open[(run.release + kind) % open.size()])
 
 
 ## Строка ведомости релиза для сверки с моделью: тройка, руки, отклик, все движения денег

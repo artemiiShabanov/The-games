@@ -79,7 +79,7 @@
   Главный экран забега: `--scene=hub_test --frames=60`, кадр `--no-checks
   [--past=N] [--pop=money|upgrades|release|offer]`. Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
   кадр `--no-checks [--empty] [--studios]`; профиль `--scene=profile_test --frames=30`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop
-  --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--refuse-events`
+  --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--remake` студия с вектором и «Ремейками», бот берёт ремейк, `--techs` студия с вектором и 16/32, `--refuse-events`
   бот отвечает на вставки последним вариантом; `--slot=N` сохранять в тестовый слот, `--resume`
   продолжить из него). Главная сцена проекта это меню (#71): под автотестом без `--menu` оно
   сразу открывает игру; меню кадром `--menu --frames=60`.. Студия на фоне (#80): `--scene=studio_backdrop_test --frames=600`
@@ -101,7 +101,9 @@
 - Сверка модели (#72): `sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12
   --releases=12 --ledger=debug/playtest/ledger_m2.json --time-scale=4 --frames=40000` (долго,
   `TIMEOUT=1500`), затем `python3 tools/model_run.py --replay thegames/debug/playtest/ledger_m2.json`;
-  таблица M2 `--m2 [--mid] [--events]`.
+  таблица M2 `--m2 [--mid] [--events]`, M3 `--m3 [--start=vector|8bit|16bit|cheap] [--mid]` и сводка
+  `--m3-summary [--events]`; сверка на трёх технологиях: та же петля с `--techs` (шаг ci
+  `model M3 replay`).
 - Всё разом: `sh tools/ci.sh` (модель экономики `python3 tools/model_run.py --check` и
   автотесты систем без окна, пара минут).
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.

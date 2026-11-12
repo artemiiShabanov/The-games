@@ -82,8 +82,10 @@ step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --f
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400
 step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
+step "loop remake" sh tools/autotest.sh --loop --remake --releases=3 --time-scale=4 --frames=6500
 # Сверка модели (#72): игра на спокойном рынке с руками 0.75 пишет ведомость, модель её пересчитывает.
 step "model M2 replay" sh -c 'sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12 --releases=4 --ledger=debug/playtest/ledger_ci.json --time-scale=4 --frames=12000 && python3 tools/model_run.py --replay thegames/debug/playtest/ledger_ci.json'
+step "model M3 replay" sh -c 'sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12 --releases=4 --techs --ledger=debug/playtest/ledger_ci3.json --time-scale=4 --frames=12000 && python3 tools/model_run.py --replay thegames/debug/playtest/ledger_ci3.json'
 step "loop rescue" sh tools/autotest.sh --loop --broke-at=2 --releases=3 --time-scale=4 --frames=9000
 step "slot save" sh tools/autotest.sh --slot=3 --refuse-events --time-scale=4 --frames=2600
 step "slot resume" sh tools/autotest.sh --slot=3 --resume --loop --releases=3 --refuse-events --time-scale=4 --frames=8000

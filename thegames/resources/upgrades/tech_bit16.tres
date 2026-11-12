@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_c1187"]
+
+[resource]
+script = ExtResource("1_c1187")
+id = &"tech_bit16"
+kind = 0
+title = "16/32-bit"
+effect_line = "Новая технология в конструкторе: свой рендер демок, своя мини-игра в каждом релизе"
+tech = 2
+prop = "16/32 монитор с колонками"

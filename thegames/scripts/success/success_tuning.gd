@@ -8,9 +8,9 @@ extends Resource
 const PATH := "res://resources/success.tres"
 
 @export var p_base := 6000.0
-@export var tech_sales: Array[float] = [0.5, 0.7, 0.85, 1.0, 1.2]
+@export var tech_sales: Array[float] = [0.62, 0.7, 0.85, 1.0, 1.2]
 @export var tech_critics: Array[float] = [0.6, 0.3, 0.1, 0.0, -0.3]
-@export var tech_spectacle: Array[float] = [0.5, 0.6, 0.75, 0.9, 1.0]
+@export var tech_spectacle: Array[float] = [0.5, 0.6, 0.68, 0.9, 1.0]
 @export var setting_hype: Array[float] = [0.5, 0.7, 0.6]
 @export var syn_tech_genre: Array[float] = [
 	1.00, 0.90, 1.10, 0.85, 0.85,

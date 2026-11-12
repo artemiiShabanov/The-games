@@ -52,6 +52,8 @@ const CABINET_X := 26
 const COFFEE_X := 296
 const TECH_X: Array[int] = [357, 370, 385, 404]
 const SERVER_X := 424
+## Векторный автомат стоит на полу слева от стойки с техникой (#104).
+const ARCADE_X := 352
 ## Места для незнакомых прокачек: середина низа, по кругу.
 const GENERIC_SLOTS: Array[Vector2i] = [
 	Vector2i(468, 252), Vector2i(12, 252), Vector2i(220, 252), Vector2i(468, 140),
@@ -343,7 +345,7 @@ func _build(state: StudioState, start_tech: int, start_genre: int) -> void:
 	var left := 9999
 	var right := -1
 	for t in techs:
-		if t < 4:
+		if t > 0 and t < 4:
 			left = mini(left, TECH_X[t] - 1)
 			right = maxi(right, TECH_X[t] + _size(TECH_SPRITES[t]).x + 1)
 	if right > 0:
@@ -351,7 +353,11 @@ func _build(state: StudioState, start_tech: int, start_genre: int) -> void:
 	if desk_people >= SOFA_FROM_PEOPLE:
 		_add_floor("sofa", SOFA)
 	for t in techs:
-		if t < 4:
+		if t == Game.Tech.VECTOR:
+			var arcade := _add_floor("tech_vector", Vector2i(ARCADE_X, BACK_Y))
+			arcade.frames = PackedStringArray(["tech_vector", "tech_vector_b"])
+			arcade.frame_seconds = 0.6
+		elif t < 4:
 			var it := _add_floor(TECH_SPRITES[t], Vector2i(TECH_X[t], BACK_Y - 3))
 			it.base = BACK_Y + 1
 			if TECH_SPRITES[t] == "tech_bit8":

@@ -322,12 +322,15 @@ func _run_checks() -> void:
 	_expect(report.stats != null and report.stats.valuation > report.cash, "оценка")
 	_expect(report.offer.size() == 3, "предложение %s" % [report.offer])
 	var genres_offered := 0
+	var techs_offered := 0
 	for d in report.offer:
-		_expect(d.id != &"replay2" and d.kind != UpgradeDef.Kind.TECH, "в предложении %s" % d.id)
+		_expect(d.id != &"replay2", "в предложении %s" % d.id)
+		_expect(d.kind != UpgradeDef.Kind.TECH or d.tech != Game.Tech.BIT8, "предложена стартовая технология %s" % d.id)
 		genres_offered += 1 if d.kind == UpgradeDef.Kind.GENRE else 0
-	_expect(genres_offered <= 1, "жанров в предложении %d" % genres_offered)
-	# Пул M2 (#45): семь возможностей и четыре жанра.
-	_expect(pool.size() == 11, "пул из %d" % pool.size())
+		techs_offered += 1 if d.kind == UpgradeDef.Kind.TECH else 0
+	_expect(genres_offered <= 1 and techs_offered <= 1, "жанров в предложении %d, технологий %d" % [genres_offered, techs_offered])
+	# Пул M3 (#104): семь возможностей, четыре жанра и две технологии (вектор и 16/32).
+	_expect(pool.size() == 13, "пул из %d" % pool.size())
 	# Ремейки не предлагаются, пока открыта одна технология.
 	var one_tech: Array[Game.Tech] = [Game.Tech.BIT8]
 	var avail := StudioOffer.available(pool, StudioState.new(), unlocked_genres, one_tech)

@@ -10,6 +10,8 @@ extends Control
 ## `layer_tear`: с багом кадр рвёт и слои фона развёрнуты, без бага ни того, ни другого; провал
 ## «Поставь» даёт именно этот баг.
 
+## Цветов в одной ленте: обводка и до 16 цветов палитры по четыре тона рампы.
+const MAX_COLORS := 65
 const ProbeSide := preload("res://debug/scenes/bit16_probe_side.gd")
 const ProbeDepth := preload("res://debug/scenes/bit16_probe_depth.gd")
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
@@ -121,9 +123,6 @@ func _draw_sheet() -> void:
 func _check_assets() -> void:
 	var pirates := SettingDef.of(Game.Setting.PIRATES)
 	_expect(pirates.bit16_colors.size() == 16, "у пиратов в палитре 16/32 цветов %d, нужно 16" % pirates.bit16_colors.size())
-	var allowed := {}
-	for c in pirates.bit16_colors:
-		allowed[c.to_rgba32()] = true
 	for s in SettingDef.IDS.size():
 		var def := SettingDef.of(s as Game.Setting)
 		var id := SettingDef.IDS[s]
@@ -147,17 +146,20 @@ func _check_assets() -> void:
 	var tear := BugCatalog.load_default().by_id(&"layer_tear")
 	for g in Game.Genre.size():
 		_expect(tear != null and tear.tweet_by_genre.has(g) and tear.clip_by_genre.has(g), "layer_tear: нет слов для жанра %d" % g)
-	# Пиратские спрайты нарисованы только цветами своей палитры.
-	var stray := 0
+	# Пиратские спрайты в своих палитрах (плейтест 2026-11-12, светотень как у битемапа: у каждого
+	# цвета палитры сеттинга рампа из четырёх тонов): цветов в ленте не больше `MAX_COLORS`.
+	var widest := 0
 	for name: String in SPRITES:
 		var img := pirates.sprite16(name).get_image()
+		var seen := {}
 		for y in img.get_height():
 			for x in img.get_width():
 				var c := img.get_pixel(x, y)
-				if c.a > 0.5 and not allowed.has(Color(c.r, c.g, c.b, 1.0).to_rgba32()):
-					stray += 1
-	_expect(stray == 0, "в пиратских спрайтах 16/32 пикселей вне палитры: %d" % stray)
-	AutoTest.note("bit16: лент %d, палитра 16 цветов, пикселей вне палитры %d" % [SPRITES.size(), stray])
+				if c.a > 0.5:
+					seen[Color(c.r, c.g, c.b, 1.0).to_rgba32()] = true
+		widest = maxi(widest, seen.size())
+		_expect(seen.size() <= MAX_COLORS, "%s: цветов %d, больше %d" % [name, seen.size(), MAX_COLORS])
+	AutoTest.note("bit16: лент %d, палитра сеттинга 16 цветов, в ленте до %d цветов" % [SPRITES.size(), widest])
 
 
 ## Вид вглубь: дальнее мельче и выше на экране, строка экрана и расстояние обратны друг другу.

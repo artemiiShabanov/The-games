@@ -6,8 +6,12 @@
     python3 tools/model_run.py            # таблица хороших рук в markdown
     python3 tools/model_run.py --mid      # средние руки
     python3 tools/model_run.py --check    # тест: хорошие руки не уходят в минус,
-                                          # средние банкротятся на 6-8 релизе; код выхода 1 при провале
+                                          # средние банкротятся на 6-8 релизе, границы M2 и M3;
+                                          # код выхода 1 при провале
     python3 tools/model_run.py --m2 [--mid] [--events]   # таблица забега M2 (8-bit, кап 12)
+    python3 tools/model_run.py --m3 [--start=vector|8bit|16bit|cheap] [--mid] [--events]
+                                          # забег M3 (#105): старт с одной из трёх технологий
+    python3 tools/model_run.py --m3-summary [--events]   # сводка M3: старты × руки
     python3 tools/model_run.py --replay thegames/debug/playtest/ledger_m2.json
                                           # сверка с ведомостью реального забега (#72): игра
                                           # с `--calm` считает по тем же формулам; код выхода 1
@@ -131,7 +135,8 @@ def simulate(mid=False, plan=None, events=0):
     R = 0.0
     sat_g = {g: 0.0 for g in GENRES}
     sat_s = {s: 0.0 for s in SETTINGS}
-    open_g, open_t, open_s = ["platformer"], ["8bit"], list(SETTINGS)
+    # Стартовая технология: технология первой игры плана (в M1 и M2 это 8-bit, в M3 любая из трёх).
+    open_g, open_t, open_s = ["platformer"], [plan[0][1]], list(SETTINGS)
     games, rows = [], []
     min_cash, first_bankrupt = cash, None
     for i, (g, t, s, q, b, bs, part, buys) in enumerate(plan, 1):
@@ -232,6 +237,92 @@ RUN_M2 = [
 EVENTS_AVG = 400
 
 
+# --- Забег M3 (#105) -------------------------------------------------------------------------------
+
+# Кап 12, три технологии на старте (вектор, 8-bit, 16/32), старт платформером. Покупки по
+# одной после релиза, как в M2, плюс вторая технология: дешёвый старт докупает 16/32 (продажи),
+# дорогой старт докупает вектор (дёшево и критики). Ремейк хита на новой технологии вместо
+# третьей части. Ниши: вектор дёшев (4 спринта по 1000) и нравится критикам (+0,6), продаёт
+# мало (0,5); 16/32 дорог (6 спринтов по 1900) и продаёт больше (0,85).
+RUN_M3 = {
+    "vector": [
+        ("platformer", "vector", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("shooter", "vector", "space", 0.8, 1, 0, 1, [("cap", "replay")]),
+        ("platformer", "vector", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
+        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("tech", "16bit")]),
+        ("shooter", "16bit", "space", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("racing", "vector", "castles", 0.71, 2, 1, 1, [("cap", "qa")]),
+        ("platformer", "16bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
+        ("sport", "16bit", "pirates", 0.75, 1, 0, 1, [("cap", "insider")]),
+        ("racing", "16bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("shooter", "16bit", "space", 0.8, 1, 0, 2, [("cap", "manager")]),
+        ("fighting", "16bit", "castles", 0.75, 2, 1, 1, []),
+        ("sport", "16bit", "space", 0.86, 1, 0, 1, []),
+    ],
+    "8bit": [
+        ("platformer", "8bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("shooter", "8bit", "space", 0.8, 1, 0, 1, [("tech", "vector")]),
+        ("platformer", "vector", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
+        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("shooter", "8bit", "space", 0.8, 1, 0, 2, [("cap", "replay")]),
+        ("racing", "vector", "castles", 0.71, 2, 1, 1, [("tech", "16bit")]),
+        ("platformer", "16bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
+        ("sport", "16bit", "pirates", 0.75, 1, 0, 1, [("cap", "qa")]),
+        ("racing", "16bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("shooter", "16bit", "space", 0.8, 1, 0, 3, [("cap", "manager")]),
+        ("fighting", "16bit", "castles", 0.75, 2, 1, 1, []),
+        ("sport", "16bit", "space", 0.86, 1, 0, 1, []),
+    ],
+    "16bit": [
+        ("platformer", "16bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("shooter", "16bit", "space", 0.8, 1, 0, 1, [("tech", "vector")]),
+        ("platformer", "vector", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
+        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("shooter", "16bit", "space", 0.8, 1, 0, 2, [("cap", "replay")]),
+        ("racing", "vector", "castles", 0.71, 2, 1, 1, [("cap", "qa")]),
+        ("platformer", "16bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
+        ("sport", "16bit", "pirates", 0.75, 1, 0, 1, [("cap", "insider")]),
+        ("racing", "16bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("shooter", "16bit", "space", 0.8, 1, 0, 3, [("cap", "manager")]),
+        ("fighting", "16bit", "castles", 0.75, 2, 1, 1, []),
+        ("sport", "16bit", "space", 0.86, 1, 0, 1, []),
+    ],
+    # Средние руки держатся дешёвой технологии: весь забег на векторе, жанры по одному, из
+    # возможностей только переигровка.
+    "cheap": [
+        ("platformer", "vector", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("shooter", "vector", "space", 0.8, 1, 0, 1, [("cap", "replay")]),
+        ("platformer", "vector", "castles", 0.6, 2, 1, 1, []),
+        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("racing", "vector", "space", 0.71, 2, 1, 1, []),
+        ("platformer", "vector", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
+        ("sport", "vector", "pirates", 0.75, 1, 0, 1, []),
+        ("racing", "vector", "castles", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("shooter", "vector", "castles", 0.8, 1, 0, 1, []),
+        ("fighting", "vector", "space", 0.75, 2, 1, 1, []),
+        ("sport", "vector", "space", 0.86, 1, 0, 1, []),
+        ("fighting", "vector", "pirates", 0.75, 1, 0, 1, []),
+    ],
+}
+
+
+def m3_summary(events=0):
+    """Сводка M3: на каждый старт хорошие и средние руки, минимум денег, первое банкротство, деньги
+    после 9-го и в конце; рост после девятого релиза."""
+    out = []
+    for start, plan in RUN_M3.items():
+        for mid in (False, True):
+            rows, r = simulate(mid, plan, events)
+            after9 = rows[8][11] if len(rows) >= 9 else None
+            out.append((start, "средние" if mid else "хорошие", r["min_cash"], r["first_bankrupt"] or "", after9,
+                        r["final_cash"], (r["final_cash"] - after9) if after9 is not None else ""))
+    print("| Старт | Руки | Минимум денег | Банкрот на релизе | После 9-го | В конце | Рост с 9-го |")
+    print("|---|---|---|---|---|---|---|")
+    for row in out:
+        print("| " + " | ".join(str(x) for x in row) + " |")
+    return out
+
+
 def check():
     """Хорошие руки не уходят в минус и не банкротятся; средние банкротятся на 6-8 релизе."""
     ok = True
@@ -255,9 +346,32 @@ def check():
     if mid2["first_bankrupt"] is None or not 4 <= mid2["first_bankrupt"] <= 8:
         print(f"FAIL: M2 средние руки: банкротство на релизе {mid2['first_bankrupt']}, ждали 4-8")
         ok = False
+    # M3 (#105): хорошие руки проходят кап при любом старте и растут после 9-го релиза; средние
+    # руки на одном векторе доживают до капа со вставками, на смешанном и дорогом плане
+    # разоряются в первой половине забега; ни один старт не богаче другого больше чем в 1,5 раза.
+    finals = []
+    for start in ("vector", "8bit", "16bit"):
+        rows3, g3 = simulate(False, RUN_M3[start], EVENTS_AVG)
+        _, m3 = simulate(True, RUN_M3[start])
+        finals.append(g3["final_cash"])
+        if g3["min_cash"] < 0 or g3["first_bankrupt"] is not None or g3["final_cash"] <= rows3[8][11]:
+            print(f"FAIL: M3 старт {start}, хорошие руки: минимум {g3['min_cash']}, банкротство {g3['first_bankrupt']}, "
+                  f"после 9-го {rows3[8][11]}, в конце {g3['final_cash']}")
+            ok = False
+        if m3["first_bankrupt"] is None or m3["first_bankrupt"] > 8:
+            print(f"FAIL: M3 старт {start}, средние руки: банкротство на релизе {m3['first_bankrupt']}, ждали до 8-го")
+            ok = False
+    _, cheap = simulate(True, RUN_M3["cheap"], EVENTS_AVG)
+    if cheap["first_bankrupt"] is not None:
+        print(f"FAIL: M3 средние руки на векторе со вставками разоряются на релизе {cheap['first_bankrupt']}")
+        ok = False
+    if max(finals) > 1.5 * min(finals):
+        print(f"FAIL: M3 старты неравны: в конце {finals}")
+        ok = False
     print(f"model: хорошие руки минимум {good['min_cash']}, в конце {good['final_cash']}; "
           f"средние банкрот на релизе {mid['first_bankrupt']}; M2 хорошие в конце {good2['final_cash']} "
-          f"(со вставками {good2e['final_cash']}), средние банкрот на {mid2['first_bankrupt']}; {'ok' if ok else 'fail'}")
+          f"(со вставками {good2e['final_cash']}), средние банкрот на {mid2['first_bankrupt']}; "
+          f"M3 хорошие в конце {finals}, средние на векторе в конце {cheap['final_cash']}; {'ok' if ok else 'fail'}")
     return ok
 
 
@@ -281,7 +395,9 @@ def replay(path):
     хвосты, содержание, цены покупок и деньги считает модель. Возвращает строки и расхождения."""
     ledger = json.loads(Path(path).read_text(encoding="utf-8"))
     rows, errors = [], []
-    upkeep = int(E["upkeep_base"])
+    # Содержание первого релиза из ведомости: прокачки, купленные до старта (петля с `--techs`
+    # или `--remake`), в ведомость покупок не попадают.
+    upkeep = int(ledger[0]["upkeep"]) if ledger else int(E["upkeep_base"])
     R = 0.0
     sat_g = {g: 0.0 for g in GENRES}
     sat_s = {s: 0.0 for s in SETTINGS}
@@ -387,6 +503,15 @@ if __name__ == "__main__":
         sys.exit(0)
     if "--check" in sys.argv:
         sys.exit(0 if check() else 1)
+    if "--m3-summary" in sys.argv:
+        m3_summary(EVENTS_AVG if "--events" in sys.argv else 0)
+        sys.exit(0)
     plan = RUN_M2 if "--m2" in sys.argv else RUN
+    if "--m3" in sys.argv:
+        start = "vector"
+        for a in sys.argv:
+            if a.startswith("--start="):
+                start = a.split("=", 1)[1]
+        plan = RUN_M3[start]
     rows, _ = simulate("--mid" in sys.argv, plan, EVENTS_AVG if "--events" in sys.argv else 0)
     print_table(rows)

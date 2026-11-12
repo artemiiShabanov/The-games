@@ -10,7 +10,7 @@ const PATH := "res://resources/run.tres"
 
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
 @export var tech: Game.Tech = Game.Tech.BIT8
-## Технологии розыгрыша старта: в M2 только 8-bit.
+## Технологии розыгрыша старта: с M3 (#104) вектор, 8-bit и 16/32, остальные покупаются.
 @export var start_techs: Array[Game.Tech] = [Game.Tech.BIT8]
 @export var title := "Пираты на платформах"
 @export var sprints := 5
