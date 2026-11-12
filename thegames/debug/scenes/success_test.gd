@@ -9,19 +9,21 @@ const G := Game.Genre
 const T := Game.Tech
 const S := Game.Setting
 ## Жанр, технология, сеттинг, q, баги, зрелищных, часть; затем ожидания: C, P0, хвосты, V, R.
+## Ожидания из `python3 tools/model_run.py` (таблица «хорошие руки»); после правки `success.tres`
+## обновить отсюда: релизы с 4-го пересчитаны под продажи вектора 0,62 (#105).
 const RUN := [
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.6, 2, 1, 1, 7.8, 6300, 0, 65, 1.4],
 	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 1, 8.5, 4800, 3200, 47, 3.1],
 	[G.PLATFORMER, T.BIT8, S.SPACE, 0.6, 2, 1, 1, 7.0, 5900, 4500, 70, 4.1],
-	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 10.0, 4700, 5500, 51, 6.6],
-	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 8.2, 9400, 6200, 55, 8.2],
-	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 8.2, 3800, 9500, 38, 9.8],
-	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 5.6, 11000, 7900, 77, 11.1],
-	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 7.2, 7800, 9700, 47, 12.2],
-	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 7.2, 17200, 9700, 90, 14.3],
-	[G.PLATFORMER, T.LOWPOLY, S.PIRATES, 0.86, 1, 0, 3, 7.2, 18400, 14600, 70, 16.4],
-	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 7.4, 22500, 19300, 99, 18.6],
-	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 9.3, 32600, 23300, 100, 21.8],
+	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 10.0, 5766, 5479, 51, 6.6],
+	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 8.2, 9381, 6949, 55, 8.2],
+	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 8.2, 4676, 10013, 38, 9.8],
+	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 5.6, 10968, 8844, 77, 11.1],
+	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 7.2, 7784, 10285, 47, 12.2],
+	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 7.2, 17221, 10085, 90, 14.3],
+	[G.PLATFORMER, T.LOWPOLY, S.PIRATES, 0.86, 1, 0, 3, 7.2, 18355, 14800, 70, 16.4],
+	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 7.4, 22534, 19422, 99, 18.6],
+	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 9.3, 32605, 23378, 100, 21.8],
 ]
 
 var tuning: SuccessTuning
