@@ -324,9 +324,18 @@ func _draw_player(canvas: CanvasItem, i: int) -> void:
 		canvas.draw_texture_rect_region(t, Rect2(at, Vector2(FRAME, FRAME)), Rect2(frame * FRAME, 0.0, FRAME, FRAME))
 	if i == sim.ctrl:
 		# Метка того, кем управляешь: треугольник над головой; при зарядке полоска силы.
-		var top := at + Vector2(FRAME * 0.5, -4.0)
-		canvas.draw_colored_polygon(PackedVector2Array([top + Vector2(-3.0, -3.0), top + Vector2(3.0, -3.0), top]),
-				bit16.ink(Bit16Screen.GOLD))
+		# Треугольник попиксельно с чёрной обводкой в 1 пиксель (плейтест 2026-11-12), верхний ряд
+		# светлее.
+		var top := (at + Vector2(FRAME * 0.5, -4.0)).round()
+		var cells: Array[Vector2] = []
+		for row in 4:
+			for dx in range(-(3 - row), 4 - row):
+				cells.append(top + Vector2(dx, row - 3))
+		for c in cells:
+			for nb: Vector2 in [Vector2.ZERO, Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+				canvas.draw_rect(Rect2(c + nb, Vector2.ONE), bit16.ink(Bit16Screen.K))
+		for c in cells:
+			canvas.draw_rect(Rect2(c, Vector2.ONE), bit16.ink(Bit16Screen.WHITE if c.y == top.y - 3.0 else Bit16Screen.GOLD))
 		if p.charge >= 0.0:
 			var k := clampf(p.charge / tuning.charge_max, 0.0, 1.0)
 			canvas.draw_rect(Rect2(at + Vector2(-2.0, -10.0), Vector2(FRAME + 4.0, 3.0)), bit16.ink(Bit16Screen.K))
