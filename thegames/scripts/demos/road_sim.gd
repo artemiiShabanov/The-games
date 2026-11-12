@@ -195,7 +195,8 @@ func _step_rivals() -> void:
 		if c.spin > 0.0:
 			c.spin -= DT
 			pace *= sneeze_throttle
-		c.speed = move_toward(c.speed, pace, tuning.accel * 0.7 * DT)
+		# Разгон как у героя, на поворотах без потерь: лидер на пределе едет весь заезд на пределе.
+		c.speed = move_toward(c.speed, pace, tuning.accel * DT)
 		# Медленный впереди в той же полосе: перестроиться.
 		for o in rivals:
 			if o != c and not o.finished and o.z > c.z and o.z - c.z < tuning.rival_look * RoadTrack.SEG \
@@ -266,14 +267,18 @@ func bot(mode: AutoTest.BotMode) -> float:
 	var target := _bot_lane()
 	var seg := track.seg_at(z)
 	var pct := speed / tuning.max_speed
-	var drift := -pct * pct * track.curve[seg] * tuning.centrifugal * tuning.steer
-	# Руль на цель с поправкой на вынос; не хватает руля на повороте, отпустить газ.
+	var curve := track.curve[seg]
+	# На крутом повороте держаться внутренней полосы: вынос тянет наружу.
+	if absf(curve) > 3.0:
+		target = clampf(target + signf(curve) * 0.4, -0.6, 0.6)
+	var drift := -pct * pct * curve * tuning.centrifugal * tuning.steer
+	# Руль на цель с поправкой на вынос; не хватает руля и уже выносит наружу, отпустить газ.
 	var need := ((target - x) * 3.0 - drift / maxf(tuning.steer * pct, 0.3))
 	var axis := clampf(need, -1.0, 1.0)
-	if absf(drift) > tuning.steer * pct * 0.85 and absf(x) > 0.55:
+	if absf(drift) > tuning.steer * pct * 0.8 and x * drift > 0.0 and absf(x) > 0.35:
 		bot_gas = false
-	if nitros > 0 and nitro_left <= 0.0 and speed > tuning.max_speed * 0.9 and _straight_ahead() \
-			and z > track.finish_z() * (0.2 + 0.25 * (tuning.nitros - nitros)):
+	if nitros > 0 and nitro_left <= 0.0 and speed > tuning.max_speed * 0.9 and absf(x) < 0.7 and _straight_ahead() \
+			and z > track.finish_z() * (0.12 + 0.25 * (tuning.nitros - nitros)):
 		bot_nitro = true
 	return axis
 
@@ -299,9 +304,11 @@ func _bot_lane() -> float:
 	return best
 
 
+## Впереди на `bot_nitro_straight` сегментов нет крутого поворота: на нитро (около 160
+## сегментов за 2 с) крутой поворот не удержать, пологий удержать можно.
 func _straight_ahead() -> bool:
 	var s := track.seg_at(z)
 	for i in tuning.bot_nitro_straight:
-		if absf(track.curve[(s + i) % track.count()]) > 1.0:
+		if absf(track.curve[(s + i) % track.count()]) > tuning.bot_nitro_curve:
 			return false
 	return true

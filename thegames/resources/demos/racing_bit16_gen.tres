@@ -32,3 +32,4 @@ rivals = 11
 grid_gap = 4
 rival_speed_min = 0.78
 rival_speed_max = 0.93
+leader_speeds = Array[float]([1.0, 1.0, 1.0])

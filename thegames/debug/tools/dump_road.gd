@@ -3,7 +3,7 @@ extends SceneTree
 ## (`<` и `>` поворот, `{` и `}` крутой, `^` и `v` подъём и спуск, `-` прямая, `F` финиш),
 ## пропы и монеты числами; проверка генератора и прогон без окна ботом WIN и ботом LOSE
 ## (`RoadSim.simulate`). С двумя числами сиды подряд по строке на сид и сводка. Третьим
-## аргументом баги через запятую: `wild`, `sneeze`, `walls`, `finish`.
+## аргументом баги через запятую: `wild`, `sneeze`, `walls`, `finish`; `nonitro` герой без нитро.
 ##   Godot --headless --path thegames -s debug/tools/dump_road.gd -- <seed> [count] [bug,bug]
 
 const STEP := 20
@@ -29,6 +29,9 @@ func _process(_delta: float) -> bool:
 		s.walls_open = bugs.has("walls")
 		if bugs.has("finish"):
 			s.finish_late = 150.0 * RoadTrack.SEG
+		# Без нитро: проверка, что первую тройку без него не обогнать.
+		if bugs.has("nonitro"):
+			s.nitros = 0
 	if count > 1:
 		var wins := 0
 		var losses := 0

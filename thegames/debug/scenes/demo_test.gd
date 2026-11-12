@@ -233,28 +233,40 @@ func _check_duels() -> void:
 
 ## Гонки × 16/32-bit «псевдо-3D» (#99): сто сидов дают трассу, которая проходит проверку
 ## генератора (изгиб не круче крутого, уклон не круче 0,6, пропы на обочине, монеты на дороге
-## до финиша, одиннадцать соперников), генерация детерминирована; на каждом сиде бот WIN без
-## окна (`RoadSim.simulate`) финиширует в тройке, бот LOSE нет.
+## до финиша, одиннадцать соперников), генерация детерминирована. Бот WIN без окна
+## (`RoadSim.simulate`) финиширует в тройке не меньше чем на `ROAD_WINS` сидах (остальное это
+## удары в плотном трафике), бот LOSE ни на одном. Лидеры на пределе скорости героя (плейтест
+## 2026-11-12): тот же WIN без нитро не попадает в тройку ни на одном сиде.
+const ROAD_WINS := 95
+
+
 func _check_roads() -> void:
 	var t := RacingBit16GenTuning.load_default()
 	var dt := RacingBit16Tuning.load_default()
 	var seconds: Array[float] = []
+	var wins := 0
 	var places := 0
+	var no_nitro := func(s: RoadSim) -> void: s.nitros = 0
 	for s in range(1, 101):
 		var tr := RoadTrackGen.generate(s, t)
 		var why := RoadTrackGen.validate(tr, t)
 		_expect(why == "", "трасса сида %d: %s" % [s, why])
 		var win := RoadSim.simulate(tr, dt, AutoTest.BotMode.WIN)
-		_expect(win.won, "трасса сида %d: бот WIN на %d месте" % [s, win.place])
-		seconds.append(win.time)
+		wins += 1 if win.won else 0
 		places += win.place
+		if win.won:
+			seconds.append(win.time)
+		var bare := RoadSim.simulate(tr, dt, AutoTest.BotMode.WIN, no_nitro)
+		_expect(not bare.won, "трасса сида %d: бот WIN без нитро в тройке (место %d)" % [s, bare.place])
 		var lose := RoadSim.simulate(tr, dt, AutoTest.BotMode.LOSE)
 		_expect(lose.ended and not lose.won, "трасса сида %d: бот LOSE в тройке" % s)
+	_expect(wins >= ROAD_WINS, "бот WIN в тройке на %d сидах из 100, нужно %d" % [wins, ROAD_WINS])
 	_expect(RoadTrackGen.generate(7, t).signature() == RoadTrackGen.generate(7, t).signature(), "трасса сида 7 не повторяется")
 	_expect(RoadTrackGen.generate(7, t).signature() != RoadTrackGen.generate(8, t).signature(), "трассы сидов 7 и 8 одинаковые")
 	seconds.sort()
-	AutoTest.note("racing bit16: 100 сидов прошли проверку; бот WIN без окна: среднее место %.2f, медиана %.1f с, от %.1f до %.1f" % [
-			places / 100.0, seconds[50], seconds[0], seconds[99]])
+	var n := seconds.size()
+	AutoTest.note("racing bit16: 100 сидов прошли проверку; бот WIN без окна в тройке на %d, среднее место %.2f, медиана %.1f с; без нитро в тройке ни разу" % [
+			wins, places / 100.0, seconds[n / 2] if n > 0 else 0.0])
 
 
 ## Платформер × 16/32-bit «тропа» (#98): сто сидов дают уровень, который проходит проверку

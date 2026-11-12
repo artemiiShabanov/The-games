@@ -32,9 +32,11 @@ const PATH := "res://resources/demos/racing_bit16.tres"
 ## Соперники перестраиваются от медленного впереди за столько сегментов, с такой скоростью.
 @export var rival_look := 10
 @export var rival_steer := 0.8
-## Бот WIN: видит соперников на столько сегментов, нитро на прямой длиной не меньше.
-@export var bot_look := 14
-@export var bot_nitro_straight := 30
+## Бот WIN: видит соперников на столько сегментов; нитро жмёт, если впереди на столько
+## сегментов нет поворота круче `bot_nitro_curve` (за 2 с нитро около 160 сегментов).
+@export var bot_look := 20
+@export var bot_nitro_straight := 150
+@export var bot_nitro_curve := 3.2
 @export var max_seconds := 240.0
 ## Старт: отсчёт 3, 2, 1 после нажатия A, по секунде на цифру.
 @export var countdown := 3.0

@@ -37,11 +37,16 @@ const PATH := "res://resources/demos/racing_bit16_gen.tres"
 @export var coin_row_every := 90
 @export var coins_per_row := 5
 @export var coin_step := 3
-## Соперники: сколько, ряды по двое через столько сегментов, доли наибольшей скорости.
+## Соперники: сколько, ряды по двое через столько сегментов, доли наибольшей скорости у
+## остальных (не лидеров), от ближнего к дальнему.
 @export var rivals := 11
 @export var grid_gap := 4
 @export var rival_speed_min := 0.78
 @export var rival_speed_max := 0.93
+## Лидеры (плейтест 2026-11-12: первую тройку обогнать только с нитро): доли наибольшей скорости
+## героя, первый едет на пределе. Стоят впереди решётки, нитро не жмут, повороты проходят без
+## потерь.
+@export var leader_speeds: Array[float] = [1.0, 0.99, 0.98]
 
 
 static func load_default() -> RacingBit16GenTuning:

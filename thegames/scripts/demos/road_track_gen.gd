@@ -4,7 +4,8 @@ extends RefCounted
 ## участки: прямая, поворот с плавным въездом и выездом, холм, поворот на холме; к концу
 ## крутых поворотов больше. Перед крутым поворотом знак со стрелкой. Пальмы по обочинам
 ## через несколько сегментов, иногда камень, бочка, хижина; монеты рядами по полосе на прямых.
-## Соперники стоят решёткой по двое впереди героя, самые быстрые дальше. `validate` проверяет.
+## Соперники стоят решёткой по двое впереди героя, самые быстрые дальше; первые три это
+## лидеры на пределе скорости героя (`leader_speeds`). `validate` проверяет.
 
 
 static func generate(seed_: int, t: RacingBit16GenTuning = null) -> RoadTrack:
@@ -115,8 +116,12 @@ static func _coins(tr: RoadTrack, rng: RandomNumberGenerator, t: RacingBit16GenT
 
 static func _rivals(tr: RoadTrack, rng: RandomNumberGenerator, t: RacingBit16GenTuning) -> void:
 	var speeds: Array[float] = []
-	for i in t.rivals:
-		speeds.append(lerpf(t.rival_speed_min, t.rival_speed_max, float(i) / maxf(t.rivals - 1, 1)) + rng.randf_range(-0.01, 0.01))
+	var rest := t.rivals - t.leader_speeds.size()
+	for i in rest:
+		speeds.append(lerpf(t.rival_speed_min, t.rival_speed_max, float(i) / maxf(rest - 1, 1)) + rng.randf_range(-0.01, 0.01))
+	# Лидеры впереди всех, первый в самом первом ряду.
+	for k in range(t.leader_speeds.size() - 1, -1, -1):
+		speeds.append(t.leader_speeds[k])
 	# Ближние к герою медленнее, дальние быстрее: обгоны идут по нарастающей.
 	for i in t.rivals:
 		var r := RoadTrack.Rival.new()
