@@ -11,7 +11,9 @@ enum Setting { PIRATES, SPACE, CASTLES }
 
 const ASPECT_NAMES: Array[String] = ["оптимизация", "звук", "управление", "графика", "баланс"]
 const GENRE_NAMES: Array[String] = ["платформер", "гонки", "шутер", "спорт", "файтинг"]
-const TECH_NAMES: Array[String] = ["вектор", "8-bit", "16/32-bit", "low poly 3D", "3D"]
+## Названия для игрока (решение 2026-11-12); в коде и файлах прежние ключи: vector, bit8, bit16,
+## lowpoly, threed.
+const TECH_NAMES: Array[String] = ["примитив", "ретро", "2D", "3D", "продвинутые"]
 const SETTING_NAMES: Array[String] = ["пираты", "космос", "замки"]
 
 

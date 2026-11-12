@@ -7,7 +7,7 @@
 script = ExtResource("1_apmck")
 kind = 1
 id = &"vector"
-title = "Вектор"
+title = "Примитив"
 color = Color(0.18431373, 0.2901961, 0.2509804, 1)
 
 [sub_resource type="Resource" id="Resource_p1eyx"]
@@ -15,7 +15,7 @@ script = ExtResource("1_apmck")
 kind = 1
 value = 1
 id = &"bit8"
-title = "8-bit"
+title = "Ретро"
 color = Color(0.18431373, 0.35686275, 1, 1)
 
 [sub_resource type="Resource" id="Resource_b0qnd"]
@@ -23,7 +23,7 @@ script = ExtResource("1_apmck")
 kind = 1
 value = 2
 id = &"bit16"
-title = "16/32-bit"
+title = "2D"
 color = Color(0.47843137, 0.30980393, 0.8784314, 1)
 
 [sub_resource type="Resource" id="Resource_km710"]
@@ -31,7 +31,7 @@ script = ExtResource("1_apmck")
 kind = 1
 value = 3
 id = &"lowpoly"
-title = "Low poly"
+title = "3D"
 color = Color(0.15294118, 0.68235296, 0.56078434, 1)
 
 [sub_resource type="Resource" id="Resource_6bion"]
@@ -39,7 +39,7 @@ script = ExtResource("1_apmck")
 kind = 1
 value = 4
 id = &"threed"
-title = "3D"
+title = "Продвинутые"
 color = Color(0.22745098, 0.24705882, 0.56078434, 1)
 
 [resource]

@@ -13,11 +13,11 @@ const GENRES := [
 	[Game.Genre.FIGHTING, "fighting", "Файтинг", "#8E44AD", ["на ринге", "против всех", "в драке", "один на один"]],
 ]
 const TECHS := [
-	[Game.Tech.VECTOR, "vector", "Вектор", "#2F4A40", []],
-	[Game.Tech.BIT8, "bit8", "8-bit", "#2F5BFF", []],
-	[Game.Tech.BIT16, "bit16", "16/32-bit", "#7A4FE0", []],
-	[Game.Tech.LOWPOLY, "lowpoly", "Low poly", "#27AE8F", []],
-	[Game.Tech.THREED, "threed", "3D", "#3A3F8F", []],
+	[Game.Tech.VECTOR, "vector", "Примитив", "#2F4A40", []],
+	[Game.Tech.BIT8, "bit8", "Ретро", "#2F5BFF", []],
+	[Game.Tech.BIT16, "bit16", "2D", "#7A4FE0", []],
+	[Game.Tech.LOWPOLY, "lowpoly", "3D", "#27AE8F", []],
+	[Game.Tech.THREED, "threed", "Продвинутые", "#3A3F8F", []],
 ]
 const SETTINGS := [
 	[Game.Setting.PIRATES, "pirates", "Пираты", "#1F7A8C", ["Пираты", "Корсары", "Флибустьеры", "Абордаж", "Чёрная метка"]],
