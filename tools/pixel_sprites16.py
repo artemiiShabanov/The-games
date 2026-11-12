@@ -503,6 +503,9 @@ def sets():
     # дороги лентой.
     import pixel_road16 as road
     sprites.update(road.sprites())
+    # Шутер «до выхода» (#100): текстуры, скелеты, оружие, лицо в палитре спрайтов.
+    import pixel_hold16 as hold
+    sprites.update(hold.sprites())
     for key, canvas in road.horizon().items():
         sprites[key] = canvas
         own[key] = road.PIRATES_SKY

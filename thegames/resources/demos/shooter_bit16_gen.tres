@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ShooterBit16GenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_bit16_gen_tuning.gd" id="1_gen"]
+
+[resource]
+script = ExtResource("1_gen")
+width = 31
+height = 21
+room_min = 7
+merge_chance = 0.4
+rooms_min = 5
+cells_per_foe = 30
+foes_min = 1
+foes_max = 3
+medkit_every = 2
+pillar_room = 8

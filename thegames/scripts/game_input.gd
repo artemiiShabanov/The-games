@@ -17,6 +17,15 @@ const A: StringName = &"action_a"
 const B: StringName = &"action_b"
 
 const ALL: Array[StringName] = [LEFT, RIGHT, UP, DOWN, A, B]
+## Вид от первого лица (шутер × 16/32-bit, #100, плейтест 2026-11-12): WASD бег и стрейф (и
+## стрелки вверх, вниз), стрелки влево, вправо обзор; на геймпаде левый и правый стик. Только
+## для демок с таким видом, в оболочке и мини-играх не используются.
+const WALK_FORWARD: StringName = &"walk_forward"
+const WALK_BACK: StringName = &"walk_back"
+const WALK_LEFT: StringName = &"walk_left"
+const WALK_RIGHT: StringName = &"walk_right"
+const LOOK_LEFT: StringName = &"look_left"
+const LOOK_RIGHT: StringName = &"look_right"
 
 enum Device { KEYBOARD, GAMEPAD }
 
@@ -51,6 +60,16 @@ static func hint(action: StringName, text: String) -> String:
 ## Направление стрелок или стика, длина до 1.
 static func axis() -> Vector2:
 	return Input.get_vector(LEFT, RIGHT, UP, DOWN)
+
+
+## Бег от первого лица: x стрейф (плюс вправо), y вперёд (плюс вперёд), длина до 1.
+static func walk() -> Vector2:
+	return Vector2(Input.get_axis(WALK_LEFT, WALK_RIGHT), Input.get_axis(WALK_BACK, WALK_FORWARD)).limit_length(1.0)
+
+
+## Обзор от первого лица: −1 влево, 1 вправо.
+static func look() -> float:
+	return Input.get_axis(LOOK_LEFT, LOOK_RIGHT)
 
 
 static func a_pressed() -> bool:

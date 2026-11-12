@@ -22,7 +22,9 @@ extends Control
 ## сразу после вспышки, LOSE до неё. У платформера × 16/32-bit (`--tech=bit16`, #98) генератор
 ## тропы; WIN прогоняет варианты на копии мира, LOSE бежит вправо в первую яму. У гонок ×
 ## 16/32-bit (`--genre=racing --tech=bit16`, #99) генератор трассы; WIN держит свободную полосу и
-## жмёт нитро на прямых, LOSE газует по обочине.
+## жмёт нитро на прямых, LOSE газует по обочине. У шутера × 16/32-bit (`--genre=shooter
+## --tech=bit16`, #100) генератор карты; WIN идёт по клеткам к ключу и выходу и стреляет, LOSE
+## идёт к врагам без выстрелов.
 
 
 var demo: Demo
@@ -56,6 +58,8 @@ func _ready() -> void:
 			_check_trails()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
+		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
+			_check_holds()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
@@ -229,6 +233,32 @@ func _check_duels() -> void:
 	_expect(DuelPlanGen.generate(7, t).signature() == DuelPlanGen.generate(7, t).signature(), "дуэль сида 7 не повторяется")
 	_expect(DuelPlanGen.generate(7, t).signature() != DuelPlanGen.generate(8, t).signature(), "дуэли сидов 7 и 8 одинаковые")
 	AutoTest.note("fighting vector: 100 сидов прошли проверку; дуэль бота WIN без окна в среднем %.1f с" % (seconds / 100.0))
+
+
+## Шутер × 16/32-bit «до выхода» (#100): сто сидов дают карту, которая проходит проверку
+## генератора (комнат не меньше нужного, от старта есть путь к ключу и к двери выхода, враги
+## на полу и не у старта), генерация детерминирована; на каждом сиде бот WIN без окна
+## (`HoldSim.simulate`) берёт ключ и выходит, бот LOSE гибнет.
+func _check_holds() -> void:
+	var t := ShooterBit16GenTuning.load_default()
+	var dt := ShooterBit16Tuning.load_default()
+	var seconds: Array[float] = []
+	var health := 0
+	for s in range(1, 101):
+		var m := HoldMapGen.generate(s, t)
+		var why := HoldMapGen.validate(m, t)
+		_expect(why == "", "карта сида %d: %s" % [s, why])
+		var win := HoldSim.simulate(m, dt, AutoTest.BotMode.WIN)
+		_expect(win.won, "карта сида %d: бот WIN не вышел, здоровье %d за %.0f с" % [s, win.health, win.time])
+		seconds.append(win.time)
+		health += win.health
+		var lose := HoldSim.simulate(m, dt, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "карта сида %d: бот LOSE вышел" % s)
+	_expect(HoldMapGen.generate(7, t).signature() == HoldMapGen.generate(7, t).signature(), "карта сида 7 не повторяется")
+	_expect(HoldMapGen.generate(7, t).signature() != HoldMapGen.generate(8, t).signature(), "карты сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("shooter bit16: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, здоровье на выходе в среднем %d" % [
+			seconds[50], seconds[0], seconds[99], health / 100])
 
 
 ## Гонки × 16/32-bit «псевдо-3D» (#99): сто сидов дают трассу, которая проходит проверку

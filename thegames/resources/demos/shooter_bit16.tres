@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ShooterBit16Tuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_bit16_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+health = 100
+move_speed = 3.2
+strafe_speed = 2.8
+turn_speed = 2.6
+radius = 0.25
+fire_cooldown = 0.45
+bullet_speed = 14.0
+foe_radius = 0.35
+medkit = 30
+foe_health = 2
+foe_speed = 1.3
+foe_sight = 9.0
+foe_keep = 2.5
+foe_cooldown = 1.9
+foe_first_shot = 0.9
+melee_speed = 2.1
+melee_reach = 0.9
+melee_cooldown = 0.9
+melee_damage = 12
+shot_speed = 4.5
+shot_damage = 14
+bot_engage = 5.0
+bot_engage_melee = 7.5
+bot_give_up = 2.5
+bot_dodge = 2.2
+max_seconds = 180.0
+music_db = -12.0
+sfx_db = -6.0
