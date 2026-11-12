@@ -299,6 +299,40 @@ def planks(a, x, y, w, h, vertical=True, width=6):
     a.noise(x, y, w, h, 0.07)
 
 
+def biped(leg, torso, head, arm, sole, crown, bulk=1.0):
+    """Части человека ростом 1,74 м: куски атласа для ноги, торса, головы и руки, подошвы и макушки.
+
+    `bulk` ширина плеч, груди и конечностей. Возвращает словарь: часть → [точка вращения,
+    треугольники, родитель]; модель потом дописывает к частям своё (шляпу, узел банданы).
+    """
+    k = bulk
+    parts = {}
+    for side, x in (("l", -0.1 * k), ("r", 0.1 * k)):
+        parts["leg_" + side] = [(x, 0.86, 0.0),
+                                loft([(0.0, 0.07 * k, 0.13, x, -0.04), (0.1, 0.065 * k, 0.085, x, -0.01),
+                                      (0.47, 0.075 * k, 0.08 * k, x, 0.0), (0.88, 0.1 * k, 0.105 * k, x, 0.0)],
+                                     leg, 5, caps=(sole, None)), None]
+    parts["body"] = [(0.0, 0.86, 0.0),
+                     loft([(0.82, 0.17 * k, 0.115 * k), (1.02, 0.155 * k, 0.1 * k), (1.27, 0.2 * k, 0.125 * k),
+                           (1.42, 0.17 * k, 0.105 * k), (1.47, 0.06, 0.06)], torso, 6), None]
+    parts["head"] = [(0.0, 1.46, 0.0),
+                     loft([(1.44, 0.055, 0.06), (1.52, 0.09, 0.1, 0.0, -0.005), (1.64, 0.105, 0.115), (1.74, 0.07, 0.08)],
+                          head, 6, caps=(None, crown)), "body"]
+    for side, x in (("l", -0.25 * k), ("r", 0.25 * k)):
+        parts["arm_" + side] = [(x, 1.38, 0.0),
+                                loft([(0.78, 0.035 * k, 0.045, x * 1.08, 0.0), (1.1, 0.045 * k, 0.05 * k, x * 1.06, 0.0),
+                                      (1.4, 0.06 * k, 0.065 * k, x, 0.0)], arm, 4, math.pi / 4.0, caps=(sole, None)), "body"]
+    return parts
+
+
+def assemble(name, atlas, parts):
+    m = Model(name, atlas)
+    for key in ("leg_l", "leg_r", "body", "head", "arm_l", "arm_r"):
+        pivot, tris, parent = parts[key]
+        m.part(key, pivot, tris, parent)
+    return m
+
+
 # --- Пираты: модели -----------------------------------------------------------------------------
 
 def pirate_hero():
@@ -362,23 +396,9 @@ def pirate_hero():
     a.rect(36, 16, 4, 4, BOOT)
     red_chip, boot_chip = a.region(32, 16, 4, 4), a.region(36, 16, 4, 4)
 
-    m = Model("hero", a)
-    for side, x in (("l", -0.1), ("r", 0.1)):
-        m.part("leg_" + side, (x, 0.86, 0.0),
-               loft([(0.0, 0.07, 0.13, x, -0.04), (0.1, 0.065, 0.085, x, -0.01), (0.47, 0.075, 0.08, x, 0.0),
-                     (0.88, 0.1, 0.105, x, 0.0)], leg, 5, caps=(boot_chip, None)))
-    m.part("body", (0.0, 0.86, 0.0),
-           loft([(0.82, 0.17, 0.115), (1.02, 0.155, 0.1), (1.27, 0.2, 0.125), (1.42, 0.17, 0.105), (1.47, 0.06, 0.06)],
-                torso, 6))
-    m.part("head", (0.0, 1.46, 0.0),
-           loft([(1.44, 0.055, 0.06), (1.52, 0.09, 0.1, 0.0, -0.005), (1.64, 0.105, 0.115), (1.74, 0.07, 0.08)],
-                head, 6, caps=(None, red_chip))
-           + at(box((0.07, 0.06, 0.1), red_chip, red_chip, red_chip), 0.04, 1.63, 0.14), "body")
-    for side, x in (("l", -0.25), ("r", 0.25)):
-        m.part("arm_" + side, (x, 1.38, 0.0),
-               loft([(0.78, 0.035, 0.045, x * 1.08, 0.0), (1.1, 0.045, 0.05, x * 1.06, 0.0), (1.4, 0.06, 0.065, x, 0.0)],
-                    arm, 4, math.pi / 4.0, caps=(boot_chip, None)), "body")
-    return m
+    parts = biped(leg, torso, head, arm, boot_chip, red_chip)
+    parts["head"][1].extend(at(box((0.07, 0.06, 0.1), red_chip, red_chip, red_chip), 0.04, 1.63, 0.14))
+    return assemble("hero", a, parts)
 
 
 def pirate_enemy():
@@ -627,6 +647,220 @@ def pirate_cannon():
                        0.28, 0.24, 0.2))
 
 
+def pirate_captain():
+    """Капитан: второй боец и главарь. Красный камзол с золотыми пуговицами, борода, повязка на глазу, треуголка."""
+    a = Atlas(64, 64, 43)
+    coat, coat_d = rgb("8E2A2A"), rgb("5C1A1C")
+    a.rect(0, 0, 32, 17, coat)
+    for x in (10, 21):
+        a.rect(x, 0, 2, 17, coat_d)
+    a.rect(13, 0, 6, 5, WHITE)
+    a.rect(15, 0, 2, 3, SKIN)
+    for y in (6, 9, 12, 15):
+        a.px(14, y, GOLD), a.px(17, y, GOLD)
+    a.rect(0, 0, 4, 2, GOLD), a.rect(28, 0, 4, 2, GOLD)
+    a.rect(0, 17, 32, 3, BLACK)
+    a.rect(14, 17, 4, 3, GOLD)
+    a.rect(15, 18, 2, 1, BLACK)
+    a.shade(0, 0, 32, 20, 1.1, 0.82, 0.7)
+    a.noise(0, 0, 32, 20, 0.07)
+    torso = a.region(0, 0, 32, 20)
+    a.rect(0, 20, 32, 16, SKIN)
+    a.rect(0, 20, 32, 4, BLACK)
+    a.rect(0, 24, 9, 9, BLACK), a.rect(23, 24, 9, 9, BLACK)
+    a.rect(11, 26, 3, 1, BLACK), a.rect(18, 26, 3, 1, BLACK)
+    a.rect(11, 27, 3, 3, BLACK)
+    a.rect(0, 26, 32, 1, BLACK)
+    a.px(19, 28, BLACK), a.px(20, 28, WHITE)
+    a.rect(15, 28, 2, 2, mul(SKIN, 0.85))
+    a.rect(9, 30, 14, 6, BLACK)
+    a.rect(13, 31, 6, 1, RED_D)
+    for _ in range(14):
+        a.px(a.rng.randrange(9, 23), a.rng.randrange(31, 36), IRON_L)
+    a.shade(0, 20, 32, 16, 1.05, 0.9, 0.8)
+    a.noise(0, 20, 32, 16, 0.05)
+    head = a.region(0, 20, 32, 16)
+    a.rect(32, 0, 16, 16, coat)
+    a.rect(32, 9, 16, 3, GOLD)
+    a.rect(32, 10, 16, 1, GOLD_D)
+    a.rect(32, 12, 16, 4, SKIN)
+    a.rect(32, 15, 16, 1, SKIN_D)
+    a.shade(32, 0, 16, 16, 1.05, 0.9, 0.75)
+    a.noise(32, 0, 16, 16, 0.07)
+    arm = a.region(32, 0, 16, 16)
+    a.rect(48, 0, 16, 10, rgb("2A2630"))
+    a.rect(48, 10, 16, 5, WHITE)
+    a.rect(48, 15, 16, 9, BOOT)
+    a.rect(48, 15, 16, 2, BOOT_L)
+    a.rect(54, 20, 4, 2, GOLD)
+    a.shade(48, 0, 16, 24, 1.05, 0.85, 0.75)
+    a.noise(48, 0, 16, 24, 0.07)
+    leg = a.region(48, 0, 16, 24)
+    a.rect(32, 16, 16, 8, BLACK)
+    a.rect(32, 22, 16, 2, GOLD)
+    a.rect(39, 17, 2, 3, BONE)
+    a.noise(32, 16, 16, 8, 0.1)
+    hat = a.region(32, 16, 16, 8)
+    a.rect(32, 24, 8, 8, BLACK)
+    a.rect(32, 24, 8, 1, GOLD), a.rect(32, 31, 8, 1, GOLD), a.rect(32, 24, 1, 8, GOLD), a.rect(39, 24, 1, 8, GOLD)
+    brim = a.region(32, 24, 8, 8)
+    a.rect(40, 24, 4, 4, BOOT)
+    sole = a.region(40, 24, 4, 4)
+    parts = biped(leg, torso, head, arm, sole, brim, 1.18)
+    parts["head"][1].extend(loft([(1.7, 0.27, 0.25), (1.72, 0.27, 0.25)], hat, 3, math.pi, caps=(brim, brim), flat=True)
+                            + loft([(1.72, 0.12, 0.12), (1.84, 0.09, 0.09)], hat, 5, caps=(None, brim)))
+    return assemble("captain", a, parts)
+
+
+def pirate_palm():
+    """Пальма: изогнутый ствол с кольцами и семь листьев плоскостями с вырезом по прозрачности."""
+    a = Atlas(32, 32, 45)
+    bark, bark_d = rgb("8A6A46"), rgb("5E4630")
+    a.rect(0, 0, 16, 32, bark)
+    for y in range(0, 32, 4):
+        a.rect(0, y, 16, 1, bark_d)
+        for x in range(0, 16, 3):
+            a.px(x + (y // 4) % 3, y + 1, mul(bark, 1.15))
+    a.shade(0, 0, 16, 32, 0.95, 1.0, 0.7)
+    a.noise(0, 0, 16, 32, 0.08)
+    trunk = a.region(0, 0, 16, 32)
+    leaf_c, leaf_d, leaf_l = rgb("3E8A3A"), rgb("255E2C"), rgb("6CB04A")
+    for y in range(32):
+        half = int(1 + 6.5 * math.sin(math.pi * min(y / 30.0, 1.0)) ** 0.7)
+        for x in range(16):
+            dx = abs(x - 7.5)
+            if dx <= half and (int(dx) + y) % 3 != 0 or dx < 1.0:
+                a.px(16 + x, y, leaf_d if dx < 1.0 else (leaf_l if (x + y) % 5 == 0 else leaf_c))
+    a.noise(16, 0, 16, 32, 0.08)
+    leaf = a.region(16, 0, 16, 32)
+    top = (0.55, 4.2, 0.1)
+    tris = loft([(0.0, 0.2, 0.2), (1.0, 0.16, 0.16, 0.08, 0.0), (2.2, 0.14, 0.14, 0.26, 0.04), (3.3, 0.12, 0.12, 0.44, 0.08),
+                 (4.2, 0.1, 0.1, 0.55, 0.1)], trunk, 5)
+    for k in range(7):
+        ang = 2.0 * math.pi * k / 7.0 + 0.3
+        d = (math.sin(ang), 0.0, math.cos(ang))
+        q = (math.cos(ang) * 0.38, 0.0, -math.sin(ang) * 0.38)
+        droop = 0.9 + 0.35 * (k % 2)
+        far = (top[0] + d[0] * 2.0, top[1] - droop, top[2] + d[2] * 2.0)
+        mid = (top[0] + d[0] * 0.2, top[1] + 0.25, top[2] + d[2] * 0.2)
+        tris += quad((mid[0] - q[0], mid[1], mid[2] - q[2]), (mid[0] + q[0], mid[1], mid[2] + q[2]),
+                     (far[0] + q[0], far[1], far[2] + q[2]), (far[0] - q[0], far[1], far[2] - q[2]), leaf)
+    return Model("palm", a).part("body", (0.0, 0.0, 0.0), tris)
+
+
+def pirate_bottle():
+    """Бутылка рома: бонус. Зелёное стекло с бликом, этикетка, пробка."""
+    a = Atlas(16, 16, 47)
+    glass, glass_d = rgb("2E6A4A"), rgb("1C4634")
+    a.rect(0, 0, 16, 12, glass)
+    a.rect(0, 0, 16, 3, glass_d)
+    a.rect(5, 5, 7, 5, rgb("E0D4A8"))
+    a.rect(6, 6, 5, 1, RED_D), a.rect(7, 8, 3, 1, BLACK)
+    a.rect(9, 1, 1, 10, rgb("9CD8B4"))
+    a.shade(0, 0, 16, 12, 1.1, 0.85, 0.75)
+    a.noise(0, 0, 16, 12, 0.06)
+    body = a.region(0, 0, 16, 12)
+    a.rect(0, 12, 4, 4, rgb("B08A58"))
+    cork = a.region(0, 12, 4, 4)
+    a.rect(4, 12, 4, 4, glass_d)
+    under = a.region(4, 12, 4, 4)
+    return Model("bottle", a).part("body", (0.0, 0.25, 0.0),
+                                   loft([(0.0, 0.11, 0.11), (0.26, 0.11, 0.11), (0.33, 0.045, 0.045), (0.48, 0.04, 0.04),
+                                         (0.5, 0.055, 0.055)], body, 6, caps=(under, cork)))
+
+
+def pirate_ball():
+    """Ядро: снаряд. Чугунный шар из шести меридианов с бликом и раковинами."""
+    a = Atlas(16, 16, 49)
+    a.rect(0, 0, 16, 16, IRON)
+    a.rect(6, 3, 3, 2, IRON_L)
+    a.px(7, 3, WHITE)
+    for _ in range(10):
+        a.px(a.rng.randrange(16), a.rng.randrange(16), BLACK)
+    a.shade(0, 0, 16, 16, 1.25, 0.6, 0.8)
+    a.noise(0, 0, 16, 16, 0.1)
+    iron = a.region(0, 0, 16, 16)
+    r = 0.18
+    rings = [(r - r * math.cos(t), r * math.sin(t), r * math.sin(t)) for t in (0.35, 1.0, math.pi / 2.0, math.pi - 1.0, math.pi - 0.35)]
+    return Model("ball", a).part("body", (0.0, r, 0.0), loft(rings, iron, 6, caps=(iron, iron)))
+
+
+def pirate_crate():
+    """Ящик: препятствие. Доски в раме с раскосом и клеймом."""
+    a = Atlas(32, 32, 51)
+    planks(a, 0, 0, 32, 16, True, 4)
+    for x in (0, 8, 16, 24):
+        a.rect(x, 0, 8, 2, WOOD_D), a.rect(x, 14, 8, 2, WOOD_D)
+        a.rect(x, 0, 1, 16, WOOD_D), a.rect(x + 7, 0, 1, 16, WOOD_D)
+        for i in range(6):
+            a.px(x + 1 + i, 3 + i * 2 // 1 % 10, WOOD_L)
+            a.px(x + 1 + i, 2 + i * 2, WOOD_D)
+    a.rect(11, 6, 3, 3, RED_D)
+    a.shade(0, 0, 32, 16, 1.05, 0.8, 1.0)
+    side = a.region(0, 0, 32, 16)
+    planks(a, 0, 16, 16, 16, False, 4)
+    a.rect(0, 16, 16, 1, WOOD_D), a.rect(0, 31, 16, 1, WOOD_D), a.rect(0, 16, 1, 16, WOOD_D), a.rect(15, 16, 1, 16, WOOD_D)
+    top = a.region(0, 16, 16, 16)
+    return Model("crate", a).part("body", (0.0, 0.0, 0.0), at(box((0.85, 0.85, 0.85), side, top, top), 0.0, 0.425))
+
+
+def pirate_lighthouse():
+    """Маяк: финиш. Полосатая башня с дверью, балкон, фонарь с переплётом, красная крыша."""
+    a = Atlas(64, 64, 53)
+    white, red = rgb("D8D2C4"), rgb("A8322C")
+    for y in range(40):
+        a.rect(0, y, 64, 1, red if (y // 8) % 2 == 0 else white)
+    for y in range(0, 40, 4):
+        for x in range((y // 4 % 2) * 4, 64, 8):
+            a.px(x, y, mul(white, 0.75)), a.px(x, y + 1, mul(white, 0.8))
+    a.rect(29, 31, 6, 9, WOOD_D)
+    a.rect(30, 32, 4, 8, WOOD)
+    a.px(33, 36, GOLD)
+    for wx, wy in ((31, 10), (12, 20), (50, 20)):
+        a.rect(wx, wy, 3, 4, BLACK)
+        a.px(wx + 1, wy + 1, rgb("9CC8E8"))
+    a.shade(0, 0, 64, 40, 1.05, 0.85, 0.7)
+    a.noise(0, 0, 64, 40, 0.06)
+    tower = a.region(0, 0, 64, 40)
+    a.rect(0, 40, 32, 8, rgb("F2D060"))
+    for x in range(0, 32, 4):
+        a.rect(x, 40, 1, 8, BLACK)
+    a.rect(0, 40, 32, 1, BLACK), a.rect(0, 47, 32, 1, BLACK)
+    a.rect(13, 42, 6, 4, WHITE)
+    lamp = a.region(0, 40, 32, 8)
+    a.rect(32, 40, 16, 8, red)
+    for x in range(32, 48, 4):
+        a.rect(x, 40, 1, 8, mul(red, 0.7))
+    a.shade(32, 40, 16, 8, 1.2, 0.8, 1.0)
+    roof = a.region(32, 40, 16, 8)
+    a.rect(48, 40, 8, 8, STONE_D)
+    a.noise(48, 40, 8, 8, 0.15)
+    stone = a.region(48, 40, 8, 8)
+    return Model("lighthouse", a).part("body", (0.0, 0.0, 0.0),
+                                       loft([(0.0, 1.5, 1.5), (3.4, 1.25, 1.25), (6.8, 1.0, 1.0)], tower, 8)
+                                       + loft([(6.8, 1.35, 1.35), (7.0, 1.35, 1.35)], stone, 8, caps=(stone, stone), flat=True)
+                                       + loft([(7.0, 0.75, 0.75), (8.0, 0.75, 0.75)], lamp, 8)
+                                       + loft([(8.0, 0.95, 0.95), (9.0, 0.04, 0.04)], roof, 8, caps=(stone, None)))
+
+
+def tex_grass():
+    a = Atlas(64, 64, 55)
+    g, gd, gl = rgb("4E8A3C"), rgb("386C30"), rgb("78AE4C")
+    a.rect(0, 0, 64, 64, g)
+    for _ in range(260):
+        x, y = a.rng.randrange(64), a.rng.randrange(64)
+        c = gd if a.rng.random() < 0.55 else gl
+        a.px(x, y, c), a.px(x, (y + 1) % 64, c)
+    for _ in range(12):
+        x, y = a.rng.randrange(62), a.rng.randrange(62)
+        a.px(x, y, rgb("E8D860")), a.px(x + 1, y + 1, gd)
+    for _ in range(8):
+        x, y = a.rng.randrange(60), a.rng.randrange(60)
+        a.rect(x, y, 3, 2, SAND_D)
+    a.noise(0, 0, 64, 64, 0.07)
+    return a
+
+
 # --- Пираты: текстуры уровня (плиткой) ----------------------------------------------------------
 
 def tex_sand():
@@ -723,10 +957,10 @@ def tex_sky():
 
 SETS = {
     "pirates": {
-        "models": [pirate_hero, pirate_enemy, pirate_coin, pirate_rock, pirate_barrel, pirate_chest, pirate_flag,
-                   pirate_cannon],
+        "models": [pirate_hero, pirate_enemy, pirate_captain, pirate_coin, pirate_bottle, pirate_ball, pirate_rock,
+                   pirate_barrel, pirate_crate, pirate_chest, pirate_cannon, pirate_palm, pirate_flag, pirate_lighthouse],
         "textures": {"sand": tex_sand, "planks": tex_planks, "water": tex_water, "rock": tex_rock, "sail": tex_sail,
-                     "sky": tex_sky},
+                     "grass": tex_grass, "sky": tex_sky},
     },
 }
 
