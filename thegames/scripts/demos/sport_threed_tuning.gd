@@ -38,9 +38,11 @@ const PATH := "res://resources/demos/sport_threed.tres"
 @export var strain_decay := 1.3
 @export var catch_keep := 0.72
 @export var catch_seconds := 0.6
-## Прыжок заряжается, пока держат кнопку: до `charge_seconds`, полный заряд втрое выше.
-## Прыжок без заряда, тяжесть, руление курсом в воздухе (рад/с).
+## Прыжок заряжается, пока держат кнопку: до `charge_seconds`; полный заряд добавляет к
+## скорости вверх долю `charge_gain` (плейтест 2026-11-13: предел высоты вдвое ниже, около
+## 2,5 м). Прыжок без заряда, тяжесть, руление курсом в воздухе (рад/с).
 @export var charge_seconds := 0.7
+@export var charge_gain := 1.12
 @export var hop := 4.2
 @export var gravity := 16.0
 @export var air_turn := 1.3

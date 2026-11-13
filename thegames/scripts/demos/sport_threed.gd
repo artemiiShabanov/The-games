@@ -562,7 +562,10 @@ func _sand(dt: float, at: Vector3, line: float, tilt: float, fallen: bool) -> vo
 		_trail_s = sim.s
 		if grounded:
 			var half := 0.17 + 0.4 * absf(sim.edge)
+			# След идёт под доской, а не под серединой модели (плейтест 2026-11-13).
 			var mid := course.world(sim.s, sim.x, sim.ride + 0.035)
+			mid.x = board.global_position.x
+			mid.z = board.global_position.z
 			_trail.append([mid - side * half, mid + side * half, _trail.is_empty() or _trail[_trail.size() - 1].is_empty()])
 		elif not _trail.is_empty() and not _trail[_trail.size() - 1].is_empty():
 			_trail.append([])
@@ -590,12 +593,13 @@ func _sand(dt: float, at: Vector3, line: float, tilt: float, fallen: bool) -> vo
 	var carve := absf(sim.edge) * clampf(sim.speed / 30.0, 0.0, 1.3) + (0.8 if sim.catch_left > 0.0 else 0.0)
 	var spray := jets[0]
 	spray.emitting = grounded and carve > 0.12
-	spray.position = at + Vector3(0.0, 0.1, 0.0) - forward * 0.3
+	var under := Vector3(board.global_position.x, at.y, board.global_position.z)
+	spray.position = under + Vector3(0.0, 0.1, 0.0) - forward * 0.3
 	spray.direction = (side * -signf(sim.edge) * 1.0 + Vector3.UP * 0.75 - forward * 0.3).normalized()
 	spray.initial_velocity_max = 6.0 + sim.speed * 0.22
 	var tail := jets[1]
 	tail.emitting = grounded and sim.speed > 8.0
-	tail.position = at + Vector3(0.0, 0.08, 0.0) - forward * 0.8
+	tail.position = under + Vector3(0.0, 0.08, 0.0) - forward * 0.8
 	tail.direction = (Vector3.UP * 0.55 - forward).normalized()
 	tail.initial_velocity_max = 3.0 + sim.speed * 0.12
 

@@ -176,11 +176,11 @@ func _ground(dt: float, steer: float, jump: bool) -> void:
 			return
 	ride = course.ramp_at(s, x)
 	if _held and not jump and charge > 0.0:
-		# Отпустил: прыжок по заряду, полный втрое выше.
+		# Отпустил: прыжок по заряду.
 		airborne = true
 		lift = ride + 0.05
 		ride = 0.0
-		rise = t.hop * (1.0 + 2.0 * power)
+		rise = t.hop * (1.0 + t.charge_gain * power)
 		charge = 0.0
 		hops += 1
 		events.append([&"hop", power])
@@ -294,7 +294,7 @@ func bot(mode: AutoTest.BotMode) -> void:
 	# Барьер на пути: зарядить прыжок и отпустить за полсекунды до него.
 	for b in course.bars:
 		var gap := b.s - s
-		if gap <= 0.0 or gap > speed * 1.1:
+		if gap <= 0.0 or gap > speed * 1.3:
 			continue
 		if absf(x + tan(heading) * gap - b.x) <= b.half + 0.5:
 			bot_jump = gap / speed > 0.5

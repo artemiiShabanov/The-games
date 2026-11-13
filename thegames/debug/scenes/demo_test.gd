@@ -1042,13 +1042,13 @@ func _check_dunes() -> void:
 			sim.step(DuneSim.DT, 0.0, false, false)
 			peak = maxf(peak, sim.lift)
 		peaks.append(peak)
-	_expect(peaks[1] > peaks[0] * 5.0 and peaks[1] > 4.0, "заряд прыжка: высота %.1f против %.1f" % [peaks[1], peaks[0]])
+	_expect(peaks[1] > peaks[0] * 3.0 and peaks[1] > 2.0 and peaks[1] < 3.0, "заряд прыжка: высота %.1f против %.1f" % [peaks[1], peaks[0]])
 	var bar := course.bars[0]
 	for jump: bool in [false, true]:
 		sim = _dune_at(course, t, bar.s - 30.0, bar.x, 30.0)
 		for i in 90:
 			var gap := (bar.s - sim.s) / maxf(sim.speed, 1.0)
-			sim.step(DuneSim.DT, 0.0, jump and gap > 0.45 and gap < 0.95, false)
+			sim.step(DuneSim.DT, 0.0, jump and gap > 0.5 and gap < 1.25, false)
 		_expect(sim.falls == (0 if jump else 1), "барьер (%s): падений %d" % ["с прыжком" if jump else "в лоб", sim.falls])
 	# Присед: быстрее по прямой, поворот хуже.
 	var fast: Array[float] = []
