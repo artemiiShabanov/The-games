@@ -72,7 +72,7 @@ func _ready() -> void:
 		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.THREED:
 			_check_dunes()
 		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.THREED:
-			_check_sabers()
+			_check_frays()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -1116,109 +1116,112 @@ func _dune_at(course: DuneCourse, t: SportThreedTuning, s: float, x: float, v: f
 	return sim
 
 
-## Файтинг × «продвинутые» «дуэль на саблях» (#125): сто сидов дают план, который проходит
-## проверку генератора (первый ход простой удар, есть связка из трёх, финты и выпады),
-## генерация детерминирована; на каждом сиде бот WIN без окна (`SaberSim.simulate`) побеждает,
-## бот LOSE проигрывает. Отдельно правила: блок держит удар только со своей стороны, финт бьёт
-## не оттуда, откуда начал, выпад блок не держит, а шаг назад от него уводит, удар героя в
-## закрытую сторону отбит, в открытую попадает, открытого после связки соперника бьют всегда.
-func _check_sabers() -> void:
+## Файтинг × «продвинутые» «один против всех» (#125): сто сидов дают план, который проходит
+## проверку генератора (шесть волн, первая из простых пиратов, есть щитоносцы и ножи),
+## генерация детерминирована; на каждом сиде бот WIN без окна (`FraySim.simulate`) побеждает,
+## бот LOSE проигрывает. Отдельно правила: удар переносит героя к врагу в сторону стика, от
+## щита удар отскакивает и сжигает серию, сильный удар сбивает щит, контратака перехватывает
+## замах и не берёт нож, перекат уводит от ножа, серия удваивает урон и даёт добивание,
+## пропущенный удар её сжигает.
+func _check_frays() -> void:
 	var t := FightingThreedTuning.load_default()
 	var seconds: Array[float] = []
 	var hp := 0
 	for s in range(1, 101):
-		var plan := SaberPlanGen.generate(s, t)
-		var why := SaberPlanGen.validate(plan, t)
+		var plan := FrayPlanGen.generate(s, t)
+		var why := FrayPlanGen.validate(plan)
 		_expect(why == "", "план сида %d: %s" % [s, why])
-		var win := SaberSim.simulate(plan, t, AutoTest.BotMode.WIN)
-		_expect(win.won, "план сида %d: бот WIN не победил, здоровья %d, у соперника %d" % [s, win.hero_hp, win.rival_hp])
+		var win := FraySim.simulate(plan, t, AutoTest.BotMode.WIN)
+		_expect(win.won, "план сида %d: бот WIN не победил, здоровья %d, врагов осталось %d" % [s, win.hero_hp, win.left_total()])
 		seconds.append(win.time)
 		hp += win.hero_hp
-		var lose := SaberSim.simulate(plan, t, AutoTest.BotMode.LOSE)
+		var lose := FraySim.simulate(plan, t, AutoTest.BotMode.LOSE)
 		_expect(lose.ended and not lose.won, "план сида %d: бот LOSE победил" % s)
-	_expect(SaberPlanGen.generate(7, t).signature() == SaberPlanGen.generate(7, t).signature(), "план сида 7 не повторяется")
-	_expect(SaberPlanGen.generate(7, t).signature() != SaberPlanGen.generate(8, t).signature(), "планы сидов 7 и 8 одинаковые")
+	_expect(FrayPlanGen.generate(7, t).signature() == FrayPlanGen.generate(7, t).signature(), "план сида 7 не повторяется")
+	_expect(FrayPlanGen.generate(7, t).signature() != FrayPlanGen.generate(8, t).signature(), "планы сидов 7 и 8 одинаковые")
 	seconds.sort()
 	AutoTest.note("fighting threed: 100 сидов прошли проверку; бот WIN без окна победил на всех: медиана %.1f с, от %.1f до %.1f, здоровья на финише в среднем %d" % [
 			seconds[50], seconds[0], seconds[99], hp / 100])
-	var plan := SaberPlanGen.generate(1, t)
-	var plain := -1
-	var feint := -1
-	var lunge := -1
-	for i in plan.moves.size():
-		var m := plan.moves[i]
-		if plain < 0 and not m.lunge and not m.strikes[0].feint():
-			plain = i
-		if feint < 0 and not m.lunge and m.strikes[0].feint():
-			feint = i
-		if lunge < 0 and m.lunge:
-			lunge = i
-	# Блок держит удар только со своей стороны.
-	var real := plan.moves[plain].strikes[0].side
-	for match_side: bool in [true, false]:
-		var sim := _saber_at(plan, t, plain)
-		_saber_until_hit(sim, int(real) if match_side else (int(real) + 1) % 3, -1, false)
-		_expect(sim.blocks == (1 if match_side else 0) and sim.taken == (0 if match_side else 1), "блок %s: блоков %d, пропущено %d" % [
-				"со своей стороны" if match_side else "с чужой", sim.blocks, sim.taken])
-	# Финт: кто держит показанную сторону, пропускает; кто переставил после смены, отбивает.
-	var trick := plan.moves[feint].strikes[0]
-	for follow: bool in [false, true]:
-		var sim := _saber_at(plan, t, feint)
-		_saber_until_hit(sim, int(trick.shown), int(trick.side) if follow else -1, false)
-		_expect(sim.blocks == (1 if follow else 0) and sim.taken == (0 if follow else 1), "финт (%s): блоков %d, пропущено %d" % [
-				"переставил" if follow else "поверил", sim.blocks, sim.taken])
-	# Выпад: блок не держит, шаг назад уводит.
-	for back: bool in [false, true]:
-		var sim := _saber_at(plan, t, lunge)
-		_saber_until_hit(sim, int(plan.moves[lunge].strikes[0].side), -1, back)
-		_expect(sim.dodges == (1 if back else 0) and sim.hero_hp == t.hero_hp - (0 if back else t.lunge_damage), "выпад (%s): уходов %d, здоровья %d" % [
-				"шаг назад" if back else "блок", sim.dodges, sim.hero_hp])
-	# Удар героя в паузе: в закрытую сторону отбит и оставляет героя открытым дольше, в
-	# открытую попадает (соперник в этой проверке не успевает закрыться).
-	for closed: bool in [true, false]:
-		var sim := _saber_at(plan, t, plain)
-		sim.now().react = 0.0
-		sim.now().pause = 5.0
-		sim.rival_left = 5.0
-		sim._guard_left = 5.0
-		var side := int(sim.rival_guard) if closed else (int(sim.rival_guard) + 1) % 3
-		sim.step(SaberSim.DT, side, false, false)
-		sim.step(SaberSim.DT, -1, true, false)
-		for i in 20:
-			sim.step(SaberSim.DT, -1, false, false)
-		_expect(sim.parried == (1 if closed else 0) and sim.landed == (0 if closed else 1) and sim.rival_hp == t.rival_hp - (0 if closed else t.damage),
-				"удар в %s сторону: отбито %d, попал %d" % ["закрытую" if closed else "открытую", sim.parried, sim.landed])
-	# После связки соперник открыт: удар проходит и в сторону его сабли.
-	var sim := _saber_at(plan, t, plain)
-	_saber_until_hit(sim, int(real), -1, false)
-	_expect(sim.rival == SaberSim.Rival.OPEN, "после удара соперник не открыт")
-	sim.step(SaberSim.DT, int(sim.rival_guard), true, false)
-	for i in 20:
-		sim.step(SaberSim.DT, -1, false, false)
-	_expect(sim.landed == 1, "открытого соперника удар не взял")
+	var plan := FrayPlanGen.generate(1, t)
+	var thug := FrayPlan.Kind.THUG
+	# Удар: герой перелетает к врагу в сторону стика и попадает.
+	var sim := _fray(plan, t, [thug, thug], [Vector2(-3.0, 0.0), Vector2(3.5, 0.0)])
+	_fray_tap(sim, Vector2(1.0, 0.0))
+	_expect(sim.landed == 1 and sim.foes[1].hp == t.foe_hp - t.damage and sim.foes[0].hp == t.foe_hp and sim.pos.distance_to(sim.foes[1].pos) < 2.5 and sim.pos.x > 1.0,
+			"удар в сторону стика: попаданий %d, до врага %.1f" % [sim.landed, sim.pos.distance_to(sim.foes[1].pos)])
+	# Щит: обычный удар отскакивает и сжигает серию, сильный сбивает щит, оглушённого бьют.
+	sim = _fray(plan, t, [FrayPlan.Kind.SHIELD], [Vector2(0.0, -3.0)])
+	sim.combo = 3
+	sim.combo_left = 9.0
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.bounces == 1 and sim.combo == 0 and sim.foes[0].hp == t.foe_hp, "щит: отскоков %d, серия %d" % [sim.bounces, sim.combo])
+	for i in 80:
+		sim.step(FraySim.DT, Vector2.ZERO, i < 40, false)
+	_expect(sim.foes[0].state == FraySim.Foe.STUNNED, "сильный удар не сбил щит")
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.foes[0].hp == t.foe_hp - t.damage, "оглушённого щитоносца удар не берёт")
+	# Контратака перехватывает замах; нож не берёт, от ножа уводит перекат.
+	sim = _fray(plan, t, [thug], [Vector2(0.0, -2.5)])
+	_fray_windup(sim, 0, 0.3)
+	sim.step(FraySim.DT, Vector2.ZERO, false, true)
+	for i in 40:
+		sim.step(FraySim.DT, Vector2.ZERO, false, false)
+	_expect(sim.counters == 1 and sim.taken == 0 and sim.hero_hp == t.hero_hp and sim.combo == 1, "контратака: перехватов %d, пропущено %d" % [sim.counters, sim.taken])
+	for roll: bool in [false, true]:
+		sim = _fray(plan, t, [FrayPlan.Kind.KNIFE], [Vector2(0.0, -2.5)])
+		sim.combo = 4
+		sim.combo_left = 9.0
+		_fray_windup(sim, 0, 0.25)
+		sim.step(FraySim.DT, Vector2(0.0, 1.0) if roll else Vector2.ZERO, false, true)
+		for i in 40:
+			sim.step(FraySim.DT, Vector2.ZERO, false, false)
+		_expect(sim.taken == (0 if roll else 1) and sim.dodges == (1 if roll else 0) and sim.combo == (4 if roll else 0),
+				"нож (%s): пропущено %d, серия %d" % ["перекат" if roll else "контратака", sim.taken, sim.combo])
+	# Серия: от пяти удар вдвое сильнее, десятый удар даёт добивание, оно укладывает и щитоносца.
+	sim = _fray(plan, t, [thug], [Vector2(0.0, -3.0)])
+	sim.combo = t.strong_combo
+	sim.combo_left = 9.0
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.foes[0].hp == t.foe_hp - t.damage * 2, "серия не удвоила урон: здоровья %d" % sim.foes[0].hp)
+	sim = _fray(plan, t, [thug, FrayPlan.Kind.SHIELD], [Vector2(0.0, -3.0), Vector2(4.0, 0.0)])
+	sim.combo = t.special_every - 1
+	sim.combo_left = 9.0
+	_fray_tap(sim, Vector2(0.0, -1.0))
+	_expect(sim.special, "десятый удар не дал добивание")
+	_fray_tap(sim, Vector2(1.0, 0.0))
+	_expect(sim.foes[1].state == FraySim.Foe.OUT and sim.specials == 1 and not sim.special, "добивание не уложило щитоносца")
 
 
-## Правила дуэли без отсчёта, соперник в начале хода `index`.
-func _saber_at(plan: SaberPlan, t: FightingThreedTuning, index: int) -> SaberSim:
-	var sim := SaberSim.create(plan, t)
-	sim.phase = SaberSim.Phase.PLAY
-	sim.move = index
-	sim._enter_pause()
+## Правила драки без отсчёта и волн: враги заданных родов на местах, сами не нападают.
+func _fray(plan: FrayPlan, t: FightingThreedTuning, kinds: Array, at: Array) -> FraySim:
+	var sim := FraySim.create(plan, t)
+	sim.phase = FraySim.Phase.PLAY
+	sim.wave = plan.waves.size() - 1
+	sim._attack_left = 999.0
+	for i in kinds.size():
+		var f := FraySim.Pirate.new()
+		f.kind = kinds[i]
+		f.hp = t.foe_hp
+		f.pos = at[i]
+		f.slot = (at[i] as Vector2).angle()
+		sim.foes.append(f)
 	return sim
 
 
-## Довести бой до первого удара соперника: герой держит стойку `side`, после смены стороны
-## финта переставляет на `after` (−1 не переставляет), от выпада шагает назад при `back`.
-func _saber_until_hit(sim: SaberSim, side: int, after: int, back: bool) -> void:
-	for i in 600:
-		var hold := side
-		if after >= 0 and sim.rival == SaberSim.Rival.WINDUP and sim.windup_k() >= sim.tuning.feint_at:
-			hold = after
-		var step_now := back and sim.rival == SaberSim.Rival.WINDUP and sim.rival_left <= 0.3 and sim.hero == SaberSim.Hero.READY
-		var before := sim.rival
-		sim.step(SaberSim.DT, hold, false, step_now)
-		if before == SaberSim.Rival.WINDUP and sim.rival != SaberSim.Rival.WINDUP:
-			return
+## Короткое нажатие удара со стиком `dir` и ожидание, пока удар дойдёт.
+func _fray_tap(sim: FraySim, dir: Vector2) -> void:
+	sim.step(FraySim.DT, dir, true, false)
+	for i in 50:
+		sim.step(FraySim.DT, dir, false, false)
+
+
+## Враг замахнулся, до удара `left` секунд.
+func _fray_windup(sim: FraySim, index: int, left: float) -> void:
+	var f := sim.foes[index]
+	f.state = FraySim.Foe.WINDUP
+	f.left = left
+	f.total = 0.8
+	f.close = true
 
 
 func _run_hoop(sim: HoopSim) -> void:
