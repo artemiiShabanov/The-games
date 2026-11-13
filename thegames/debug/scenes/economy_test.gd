@@ -20,9 +20,9 @@ const RELEASES := [
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 7000], [G.SHOOTER, T.BIT8, S.PIRATES, 7350],
 	[G.PLATFORMER, T.BIT8, S.SPACE, 7700], [G.SHOOTER, T.VECTOR, S.SPACE, 4620],
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 7000], [G.PLATFORMER, T.VECTOR, S.CASTLES, 4200],
-	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 19300], [G.SHOOTER, T.BIT8, S.PIRATES, 7350],
-	[G.RACING, T.LOWPOLY, S.SPACE, 21200], [G.PLATFORMER, T.LOWPOLY, S.PIRATES, 17500],
-	[G.RACING, T.THREED, S.CASTLES, 29600], [G.SHOOTER, T.THREED, S.SPACE, 29600]]
+	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 15470], [G.SHOOTER, T.BIT8, S.PIRATES, 7350],
+	[G.RACING, T.LOWPOLY, S.SPACE, 16940], [G.PLATFORMER, T.LOWPOLY, S.PIRATES, 14000],
+	[G.RACING, T.THREED, S.CASTLES, 25840], [G.SHOOTER, T.THREED, S.SPACE, 25840]]
 
 var tuning: EconomyTuning
 var genre := G.PLATFORMER
@@ -161,8 +161,8 @@ func _expect(ok: bool, what: String) -> void:
 
 func _run_checks() -> void:
 	_expect(tuning.start_cash == 36000, "стартовый бюджет %d" % tuning.start_cash)
-	var prices := [1000, 1400, 1900, 2500, 3200]
-	var costs := [4000, 7000, 11400, 17500, 25600]
+	var prices := [1000, 1400, 1900, 2000, 2800]
+	var costs := [4000, 7000, 11400, 14000, 22400]
 	for t in T.values():
 		_expect(tuning.sprint_price(G.PLATFORMER, t, S.PIRATES) == prices[t], "цена спринта %s" % Game.tech_name(t))
 		_expect(tuning.release_cost(G.PLATFORMER, t, S.PIRATES) == costs[t], "релиз %s" % Game.tech_name(t))
@@ -171,7 +171,7 @@ func _run_checks() -> void:
 		var c := tuning.release_cost(r[0], r[1], r[2])
 		_expect(absi(c - int(r[3])) <= 50, "релиз %s×%s×%s стоит %d, в модели %d" % [
 				Game.genre_name(r[0]), Game.tech_name(r[1]), Game.setting_name(r[2]), c, r[3]])
-	_expect(tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE) == 32400, "самая дорогая пара %d" % tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE))
+	_expect(tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE) == 28320, "самая дорогая пара %d" % tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE))
 	var all_g: Array[G] = []
 	var all_t: Array[T] = []
 	var all_s: Array[S] = []

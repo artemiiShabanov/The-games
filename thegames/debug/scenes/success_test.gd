@@ -18,12 +18,12 @@ const RUN := [
 	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 10.0, 5766, 5479, 51, 6.6],
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 8.2, 9381, 6949, 55, 8.2],
 	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 8.2, 4676, 10013, 38, 9.8],
-	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 5.6, 10968, 8844, 77, 11.1],
-	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 7.2, 7784, 10285, 47, 12.2],
-	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 7.2, 17221, 10085, 90, 14.3],
-	[G.PLATFORMER, T.LOWPOLY, S.PIRATES, 0.86, 1, 0, 3, 7.2, 18355, 14800, 70, 16.4],
-	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 7.4, 22534, 19422, 99, 18.6],
-	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 9.3, 32605, 23378, 100, 21.8],
+	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 5.6, 12064, 8844, 74, 11.1],
+	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 7.2, 7784, 10770, 47, 12.2],
+	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 7.2, 18943, 10299, 86, 14.3],
+	[G.PLATFORMER, T.LOWPOLY, S.PIRATES, 0.86, 1, 0, 3, 7.2, 13460, 15803, 66, 15.4],
+	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 7.4, 21915, 16933, 94, 17.6],
+	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 9.3, 31761, 21446, 100, 20.8],
 ]
 
 var tuning: SuccessTuning
@@ -195,7 +195,7 @@ func _run_checks() -> void:
 	_expect(market.saturation_label(0.1, tuning) == "" and market.saturation_label(0.4, tuning) == "недавно было"
 			and market.saturation_label(0.7, tuning) == "надоело", "метки насыщения")
 	var stats := Success.run_stats(records, market, 10000, tuning)
-	_expect(stats.sequels == 3 and stats.viral_count == 5 and stats.franchises == 2, "итоги: %s" % stats)
+	_expect(stats.sequels == 3 and stats.viral_count == 4 and stats.franchises == 2, "итоги: %s" % stats)
 	_expect(stats.valuation % tuning.valuation_round == 0 and stats.valuation > 10000, "оценка студии %d" % stats.valuation)
 	# Шум не ломает диапазоны.
 	noise = true

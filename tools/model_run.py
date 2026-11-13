@@ -573,10 +573,29 @@ def check():
     if max(finals) > 1.5 * min(finals):
         print(f"FAIL: M3 старты неравны: в конце {finals}")
         ok = False
+    # M4 (#128): жадный забег с пятью технологиями. Хорошие руки проходят кап с любого старта,
+    # ни один старт не богаче другого больше чем в 1,7 раза, забег идёт от часа до двух;
+    # средние руки на дорогом старте (16/32, low poly, «продвинутые») разоряются до пятого релиза.
+    finals4 = []
+    for start in TECHS:
+        _, g4 = simulate_m4(start, False, EVENTS_AVG)
+        _, m4 = simulate_m4(start, True, EVENTS_AVG)
+        finals4.append(g4["final_cash"])
+        if g4["first_bankrupt"] is not None or g4["releases"] < M4_CAP or not 60 <= g4["minutes"] <= 120:
+            print(f"FAIL: M4 старт {start}, хорошие руки: релизов {g4['releases']}, банкротство {g4['first_bankrupt']}, "
+                  f"минут {g4['minutes']:.0f}")
+            ok = False
+        if start in ("16bit", "lowpoly", "3d") and (m4["first_bankrupt"] is None or m4["first_bankrupt"] > 4):
+            print(f"FAIL: M4 старт {start}, средние руки: банкротство на релизе {m4['first_bankrupt']}, ждали до 4-го")
+            ok = False
+    if max(finals4) > 1.7 * min(finals4):
+        print(f"FAIL: M4 старты неравны: в конце {finals4}")
+        ok = False
     print(f"model: хорошие руки минимум {good['min_cash']}, в конце {good['final_cash']}; "
           f"средние банкрот на релизе {mid['first_bankrupt']}; M2 хорошие в конце {good2['final_cash']} "
           f"(со вставками {good2e['final_cash']}), средние банкрот на {mid2['first_bankrupt']}; "
-          f"M3 хорошие в конце {finals}, средние на векторе в конце {cheap['final_cash']}; {'ok' if ok else 'fail'}")
+          f"M3 хорошие в конце {finals}, средние на векторе в конце {cheap['final_cash']}; "
+          f"M4 хорошие в конце {finals4}; {'ok' if ok else 'fail'}")
     return ok
 
 
