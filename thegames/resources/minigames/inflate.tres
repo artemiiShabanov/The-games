@@ -14,8 +14,8 @@ _data = [Vector2(0, 70), 0.0, 0.0, 0, 0, Vector2(1, 180), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_mb2dg"]
-_limits = [0.55, 2.2, 0.0, 1.0]
-_data = [Vector2(0, 2.2), 0.0, 0.0, 0, 0, Vector2(1, 0.55), 0.0, 0.0, 0, 0]
+_limits = [0.0, 0.35, 0.0, 1.0]
+_data = [Vector2(0, 0.35), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [resource]
