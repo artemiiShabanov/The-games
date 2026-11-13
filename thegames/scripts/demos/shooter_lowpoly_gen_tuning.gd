@@ -23,7 +23,7 @@ const PATH := "res://resources/demos/shooter_lowpoly_gen.tres"
 @export var dune_a := 0.9
 @export var dune_b := 0.5
 @export var dune_length := 26.0
-@export var island_height := 1.3
+@export var island_height := 1.7
 @export var shore_from := 17.0
 @export var shore_slope := 0.3
 ## Укрытия остановки: сколько от и до, расстояние от и до, разброс по ширине кадра (доля).

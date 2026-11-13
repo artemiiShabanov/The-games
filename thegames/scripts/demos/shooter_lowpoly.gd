@@ -525,16 +525,23 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		canvas.draw_rect(Rect2(Vector2.ZERO, view), Color(white, _boom * 2.4))
 	# Прицел.
 	var p := _to_px(aim)
-	for arm: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-		var a := p + arm * 4.0
-		var b := p + arm * 9.0
-		canvas.draw_rect(Rect2(a.min(b) - Vector2(1.5, 1.5), (a - b).abs() + Vector2(3, 3)), dark)
-	for arm: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-		var a := p + arm * 4.0
-		var b := p + arm * 9.0
-		canvas.draw_rect(Rect2(a.min(b) - Vector2(0.5, 0.5), (a - b).abs() + Vector2(1, 1)), white)
-	canvas.draw_rect(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), dark)
-	canvas.draw_rect(Rect2(p - Vector2(0.5, 0.5), Vector2(1, 1)), red)
+	if sim.reload_left > 0.0:
+		# Перезарядка: вместо прицела кружок, который заполняется по часовой стрелке.
+		var done := 1.0 - sim.reload_left / tuning.reload
+		canvas.draw_arc(p, 8.0, 0.0, TAU, 20, dark, 6.0)
+		canvas.draw_arc(p, 8.0, 0.0, TAU, 20, dark.lightened(0.3), 3.0)
+		canvas.draw_arc(p, 8.0, -PI / 2.0, -PI / 2.0 + TAU * done, 20, gold, 3.0)
+	else:
+		for arm: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			var a := p + arm * 4.0
+			var b := p + arm * 9.0
+			canvas.draw_rect(Rect2(a.min(b) - Vector2(1.5, 1.5), (a - b).abs() + Vector2(3, 3)), dark)
+		for arm: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			var a := p + arm * 4.0
+			var b := p + arm * 9.0
+			canvas.draw_rect(Rect2(a.min(b) - Vector2(0.5, 0.5), (a - b).abs() + Vector2(1, 1)), white)
+		canvas.draw_rect(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), dark)
+		canvas.draw_rect(Rect2(p - Vector2(0.5, 0.5), Vector2(1, 1)), red)
 	# Жизни слева сверху: сердца.
 	for i in tuning.lives:
 		var o := Vector2(10.0 + i * 16.0, 8.0)

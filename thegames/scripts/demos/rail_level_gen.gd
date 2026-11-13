@@ -87,7 +87,7 @@ static func _build(seed_: int, attempt: int, t: ShooterLowpolyGenTuning, rules: 
 				var a := Vector2(stop.pos.x, stop.pos.z)
 				var b := Vector2(level.stops[i + 1].pos.x, level.stops[i + 1].pos.z)
 				var flat := Vector2(p.x, p.z)
-				var free := flat.distance_to(Geometry2D.get_closest_point_to_segment(flat, a, b)) > 1.5
+				var free := flat.distance_to(Geometry2D.get_closest_point_to_segment(flat, a, b)) > 2.7
 				for other in range(first, level.covers.size()):
 					free = free and level.covers[other].pos.distance_to(p) > 1.9
 				if not free:
@@ -277,7 +277,7 @@ static func validate(level: RailLevel, t: ShooterLowpolyGenTuning = null, rules:
 			return "остановка %d без врагов" % i
 	# Камера ни в одном переезде не проходит вплотную к укрытию.
 	for c in level.covers:
-		if level.path_distance(c.pos.x, c.pos.z) < 1.5:
+		if level.path_distance(c.pos.x, c.pos.z) < 2.6:
 			return "укрытие на пути камеры"
 	for i in level.foes.size():
 		var foe := level.foes[i]

@@ -39,8 +39,8 @@ const PATH := "res://resources/demos/shooter_lowpoly.tres"
 @export var captain_hp := 2
 ## Бутылка: сколько летит, высота дуги, радиус попадания.
 @export var bottle_flight := 1.5
-@export var bottle_arc := 1.3
-@export var bottle_r := 0.34
+@export var bottle_arc := 0.4
+@export var bottle_r := 1.0
 ## Бочка с порохом: высота середины и радиус попадания.
 @export var keg_y := 0.4
 @export var keg_r := 0.45

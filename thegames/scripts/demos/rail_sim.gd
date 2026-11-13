@@ -358,6 +358,9 @@ func _shoot(aim: Vector2) -> void:
 	fire_left = tuning.fire_gap
 	var shot := probe(aim)
 	events.append([&"shot", shot.point, shot.kind])
+	# Последний патрон: перезарядка начинается сама.
+	if ammo <= 0:
+		_reload()
 	match shot.kind:
 		&"foe":
 			var i := shot.index

@@ -493,9 +493,10 @@ func _check_rails() -> void:
 		sim.fire_left = 0.0
 		sim.step(RailSim.DT, sky, true, false)
 	_expect(sim.ammo == 0 and sim.shots == rules.clip, "обойма не кончилась: патронов %d" % sim.ammo)
+	_expect(sim.reload_left > 0.0, "последний патрон не начал перезарядку")
 	sim.fire_left = 0.0
 	sim.step(RailSim.DT, sky, true, false)
-	_expect(sim.reload_left > 0.0 and sim.shots == rules.clip, "выстрел с пустой обоймой не начал перезарядку")
+	_expect(sim.shots == rules.clip, "выстрел во время перезарядки")
 	for i in int(rules.reload / RailSim.DT) + 2:
 		sim.step(RailSim.DT, sky, false, false)
 	_expect(sim.ammo == rules.clip, "перезарядка не вернула обойму: %d" % sim.ammo)
