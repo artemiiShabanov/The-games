@@ -97,7 +97,9 @@
   около двух минут), трасса по сиду и заезд ботов без окна текстом
   `debug/tools/dump_sprint.gd -- <seed> [count]`. Шутер × «продвинутые» «оборона аванпоста»
   (#123): `--scene=demo_test --genre=shooter --tech=threed --frames=9000` (`TIMEOUT=560`), план
-  волн по сиду и бой ботов без окна текстом `debug/tools/dump_outpost.gd -- <seed> [count]`. Обзор
+  волн по сиду и бой ботов без окна текстом `debug/tools/dump_outpost.gd -- <seed> [count]`. Спорт × «продвинутые» «спуск по дюне» (#124):
+  `--scene=demo_test --genre=sport --tech=threed --frames=9000`, склон по сиду и спуск ботов без
+  окна текстом `debug/tools/dump_dune.gd -- <seed> [count]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
   `--input` это `кадр:look=DXxDY`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:

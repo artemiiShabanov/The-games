@@ -69,6 +69,8 @@ func _ready() -> void:
 			_check_sprints()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.THREED:
 			_check_outposts()
+		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.THREED:
+			_check_dunes()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -975,6 +977,109 @@ func _outpost_fire(sim: OutpostSim, at: Vector3) -> void:
 	for i in 20:
 		sim.step(OutpostSim.DT, Vector2.ZERO, atan2(-to.x, -to.z), atan2(to.y, Vector2(to.x, to.z).length()), false, false)
 	sim.step(OutpostSim.DT, Vector2.ZERO, atan2(-to.x, -to.z), atan2(to.y, Vector2(to.x, to.z).length()), true, false)
+
+
+## Спорт × «продвинутые» «спуск по дюне» (#124): сто сидов дают склон, который проходит
+## проверку генератора (ворота сужаются и не стоят у края, есть трамплины и препятствия),
+## генерация детерминирована; на каждом сиде бот WIN без окна (`DuneSim.simulate`) набирает
+## нужную долю ворот, едущий прямо бот LOSE нет. Отдельно правила: на скорости доска
+## перекладывается медленнее, руль против дуги срывает кант, в приседе быстрее и поворот
+## хуже, ворота считаются между флагами, трамплин подбрасывает над камнями, кривое
+## приземление и удар о камень это падение.
+func _check_dunes() -> void:
+	var t := SportThreedTuning.load_default()
+	var seconds: Array[float] = []
+	var missed := 0
+	for s in range(1, 101):
+		var course := DuneCourseGen.generate(s, t)
+		var why := DuneCourseGen.validate(course, t)
+		_expect(why == "", "склон сида %d: %s" % [s, why])
+		var win := DuneSim.simulate(course, t, AutoTest.BotMode.WIN)
+		_expect(win.won, "склон сида %d: бот WIN прошёл %d ворот из %d, падений %d" % [s, win.passed, course.gates.size(), win.falls])
+		seconds.append(win.time)
+		missed += win.missed
+		var lose := DuneSim.simulate(course, t, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won, "склон сида %d: бот LOSE прошёл" % s)
+	_expect(DuneCourseGen.generate(7, t).signature() == DuneCourseGen.generate(7, t).signature(), "склон сида 7 не повторяется")
+	_expect(DuneCourseGen.generate(7, t).signature() != DuneCourseGen.generate(8, t).signature(), "склоны сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("sport threed: 100 сидов прошли проверку; бот WIN без окна прошёл все: медиана %.1f с, от %.1f до %.1f, мимо ворот в среднем %.1f" % [
+			seconds[50], seconds[0], seconds[99], missed / 100.0])
+	var course := DuneCourseGen.generate(1, t)
+	var clear_s := course.gates[0].s - 40.0
+	# На скорости доска ложится на кант медленнее.
+	var edges: Array[float] = []
+	for v: float in [8.0, 26.0]:
+		var sim := _dune_at(course, t, clear_s, 0.0, v)
+		for i in 12:
+			sim.step(DuneSim.DT, 1.0, false, false)
+		edges.append(sim.edge)
+	_expect(edges[1] < edges[0] * 0.85, "кант на скорости не медленнее: %.2f против %.2f" % [edges[1], edges[0]])
+	# Руль резко против дуги на скорости: срыв канта.
+	var sim := _dune_at(course, t, clear_s, 0.0, 24.0)
+	sim.edge = 1.0
+	sim.step(DuneSim.DT, -1.0, false, false)
+	_expect(sim.catches == 1 and sim.speed < 24.0 * 0.8 and sim.catch_left > 0.0, "срыва канта нет: %d, скорость %.1f" % [sim.catches, sim.speed])
+	# Присед: быстрее по прямой, поворот хуже.
+	var fast: Array[float] = []
+	var turned: Array[float] = []
+	for low: bool in [false, true]:
+		sim = _dune_at(course, t, 10.0, 0.0, 12.0)
+		for i in 240:
+			sim.step(DuneSim.DT, 0.0, false, low)
+		fast.append(sim.speed)
+		sim = _dune_at(course, t, clear_s, 0.0, 14.0)
+		for i in 40:
+			sim.step(DuneSim.DT, 1.0, false, low)
+		turned.append(sim.heading)
+	_expect(fast[1] > fast[0] + 0.5 and turned[1] < turned[0] * 0.8, "присед: скорость %.1f против %.1f, поворот %.2f против %.2f" % [
+			fast[1], fast[0], turned[1], turned[0]])
+	# Ворота: между флагами засчитаны, мимо нет.
+	var gate := course.gates[0]
+	for off: float in [0.0, gate.half + 2.0]:
+		sim = _dune_at(course, t, gate.s - 3.0, gate.x + off, 12.0)
+		for i in 40:
+			sim.step(DuneSim.DT, 0.0, false, false)
+		_expect(sim.passed == (1 if off == 0.0 else 0) and sim.missed == (0 if off == 0.0 else 1), "ворота со сдвигом %.1f: пройдено %d, мимо %d" % [
+				off, sim.passed, sim.missed])
+	# Трамплин: подбрасывает над камнями, ровное приземление держит, кривое роняет.
+	var ramp := course.ramps[0]
+	for twist: bool in [false, true]:
+		sim = _dune_at(course, t, ramp.s - 3.0, ramp.x, 20.0)
+		var flew := false
+		for i in 150:
+			sim.step(DuneSim.DT, 1.0 if twist and sim.airborne else 0.0, false, false)
+			flew = flew or sim.lift > 1.1
+			if not sim.airborne and flew:
+				break
+		_expect(sim.jumps == 1 and flew and sim.falls == (1 if twist else 0), "трамплин (%s): прыжков %d, падений %d" % [
+				"с доворотом" if twist else "ровно", sim.jumps, sim.falls])
+	# Камень: падение, райдер встаёт почти без скорости.
+	var rock: DuneCourse.Rock = null
+	for r in course.rocks:
+		if not r.tall and rock == null:
+			var behind_ramp := false
+			for k in course.ramps:
+				behind_ramp = behind_ramp or absf(r.s - k.s - 8.0) < 1.0
+			if not behind_ramp:
+				rock = r
+	sim = _dune_at(course, t, rock.s - 6.0, rock.x, 15.0)
+	for i in 40:
+		sim.step(DuneSim.DT, 0.0, false, false)
+	_expect(sim.falls == 1 and sim.fallen_left > 0.0 and is_equal_approx(sim.speed, t.fall_speed), "камень: падений %d, скорость %.1f" % [sim.falls, sim.speed])
+
+
+## Правила спуска без отсчёта: райдер в `s`, `x` на скорости `v`, ворота до этого места
+## считаются позади.
+func _dune_at(course: DuneCourse, t: SportThreedTuning, s: float, x: float, v: float) -> DuneSim:
+	var sim := DuneSim.create(course, t)
+	sim.countdown = 0.0
+	sim.s = s
+	sim.x = x
+	sim.speed = v
+	while sim.next_gate < course.gates.size() and course.gates[sim.next_gate].s < s:
+		sim.next_gate += 1
+	return sim
 
 
 func _run_hoop(sim: HoopSim) -> void:
