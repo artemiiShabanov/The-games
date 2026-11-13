@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="SportLowpolyTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/sport_lowpoly_tuning.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+shots = 10
+goal = 20
+countdown = 1.5
+hoop_scale = 1.3
+hoop_sink = 1.0
+rim_y = 3.05
+rim_z = -0.42
+rim_r = 0.2175
+rim_tube = 0.025
+board_z = -0.15
+board_half = 0.65
+board_y0 = 2.925
+board_y1 = 3.875
+ball_r = 0.12
+bounce_rim = 0.5
+bounce_board = 0.55
+bounce_ground = 0.45
+ground_drag = 2.5
+gravity = 9.8
+launch_height = 1.9
+launch_forward = 0.3
+eye = 1.7
+aim_speed = 0.4
+aim_limit = 0.42
+wind_unit = 0.35
+zone_fill = 0.85
+miss_gain = 0.4
+clean_bonus = 1
+fire_streak = 3
+fire_mult = 2
+result_seconds = 1.0
+move_seconds = 0.8
+flight_limit = 5.0
+bot_wait = 0.35
+bot_precision = 0.3
+music_db = -10.0
+sfx_db = -6.0

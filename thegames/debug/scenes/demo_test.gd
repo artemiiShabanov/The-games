@@ -71,6 +71,8 @@ func _ready() -> void:
 			_check_rails()
 		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.BIT16:
 			_check_soccer()
+		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.LOWPOLY:
+			_check_hoops()
 		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.BIT16:
 			_check_brawl()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
@@ -454,6 +456,62 @@ func _check_holds() -> void:
 	seconds.sort()
 	AutoTest.note("shooter bit16: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, здоровье на выходе в среднем %d" % [
 			seconds[50], seconds[0], seconds[99], health / 100])
+
+
+## Спорт × low poly «броски в кольцо» (#115): сто сидов дают план, который проходит проверку
+## генератора (у каждого броска есть чистый диапазон силы, точный бросок входит и у краёв
+## зелёной зоны, с ветром и с ездящим кольцом), генерация детерминирована; на каждом сиде бот
+## WIN без окна (`HoopSim.simulate`) набирает порог, бот LOSE нет. Отдельно правила: бросок из
+## середины зоны чистый, без силы мимо, ветер без поправки уводит мяч, по ездящему кольцу надо
+## целиться с упреждением, после трёх попаданий подряд бросок стоит вдвое.
+func _check_hoops() -> void:
+	var t := SportLowpolyGenTuning.load_default()
+	var rules := SportLowpolyTuning.load_default()
+	var scores: Array[int] = []
+	var made := 0
+	for s in range(1, 101):
+		var plan := HoopPlanGen.generate(s, t, rules)
+		var why := HoopPlanGen.validate(plan, t, rules)
+		_expect(why == "", "план сида %d: %s" % [s, why])
+		var win := HoopSim.simulate(plan, rules, AutoTest.BotMode.WIN)
+		_expect(win.finished, "план сида %d: бот WIN набрал %d из %d" % [s, win.score, rules.goal])
+		scores.append(win.score)
+		made += win.made
+		var lose := HoopSim.simulate(plan, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.finished, "план сида %d: бот LOSE набрал порог (%d)" % [s, lose.score])
+	_expect(HoopPlanGen.generate(7, t, rules).signature() == HoopPlanGen.generate(7, t, rules).signature(), "план сида 7 не повторяется")
+	_expect(HoopPlanGen.generate(7, t, rules).signature() != HoopPlanGen.generate(8, t, rules).signature(), "планы сидов 7 и 8 одинаковые")
+	scores.sort()
+	AutoTest.note("sport lowpoly: 100 сидов прошли проверку; бот WIN без окна: очков медиана %d (от %d до %d) при пороге %d, попаданий в среднем %.1f из %d" % [
+			scores[50], scores[0], scores[99], rules.goal, made / 100.0, rules.shots])
+	# Правила на плане сида 1.
+	var plan := HoopPlanGen.generate(1, t, rules)
+	var calm := plan.shots[0]
+	var hit: Array = HoopSim.trial(calm, rules, 0.0, HoopSim.speed_of(calm, rules, calm.zone), 0.0)
+	_expect(hit[0] and hit[1], "бросок из середины зоны не чистый")
+	_expect(not HoopSim.trial(calm, rules, 0.0, HoopSim.speed_of(calm, rules, 0.0), 0.0)[0], "бросок без силы попал")
+	_expect(not HoopSim.trial(calm, rules, 0.0, HoopSim.speed_of(calm, rules, 1.0), 0.0)[0] or calm.zone + calm.zone_half > 0.9,
+			"бросок в полную силу попал")
+	_expect(not HoopSim.trial(calm, rules, 0.2, HoopSim.speed_of(calm, rules, calm.zone), 0.0)[0], "бросок в сторону попал")
+	for s in plan.shots:
+		if absi(s.wind) >= 2:
+			var mid := HoopSim.speed_of(s, rules, s.zone)
+			_expect(not HoopSim.trial(s, rules, 0.0, mid, 0.0)[1], "ветер в %d стрелки не увёл мяч" % s.wind)
+			_expect(HoopSim.trial(s, rules, HoopSim.yaw_for(s, rules, 0.0), mid, 0.0)[1], "поправка на ветер не помогла")
+			break
+	var moving := plan.shots[plan.shots.size() - 1]
+	var at := 0.0
+	while absf(HoopSim.hoop_shift(moving, at + moving.flight)) < moving.move_amp * 0.8:
+		at += 0.05
+	var lead := HoopSim.hoop_shift(moving, at + moving.flight)
+	var speed := HoopSim.speed_of(moving, rules, moving.zone) * HoopSim.reach_of(moving, rules, lead)
+	_expect(not HoopSim.trial(moving, rules, 0.0, speed, at)[0], "бросок в середину попал в съехавшее кольцо")
+	_expect(HoopSim.trial(moving, rules, HoopSim.yaw_for(moving, rules, lead), speed, at)[0], "бросок с упреждением мимо ездящего кольца")
+	# Серия: бот попадает подряд, четвёртое попадание стоит вдвое.
+	var sim := HoopSim.simulate(plan, rules, AutoTest.BotMode.WIN)
+	var plain := plan.shots[3].points + rules.clean_bonus
+	_expect(sim.results[0] == plan.shots[0].points + rules.clean_bonus and sim.results[3] == plain * rules.fire_mult,
+			"серия не удвоила бросок: %s" % [sim.results])
 
 
 ## Шутер × low poly «рельсовый тир» (#114): сто сидов дают маршрут, который проходит проверку

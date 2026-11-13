@@ -371,6 +371,12 @@ func _build_sky(tex: Texture2D) -> void:
 			verts.append(item[0])
 			normals.append(Vector3.UP)
 			uvs.append(item[1])
+		# Крышка: небо смыкается в зените цветом верхней строки панорамы (обе стороны грани).
+		var top := Vector3(0.0, radius * 1.1, 0.0)
+		for item: Array in [[lo_a + up, ua], [lo_b + up, ub], [top, (ua + ub) / 2.0], [lo_a + up, ua], [top, (ua + ub) / 2.0], [lo_b + up, ub]]:
+			verts.append(item[0])
+			normals.append(Vector3.UP)
+			uvs.append(Vector2(item[1], 0.01))
 	sky_dome = MeshInstance3D.new()
 	sky_dome.mesh = _commit(verts, normals, uvs, _new_material(tex, {"lit": 0.0, "fog_amount": 0.0, "affine": 0.0}))
 	viewport.add_child(sky_dome)

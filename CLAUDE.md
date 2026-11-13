@@ -79,7 +79,9 @@
   `--scene=demo_test --genre=racing --tech=lowpoly --frames=12000` (`TIMEOUT=500`), трасса по сиду и
   заезд ботов без окна текстом `debug/tools/dump_ring.gd -- <seed> [count]`. Шутер × low poly «рельсовый тир» (#114):
   `--scene=demo_test --genre=shooter --tech=lowpoly --frames=6000`, маршрут по сиду и бой
-  ботов без окна текстом `debug/tools/dump_rail.gd -- <seed> [count]`. Обзор
+  ботов без окна текстом `debug/tools/dump_rail.gd -- <seed> [count]`. Спорт × low poly «броски в кольцо» (#115):
+  `--scene=demo_test --genre=sport --tech=lowpoly --frames=6000`, план по сиду и игра ботов без
+  окна текстом `debug/tools/dump_hoop.gd -- <seed> [count]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
   `--input` это `кадр:look=DXxDY`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SportLowpolyGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/sport_lowpoly_gen_tuning.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+near_min = 3.0
+near_max = 4.6
+far_min = 5.2
+far_max = 7.6
+three_from = 5.0
+angle_max = 48.0
+entry = 52.0
+near_first = 4
+wind_shots = 2
+moving_shots = 2
+wind_max = 3
+zone_at_near = 0.3
+zone_at_far = 0.8
+zone_near = 0.1
+zone_far = 0.055
+meter_near = 1.6
+meter_far = 1.1
+move_amp = 0.9
+move_period = 3.8
