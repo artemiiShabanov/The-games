@@ -135,7 +135,7 @@
   --releases=12 --ledger=debug/playtest/ledger_m2.json --time-scale=4 --frames=40000` (долго,
   `TIMEOUT=1500`), затем `python3 tools/model_run.py --replay thegames/debug/playtest/ledger_m2.json`;
   таблица M2 `--m2 [--mid] [--events]`, M3 `--m3 [--start=vector|8bit|16bit|cheap] [--mid]` и сводка
-  `--m3-summary [--events]`; сверка на трёх технологиях: та же петля с `--techs` (шаг ci
+  `--m3-summary [--events]`; M4 `--m4 [--events]` (ниши пяти технологий, старты × руки, вопросы) и `--m4 --start=vector|8bit|16bit|lowpoly|3d [--mid]`; сверка на трёх технологиях: та же петля с `--techs` (шаг ci
   `model M3 replay`).
 - Всё разом: `sh tools/ci.sh` (модель экономики `python3 tools/model_run.py --check` и
   автотесты систем без окна, пара минут).

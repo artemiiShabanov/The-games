@@ -12,6 +12,8 @@
     python3 tools/model_run.py --m3 [--start=vector|8bit|16bit|cheap] [--mid] [--events]
                                           # забег M3 (#105): старт с одной из трёх технологий
     python3 tools/model_run.py --m3-summary [--events]   # сводка M3: старты × руки
+    python3 tools/model_run.py --m4 [--events]           # M4: ниши пяти технологий, старты × руки, вопросы
+    python3 tools/model_run.py --m4 --start=3d [--mid]   # таблица жадного забега M4 с этого старта
     python3 tools/model_run.py --replay thegames/debug/playtest/ledger_m2.json
                                           # сверка с ведомостью реального забега (#72): игра
                                           # с `--calm` считает по тем же формулам; код выхода 1
@@ -323,6 +325,209 @@ def m3_summary(events=0):
     return out
 
 
+# --- Забег M4 (#128) -------------------------------------------------------------------------------
+
+# Пять технологий. План не расписан руками, а выбирается жадно: на каждом релизе студия берёт
+# тройку с лучшей ожидаемой прибылью среди открытых и доступных по деньгам, после релиза
+# покупает следующую прокачку из списка желаний, если после покупки остаётся запас на
+# следующий релиз. Так модель отвечает на вопросы «что выгодно», а не повторяет мой план.
+M4_CAP = 12
+M4_GENRES = ["shooter", "racing", "sport", "fighting"]
+# Минуты на релиз: спринт (мини-игра 20 с и переходы) и постоянная часть (конструктор, демка
+# около минуты, лента, фаза студии).
+M4_SPRINT_MIN = 0.55
+M4_FIXED_MIN = 3.5
+
+
+def outcome(g, t, s, q, b, bs, part, games, R, sat_g, sat_s):
+    """Отклик релиза теми же формулами, что в `simulate`: критики, первая неделя, стримеры,
+    вирусность, хвост."""
+    ti = TECHS.index(t)
+    n = novelty(g, t, s, part, games)
+    sy = synergy(g, t, s)
+    fatigue = S["critics_fatigue"] if part >= S["fatigue_from_part"] else 0.0
+    C = S["critics_base"] + S["critics_quality"] * q + S["critics_novelty"] * n + S["tech_critics"][ti] \
+        + S["critics_synergy"] * (sy - 1.0) - S["critics_bug"] * b - fatigue
+    C = max(0.0, min(10.0, C))
+    sat = max(sat_g[g], sat_s[s])
+    P0 = S["p_base"] * S["tech_sales"][ti] * sy * (S["sales_critics_base"] + S["sales_critics"] * C) \
+        * (1.0 + S["sales_reputation"] * R) * franchise_boost(part) * (1.0 - S["sales_saturation"] * sat)
+    V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][SETTINGS.index(s)]
+                                                 + S["streamers_quality"] * q) + S["streamers_spectacular_bug"] * bs
+    V = max(0.0, min(100.0, V))
+    viral = V >= S["viral_threshold"]
+    if viral:
+        P0 *= S["viral_mult"]
+    d = S["tail_base"] + S["tail_quality"] * q - S["tail_bug"] * min(b, int(S["tail_bug_cap"]))
+    return C, int(round(P0)), V, viral, d
+
+
+def tail_total(P0, d):
+    """Сколько игра принесёт хвостом за всю жизнь."""
+    total, i = 0, 1
+    while i <= S["tail_max_ticks"] and P0 * d ** i >= S["tail_min_share"] * P0:
+        total += int(round(P0 * d ** i))
+        i += 1
+    return total
+
+
+def m4_wish(start, skip=()):
+    """Список желаний: жанры, возможности и технологии по возрастанию цены, вперемешку."""
+    techs = [t for t in TECHS if t != start and t not in skip]
+    order = [("genre", "shooter"), ("cap", "sequels"), ("tech", 0), ("genre", "racing"), ("cap", "qa"), ("tech", 1),
+             ("genre", "sport"), ("tech", 2), ("genre", "fighting"), ("cap", "manager"), ("tech", 3)]
+    out = []
+    for kind, name in order:
+        if kind == "tech":
+            if name < len(techs):
+                out.append(("tech", techs[name]))
+        else:
+            out.append((kind, name))
+    return out
+
+
+def simulate_m4(start, mid=False, events=0, skip=(), only=None):
+    """Жадный забег M4 со стартом на технологии `start`. `skip` это технологии, которые студия
+    не покупает; `only` заставляет выпускать игры только на этой технологии, когда она открыта."""
+    q, b, bs = (0.52, 2, 0) if mid else (0.8, 1, 0)
+    cash = int(E["start_cash"])
+    upkeep = int(E["upkeep_base"])
+    R = 0.0
+    sat_g = {g: 0.0 for g in GENRES}
+    sat_s = {x: 0.0 for x in SETTINGS}
+    open_g, open_t, open_s = ["platformer"], [start], list(SETTINGS)
+    wish = m4_wish(start, skip)
+    games, rows = [], []
+    min_cash, first_bankrupt, minutes = cash, None, 0.0
+    used = {t: 0 for t in TECHS}
+    bought_at = {}
+    for i in range(1, M4_CAP + 1):
+        best = None
+        for g in open_g:
+            for t in open_t:
+                if only and only in open_t and t != only:
+                    continue
+                for x in SETTINGS:
+                    cost = release_cost(g, t, x)
+                    if cost > cash:
+                        continue
+                    C, P0, V, viral, d = outcome(g, t, x, q, b, bs, 1, games, R, sat_g, sat_s)
+                    gain = P0 + tail_total(P0, d) - cost
+                    if best is None or gain > best[0]:
+                        best = (gain, g, t, x, cost, C, P0, V, viral, d)
+        if best is None:
+            first_bankrupt = first_bankrupt or i
+            break
+        _, g, t, x, cost, C, P0, V, viral, d = best
+        cash -= cost
+        used[t] += 1
+        minutes += int(E["sprints_by_tech"][TECHS.index(t)]) * M4_SPRINT_MIN + M4_FIXED_MIN
+        tails = 0
+        for game in games:
+            game["i"] += 1
+            tick = game["P0"] * (game["d"] ** game["i"])
+            if game["i"] > S["tail_max_ticks"] or tick < S["tail_min_share"] * game["P0"]:
+                tick = 0.0
+            tails += int(round(tick))
+        cash += P0 + tails + events - upkeep
+        if cash < cheapest(open_g, open_t, open_s) and first_bankrupt is None:
+            first_bankrupt = i
+        R += (C - 5.0) / 2.0 + (S["reputation_viral_bonus"] if viral else 0.0)
+        for k in sat_g:
+            sat_g[k] *= S["saturation_keep"]
+        for k in sat_s:
+            sat_s[k] *= S["saturation_keep"]
+        add = S["saturation_add"] + S["saturation_add_bad"] * (1.0 - q)
+        sat_g[g] = min(1.0, sat_g[g] + add)
+        sat_s[x] = min(1.0, sat_s[x] + add)
+        games.append(dict(g=g, t=t, s=x, P0=P0, d=d, i=0))
+        bought = ""
+        if wish:
+            kind, name = wish[0]
+            if kind == "tech":
+                p, u = E["unlock_price_by_tech"][TECHS.index(name)], E["unlock_upkeep_by_tech"][TECHS.index(name)]
+            elif kind == "genre":
+                p, u = E["genre_unlock_price"], E["genre_unlock_upkeep"]
+            else:
+                p, u = E["capability_prices"][name], E["capability_upkeeps"][name]
+            reserve = cheapest(open_g, open_t, open_s) + 2 * (upkeep + int(u))
+            if cash - int(p) >= reserve:
+                wish.pop(0)
+                cash -= int(p)
+                upkeep += int(u)
+                bought = name
+                if kind == "tech":
+                    open_t.append(name)
+                    bought_at[name] = i
+                elif kind == "genre":
+                    open_g.append(name)
+        min_cash = min(min_cash, cash)
+        rows.append((i, f"{g} {t} {x}", round(C, 1), P0, tails, round(V), "вирус" if viral else "", upkeep, cost, bought, cash, round(R, 1)))
+    return rows, dict(min_cash=min_cash, first_bankrupt=first_bankrupt, final_cash=cash, used=used, bought_at=bought_at,
+                      minutes=minutes, releases=len(rows))
+
+
+def m4_table(start, mid=False, events=0):
+    rows, r = simulate_m4(start, mid, events)
+    print("| Релиз | Игра | Критики | Неделя | Хвосты | Стримеры | | Содержание | Цена | Покупка | Деньги | Репутация |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for row in rows:
+        print("| " + " | ".join(str(x) for x in row) + " |")
+    print(f"минимум {r['min_cash']}, банкрот на релизе {r['first_bankrupt']}, в конце {r['final_cash']}, около {r['minutes']:.0f} мин")
+
+
+def m4_summary(events=0):
+    """Сводка M4: старт с каждой из пяти технологий, хорошие и средние руки."""
+    print("| Старт | Руки | Релизов | Минимум денег | Банкрот на релизе | В конце | Игр по технологиям | Куплены на релизе | Минут |")
+    print("|---|---|---|---|---|---|---|---|---|")
+    out = {}
+    for start in TECHS:
+        for mid in (False, True):
+            _, r = simulate_m4(start, mid, events)
+            out[(start, mid)] = r
+            used = " ".join(f"{t}:{n}" for t, n in r["used"].items() if n)
+            got = " ".join(f"{t}:{n}" for t, n in r["bought_at"].items())
+            print(f"| {start} | {'средние' if mid else 'хорошие'} | {r['releases']} | {r['min_cash']} | {r['first_bankrupt'] or ''} | "
+                  f"{r['final_cash']} | {used} | {got} | {r['minutes']:.0f} |")
+    return out
+
+
+def m4_niches():
+    """Ниша технологии: одна и та же игра хороших рук (платформер, пираты, качество 0,8, один
+    баг) на каждой технологии при репутации 0 и 6: цена, отклик, прибыль с хвостом."""
+    print("| Технология | Спринтов | Цена релиза | Открытие | Содержание | Репутация | Критики | Неделя | Стримеры | С хвостом | Прибыль | На минуту |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    zero_g = {g: 0.0 for g in GENRES}
+    zero_s = {x: 0.0 for x in SETTINGS}
+    for t in TECHS:
+        ti = TECHS.index(t)
+        cost = release_cost("platformer", t, "pirates")
+        for R in (0.0, 6.0):
+            C, P0, V, viral, d = outcome("platformer", t, "pirates", 0.8, 1, 0, 1, [], R, zero_g, zero_s)
+            total = P0 + tail_total(P0, d)
+            minutes = int(E["sprints_by_tech"][ti]) * M4_SPRINT_MIN + M4_FIXED_MIN
+            print(f"| {t} | {int(E['sprints_by_tech'][ti])} | {cost} | {int(E['unlock_price_by_tech'][ti])} | "
+                  f"{int(E['unlock_upkeep_by_tech'][ti])} | {R:.0f} | {C:.1f} | {P0} | {V:.0f}{' вирус' if viral else ''} | {total} | "
+                  f"{total - cost} | {(total - cost) / minutes:.0f} |")
+
+
+def m4_questions(events=0):
+    """Ответы на вопросы задачи числами."""
+    _, with3d = simulate_m4("8bit", False, events)
+    _, no3d = simulate_m4("8bit", False, events, skip=("3d",))
+    _, no_new = simulate_m4("8bit", False, events, skip=("3d", "lowpoly"))
+    print(f"3D обязательна? старт 8-bit, хорошие руки: с 3D в конце {with3d['final_cash']}, без 3D {no3d['final_cash']}, "
+          f"без 3D и low poly {no_new['final_cash']}")
+    for start in ("lowpoly", "3d"):
+        _, good = simulate_m4(start, False, events)
+        _, mid = simulate_m4(start, True, events)
+        print(f"старт {start}: хорошие руки минимум {good['min_cash']}, банкрот {good['first_bankrupt']}, в конце {good['final_cash']}; "
+              f"средние банкрот на релизе {mid['first_bankrupt']}, релизов {mid['releases']}")
+    for start in TECHS:
+        _, good = simulate_m4(start, False, events)
+        print(f"длительность, старт {start}: {good['minutes']:.0f} мин на {good['releases']} релизов, игр по технологиям {good['used']}")
+
+
 def check():
     """Хорошие руки не уходят в минус и не банкротятся; средние банкротятся на 6-8 релизе."""
     ok = True
@@ -503,6 +708,21 @@ if __name__ == "__main__":
         sys.exit(0)
     if "--check" in sys.argv:
         sys.exit(0 if check() else 1)
+    if "--m4" in sys.argv:
+        start = None
+        for arg in sys.argv:
+            if arg.startswith("--start="):
+                start = arg.split("=", 1)[1]
+        ev = EVENTS_AVG if "--events" in sys.argv else 0
+        if start:
+            m4_table(start, "--mid" in sys.argv, ev)
+        else:
+            m4_niches()
+            print()
+            m4_summary(ev)
+            print()
+            m4_questions(ev)
+        sys.exit(0)
     if "--m3-summary" in sys.argv:
         m3_summary(EVENTS_AVG if "--events" in sys.argv else 0)
         sys.exit(0)
