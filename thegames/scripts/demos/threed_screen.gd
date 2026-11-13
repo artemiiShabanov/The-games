@@ -13,6 +13,7 @@ extends LowpolyScreen
 
 const SHADER := preload("res://scripts/demos/threed.gdshader")
 const WATER_SHADER := preload("res://scripts/demos/threed_water.gdshader")
+const GROUND_SHADER := preload("res://scripts/demos/threed_ground.gdshader")
 const CHECKER_SHADER := """
 shader_type spatial;
 uniform float cell = 0.2;
@@ -224,6 +225,31 @@ func add_water(at: Vector3, size: float) -> MeshInstance3D:
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(node)
 	return node
+
+
+## Материал сыпучей земли (`threed_ground.gdshader`): песок или снег без заметного повтора
+## плитки, с крупными светлыми и тёмными полями и блеском зёрен. Текстура кладётся по
+## координатам мира, развёртка сетки не нужна (касательные нужны).
+func ground_material(tex: Texture2D, tint := Color.WHITE) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = GROUND_SHADER
+	m.set_shader_parameter("tex", tex)
+	var bump := tex.resource_path.replace(".png", "_n.png")
+	if tex.resource_path.ends_with(".png") and ResourceLoader.exists(bump):
+		m.set_shader_parameter("normal_tex", load(bump))
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.02
+	noise.fractal_octaves = 4
+	var field := NoiseTexture2D.new()
+	field.width = 256
+	field.height = 256
+	field.seamless = true
+	field.noise = noise
+	m.set_shader_parameter("noise_tex", field)
+	m.set_shader_parameter("hue_shift", hue_shift)
+	m.set_shader_parameter("tint", tint)
+	return m
 
 
 ## Пальма (#121, плейтест 2026-11-13: листья объёмные, свисают и качаются): изогнутый ствол

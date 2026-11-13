@@ -6,11 +6,14 @@ extends RefCounted
 ##
 ## Райдер едет вниз сам: скорость растёт от уклона и падает от трения, воздуха и дуги. Руль
 ## кладёт доску на кант, кант поворачивает курс; на скорости доска перекладывается медленнее
-## и поворачивает положе, поэтому дугу надо начинать заранее. Руль резко против канта на
-## скорости срывает кант: скорость падает, руль на миг пропадает. В приседе воздух тормозит
-## меньше, но доска поворачивает хуже. Ворота засчитываются, если райдер пересёк их линию между
-## флагами. Трамплин подбрасывает (прыжок на кромке подбрасывает выше); в воздухе курс можно
-## довернуть, а приземлиться надо почти по линии склона, иначе падение. Камень перелетают,
+## и поворачивает положе, поэтому дугу надо начинать заранее. Руль далеко от канта и долгий
+## полный кант на скорости копят натяг `strain` (райдера трясёт и заваливает); полный натяг
+## это срыв канта: скорость падает, руль на миг пропадает. В приседе воздух тормозит меньше, но
+## доска поворачивает хуже. Ворота засчитываются, если райдер пересёк их линию между флагами.
+## Прыжок заряжается, пока держат кнопку, и срабатывает на отпускании: полный заряд втрое
+## выше. Трамплин это клин: райдер въезжает по нему и взлетает с кромки (заряд на кромке
+## подбрасывает выше). В воздухе курс можно довернуть, а приземлиться надо почти по линии
+## склона, иначе падение. Барьер поперёк пути перепрыгивают или объезжают; камень перелетают,
 ## пальму нет; удар это падение: райдер лежит и встаёт почти без скорости. Цель: доехать до
 ## низа, пройдя не меньше `goal_share` ворот.
 
@@ -32,8 +35,13 @@ var crouch := false
 var lift := 0.0
 var rise := 0.0
 var airborne := false
+## Высота клина трамплина под доской (на земле), заряд прыжка в секундах, натяг канта 0..1.
+var ride := 0.0
+var charge := 0.0
+var strain := 0.0
 var fallen_left := 0.0
 var catch_left := 0.0
+var hops := 0
 var next_gate := 0
 var passed := 0
 var missed := 0
@@ -53,7 +61,7 @@ var bot_steer := 0.0
 var bot_jump := false
 var bot_crouch := false
 
-var _jump_buf := 0.0
+var _held := false
 
 
 static func create(course_: DuneCourse, tuning_: SportThreedTuning) -> DuneSim:
@@ -85,7 +93,7 @@ func progress() -> float:
 	return clampf(s / course.length, 0.0, 1.0)
 
 
-## Шаг мира: руль −1..1 (плюс вправо), нажат ли прыжок на этом шаге, держат ли присед.
+## Шаг мира: руль −1..1 (плюс вправо), держат ли прыжок, держат ли присед.
 func step(dt: float, steer: float, jump: bool, crouch_: bool) -> void:
 	if ended:
 		return
@@ -97,16 +105,17 @@ func step(dt: float, steer: float, jump: bool, crouch_: bool) -> void:
 	time += dt
 	steer = clampf(steer, -1.0, 1.0)
 	crouch = crouch_
-	_jump_buf = 0.18 if jump else maxf(_jump_buf - dt, 0.0)
 	catch_left = maxf(catch_left - dt, 0.0)
 	if fallen_left > 0.0:
 		fallen_left -= dt
 		speed = tuning.fall_speed
 		s += speed * dt * 0.3
+		charge = 0.0
 	elif airborne:
 		_air(dt, steer)
 	else:
-		_ground(dt, steer)
+		_ground(dt, steer, jump)
+	_held = jump
 	_gates()
 	top = maxf(top, speed)
 	if s >= course.length:
@@ -119,52 +128,64 @@ func step(dt: float, steer: float, jump: bool, crouch_: bool) -> void:
 		events.append([&"timeout"])
 
 
-func _ground(dt: float, steer: float) -> void:
+func _ground(dt: float, steer: float, jump: bool) -> void:
 	var t := tuning
 	if catch_left > 0.0:
 		steer = 0.0
-	elif absf(steer - edge) > t.catch_gap and speed > t.catch_speed:
-		# Срыв канта: руль резко против дуги на скорости.
-		speed *= t.catch_keep
-		catch_left = t.catch_seconds
-		edge = 0.0
-		steer = 0.0
-		catches += 1
-		events.append([&"catch"])
+		strain = 0.0
+	else:
+		# Натяг канта: руль далеко от канта или долгий полный кант на скорости.
+		var gain := 0.0
+		if speed > t.catch_speed:
+			gain = t.strain_rate * maxf(absf(steer - edge) - t.strain_slack, 0.0) + (t.strain_hold if absf(edge) > 0.92 else 0.0)
+		strain = clampf(strain + (gain if gain > 0.0 else -t.strain_decay) * dt, 0.0, 1.0)
+		if strain >= 1.0:
+			speed *= t.catch_keep
+			catch_left = t.catch_seconds
+			strain = 0.0
+			edge = 0.0
+			steer = 0.0
+			catches += 1
+			events.append([&"catch"])
 	edge = move_toward(edge, steer, t.edge_rate / (1.0 + speed / t.edge_speed) * dt)
 	var turn := t.turn_rate / (1.0 + speed / t.turn_speed) * (t.crouch_turn if crouch else 1.0)
 	heading = clampf(heading + edge * turn * dt, -t.heading_max, t.heading_max)
 	var tilt := atan(course.slope(s))
 	var pull := G * sin(tilt) * cos(heading) - t.friction * cos(tilt) - (t.drag_crouch if crouch else t.drag) * speed * speed \
-			- t.carve_scrub * absf(edge) * speed / 20.0
+			- t.carve_scrub * absf(edge) * speed / 32.0
 	if absf(x) > course.half_width:
 		pull -= t.edge_drag
 	speed = maxf(speed + pull * dt, 1.5)
 	var before := s
 	s += speed * cos(heading) * dt
 	x += speed * sin(heading) * dt
+	# Заряд прыжка копится, пока держат кнопку.
+	if jump:
+		charge = minf(charge + dt, t.charge_seconds)
+	var power := charge / t.charge_seconds
 	for r in course.ramps:
 		if before < r.s and s >= r.s and absf(x - r.x) <= r.width / 2.0 + 0.3:
+			# Кромка трамплина: взлёт с её высоты; заряд прыжка подбрасывает выше.
 			airborne = true
-			lift = 0.05
-			rise = t.ramp_lift * speed / 20.0 * (1.0 + (t.ramp_pop if _jump_buf > 0.0 else 0.0))
-			_jump_buf = 0.0
+			lift = course.ramp_height
+			ride = 0.0
+			rise = t.ramp_lift * speed / t.ramp_ref * (1.0 + t.ramp_pop * power)
+			charge = 0.0
 			jumps += 1
 			events.append([&"ramp"])
 			return
-	# Прыжок прямо перед трамплином ждёт его кромку: раннее нажатие не уводит мимо.
-	var waits := false
-	for r in course.ramps:
-		waits = waits or (r.s > s and r.s - s < speed * 0.3 and absf(x - r.x) <= r.width / 2.0 + 0.3)
-	if waits and _jump_buf > 0.0:
-		_jump_buf = 0.18
-	elif _jump_buf > 0.0:
+	ride = course.ramp_at(s, x)
+	if _held and not jump and charge > 0.0:
+		# Отпустил: прыжок по заряду, полный втрое выше.
 		airborne = true
-		lift = 0.05
-		rise = t.hop
-		_jump_buf = 0.0
-		events.append([&"hop"])
+		lift = ride + 0.05
+		ride = 0.0
+		rise = t.hop * (1.0 + 2.0 * power)
+		charge = 0.0
+		hops += 1
+		events.append([&"hop", power])
 		return
+	_bars(before)
 	_rocks()
 
 
@@ -176,6 +197,7 @@ func _air(dt: float, steer: float) -> void:
 	speed = maxf(speed - t.drag_crouch * speed * speed * dt, 1.5)
 	s += speed * cos(heading) * dt
 	x += speed * sin(heading) * dt
+	_bars(s - speed * cos(heading) * dt)
 	_rocks()
 	if fallen_left > 0.0:
 		return
@@ -187,6 +209,15 @@ func _air(dt: float, steer: float) -> void:
 			_fall()
 		else:
 			events.append([&"land"])
+
+
+## Барьер: пересёк его линию в пределах ширины ниже его высоты это падение.
+func _bars(before: float) -> void:
+	for b in course.bars:
+		if before < b.s and s >= b.s and absf(x - b.x) <= b.half and lift < b.height:
+			_fall()
+			s = b.s + 1.2
+			return
 
 
 ## Удар о препятствие: камень перелетают (выше 1,1 м), пальму нет.
@@ -207,6 +238,9 @@ func _fall() -> void:
 	airborne = false
 	lift = 0.0
 	rise = 0.0
+	charge = 0.0
+	strain = 0.0
+	ride = 0.0
 	heading = 0.0
 	edge = 0.0
 	speed = tuning.fall_speed
@@ -228,8 +262,9 @@ func _gates() -> void:
 
 ## Бот: ставит `bot_steer`, `bot_jump`, `bot_crouch`. WIN держит курс на следующие ворота (на
 ## трамплин, если он стоит перед ними), объезжает препятствия на пути, руль перекладывает
-## плавно, на прямом участке приседает, на кромке трамплина прыгает, в воздухе выравнивает
-## курс. LOSE едет прямо в приседе.
+## плавно и отпускает, когда кант натянут, на прямом участке приседает; перед барьером на пути
+## заряжает прыжок и отпускает так, чтобы перелететь; перед кромкой трамплина держит заряд, в
+## воздухе выравнивает курс. LOSE едет прямо в приседе.
 func bot(mode: AutoTest.BotMode) -> void:
 	bot_steer = 0.0
 	bot_jump = false
@@ -243,7 +278,7 @@ func bot(mode: AutoTest.BotMode) -> void:
 		# В воздухе курс держит, пока он годится для приземления.
 		bot_steer = clampf(-heading * 3.0, -1.0, 1.0) if absf(heading) > tuning.land_angle - 0.08 else 0.0
 		return
-	var aim_s := s + 40.0
+	var aim_s := s + 60.0
 	var aim_x := 0.0
 	if next_gate < course.gates.size():
 		var g := course.gates[next_gate]
@@ -251,12 +286,18 @@ func bot(mode: AutoTest.BotMode) -> void:
 		aim_x = g.x
 		for r in course.ramps:
 			if r.s > s + 0.5 and r.s < g.s:
-				# На трамплин выходят заранее и едут на него прямо.
 				aim_s = r.s
 				aim_x = r.x
-				bot_jump = r.s - s < speed * 0.1 and absf(x - r.x) <= r.width / 2.0
+				bot_jump = (r.s - s) / speed < 0.3 and absf(x - r.x) <= r.width / 2.0
 	var ahead := maxf(aim_s - s, maxf(speed * tuning.bot_look * 0.35, 5.0))
 	var want := clampf(atan2(aim_x - x, ahead), -0.95, 0.95)
+	# Барьер на пути: зарядить прыжок и отпустить за полсекунды до него.
+	for b in course.bars:
+		var gap := b.s - s
+		if gap <= 0.0 or gap > speed * 1.1:
+			continue
+		if absf(x + tan(heading) * gap - b.x) <= b.half + 0.5:
+			bot_jump = gap / speed > 0.5
 	# Препятствие на пути: довернуть от него.
 	var threat := false
 	for r in course.rocks:
@@ -266,7 +307,7 @@ func bot(mode: AutoTest.BotMode) -> void:
 		# Камни за трамплином, на который бот уже вышел, он перелетит.
 		var over := false
 		for ramp in course.ramps:
-			over = over or (ramp.s > s - 1.0 and r.s > ramp.s and r.s < ramp.s + 12.0 and absf(x - ramp.x) <= ramp.width / 2.0 + 1.5)
+			over = over or (ramp.s > s - 1.0 and r.s > ramp.s and r.s < ramp.s + 16.0 and absf(x - ramp.x) <= ramp.width / 2.0 + 1.5)
 		if over:
 			continue
 		var at := x + tan(heading) * gap
@@ -274,6 +315,9 @@ func bot(mode: AutoTest.BotMode) -> void:
 			threat = true
 			want += (1.0 if at >= r.x else -1.0) * 0.4
 	var steer := clampf((want - heading) * tuning.bot_gain, -1.0, 1.0)
-	# Руль не бросает против канта: иначе срыв.
-	bot_steer = clampf(steer, edge - tuning.catch_gap * 0.8, edge + tuning.catch_gap * 0.8)
+	# Руль не уходит далеко от канта и отпускается, когда кант натянут: иначе срыв.
+	var reach := tuning.strain_slack + (0.35 if strain < 0.3 else 0.0)
+	bot_steer = clampf(steer, edge - reach, edge + reach)
+	if strain > 0.6:
+		bot_steer = edge * 0.6
 	bot_crouch = not threat and absf(want - heading) < 0.1 and absf(heading) < 0.4

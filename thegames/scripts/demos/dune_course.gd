@@ -26,8 +26,19 @@ class Rock:
 	var tall := false
 
 
+class Bar:
+	## Барьер поперёк пути: место середины, половина ширины, высота.
+	var s := 0.0
+	var x := 0.0
+	var half := 5.0
+	var height := 1.3
+
+
 var step := 4.0
 var length := 1000.0
+## Клин трамплина: длина до кромки и высота кромки.
+var ramp_length := 9.0
+var ramp_height := 1.7
 var half_width := 15.0
 ## Высота и сдвиг линии склона вбок в точках через `step`.
 var heights := PackedFloat32Array()
@@ -35,6 +46,7 @@ var sways := PackedFloat32Array()
 var gates: Array[Gate] = []
 var ramps: Array[Ramp] = []
 var rocks: Array[Rock] = []
+var bars: Array[Bar] = []
 
 
 func _lerp(values: PackedFloat32Array, s: float) -> float:
@@ -47,6 +59,14 @@ func _lerp(values: PackedFloat32Array, s: float) -> float:
 func height(s: float, x := 0.0) -> float:
 	var over := maxf(absf(x) - half_width, 0.0)
 	return _lerp(heights, s) + over * over * 0.045
+
+
+## Высота клина трамплина под точкой: райдер едет по нему вверх до кромки.
+func ramp_at(s: float, x: float) -> float:
+	for r in ramps:
+		if s >= r.s - ramp_length and s <= r.s and absf(x - r.x) <= r.width / 2.0 + 0.3:
+			return ramp_height * (s - (r.s - ramp_length)) / ramp_length
+	return 0.0
 
 
 func sway(s: float) -> float:
@@ -87,4 +107,6 @@ func signature() -> String:
 		parts.append("t%.1f,%.1f" % [r.s, r.x])
 	for r in rocks:
 		parts.append("r%.1f,%.1f" % [r.s, r.x])
+	for b in bars:
+		parts.append("b%.1f,%.1f,%.1f" % [b.s, b.x, b.half])
 	return "|".join(parts)

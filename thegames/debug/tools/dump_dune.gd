@@ -42,15 +42,15 @@ func _init() -> void:
 		return
 	var course := DuneCourseGen.generate(seed_, t)
 	var why := DuneCourseGen.validate(course, t)
-	print("сид %d: длина %.0f м, перепад %.0f м, ворот %d, трамплинов %d, препятствий %d (пальм %d), проверка: %s" % [seed_, course.length,
-			course.drop(), course.gates.size(), course.ramps.size(), course.rocks.size(), course.tall_rocks(), "ок" if why == "" else why])
+	print("сид %d: длина %.0f м, перепад %.0f м, ворот %d, трамплинов %d, барьеров %d, препятствий %d (пальм %d), проверка: %s" % [seed_, course.length,
+			course.drop(), course.gates.size(), course.ramps.size(), course.bars.size(), course.rocks.size(), course.tall_rocks(), "ок" if why == "" else why])
 	for g in course.gates:
 		print("ворота на %.0f м: вбок %.1f м, ширина %.1f м" % [g.s, g.x, g.half * 2.0])
 	for r in course.ramps:
 		print("трамплин на %.0f м: вбок %.1f м" % [r.s, r.x])
 	for mode: AutoTest.BotMode in [AutoTest.BotMode.WIN, AutoTest.BotMode.LOSE]:
 		var sim := DuneSim.simulate(course, t, mode)
-		print("бот %s: %s за %.1f с, ворот %d из %d (надо %d), падений %d, срывов канта %d, трамплинов %d, предел %.0f км/ч" % [
+		print("бот %s: %s за %.1f с, ворот %d из %d (надо %d), падений %d, срывов канта %d, трамплинов %d, прыжков %d, предел %.0f км/ч" % [
 				"WIN" if mode == AutoTest.BotMode.WIN else "LOSE", "прошёл" if sim.won else "не прошёл", sim.time, sim.passed, course.gates.size(),
-				sim.need(), sim.falls, sim.catches, sim.jumps, sim.top * 3.6])
+				sim.need(), sim.falls, sim.catches, sim.jumps, sim.hops, sim.top * 3.6])
 	quit(0)

@@ -984,8 +984,8 @@ func _outpost_fire(sim: OutpostSim, at: Vector3) -> void:
 ## генерация детерминирована; на каждом сиде бот WIN без окна (`DuneSim.simulate`) набирает
 ## нужную долю ворот, едущий прямо бот LOSE нет. Отдельно правила: на скорости доска
 ## перекладывается медленнее, руль против дуги срывает кант, в приседе быстрее и поворот
-## хуже, ворота считаются между флагами, трамплин подбрасывает над камнями, кривое
-## приземление и удар о камень это падение.
+## хуже, ворота считаются между флагами, прыжок заряжается и берёт барьер, по клину трамплина
+## райдер въезжает и взлетает над камнями, кривое приземление и удар о камень это падение.
 func _check_dunes() -> void:
 	var t := SportThreedTuning.load_default()
 	var seconds: Array[float] = []
@@ -1006,26 +1006,56 @@ func _check_dunes() -> void:
 	AutoTest.note("sport threed: 100 сидов прошли проверку; бот WIN без окна прошёл все: медиана %.1f с, от %.1f до %.1f, мимо ворот в среднем %.1f" % [
 			seconds[50], seconds[0], seconds[99], missed / 100.0])
 	var course := DuneCourseGen.generate(1, t)
-	var clear_s := course.gates[0].s - 40.0
+	var clear_s := course.gates[0].s - 60.0
 	# На скорости доска ложится на кант медленнее.
 	var edges: Array[float] = []
-	for v: float in [8.0, 26.0]:
+	for v: float in [10.0, 40.0]:
 		var sim := _dune_at(course, t, clear_s, 0.0, v)
 		for i in 12:
 			sim.step(DuneSim.DT, 1.0, false, false)
 		edges.append(sim.edge)
 	_expect(edges[1] < edges[0] * 0.85, "кант на скорости не медленнее: %.2f против %.2f" % [edges[1], edges[0]])
-	# Руль резко против дуги на скорости: срыв канта.
-	var sim := _dune_at(course, t, clear_s, 0.0, 24.0)
+	# Руль резко против дуги на скорости: натяг копится (его видно заранее), потом срыв канта;
+	# на малой скорости срыва нет.
+	var sim := _dune_at(course, t, clear_s, 0.0, 36.0)
 	sim.edge = 1.0
-	sim.step(DuneSim.DT, -1.0, false, false)
-	_expect(sim.catches == 1 and sim.speed < 24.0 * 0.8 and sim.catch_left > 0.0, "срыва канта нет: %d, скорость %.1f" % [sim.catches, sim.speed])
+	var warned := 0
+	for i in 60:
+		sim.step(DuneSim.DT, -1.0, false, false)
+		if sim.catches > 0:
+			break
+		warned += 1 if sim.strain > 0.3 else 0
+	_expect(sim.catches == 1 and warned >= 6 and sim.catch_left > 0.0, "срыв канта: %d, шагов с предупреждением %d" % [sim.catches, warned])
+	sim = _dune_at(course, t, clear_s, 0.0, 12.0)
+	sim.edge = 1.0
+	for i in 30:
+		sim.step(DuneSim.DT, -1.0, false, false)
+	_expect(sim.catches == 0, "кант сорвался на малой скорости")
+	# Прыжок заряжается: полный заряд втрое выше короткого нажатия; барьер берёт только он.
+	var peaks: Array[float] = []
+	for hold: int in [2, 60]:
+		sim = _dune_at(course, t, clear_s, 0.0, 20.0)
+		for i in hold:
+			sim.step(DuneSim.DT, 0.0, true, false)
+		var peak := 0.0
+		for i in 120:
+			sim.step(DuneSim.DT, 0.0, false, false)
+			peak = maxf(peak, sim.lift)
+		peaks.append(peak)
+	_expect(peaks[1] > peaks[0] * 5.0 and peaks[1] > 4.0, "заряд прыжка: высота %.1f против %.1f" % [peaks[1], peaks[0]])
+	var bar := course.bars[0]
+	for jump: bool in [false, true]:
+		sim = _dune_at(course, t, bar.s - 30.0, bar.x, 30.0)
+		for i in 90:
+			var gap := (bar.s - sim.s) / maxf(sim.speed, 1.0)
+			sim.step(DuneSim.DT, 0.0, jump and gap > 0.45 and gap < 0.95, false)
+		_expect(sim.falls == (0 if jump else 1), "барьер (%s): падений %d" % ["с прыжком" if jump else "в лоб", sim.falls])
 	# Присед: быстрее по прямой, поворот хуже.
 	var fast: Array[float] = []
 	var turned: Array[float] = []
 	for low: bool in [false, true]:
-		sim = _dune_at(course, t, 10.0, 0.0, 12.0)
-		for i in 240:
+		sim = _dune_at(course, t, 10.0, 0.0, 20.0)
+		for i in 300:
 			sim.step(DuneSim.DT, 0.0, false, low)
 		fast.append(sim.speed)
 		sim = _dune_at(course, t, clear_s, 0.0, 14.0)
@@ -1037,7 +1067,7 @@ func _check_dunes() -> void:
 	# Ворота: между флагами засчитаны, мимо нет.
 	var gate := course.gates[0]
 	for off: float in [0.0, gate.half + 2.0]:
-		sim = _dune_at(course, t, gate.s - 3.0, gate.x + off, 12.0)
+		sim = _dune_at(course, t, gate.s - 6.0, gate.x + off, 12.0)
 		for i in 40:
 			sim.step(DuneSim.DT, 0.0, false, false)
 		_expect(sim.passed == (1 if off == 0.0 else 0) and sim.missed == (0 if off == 0.0 else 1), "ворота со сдвигом %.1f: пройдено %d, мимо %d" % [
@@ -1045,14 +1075,16 @@ func _check_dunes() -> void:
 	# Трамплин: подбрасывает над камнями, ровное приземление держит, кривое роняет.
 	var ramp := course.ramps[0]
 	for twist: bool in [false, true]:
-		sim = _dune_at(course, t, ramp.s - 3.0, ramp.x, 20.0)
+		sim = _dune_at(course, t, ramp.s - 6.0, ramp.x, 30.0)
 		var flew := false
-		for i in 150:
+		var rode := false
+		for i in 240:
 			sim.step(DuneSim.DT, 1.0 if twist and sim.airborne else 0.0, false, false)
-			flew = flew or sim.lift > 1.1
+			rode = rode or (not sim.airborne and sim.ride > 0.5)
+			flew = flew or sim.lift > 3.0
 			if not sim.airborne and flew:
 				break
-		_expect(sim.jumps == 1 and flew and sim.falls == (1 if twist else 0), "трамплин (%s): прыжков %d, падений %d" % [
+		_expect(sim.jumps == 1 and rode and flew and sim.falls == (1 if twist else 0), "трамплин (%s): прыжков %d, падений %d" % [
 				"с доворотом" if twist else "ровно", sim.jumps, sim.falls])
 	# Камень: падение, райдер встаёт почти без скорости.
 	var rock: DuneCourse.Rock = null
@@ -1060,7 +1092,7 @@ func _check_dunes() -> void:
 		if not r.tall and rock == null:
 			var behind_ramp := false
 			for k in course.ramps:
-				behind_ramp = behind_ramp or absf(r.s - k.s - 8.0) < 1.0
+				behind_ramp = behind_ramp or absf(r.s - k.s - 11.0) < 1.0
 			if not behind_ramp:
 				rock = r
 	sim = _dune_at(course, t, rock.s - 6.0, rock.x, 15.0)
