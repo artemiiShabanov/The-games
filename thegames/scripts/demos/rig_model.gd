@@ -93,7 +93,8 @@ func _build(look: ThreedTuning) -> void:
 	for i in def.spring_bones.size():
 		var id: int = _ids.get(StringName(def.spring_bones[i]), -1)
 		if id >= 0:
-			_springs.append({"id": id, "dir": Vector3.DOWN, "vel": Vector3.ZERO, "ready": false, "params": def.spring_params[i]})
+			var rest := def.spring_dirs[i].normalized() if i < def.spring_dirs.size() else Vector3(0.0, -1.0, 0.35).normalized()
+			_springs.append({"id": id, "rest": rest, "vel": Vector3.ZERO, "ready": false, "params": def.spring_params[i]})
 
 
 func has_joint(name: StringName) -> bool:
@@ -174,12 +175,11 @@ func _step_springs(dt: float) -> void:
 		var parent := skeleton.get_bone_parent(id)
 		var parent_pose := skeleton.global_transform * (skeleton.get_bone_global_pose(parent) if parent >= 0 else Transform3D.IDENTITY)
 		var params: Vector3 = s["params"]
-		# В покое хвост висит вниз и чуть назад от кости.
-		var rest_dir := (parent_pose.basis * Vector3(0.0, -1.0, 0.35)).normalized()
+		var base: Vector3 = s["rest"]
+		var rest_dir := (parent_pose.basis * base).normalized()
 		var origin := parent_pose * skeleton.get_bone_rest(id).origin
 		if not s["ready"]:
 			s["ready"] = true
-			s["dir"] = rest_dir
 			s["tip"] = origin + rest_dir * 0.2
 		var tip: Vector3 = s["tip"]
 		var vel: Vector3 = s["vel"]
@@ -192,6 +192,6 @@ func _step_springs(dt: float) -> void:
 		tip = origin + dir * 0.2
 		s["tip"] = tip
 		s["vel"] = vel
-		var local_dir := parent_pose.basis.inverse() * dir
-		var base := Vector3(0.0, -1.0, 0.35).normalized()
-		skeleton.set_bone_pose_rotation(id, Quaternion(base, local_dir.normalized()))
+		var local_dir := (parent_pose.basis.inverse() * dir).normalized()
+		if base.dot(local_dir) > -0.999:
+			skeleton.set_bone_pose_rotation(id, Quaternion(base, local_dir))

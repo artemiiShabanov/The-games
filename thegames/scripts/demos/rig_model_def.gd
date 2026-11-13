@@ -14,6 +14,8 @@ extends Resource
 ## Пружинные кости и их числа: жёсткость, затухание, тяжесть.
 @export var spring_bones := PackedStringArray()
 @export var spring_params := PackedVector3Array()
+## Куда в покое смотрит хвост пружинной кости, в осях модели.
+@export var spring_dirs := PackedVector3Array()
 @export var vertices := PackedVector3Array()
 @export var normals := PackedVector3Array()
 @export var uvs := PackedVector2Array()

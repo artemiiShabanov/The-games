@@ -25,6 +25,8 @@ const MAX_FACE := 2.5
 ## Плоскость шире этого считается дальним планом: баг «дыры в моделях» её не трогает.
 const FAR_PLANE := 100.0
 const PS1_SHADER := preload("res://scripts/demos/lowpoly_ps1.gdshader")
+## Сетки собираются с касательными: включает экран «продвинутых» ради карты рельефа.
+static var with_tangents := false
 ## Глубина цвета и дизеринг поверх кадра: матрица 4×4 по пикселям экрана демки.
 const DITHER_SHADER := """
 shader_type canvas_item;
@@ -469,5 +471,11 @@ static func _commit(verts: PackedVector3Array, normals: PackedVector3Array, uvs:
 	arrays[Mesh.ARRAY_COLOR] = colors
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if with_tangents and not uvs.is_empty():
+		# Касательные нужны карте рельефа «продвинутых»; low poly обходится без них.
+		var tool := SurfaceTool.new()
+		tool.create_from(mesh, 0)
+		tool.generate_tangents()
+		mesh = tool.commit()
 	mesh.surface_set_material(0, mat)
 	return mesh

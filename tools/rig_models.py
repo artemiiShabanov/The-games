@@ -53,6 +53,8 @@ class Paint:
         self.k = self.n / UNITS
         self.im = Image.new("RGB", (self.n, self.n), (128, 128, 128))
         self.h = Image.new("L", (self.n, self.n), 128)
+        # Прозрачность: вырезы (рёбра скелета, рваные края); шейдер режет по половине.
+        self.a = Image.new("L", (self.n, self.n), 255)
         self.d = ImageDraw.Draw(self.im)
         self.dh = ImageDraw.Draw(self.h)
         self.rng = np.random.default_rng(seed)
@@ -83,6 +85,13 @@ class Paint:
         self.d.line(pts, fill=color, width=max(1, int(round(width * self.k))), joint="curve")
         if height is not None:
             self.dh.line(pts, fill=height, width=max(1, int(round(width * self.k))), joint="curve")
+
+    def cut(self, x, y, w, h):
+        """Прозрачный прямоугольник."""
+        ImageDraw.Draw(self.a).rectangle(self._box(x, y, w, h), fill=0)
+
+    def cut_ellipse(self, cx, cy, rx, ry):
+        ImageDraw.Draw(self.a).ellipse(self._box(cx - rx, cy - ry, rx * 2, ry * 2), fill=0)
 
     def _slice(self, x, y, w, h):
         k = self.k
@@ -203,6 +212,62 @@ class Paint:
         bottom = [(x + w * i / steps, y + h + self.rng.uniform(-wobble, wobble)) for i in range(steps, -1, -1)]
         self.poly(top + bottom, color, height)
 
+    def wood(self, x, y, w, h, boards, vertical=True, base=(122, 82, 48), gap=0.22):
+        """Доски: у каждой свой тон, волокна вдоль, тёмные щели между досками. Узор вдоль доски
+        периодичен по куску, поэтому кусок во весь холст стыкуется сам с собой."""
+        gx, gy = self._grid(x, y, w, h)
+        across, along = ((gx - x), (gy - y)) if vertical else ((gy - y), (gx - x))
+        span, length = (w, h) if vertical else (h, w)
+        width = span / boards
+        index = np.clip((across / width).astype(np.int32), 0, boards - 1)
+        tones = self.rng.uniform(0.86, 1.12, boards).astype(np.float32)
+        phases = self.rng.uniform(0.0, 6.28, boards).astype(np.float32)
+        local = across / width - index
+        # Волокна: линии вдоль доски, слегка гуляют; прожилки случайной силы поперёк.
+        streaks = self.rng.normal(0.0, 1.0, (boards, 48)).astype(np.float32)
+        streak = streaks[index, np.clip((local * 48).astype(np.int32), 0, 47)]
+        wave = np.sin(2 * np.pi * (local * 5.0 + 0.35 * np.sin(2 * np.pi * along / length * 2.0 + phases[index])))
+        fibre = 1.0 + 0.05 * wave + 0.045 * streak
+        edge = np.minimum(local, 1.0 - local) * width
+        seam = np.clip(edge / gap, 0.0, 1.0)
+        factor = tones[index] * fibre * (0.45 + 0.55 * seam)
+        ys, xs = self._slice(x, y, w, h)
+        a = np.asarray(self.im, dtype=np.float32).copy()
+        a[ys, xs] = np.clip(np.array(base, dtype=np.float32)[None, None, :] * factor[..., None], 0, 255)
+        self.im = Image.fromarray(a.astype(np.uint8))
+        self.d = ImageDraw.Draw(self.im)
+        hh = np.asarray(self.h, dtype=np.float32).copy()
+        hh[ys, xs] = np.clip(128.0 + wave * 5.0 + streak * 4.0 - (1.0 - seam) * 70.0, 0, 255)
+        self.h = Image.fromarray(hh.astype(np.uint8))
+        self.dh = ImageDraw.Draw(self.h)
+
+    def field(self, fn):
+        """Весь холст по формуле: `fn(gx, gy)` отдаёт цвет (массив …×3) и высоту (массив или None)."""
+        gx, gy = self._grid(0, 0, UNITS, UNITS)
+        color, height = fn(gx, gy)
+        self.im = Image.fromarray(np.clip(color, 0, 255).astype(np.uint8))
+        self.d = ImageDraw.Draw(self.im)
+        if height is not None:
+            self.h = Image.fromarray(np.clip(height, 0, 255).astype(np.uint8))
+            self.dh = ImageDraw.Draw(self.h)
+
+    def tile_noise(self, cells=16, octaves=3):
+        """Шум, который стыкуется по краям холста: сумма плавных решёток, значения около −1..1."""
+        out = np.zeros((self.n, self.n), dtype=np.float32)
+        gx, gy = self._grid(0, 0, UNITS, UNITS)
+        amp = 1.0
+        for _ in range(octaves):
+            grid = self.rng.normal(0.0, 1.0, (cells, cells)).astype(np.float32)
+            fx, fy = gx / UNITS * cells, gy / UNITS * cells
+            ix, iy = np.floor(fx).astype(np.int32) % cells, np.floor(fy).astype(np.int32) % cells
+            tx, ty = _smooth_np(fx - np.floor(fx)), _smooth_np(fy - np.floor(fy))
+            a, b = grid[iy, ix], grid[iy, (ix + 1) % cells]
+            c, d = grid[(iy + 1) % cells, ix], grid[(iy + 1) % cells, (ix + 1) % cells]
+            out += amp * ((a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty)
+            amp *= 0.5
+            cells *= 2
+        return out / 1.6
+
     def region(self, x, y, w, h):
         """Кусок в долях текстуры, чуть внутрь, чтобы фильтр не тянул соседей."""
         e = 0.12
@@ -210,7 +275,8 @@ class Paint:
 
     def finish(self):
         """Цвет и карта рельефа в `RES` пикселей."""
-        color = self.im.resize((RES, RES), Image.LANCZOS)
+        color = self.im.resize((RES, RES), Image.LANCZOS).convert("RGBA")
+        color.putalpha(self.a.resize((RES, RES), Image.LANCZOS).point(lambda v: 255 if v >= 128 else 0))
         height = np.asarray(self.h.filter(ImageFilter.GaussianBlur(SUPER * 0.8)).resize((RES, RES), Image.LANCZOS), dtype=np.float32)
         strength = 0.045
         dx = (np.roll(height, -1, axis=1) - np.roll(height, 1, axis=1)) * strength
@@ -236,8 +302,9 @@ class Rig:
     def bone(self, name, parent, pos):
         self.bones.append((name, parent, pos))
 
-    def spring(self, name, stiffness=60.0, damping=7.0, gravity=0.6):
-        self.springs.append((name, stiffness, damping, gravity))
+    def spring(self, name, stiffness=60.0, damping=7.0, gravity=0.6, rest=(0.0, -1.0, 0.35)):
+        """Пружинная кость: жёсткость, затухание, тяжесть и куда в покое смотрит её хвост."""
+        self.springs.append((name, stiffness, damping, gravity, rest))
 
     def vert(self, pos, uv, weights, cloth=0.0):
         self.verts.append(pos)
@@ -352,20 +419,23 @@ class Rig:
             for k in range(m):
                 self.tri(hub, rim[k], rim[(k + 1) % m], (0.0, -1.0, 0.0))
 
-    def strip(self, points, width_dir, half, region, weight_fn, cloth_from=0.0):
-        """Лента ткани вдоль `points` шириной `half`·2 поперёк `width_dir`, двусторонняя."""
+    def strip(self, points, width_dir, half, region, weight_fn, cloth_from=0.0, cloth_to=1.0, taper=0.35):
+        """Лента вдоль `points` шириной `half`·2 поперёк `width_dir`, двусторонняя: ткань (доля
+        колыхания растёт к концу) или жёсткая вещь вроде клинка (`cloth_to` 0)."""
         u0, v0, u1, v1 = region
         rows = []
         for i, p in enumerate(points):
             t = i / (len(points) - 1)
             row = []
             for side, u in ((-1.0, u0), (1.0, u1)):
-                pos = tuple(p[j] + width_dir[j] * half * side * (1.0 - 0.35 * t) for j in range(3))
-                row.append(self.vert(pos, (u, v0 + (v1 - v0) * t), weight_fn(t), cloth_from + (1.0 - cloth_from) * t))
+                pos = tuple(p[j] + width_dir[j] * half * side * (1.0 - taper * t) for j in range(3))
+                row.append(self.vert(pos, (u, v0 + (v1 - v0) * t), weight_fn(t), cloth_from + (cloth_to - cloth_from) * t))
             rows.append(row)
         for i in range(len(rows) - 1):
             a, b, c, d = rows[i][0], rows[i][1], rows[i + 1][1], rows[i + 1][0]
-            for out in ((0, 0, 1), (0, 0, -1)):
+            pa, pb, pc = (np.array(self.verts[j]) for j in (a, b, c))
+            face = np.cross(pb - pa, pc - pa)
+            for out in (face, -face):
                 self.tri(a, b, c, out)
                 self.tri(a, c, d, out)
 
@@ -413,7 +483,8 @@ class Rig:
             "bone_parents = PackedInt32Array(%s)" % ", ".join(str(names.index(b[1]) if b[1] else -1) for b in self.bones),
             "bone_rests = PackedVector3Array(%s)" % flat([b[2] for b in self.bones]),
             "spring_bones = PackedStringArray(%s)" % ", ".join('"%s"' % s[0] for s in self.springs),
-            "spring_params = PackedVector3Array(%s)" % flat([s[1:] for s in self.springs]),
+            "spring_params = PackedVector3Array(%s)" % flat([s[1:4] for s in self.springs]),
+            "spring_dirs = PackedVector3Array(%s)" % flat([s[4] for s in self.springs]),
             "vertices = PackedVector3Array(%s)" % flat(self.verts),
             "normals = PackedVector3Array(%s)" % flat(self.normals()),
             "uvs = PackedVector2Array(%s)" % flat(self.uvs),
@@ -608,50 +679,54 @@ def paint_sailor():
     return p
 
 
-def pirate_sailor():
-    """Матрос: тельняшка, штаны клёш, сапоги, бандана с хвостами."""
-    p = paint_sailor()
-    torso, head = p.region(0, 0, 32, 22), p.region(32, 0, 32, 20)
-    arm, leg = p.region(0, 22, 16, 26), p.region(16, 22, 20, 34)
-    boot, sole, skin, tail = p.region(40, 24, 12, 6), p.region(54, 24, 6, 6), p.region(54, 32, 6, 6), p.region(40, 34, 12, 8)
-    r = Rig("sailor")
-    # Скелет: таз в корне, позвоночник, шея, голова; руки и ноги по три кости; хвост банданы.
+# Раскладка атласа у всех людей одна: конструктор тела знает, куда что развёрнуто.
+def regions(p):
+    return {"torso": p.region(0, 0, 32, 22), "head": p.region(32, 0, 32, 20), "arm": p.region(0, 22, 16, 26),
+            "leg": p.region(16, 22, 20, 34), "boot": p.region(40, 24, 12, 6), "sole": p.region(54, 24, 6, 6),
+            "skin": p.region(54, 32, 6, 6), "strip": p.region(40, 34, 12, 8), "skirt": p.region(36, 44, 28, 20),
+            "hat": p.region(0, 48, 16, 16), "crown": p.region(46, 1, 4, 3)}
+
+
+def build_body(name, reg, bulk=1.0, limb=1.0, leg="bell"):
+    """Конструктор тела: человек ростом 1,76 м на скелете из 17 костей, одной сеткой.
+
+    `bulk` ширина торса и плеч, `limb` толщина рук и ног (у скелета кости тонкие), `leg` низ
+    штанины: `bell` клёш с колыханием или `straight` под сапог. Возвращает сетку и кольца торса
+    (к ним персонаж добавляет своё: полы, шляпу, хвосты).
+    """
+    r = Rig(name)
+    k = bulk
     r.bone("hips", None, (0.0, 0.92, 0.0))
     r.bone("spine", "hips", (0.0, 1.06, 0.0))
     r.bone("chest", "spine", (0.0, 1.24, 0.0))
     r.bone("neck", "chest", (0.0, 1.46, 0.0))
     r.bone("head", "neck", (0.0, 1.53, 0.0))
-    r.bone("tail", "head", (0.0, 1.665, 0.105))
-    r.spring("tail", 45.0, 5.0, 1.2)
     for side, sx in (("l", -1.0), ("r", 1.0)):
-        r.bone("arm_" + side, "chest", (sx * 0.215, 1.4, 0.0))
-        r.bone("fore_" + side, "arm_" + side, (sx * 0.232, 1.12, 0.0))
-        r.bone("hand_" + side, "fore_" + side, (sx * 0.24, 0.87, 0.0))
-        r.bone("leg_" + side, "hips", (sx * 0.095, 0.9, 0.0))
-        r.bone("shin_" + side, "leg_" + side, (sx * 0.095, 0.49, 0.0))
-        r.bone("foot_" + side, "shin_" + side, (sx * 0.095, 0.08, 0.0))
+        r.bone("arm_" + side, "chest", (sx * 0.215 * k, 1.4, 0.0))
+        r.bone("fore_" + side, "arm_" + side, (sx * 0.232 * k, 1.12, 0.0))
+        r.bone("hand_" + side, "fore_" + side, (sx * 0.24 * k, 0.87, 0.0))
+        r.bone("leg_" + side, "hips", (sx * 0.095 * k, 0.9, 0.0))
+        r.bone("shin_" + side, "leg_" + side, (sx * 0.095 * k, 0.49, 0.0))
+        r.bone("foot_" + side, "shin_" + side, (sx * 0.095 * k, 0.08, 0.0))
     n = 16
     # Торс и голова одной трубой. В боках торса окна под рукава: кольца 8..11 (высота 1,25–1,415),
     # по две грани вокруг бока (точки 3..5 справа, 11..13 слева).
     body = lambda y: blend(y, [("hips", 0.0, 0.97), ("spine", 1.07, 1.14), ("chest", 1.26, 1.435), ("neck", 1.475, 1.495), ("head", 1.53, 9.0)])
-    holes = {(i, k) for i in (8, 9, 10) for k in (3, 4, 11, 12)}
-    rows = r.tube([(0.86, 0.15, 0.11, 0, 0), (0.9, 0.156, 0.116, 0, 0), (0.95, 0.152, 0.112, 0, 0), (1.0, 0.142, 0.103, 0, 0),
-                   (1.06, 0.14, 0.1, 0, 0), (1.12, 0.148, 0.104, 0, 0), (1.17, 0.16, 0.11, 0, 0), (1.21, 0.172, 0.116, 0, 0),
-                   (1.25, 0.18, 0.12, 0, 0), (1.31, 0.186, 0.12, 0, 0), (1.365, 0.184, 0.114, 0, 0), (1.415, 0.16, 0.1, 0, 0),
-                   (1.445, 0.1, 0.08, 0, 0), (1.47, 0.058, 0.06, 0, 0)], n, torso, body, cap_bottom=sole, skip=holes)
+    holes = {(i, kk) for i in (8, 9, 10) for kk in (3, 4, 11, 12)}
+    rows = r.tube([(0.86, 0.15 * k, 0.11 * k, 0, 0), (0.9, 0.156 * k, 0.116 * k, 0, 0), (0.95, 0.152 * k, 0.112 * k, 0, 0),
+                   (1.0, 0.142 * k, 0.103 * k, 0, 0), (1.06, 0.14 * k, 0.1 * k, 0, 0), (1.12, 0.148 * k, 0.104 * k, 0, 0),
+                   (1.17, 0.16 * k, 0.11 * k, 0, 0), (1.21, 0.172 * k, 0.116 * k, 0, 0), (1.25, 0.18 * k, 0.12 * k, 0, 0),
+                   (1.31, 0.186 * k, 0.12 * k, 0, 0), (1.365, 0.184 * k, 0.114 * k, 0, 0), (1.415, 0.16 * k, 0.1 * k, 0, 0),
+                   (1.445, 0.1, 0.08, 0, 0), (1.47, 0.058, 0.06, 0, 0)], n, reg["torso"], body, cap_bottom=reg["sole"], skip=holes)
     r.tube([(1.47, 0.056, 0.06, 0, 0), (1.5, 0.054, 0.058, 0, -0.002), (1.525, 0.07, 0.076, 0, -0.004),
             (1.555, 0.09, 0.098, 0, -0.006), (1.59, 0.101, 0.112, 0, -0.006), (1.63, 0.106, 0.117, 0, -0.005),
             (1.67, 0.106, 0.116, 0, -0.004), (1.705, 0.098, 0.108, 0, -0.003), (1.735, 0.078, 0.088, 0, -0.002),
-            (1.755, 0.045, 0.052, 0, 0.0)], n, head, body, cap_top=p.region(46, 1, 4, 3), v_range=(1.47, 1.76))
-    # Хвосты банданы: две ленты из узла на затылке, ткань с пружинной костью.
-    for dx, lean in ((-0.025, -0.05), (0.03, 0.06)):
-        pts = [(dx, 1.665 - 0.055 * i, 0.108 + 0.022 * i + abs(lean) * 0.1 * i) for i in range(6)]
-        pts = [(x + lean * i * 0.2, y, z) for i, (x, y, z) in enumerate(pts)]
-        r.strip(pts, (1.0, 0.0, 0.0), 0.028, tail, lambda t: [("head", 1.0 - t), ("tail", t)] if t < 1.0 else [("tail", 1.0)], 0.2)
+            (1.755, 0.045, 0.052, 0, 0.0)], n, reg["head"], body, cap_top=reg["crown"], v_range=(1.47, 1.76))
+    t = limb
     for side, sx in (("l", -1.0), ("r", 1.0)):
         s = side
         # Рука вращена в торс: рукав начинается с края окна в боку, плечо, локоть, запястье, кисть.
-        x = sx * 0.228
+        x = sx * 0.228 * k
 
         def aw(index, y, s=s):
             # У окна ткань ещё держится за грудь, дальше по руке веса идут по высоте.
@@ -664,30 +739,422 @@ def pirate_sailor():
             return blend(y, [("hand_" + s, 0.0, 0.855), ("fore_" + s, 0.895, 1.075), ("arm_" + s, 1.165, 9.0)])
 
         k0 = 3 if sx > 0 else 11
+        top = 0.5 + 0.5 * t
         r.sleeve(rows, 8, 11, k0, k0 + 2, sx,
-                 [((sx * 0.202, 1.352, 0.0), 28.0, 0.074, 0.076), ((sx * 0.224, 1.318, 0.0), 62.0, 0.068, 0.07)],
-                 [(1.27, 0.06, 0.064, x, 0), (1.21, 0.055, 0.059, x * 1.01, 0), (1.165, 0.05, 0.054, x * 1.015, 0),
-                  (1.13, 0.047, 0.051, x * 1.02, 0), (1.1, 0.046, 0.05, x * 1.022, 0), (1.06, 0.045, 0.048, x * 1.026, 0),
-                  (1.0, 0.042, 0.045, x * 1.033, 0), (0.93, 0.037, 0.04, x * 1.042, 0), (0.875, 0.031, 0.034, x * 1.05, 0),
+                 [((sx * 0.202 * k, 1.352, 0.0), 28.0, 0.074 * top, 0.076 * top), ((sx * 0.224 * k, 1.318, 0.0), 62.0, 0.068 * top, 0.07 * top)],
+                 [(1.27, 0.06 * t, 0.064 * t, x, 0), (1.21, 0.055 * t, 0.059 * t, x * 1.01, 0), (1.165, 0.05 * t, 0.054 * t, x * 1.015, 0),
+                  (1.13, 0.047 * t, 0.051 * t, x * 1.02, 0), (1.1, 0.046 * t, 0.05 * t, x * 1.022, 0), (1.06, 0.045 * t, 0.048 * t, x * 1.026, 0),
+                  (1.0, 0.042 * t, 0.045 * t, x * 1.033, 0), (0.93, 0.037 * t, 0.04 * t, x * 1.042, 0), (0.875, 0.031 * t, 0.034 * t, x * 1.05, 0),
                   (0.85, 0.03, 0.04, x * 1.054, 0), (0.81, 0.033, 0.05, x * 1.058, 0), (0.77, 0.031, 0.047, x * 1.062, 0),
-                  (0.745, 0.024, 0.034, x * 1.064, 0)], arm, aw, cap=skin)
-        # Нога: штаны клёш, низ штанины колышется.
-        x = sx * 0.095
+                  (0.745, 0.024, 0.034, x * 1.064, 0)], reg["arm"], aw, cap=reg["skin"])
+        # Нога: клёш с колыханием у низа или ровная штанина под сапог.
+        x = sx * 0.095 * k
         lw = lambda y, s=s: blend(y, [("foot_" + s, 0.0, 0.07), ("shin_" + s, 0.11, 0.43), ("leg_" + s, 0.55, 0.86), ("hips", 0.96, 9.0)])
-        hem = lambda y: max(0.0, min(1.0, (0.36 - y) / 0.26)) * 0.55
-        r.tube([(0.07, 0.094, 0.1, x, 0.004), (0.1, 0.092, 0.098, x, 0.004), (0.16, 0.084, 0.09, x, 0.003),
-                (0.24, 0.076, 0.082, x, 0.002), (0.32, 0.071, 0.077, x, 0.001), (0.4, 0.068, 0.074, x, 0),
-                (0.45, 0.067, 0.073, x, 0), (0.49, 0.068, 0.075, x, -0.002), (0.53, 0.07, 0.077, x, -0.002),
-                (0.6, 0.076, 0.082, x, 0), (0.7, 0.085, 0.091, x, 0), (0.8, 0.093, 0.099, x, 0), (0.88, 0.097, 0.103, x * 0.98, 0),
-                (0.95, 0.09, 0.098, x * 0.9, 0)], 12, leg, lw, hem, cap_bottom=sole, v_range=(0.07, 0.95))
+        if leg == "bell":
+            hem = lambda y: max(0.0, min(1.0, (0.36 - y) / 0.26)) * 0.55
+            low = [(0.07, 0.094, 0.1, x, 0.004), (0.1, 0.092, 0.098, x, 0.004), (0.16, 0.084, 0.09, x, 0.003), (0.24, 0.076, 0.082, x, 0.002)]
+        else:
+            hem = None
+            low = [(0.07, 0.056 * t, 0.06 * t, x, 0.0), (0.12, 0.06 * t, 0.064 * t, x, 0.0), (0.18, 0.066 * t, 0.07 * t, x, 0.002),
+                   (0.25, 0.071 * t, 0.076 * t, x, 0.004)]
+        r.tube(low + [(0.32, 0.071 * t, 0.077 * t, x, 0.001), (0.4, 0.068 * t, 0.074 * t, x, 0), (0.45, 0.067 * t, 0.073 * t, x, 0),
+                      (0.49, 0.068 * t, 0.075 * t, x, -0.002), (0.53, 0.07 * t, 0.077 * t, x, -0.002), (0.6, 0.076 * t, 0.082 * t, x, 0),
+                      (0.7, 0.085 * t, 0.091 * t, x, 0), (0.8, 0.093 * t, 0.099 * t, x, 0), (0.88, 0.097 * t, 0.103 * t, x * 0.98, 0),
+                      (0.95, 0.09 * t, 0.098 * t, x * 0.9, 0)], 12, reg["leg"], lw, hem, cap_bottom=reg["sole"], v_range=(0.07, 0.95))
         # Сапог: носок вперёд (−Z).
         fw = lambda y, s=s: [("foot_" + s, 1.0)]
         r.tube([(0.0, 0.05, 0.115, x, -0.045), (0.035, 0.054, 0.12, x, -0.047), (0.07, 0.052, 0.1, x, -0.03),
-                (0.105, 0.05, 0.062, x, -0.004), (0.14, 0.048, 0.055, x, 0.0)], 10, boot, fw, cap_bottom=sole, cap_top=sole)
+                (0.105, 0.05, 0.062, x, -0.004), (0.14, 0.048, 0.055, x, 0.0)], 10, reg["boot"], fw, cap_bottom=reg["sole"], cap_top=reg["sole"])
+    return r, rows
+
+
+def add_tricorn(r, reg):
+    """Треуголка: тулья и поля, загнутые вверх; сидит на голове."""
+    hw = lambda y: [("head", 1.0)]
+    r.tube([(1.7, 0.118, 0.128, 0, -0.004), (1.715, 0.205, 0.215, 0, -0.004), (1.74, 0.225, 0.235, 0, -0.004),
+            (1.765, 0.19, 0.2, 0, -0.004)], 16, reg["hat"], hw, v_range=(1.7, 1.86))
+    r.tube([(1.71, 0.112, 0.122, 0, -0.004), (1.76, 0.108, 0.118, 0, -0.004), (1.81, 0.094, 0.104, 0, -0.004),
+            (1.835, 0.06, 0.066, 0, -0.004)], 16, reg["hat"], hw, cap_top=reg["sole"], v_range=(1.64, 1.86))
+
+
+def pirate_sailor():
+    """Матрос: тельняшка, штаны клёш, сапоги, бандана с хвостами."""
+    p = paint_sailor()
+    reg = regions(p)
+    r, _ = build_body("sailor", reg)
+    # Хвосты банданы: две ленты из узла на затылке, ткань с пружинной костью.
+    r.bone("tail", "head", (0.0, 1.665, 0.105))
+    r.spring("tail", 45.0, 5.0, 1.2)
+    for dx, lean in ((-0.025, -0.05), (0.03, 0.06)):
+        pts = [(dx, 1.665 - 0.055 * i, 0.108 + 0.022 * i + abs(lean) * 0.1 * i) for i in range(6)]
+        pts = [(x + lean * i * 0.2, y, z) for i, (x, y, z) in enumerate(pts)]
+        r.strip(pts, (1.0, 0.0, 0.0), 0.028, reg["strip"], lambda t: [("head", 1.0 - t), ("tail", t)] if t < 1.0 else [("tail", 1.0)], 0.2)
     return r, p
 
 
-SETS = {"pirates": [pirate_sailor]}
+# --- Пираты: капитан ----------------------------------------------------------------------------
+
+COAT, COAT_D = rgb("9C2A26"), rgb("6A1C1C")
+BLACK, FELT = rgb("1C1A1E"), rgb("26232A")
+BONE, BONE_D = rgb("E4DCC4"), rgb("A89C80")
+STEEL = rgb("B8BEC8")
+
+
+def paint_captain():
+    """Атлас капитана: красный камзол с золотом, жабо, борода, белые бриджи, высокие сапоги, полы, треуголка."""
+    p = Paint(31)
+    # Камзол: борта с золотыми пуговицами, жабо у ворота, кушак.
+    p.rect(0, 0, 32, 22, COAT, 128)
+    p.weave(0, 0, 32, 22, 0.4, 0.05)
+    p.uneven(0, 0, 32, 22, 0.08, 3.0)
+    p.poly([(13.2, 0), (18.8, 0), (17.2, 6.5), (14.8, 6.5)], rgb("EEE8DA"), 150)
+    for i in range(4):
+        p.fold([(14.2, 1.2 + i * 1.5), (16, 1.9 + i * 1.5), (17.8, 1.2 + i * 1.5)], 0.3, 0.84, 30)
+    for sx in (-1.0, 1.0):
+        p.poly([(16 + sx * 2.9, 0), (16 + sx * 6.4, 0), (16 + sx * 3.0, 9.5), (16 + sx * 1.5, 7.0)], COAT_D, 140)
+        p.line([(16 + sx * 6.4, 0), (16 + sx * 3.0, 9.5), (16 + sx * 2.4, 18.4)], GOLD, 0.34, 152)
+        for i in range(5):
+            p.ellipse(16 + sx * 3.5, 8.2 + i * 2.3, 0.5, 0.5, GOLD, 170)
+            p.ellipse(16 + sx * 3.5 - 0.12, 8.08 + i * 2.3, 0.2, 0.2, rgb("FFF2B0"))
+        # Эполет на плече.
+        p.rect(16 + sx * 11.6 - 2.2, 0.4, 4.4, 1.8, GOLD, 165)
+        for i in range(5):
+            p.line([(16 + sx * 11.6 - 1.8 + i * 0.9, 2.2), (16 + sx * 11.6 - 1.8 + i * 0.9, 3.3)], GOLD_D, 0.24, 150)
+    p.rect(0, 17.4, 32, 2.6, rgb("D8B25A"), 152)
+    p.wrinkles(0, 17.5, 32, 2.4, 10, 3.0, 0.15, 0.82)
+    p.rect(0, 20.0, 32, 2.0, COAT, 128)
+    p.wrinkles(0, 6, 32, 11, 12, 3.4, 0.4, 0.88)
+    p.stains(0, 8, 32, 9, 4, 1.4, 0.88)
+    p.shade_v(0, 0, 32, 17.4, 1.04, 0.9)
+    p.shade_round(0, 0, 32, 22, 0.72)
+    # Голова: смуглая кожа, чёрная борода и усы, повязка на глазу.
+    p.rect(32, 0, 32, 20, SKIN, 128)
+    p.rect(32, 3.0, 9.0, 9.5, BLACK, 138)
+    p.rect(55.0, 3.0, 9.0, 9.5, BLACK, 138)
+    p.rect(32, 0, 32, 3.4, BLACK, 134)
+    beard = [(41.0, 10.6), (43.0, 12.0), (48, 12.6), (53.0, 12.0), (55.0, 10.6), (55.2, 16.0), (51.5, 19.4), (48, 20), (44.5, 19.4), (40.8, 16.0)]
+    p.poly(beard, BLACK, 150)
+    p.speckle(41, 11, 14, 8.6, 260, rgb("3A3640"), 0.08)
+    for i in range(9):
+        p.fold([(42.4 + i * 1.4, 12.8), (42.8 + i * 1.3, 19.0)], 0.22, 0.8, 26)
+    for sx in (-1.0, 1.0):
+        ex = 48 + sx * 2.9
+        p.line([(ex - 1.5, 6.6), (ex, 6.1), (ex + 1.5, 6.6 + 0.2 * sx)], BLACK, 0.6, 142)
+        p.ellipse(48 + sx * 8.2, 9.3, 0.9, 1.5, mul(SKIN, 0.92), 140)
+        p.line([(48 + sx * 0.3, 12.3), (48 + sx * 2.2, 12.0), (48 + sx * 3.6, 12.9)], BLACK, 0.55, 150)
+    p.ellipse(50.9, 8.1, 1.15, 0.72, rgb("F4EEE2"), 132)
+    p.ellipse(51.0, 8.15, 0.5, 0.6, rgb("2A2018"))
+    p.ellipse(45.1, 8.2, 1.7, 1.45, BLACK, 150)
+    p.line([(40.5, 5.2), (45.1, 8.0), (55.5, 4.6)], BLACK, 0.3, 146)
+    p.poly([(47.2, 8.0), (48.8, 8.0), (49.5, 11.1), (46.5, 11.1)], SKIN_L, 152)
+    p.line([(46.7, 11.2), (48, 11.6), (49.3, 11.2)], SKIN_D, 0.3, 112)
+    p.grain(41, 3.4, 14, 8.0, 0.04, 0.9, 5.0)
+    p.line([(43.2, 4.3), (52.8, 4.2)], SKIN_D, 0.1)
+    p.line([(44.0, 5.0), (52.0, 4.9)], SKIN_D, 0.08)
+    p.shade_round(32, 0, 32, 20, 0.8)
+    # Рукав камзола во всю длину, золотой обшлаг, кисть.
+    p.rect(0, 22, 16, 26, COAT, 128)
+    p.weave(0, 22, 16, 21, 0.4, 0.05)
+    p.uneven(0, 22, 16, 21, 0.08, 2.5)
+    p.wrinkles(0, 24, 16, 15, 12, 2.8, 0.35, 0.88)
+    for fy in (33.0, 33.9):
+        p.fold([(2, fy), (8, fy + 0.4), (14, fy)], 0.4, 0.84, 26)
+    p.rect(0, 39.6, 16, 3.2, COAT_D, 146)
+    p.rect(0, 39.5, 16, 0.5, GOLD, 158)
+    p.rect(0, 42.6, 16, 0.5, GOLD, 158)
+    for bx in (4.0, 8.0, 12.0):
+        p.ellipse(bx, 41.2, 0.42, 0.42, GOLD, 168)
+    p.rect(0, 43.1, 16, 0.8, rgb("EEE8DA"), 150)
+    p.rect(0, 43.9, 16, 4.1, SKIN, 128)
+    for fx in (5.2, 7.0, 8.8, 10.6):
+        p.line([(fx, 45.8), (fx, 48)], SKIN_D, 0.2, 112)
+    p.shade_round(0, 22, 16, 26, 0.74)
+    # Нога: белые бриджи до колена, ниже высокий чёрный сапог с отворотом.
+    p.rect(16, 22, 20, 34, rgb("E4DCCA"), 128)
+    p.weave(16, 22, 20, 17, 0.36, 0.05)
+    p.wrinkles(16, 23, 20, 14, 12, 3.2, 0.4, 0.88)
+    p.stains(16, 30, 20, 8, 4, 1.2, 0.9)
+    p.rect(16, 39.0, 20, 17, BLACK, 136)
+    p.grain(16, 39.0, 20, 17, 0.14, 1.6, 16.0)
+    p.rect(16, 38.2, 20, 2.6, rgb("3A3238"), 158)
+    p.fold([(16, 40.9), (36, 40.9)], 0.4, 0.6, 50)
+    p.stitch([(16, 38.7), (36, 38.7)], rgb("8A7A60"), 0.1, 0.5)
+    p.wrinkles(16, 44, 20, 9, 9, 3.2, 0.2, 0.75, 40)
+    ys, xs = p._slice(22, 41, 8, 14)
+    gx, gy = p._grid(22, 41, 8, 14)
+    p._apply(22, 41, 8, 14, 1.0 + 0.55 * np.exp(-(((gx - 26) / 1.1) ** 2)))
+    p.shade_round(16, 22, 20, 34, 0.74)
+    # Сапог, подошва, кожа.
+    p.rect(40, 24, 12, 6, BLACK, 128)
+    p.grain(40, 24, 12, 6, 0.14, 1.4, 14.0)
+    p.wrinkles(40, 24.3, 12, 5.4, 8, 2.4, 0.4, 0.75, 34)
+    p.rect(44.6, 24.4, 2.8, 2.0, GOLD, 160)
+    p.rect(45.3, 24.9, 1.4, 1.0, BLACK, 130)
+    p.shade_round(40, 24, 12, 6, 0.7)
+    p.rect(54, 24, 6, 6, BLACK, 128)
+    p.rect(54, 32, 6, 6, SKIN, 128)
+    # Перо на шляпе.
+    p.rect(40, 34, 12, 8, rgb("ECE6D8"), 128)
+    for i in range(18):
+        p.fold([(40.3 + i * 0.66, 34), (40.9 + i * 0.66, 42)], 0.16, 0.8, 24)
+    p.fold([(46, 34), (46, 42)], 0.35, 0.7, 40)
+    # Полы камзола: ткань, золотой кант по краю и по низу, складки сверху вниз.
+    p.rect(36, 44, 28, 20, COAT, 128)
+    p.weave(36, 44, 28, 20, 0.4, 0.05)
+    p.uneven(36, 44, 28, 20, 0.09, 3.0)
+    for i in range(9):
+        p.fold([(37.5 + i * 3.1, 44.4), (37.2 + i * 3.25, 62.6)], 0.55, 0.82, 40)
+    p.rect(36, 62.4, 28, 0.7, GOLD, 158)
+    p.stains(36, 56, 28, 6, 5, 1.3, 0.86)
+    p.shade_v(36, 44, 28, 20, 1.02, 0.84)
+    # Треуголка: чёрный фетр, золотой галун.
+    p.rect(0, 48, 16, 16, FELT, 128)
+    p.grain(0, 48, 16, 16, 0.12, 1.2, 12.0)
+    p.rect(0, 48, 16, 0.9, GOLD, 160)
+    p.rect(0, 57.6, 16, 0.6, GOLD, 156)
+    p.stitch([(0, 49.3), (16, 49.3)], GOLD_D, 0.1, 0.45)
+    return p
+
+
+def pirate_captain():
+    """Капитан: крупнее матроса, камзол с полами на пружинной кости, треуголка с пером, борода."""
+    p = paint_captain()
+    reg = regions(p)
+    r, _ = build_body("captain", reg, bulk=1.16, leg="straight")
+    add_tricorn(r, reg)
+    # Полы камзола: колокол от пояса до середины бедра, спереди распахнут; качается целиком и
+    # отстаёт от шага.
+    r.bone("skirt", "hips", (0.0, 1.0, 0.02))
+    r.spring("skirt", 70.0, 6.0, 0.4, (0.0, -1.0, 0.0))
+
+    def sw(y):
+        t = max(0.0, min(1.0, (1.0 - y) / 0.4))
+        return [("hips", 1.0 - 0.75 * t), ("skirt", 0.75 * t)]
+
+    open_front = {(i, kk) for i in range(5) for kk in (7, 8)}
+    r.tube([(0.56, 0.272, 0.262, 0, -0.022), (0.66, 0.254, 0.236, 0, -0.016), (0.76, 0.232, 0.204, 0, -0.01),
+            (0.86, 0.206, 0.17, 0, -0.004), (0.94, 0.184, 0.142, 0, 0.0), (1.0, 0.17, 0.126, 0, 0.0)], 16, reg["skirt"], sw,
+           lambda y: max(0.0, min(1.0, (0.9 - y) / 0.34)) * 0.5, skip=open_front)
+    # Перо: лента от тульи назад и вверх, на своей пружинной кости.
+    r.bone("feather", "head", (0.07, 1.8, 0.06))
+    r.spring("feather", 55.0, 5.0, 0.3, (0.3, 0.55, 0.78))
+    pts = [(0.07 + 0.012 * i, 1.8 + 0.036 * i - 0.004 * i * i, 0.06 + 0.05 * i) for i in range(7)]
+    r.strip(pts, (1.0, 0.0, 0.0), 0.04, reg["strip"], lambda t: [("head", 1.0 - t), ("feather", t)] if t < 1.0 else [("feather", 1.0)], 0.1, 0.8, 0.5)
+    return r, p
+
+
+# --- Пираты: скелет -----------------------------------------------------------------------------
+
+def paint_skeleton():
+    """Атлас скелета: рёбра с вырезами, череп, кости рук и ног, рваный кушак, треуголка."""
+    p = Paint(53)
+    # Грудная клетка: кость, между рёбрами пусто; грудина спереди, хребет сзади, внизу таз.
+    p.rect(0, 0, 32, 22, BONE, 128)
+    p.grain(0, 0, 32, 22, 0.08, 1.4, 12.0)
+    for i in range(5):
+        y = 2.2 + i * 2.5
+        for x0, x1 in ((1.6, 14.6), (17.4, 30.4)):
+            p.cut(x0, y + 1.2, x1 - x0, 1.3)
+        p.fold([(1.0, y + 0.4), (31.0, y + 0.4)], 0.3, 0.86, 26)
+    p.cut(1.6, 14.6, 28.8, 3.0)
+    p.rect(15.0, 0, 2.0, 15.0, mul(BONE, 0.94), 140)
+    for sx in (-1.0, 1.0):
+        p.cut_ellipse(16 + sx * 5.2, 20.2, 2.6, 1.3)
+    p.stains(0, 0, 32, 22, 9, 1.2, 0.84)
+    p.speckle(0, 0, 32, 22, 70, BONE_D, 0.09)
+    p.shade_round(0, 0, 32, 22, 0.7)
+    # Череп: глазницы, провал носа, зубы, трещина.
+    p.rect(32, 0, 32, 20, BONE, 128)
+    p.grain(32, 0, 32, 20, 0.07, 1.4, 12.0)
+    for sx in (-1.0, 1.0):
+        p.ellipse(48 + sx * 3.0, 8.0, 1.9, 1.7, rgb("1A1410"), 70)
+        p.ellipse(48 + sx * 3.0, 8.3, 0.5, 0.45, rgb("C8482E"))
+        p.fold([(48 + sx * 6.4, 9.5), (48 + sx * 5.4, 12.6), (48 + sx * 3.8, 14.2)], 0.5, 0.78, 30)
+    p.poly([(48, 9.8), (49.0, 11.9), (47.0, 11.9)], rgb("1A1410"), 70)
+    p.rect(43.6, 13.3, 8.8, 2.3, mul(BONE, 1.05), 140)
+    p.line([(43.6, 14.45), (52.4, 14.45)], rgb("2A2018"), 0.22, 90)
+    for i in range(8):
+        p.line([(44.2 + i * 1.1, 13.4), (44.2 + i * 1.1, 15.5)], rgb("5A4C3A"), 0.14, 100)
+    p.fold([(49.6, 0.8), (50.6, 2.6), (49.9, 4.2), (51.2, 5.6)], 0.22, 0.6, 50)
+    p.cut(40.4, 16.6, 15.2, 3.4)
+    p.stains(32, 0, 32, 20, 8, 1.3, 0.86)
+    p.speckle(32, 0, 32, 20, 60, BONE_D, 0.09)
+    p.shade_round(32, 0, 32, 20, 0.76)
+    # Кости рук и ног: утолщения суставов, трещины.
+    for x, y, w, h, joints in ((0, 22, 16, 26, (22.6, 32.6, 42.8)), (16, 22, 20, 34, (23.0, 39.6, 54.2))):
+        p.rect(x, y, w, h, BONE, 128)
+        p.grain(x, y, w, h, 0.08, 1.4, 12.0)
+        for jy in joints:
+            p.rect(x, jy - 0.9, w, 1.8, mul(BONE, 1.06), 150)
+            p.fold([(x, jy), (x + w, jy)], 0.3, 0.7, 44)
+        p.wrinkles(x, y + 1, w, h - 2, 8, 2.4, 2.0, 0.78, 30)
+        p.stains(x, y, w, h, 7, 1.1, 0.84)
+        p.speckle(x, y, w, h, 60, BONE_D, 0.08)
+        p.shade_round(x, y, w, h, 0.66)
+    for fx in (5.2, 7.0, 8.8, 10.6):
+        p.line([(fx, 43.8), (fx, 48)], rgb("3A3024"), 0.26, 90)
+    # Стопа, подошва, «кожа» (торец кости), рваный кушак, клинок, треуголка.
+    p.rect(40, 24, 12, 6, BONE, 128)
+    p.grain(40, 24, 12, 6, 0.08, 1.2, 10.0)
+    for i in range(5):
+        p.line([(41.4 + i * 2.2, 24), (41.4 + i * 2.2, 30)], rgb("5A4C3A"), 0.2, 96)
+    p.rect(54, 24, 6, 6, BONE_D, 128)
+    p.rect(54, 32, 6, 6, BONE, 128)
+    p.rect(40, 34, 12, 8, RED, 128)
+    p.weave(40, 34, 12, 8, 0.3, 0.07)
+    p.wrinkles(40, 34, 12, 8, 7, 3.0, 0.8, 0.8)
+    p.stains(40, 34, 12, 8, 5, 1.0, 0.8)
+    for i in range(6):
+        p.cut(40.4 + i * 2.0, 40.6 + (i % 2) * 0.6, 1.1, 1.6)
+    p.rect(36, 44, 28, 20, STEEL, 128)
+    ys, xs = p._slice(36, 44, 28, 20)
+    gx, gy = p._grid(36, 44, 28, 20)
+    p._apply(36, 44, 28, 20, 0.78 + 0.34 * np.abs((gx - 36) / 28.0 * 2.0 - 1.0))
+    p.grain(36, 44, 28, 20, 0.06, 0.8, 6.0)
+    p.stains(36, 44, 28, 20, 8, 1.2, 0.82)
+    p.rect(0, 48, 16, 16, FELT, 128)
+    p.grain(0, 48, 16, 16, 0.14, 1.2, 12.0)
+    p.rect(0, 48, 16, 0.8, BONE_D, 150)
+    p.stains(0, 48, 16, 16, 6, 1.4, 0.8)
+    return p
+
+
+def pirate_skeleton():
+    """Скелет: тонкие кости, грудная клетка с просветами, треуголка, сабля, рваный кушак."""
+    p = paint_skeleton()
+    reg = regions(p)
+    r, _ = build_body("skeleton", reg, bulk=0.9, limb=0.46, leg="straight")
+    add_tricorn(r, reg)
+    # Рваный кушак на поясе: два хвоста на пружинной кости.
+    r.bone("sash", "hips", (-0.1, 0.98, 0.07))
+    r.spring("sash", 40.0, 5.0, 1.0)
+    for dx, lean in ((-0.13, -0.03), (-0.07, 0.03)):
+        pts = [(dx + lean * i, 0.99 - 0.06 * i, 0.085 + 0.012 * i) for i in range(6)]
+        r.strip(pts, (1.0, 0.0, 0.0), 0.032, reg["strip"], lambda t: [("hips", 1.0 - t), ("sash", t)] if t < 1.0 else [("sash", 1.0)], 0.2)
+    # Сабля в правой руке: клинок вперёд, жёсткий.
+    hand_x = 0.228 * 0.9 * 1.058
+    pts = [(hand_x, 0.8 + 0.012 * i, -0.02 - 0.115 * i) for i in range(7)]
+    r.strip(pts, (0.0, 1.0, 0.0), 0.03, reg["skirt"], lambda t: [("hand_r", 1.0)], 0.0, 0.0, 0.75)
+    return r, p
+
+
+# --- Пираты: реквизит и уровень «продвинутых» ---------------------------------------------------
+# Сетки реквизита пишет `lowpoly_meshes.py` (плотный набор `threed`); здесь его текстуры
+# рисуются заново крупными по той же раскладке атласа и ложатся поверх увеличенных.
+
+WOOD, WOOD_D = rgb("7A5230"), rgb("4E3420")
+IRON, IRON_L = rgb("3A3C44"), rgb("6C707C")
+SAND, SAND_D, SAND_L = rgb("D8BC82"), rgb("B89860"), rgb("ECD6A0")
+
+
+def paint_sand():
+    """Песок: рябь от ветра, зерно, редкие камешки и ракушки. Стыкуется по краям."""
+    p = Paint(301)
+    low = p.tile_noise(4, 3)
+    mid = p.tile_noise(16, 3)
+
+    def fn(gx, gy):
+        ripple = np.sin(2 * np.pi * (gx * 5.0 / UNITS + 0.5 * np.sin(2 * np.pi * gy * 2.0 / UNITS) + 0.25 * low))
+        tone = 1.0 + 0.06 * ripple + 0.07 * low + 0.04 * mid
+        return np.array(SAND, dtype=np.float32)[None, None, :] * tone[..., None], 128.0 + ripple * 26.0 + mid * 14.0
+    p.field(fn)
+    p.speckle(0.5, 0.5, 63, 63, 2600, mul(SAND, 0.82), 0.07)
+    p.speckle(0.5, 0.5, 63, 63, 1800, mul(SAND, 1.12), 0.06)
+    for _ in range(26):
+        x, y = p.rng.uniform(3, 61), p.rng.uniform(3, 61)
+        r = p.rng.uniform(0.25, 0.6)
+        p.ellipse(x + 0.12, y + 0.16, r, r * 0.8, mul(SAND, 0.7), 110)
+        p.ellipse(x, y, r, r * 0.8, rgb("8E8A84") if p.rng.random() < 0.6 else rgb("E8DCC8"), 190)
+    return p
+
+
+def paint_planks():
+    """Настил: восемь досок с волокнами и щелями, стыки вразбежку с гвоздями. Стыкуется по краям."""
+    p = Paint(303)
+    p.wood(0, 0, 64, 64, 8, True, WOOD, 0.3)
+    for i in range(8):
+        for y in ((15.5, 47.5) if i % 2 == 0 else (31.5, 63.3)):
+            p.fold([(i * 8 + 0.4, y), (i * 8 + 7.6, y)], 0.4, 0.5, 80)
+            for nx in (2.0, 6.0):
+                for ny in (-1.7, 1.7):
+                    p.ellipse(i * 8 + nx, min(max(y + ny, 0.6), 63.4), 0.34, 0.34, IRON, 170)
+                    p.ellipse(i * 8 + nx - 0.1, min(max(y + ny, 0.6), 63.4) - 0.1, 0.12, 0.12, IRON_L)
+    for _ in range(7):
+        x, y = p.rng.uniform(4, 60), p.rng.uniform(6, 58)
+        p.ellipse(x, y, 0.9, 1.3, mul(WOOD_D, 0.9), 104)
+        p.ellipse(x, y, 0.45, 0.7, mul(WOOD_D, 0.6), 90)
+    p.stains(2, 2, 60, 60, 16, 2.2, 0.88)
+    return p
+
+
+def paint_water():
+    """Вода: плавные волны от тёмной глубины к светлым гребням с пеной. Стыкуется по краям."""
+    p = Paint(305)
+    deep, mid, foam = np.array(rgb("1B4A86"), dtype=np.float32), np.array(rgb("3A7CC2"), dtype=np.float32), np.array(rgb("C4E2F4"), dtype=np.float32)
+    noise = p.tile_noise(8, 3)
+
+    def fn(gx, gy):
+        w = np.sin((gx + 6.0 * np.sin(gy * np.pi / 8.0)) * np.pi / 16.0) + np.sin((gy * 2.0 + gx) * np.pi / 16.0) + 0.5 * noise
+        t = _smooth_np(np.clip((w + 1.2) / 2.6, 0.0, 1.0))
+        crest = _smooth_np(np.clip((w - 1.35) / 0.5, 0.0, 1.0))
+        color = deep[None, None, :] * (1.0 - t[..., None]) + mid[None, None, :] * t[..., None]
+        color = color * (1.0 - crest[..., None]) + foam[None, None, :] * crest[..., None]
+        return color, 128.0 + w * 34.0
+    p.field(fn)
+    return p
+
+
+def paint_crate():
+    """Ящик (атлас 32×32, здесь вдвое крупнее): четыре бока 16×32 в ряд, крышка 32×32 под ними."""
+    p = Paint(307)
+    for i in range(4):
+        x = i * 16
+        p.wood(x, 0, 16, 32, 3, True, WOOD, 0.22)
+        # Рама, раскос, гвозди в углах.
+        frame = mul(WOOD_D, 1.05)
+        for rx, ry, rw, rh in ((x, 0, 16, 3.4), (x, 28.6, 16, 3.4), (x, 0, 2.6, 32), (x + 13.4, 0, 2.6, 32)):
+            p.rect(rx, ry, rw, rh, frame, 172)
+        p.poly([(x + 2.6, 26.0), (x + 4.6, 28.6), (x + 13.4, 6.0), (x + 11.4, 3.4)], frame, 164)
+        for nx, ny in ((1.3, 1.7), (14.7, 1.7), (1.3, 30.3), (14.7, 30.3)):
+            p.ellipse(x + nx, ny, 0.5, 0.5, IRON, 196)
+            p.ellipse(x + nx - 0.14, ny - 0.14, 0.18, 0.18, IRON_L)
+    p.rect(21.6, 12.4, 5.2, 5.0, rgb("8E2A26"), 140)
+    p.line([(22.6, 13.4), (25.8, 16.4)], rgb("E8D8C0"), 0.5)
+    p.line([(25.8, 13.4), (22.6, 16.4)], rgb("E8D8C0"), 0.5)
+    p.grain(0, 0, 64, 32, 0.08, 1.2, 10.0)
+    p.stains(0, 0, 64, 32, 12, 1.6, 0.84)
+    p.shade_v(0, 0, 64, 32, 1.05, 0.82)
+    p.wood(0, 32, 32, 32, 4, False, WOOD, 0.22)
+    for rx, ry, rw, rh in ((0, 32, 32, 2.8), (0, 61.2, 32, 2.8), (0, 32, 2.8, 32), (29.2, 32, 2.8, 32)):
+        p.rect(rx, ry, rw, rh, mul(WOOD_D, 1.05), 172)
+    p.stains(0, 32, 32, 32, 6, 1.6, 0.86)
+    return p
+
+
+def paint_barrel():
+    """Бочка (атлас 32×32, здесь вдвое крупнее): клёпки 64×48 вокруг, два железных обруча, крышка 16×16."""
+    p = Paint(309)
+    p.wood(0, 0, 64, 48, 12, True, WOOD, 0.24)
+    for y in (6.0, 38.0):
+        p.rect(0, y, 64, 3.6, IRON, 190)
+        p.rect(0, y, 64, 0.9, IRON_L, 198)
+        p.grain(0, y, 64, 3.6, 0.14, 1.0, 8.0)
+        for i in range(8):
+            p.ellipse(4 + i * 8, y + 2.0, 0.5, 0.5, IRON_L, 215)
+        p.fold([(0, y + 3.9), (64, y + 3.9)], 0.45, 0.6, 60)
+    p.stains(0, 10, 64, 28, 14, 1.8, 0.84)
+    p.shade_v(0, 0, 64, 48, 1.08, 0.8)
+    p.wood(0, 48, 16, 16, 3, False, WOOD, 0.2)
+    p.ellipse(8, 56, 7.6, 7.6, WOOD_D, 100)
+    p.ellipse(8, 56, 6.8, 6.8, mul(WOOD, 0.95), 140)
+    for i in range(3):
+        p.fold([(1.6, 51.6 + i * 4.4), (14.4, 51.6 + i * 4.4)], 0.3, 0.62, 60)
+    p.stains(1, 49, 14, 14, 4, 1.2, 0.84)
+    return p
+
+
+PROPS = {"pirates": {"tex_sand": paint_sand, "tex_planks": paint_planks, "tex_water": paint_water, "crate": paint_crate, "barrel": paint_barrel}}
+SETS = {"pirates": [pirate_sailor, pirate_captain, pirate_skeleton]}
 
 
 def main():
@@ -705,6 +1172,16 @@ def main():
                 normal.save(preview.replace(".png", "_n.png"))
             if not only_list:
                 rig.write(folder, setting, color, normal)
+        # Текстуры реквизита и уровня поверх увеличенных из `lowpoly_meshes.py`.
+        for name, make in PROPS.get(setting, {}).items():
+            color, normal = make().finish()
+            print("%-8s %-10s текстура %d×%d поверх увеличенной" % (setting, name, RES, RES))
+            if preview and name in preview:
+                color.save(preview)
+            if not only_list:
+                out = os.path.join(ROOT, setting, "threed")
+                (color.convert("RGB") if name.startswith("tex_") else color).save(os.path.join(out, name + ".png"))
+                normal.save(os.path.join(out, name + "_n.png"))
 
 
 if __name__ == "__main__":

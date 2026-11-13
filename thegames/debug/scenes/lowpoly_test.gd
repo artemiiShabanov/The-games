@@ -36,7 +36,7 @@ const HELD: Array[String] = ["pistol"]
 const SHEET_TALL := 3.0
 const TEXTURES: Array[String] = ["sand", "planks", "water", "rock", "sail", "grass", "road", "mud", "wind", "sky"]
 const MAX_ATLAS := 64
-const MAX_ATLAS_THREED := 256
+const MAX_ATLAS_THREED := 1024
 const MAX_TRIS_THREED := 1500
 ## Что стоит на сравнительном листе двух технологий.
 const COMPARE: Array[String] = ["palm", "hero", "captain", "enemy", "cart", "barrel", "crate", "cannon", "chest", "hoop"]
@@ -53,6 +53,7 @@ var _threed := false
 ## Прототип модели на скелете (#119): новые модели и прежние рядом, у каждой режим позы.
 var _rigs: Array[RigModel] = []
 var _rig_olds: Array[LowpolyModel] = []
+var _rig_lineup := false
 var _setting: SettingDef
 var _models: Array[LowpolyModel] = []
 var _labels: Array[String] = []
@@ -85,7 +86,10 @@ func _ready() -> void:
 		return
 	if (_args.has("rig") if AutoTest.enabled else Debug.lowpoly_rig):
 		Debug.lowpoly_rig = false
-		_build_rig()
+		if str(_args.get("rig", "")) == "compare":
+			_build_rig()
+		else:
+			_build_rig_lineup()
 		return
 	_build_sheet()
 	if _threed:
@@ -192,8 +196,39 @@ func _build_rig() -> void:
 				PixelFont16.draw(canvas, (at - Vector2(PixelFont16.width(text, 1.0) / 2.0, 0.0)).floor(), text, white, white, dark, 1.0)
 
 
+## Модели на скелете в ряд (#119): матрос, капитан, скелет; идут и медленно поворачиваются.
+func _build_rig_lineup() -> void:
+	_setting = SettingDef.of(Game.Setting.PIRATES)
+	var screen := ThreedScreen.make_threed(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly())
+	add_child(screen)
+	_sheets.append(screen)
+	screen.add_plane(Vector3.ZERO, Vector2(14.0, 10.0), _setting.texture_lowpoly("planks", true), 2.0)
+	screen.add_plane(Vector3(0.0, -0.4, 0.0), Vector2(300.0, 300.0), _setting.texture_lowpoly("water", true), 6.0,
+			{"uv_scroll": Vector2(0.02, 0.035)})
+	var names: Array[String] = ["sailor", "captain", "skeleton"]
+	for i in names.size():
+		var rig := RigModel.make(load("res://assets/settings/pirates/rig/%s.tres" % names[i]) as RigModelDef, screen.look)
+		rig.position = Vector3((i - 1) * 1.5, 0.0, 0.0)
+		screen.world.add_child(rig)
+		_rigs.append(rig)
+	_rig_lineup = true
+	screen.camera.fov = 34.0
+	screen.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 1.3, 5.6)).looking_at(Vector3(0.0, 0.95, 0.0))
+	screen.draw_hud = func(canvas: CanvasItem) -> void:
+		for i in _rigs.size():
+			var text := "%s %d" % [names[i], _rigs[i].def.triangles()]
+			var at := screen.project(_rigs[i].position + Vector3(0.0, -0.08, 0.0))
+			PixelFont16.draw(canvas, (at - Vector2(PixelFont16.width(text, 1.0) / 2.0, 0.0)).floor(), text, Color("#F4EFE6"), Color("#F4EFE6"),
+					Color("#16141A"), 1.0)
+
+
 func _pose_rig() -> void:
 	if _rigs.is_empty():
+		return
+	if _rig_lineup:
+		for i in _rigs.size():
+			_rigs[i].rotation.y = PI - 0.5 + sin(_t * 0.5 + i) * 0.9
+			_rigs[i].walk(_t * 6.0 + i * 1.3, 0.55)
 		return
 	# Ближняя пара идёт.
 	_rig_olds[0].walk(_t * 6.0, 0.6)

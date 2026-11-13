@@ -46,6 +46,7 @@ func _render_shrink(_shrink: int) -> int:
 
 
 func _build_scene(_sky_texture: Texture2D) -> void:
+	LowpolyScreen.with_tangents = true
 	super._build_scene(null)
 	# Без дизеринга и ближайшего соседа: кадр как есть.
 	material = null
@@ -105,6 +106,11 @@ func _new_material(tex: Texture2D, extra := {}) -> ShaderMaterial:
 	m.shader = SHADER
 	if tex != null:
 		m.set_shader_parameter("tex", tex)
+		# Карта рельефа лежит рядом с текстурой: `<имя>_n.png` (пишет генератор).
+		var bump := tex.resource_path.replace(".png", "_n.png")
+		if tex.resource_path.ends_with(".png") and ResourceLoader.exists(bump):
+			m.set_shader_parameter("normal_tex", load(bump))
+			m.set_shader_parameter("normal_strength", look.normal_strength)
 	m.set_shader_parameter("hue_shift", hue_shift)
 	m.set_shader_parameter("rim", look.rim)
 	m.set_shader_parameter("rough", look.rough)

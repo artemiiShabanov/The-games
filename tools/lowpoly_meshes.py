@@ -100,17 +100,45 @@ class Atlas:
         if TEX_SCALE <= 1:
             self.im.save(path)
             return
-        # Крупная текстура для «продвинутых»: гладкое увеличение (по цвету с учётом прозрачности,
-        # чтобы вырезанные пиксели не давали тёмной каймы) и лёгкое зерно.
-        from PIL import Image
-        big = self.im.convert("RGBa").resize((self.w * TEX_SCALE, self.h * TEX_SCALE), Image.BICUBIC).convert("RGBA")
-        grain = random.Random(self.w * 131 + self.h)
-        px = big.load()
-        for y in range(big.height):
-            for x in range(big.width):
-                r, g, b, a = px[x, y]
-                k = 1.0 + grain.uniform(-0.035, 0.035)
-                px[x, y] = (min(255, int(r * k)), min(255, int(g * k)), min(255, int(b * k)), 255 if a >= 128 else 0)
+        # Крупная текстура для «продвинутых» (#119): не размытое увеличение, а чёткое. Пиксели
+        # растягиваются без сглаживания, потом сглаживается только граница между цветами (на треть
+        # исходного пикселя), сверху ложатся мелкое зерно и крупные разводы, а из яркости
+        # считается карта рельефа `<имя>_n.png`. Плитки уровня (`tex_`) сглаживаются по кругу,
+        # чтобы стык не появился.
+        import numpy as np
+        from PIL import Image, ImageFilter
+        tile = os.path.basename(path).startswith("tex_")
+        scale = TEX_SCALE
+        big = self.im.convert("RGBA").resize((self.w * scale, self.h * scale), Image.NEAREST)
+        if tile:
+            wide = Image.new("RGBA", (big.width * 3, big.height * 3))
+            for ix in range(3):
+                for iy in range(3):
+                    wide.paste(big, (ix * big.width, iy * big.height))
+            soft = wide.convert("RGBa").filter(ImageFilter.GaussianBlur(scale * 0.33)).convert("RGBA")
+            soft = soft.crop((big.width, big.height, big.width * 2, big.height * 2))
+        else:
+            soft = big.convert("RGBa").filter(ImageFilter.GaussianBlur(scale * 0.33)).convert("RGBA")
+        a = np.asarray(soft, dtype=np.float32)
+        grain = np.random.default_rng(self.w * 131 + self.h + len(os.path.basename(path)))
+        fine = grain.normal(0.0, 1.0, a.shape[:2]).astype(np.float32)
+        coarse = np.asarray(Image.fromarray(np.clip(grain.normal(0.0, 1.0, (self.h, self.w)) * 50 + 128, 0, 255).astype(np.uint8))
+                            .resize((big.width, big.height), Image.BICUBIC), dtype=np.float32) / 50.0 - 2.56
+        if tile:
+            # Зерно плитки тоже по кругу: размытие через сдвиги.
+            fine = (fine + np.roll(fine, 1, 0) + np.roll(fine, 1, 1) + np.roll(fine, (1, 1), (0, 1))) / 2.0
+        detail = 1.0 + fine * 0.035 + coarse * 0.03
+        a[..., :3] = np.clip(a[..., :3] * detail[..., None], 0, 255)
+        a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
+        big = Image.fromarray(a.astype(np.uint8))
+        # Рельеф: светлое выше, тёмное ниже (доски, обручи, швы), плюс зерно.
+        lum = a[..., 0] * 0.3 + a[..., 1] * 0.5 + a[..., 2] * 0.2 + fine * 4.0
+        strength = 0.05
+        dx = (np.roll(lum, -1, 1) - np.roll(lum, 1, 1)) * strength
+        dy = (np.roll(lum, -1, 0) - np.roll(lum, 1, 0)) * strength
+        length = np.sqrt(dx * dx + dy * dy + 1.0)
+        normal = np.stack([(-dx / length) * 0.5 + 0.5, (dy / length) * 0.5 + 0.5, (1.0 / length) * 0.5 + 0.5], axis=-1)
+        Image.fromarray((normal * 255).astype(np.uint8)).save(path.replace(".png", "_n.png"))
         big.save(path)
 
 
@@ -1230,7 +1258,7 @@ def main():
     only_list = "--list" in sys.argv
     bad = False
     # Два набора из одних описаний: low poly и плотный для «продвинутых» (threed).
-    for FOLDER, DENSE, TEX_SCALE, limit in (("lowpoly", 1, 1, MAX_TRIS), ("threed", 2, 4, MAX_TRIS_DENSE)):
+    for FOLDER, DENSE, TEX_SCALE, limit in (("lowpoly", 1, 1, MAX_TRIS), ("threed", 2, 8, MAX_TRIS_DENSE)):
         for setting, content in SETS.items():
             folder = os.path.join(ROOT, setting, FOLDER)
             for make in content["models"]:
@@ -1248,6 +1276,11 @@ def main():
                 if not only_list:
                     os.makedirs(folder, exist_ok=True)
                     a.save(os.path.join(folder, "tex_%s.png" % name))
+    if not only_list:
+        # Модели на скелете и нарисованные заново текстуры «продвинутых» идут следом: они ложатся
+        # поверх увеличенных атласов, поэтому один запуск собирает всё.
+        import subprocess
+        bad = subprocess.call([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "rig_models.py")]) != 0 or bad
     sys.exit(1 if bad else 0)
 
 
