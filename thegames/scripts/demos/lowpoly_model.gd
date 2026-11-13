@@ -17,12 +17,20 @@ func part(name: StringName) -> MeshInstance3D:
 
 
 ## Шаг двуногого: ноги и руки качаются в противофазе; `swing` размах в радианах, 0 ставит ровно.
+## У модели с коленями и локтями (`shin_*`, `fore_*`) нога, идущая вперёд, согнута в колене, а
+## руки согнуты в локтях.
 func walk(phase: float, swing := 0.7) -> void:
 	var s := sin(phase) * swing
+	var lift := cos(phase)
 	_pitch(&"leg_l", s)
 	_pitch(&"leg_r", -s)
 	_pitch(&"arm_l", -s * 0.8)
 	_pitch(&"arm_r", s * 0.8)
+	_pitch(&"shin_l", -maxf(lift, 0.0) * swing * 1.3)
+	_pitch(&"shin_r", -maxf(-lift, 0.0) * swing * 1.3)
+	var bend := minf(swing / 0.5, 1.0) * 0.45
+	_pitch(&"fore_l", bend)
+	_pitch(&"fore_r", bend)
 
 
 func _pitch(name: StringName, angle: float) -> void:

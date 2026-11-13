@@ -313,11 +313,22 @@ def biped(leg, torso, head, arm, sole, crown, bulk=1.0):
     """
     k = bulk
     parts = {}
+
+    def cut(region, top, bottom):
+        """Полоса куска атласа по высоте: доли от верха."""
+        u0, v0, u1, v1 = region
+        return (u0, v0 + (v1 - v0) * top, u1, v0 + (v1 - v0) * bottom)
+
+    # Нога из бедра и голени с коленом на 0,47 м, рука из плеча и предплечья с локтем на 1,1 м:
+    # половины чуть заходят друг в друга и закрыты крышками, чтобы сгиб не открывал дыру.
     for side, x in (("l", -0.1 * k), ("r", 0.1 * k)):
         parts["leg_" + side] = [(x, 0.86, 0.0),
-                                loft([(0.0, 0.07 * k, 0.13, x, -0.04), (0.1, 0.065 * k, 0.085, x, -0.01),
-                                      (0.47, 0.075 * k, 0.08 * k, x, 0.0), (0.88, 0.1 * k, 0.105 * k, x, 0.0)],
-                                     leg, 5, caps=(sole, None)), None]
+                                loft([(0.44, 0.072 * k, 0.078 * k, x, 0.0), (0.88, 0.1 * k, 0.105 * k, x, 0.0)],
+                                     cut(leg, 0.0, 0.5), 5, caps=(cut(leg, 0.4, 0.5), None)), None]
+        parts["shin_" + side] = [(x, 0.47, 0.0),
+                                 loft([(0.0, 0.07 * k, 0.13, x, -0.04), (0.1, 0.065 * k, 0.085, x, -0.01),
+                                       (0.5, 0.075 * k, 0.08 * k, x, 0.0)],
+                                      cut(leg, 0.43, 1.0), 5, caps=(sole, cut(leg, 0.4, 0.5))), "leg_" + side]
     parts["body"] = [(0.0, 0.86, 0.0),
                      loft([(0.82, 0.17 * k, 0.115 * k), (1.02, 0.155 * k, 0.1 * k), (1.27, 0.2 * k, 0.125 * k),
                            (1.42, 0.17 * k, 0.105 * k), (1.47, 0.06, 0.06)], torso, 6), None]
@@ -326,14 +337,17 @@ def biped(leg, torso, head, arm, sole, crown, bulk=1.0):
                           head, 6, caps=(None, crown)), "body"]
     for side, x in (("l", -0.25 * k), ("r", 0.25 * k)):
         parts["arm_" + side] = [(x, 1.38, 0.0),
-                                loft([(0.78, 0.035 * k, 0.045, x * 1.08, 0.0), (1.1, 0.045 * k, 0.05 * k, x * 1.06, 0.0),
-                                      (1.4, 0.06 * k, 0.065 * k, x, 0.0)], arm, 4, math.pi / 4.0, caps=(sole, None)), "body"]
+                                loft([(1.07, 0.046 * k, 0.05 * k, x * 1.06, 0.0), (1.4, 0.06 * k, 0.065 * k, x, 0.0)],
+                                     cut(arm, 0.0, 0.53), 4, math.pi / 4.0, caps=(cut(arm, 0.45, 0.53), None)), "body"]
+        parts["fore_" + side] = [(x * 1.06, 1.1, 0.0),
+                                 loft([(0.78, 0.035 * k, 0.045, x * 1.08, 0.0), (1.13, 0.045 * k, 0.05 * k, x * 1.06, 0.0)],
+                                      cut(arm, 0.47, 1.0), 4, math.pi / 4.0, caps=(sole, cut(arm, 0.45, 0.53))), "arm_" + side]
     return parts
 
 
 def assemble(name, atlas, parts):
     m = Model(name, atlas)
-    for key in ("leg_l", "leg_r", "body", "head", "arm_l", "arm_r"):
+    for key in ("leg_l", "leg_r", "body", "head", "arm_l", "arm_r", "shin_l", "shin_r", "fore_l", "fore_r"):
         pivot, tris, parent = parts[key]
         m.part(key, pivot, tris, parent)
     return m

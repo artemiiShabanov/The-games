@@ -75,6 +75,8 @@ func _ready() -> void:
 			_check_hoops()
 		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.BIT16:
 			_check_brawl()
+		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.LOWPOLY:
+			_check_spars()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.VECTOR:
 			_check_lanes()
 		elif _genre() == Game.Genre.RACING:
@@ -456,6 +458,114 @@ func _check_holds() -> void:
 	seconds.sort()
 	AutoTest.note("shooter bit16: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, здоровье на выходе в среднем %d" % [
 			seconds[50], seconds[0], seconds[99], health / 100])
+
+
+## Файтинг × low poly «один на один сбоку в объёме» (#116): сто сидов дают план соперника,
+## который проходит проверку генератора (начало из одиночных ударов, есть удары рукой, ногой,
+## сильные и тройная связка), генерация детерминирована; на каждом сиде бот WIN без окна
+## (`SparSim.simulate`) побеждает, бот LOSE проигрывает. Отдельно правила: блок держит удары
+## рукой и ногой и не держит сильный, шаг в глубину уводит от удара и открывает бок соперника
+## (удар сбоку сильнее), связка рука, рука, нога проходит по открытому сопернику, замах
+## соперника ударом не сбить, удар героя мимо оставляет его открытым.
+func _check_spars() -> void:
+	var t := FightingLowpolyGenTuning.load_default()
+	var rules := FightingLowpolyTuning.load_default()
+	var seconds: Array[float] = []
+	var hp := 0
+	for s in range(1, 101):
+		var plan := SparPlanGen.generate(s, t)
+		var why := SparPlanGen.validate(plan, t)
+		_expect(why == "", "план сида %d: %s" % [s, why])
+		var win := SparSim.simulate(plan, rules, AutoTest.BotMode.WIN)
+		_expect(win.finished, "план сида %d: бот WIN проиграл, здоровье %d против %d" % [s, win.hero.hp, win.rival.hp])
+		seconds.append(win.time)
+		hp += win.hero.hp
+		var lose := SparSim.simulate(plan, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.finished and lose.hero.hp <= 0, "план сида %d: бот LOSE не проиграл" % s)
+	_expect(SparPlanGen.generate(7, t).signature() == SparPlanGen.generate(7, t).signature(), "план сида 7 не повторяется")
+	_expect(SparPlanGen.generate(7, t).signature() != SparPlanGen.generate(8, t).signature(), "планы сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("fighting lowpoly: 100 сидов прошли проверку; бот WIN без окна: бой медиана %.1f с (от %.1f до %.1f), здоровья осталось в среднем %d" % [
+			seconds[50], seconds[0], seconds[99], hp / 100])
+	# Правила: соперник на замахе, удар придётся на следующем шаге.
+	var plan := SparPlanGen.generate(1, t)
+	var c := SparSim.Controls.new()
+	c.block = true
+	var sim := _spar_at(plan, rules, SparPlan.Move.PUNCH)
+	sim.step(SparSim.DT, c)
+	sim.step(SparSim.DT, c)
+	_expect(sim.blocks == 1 and sim.hero.hp == rules.hero_hp and sim.rival.open, "блок не удержал удар рукой")
+	sim = _spar_at(plan, rules, SparPlan.Move.KICK)
+	sim.step(SparSim.DT, c)
+	sim.step(SparSim.DT, c)
+	_expect(sim.blocks == 1 and sim.hero.hp == rules.hero_hp, "блок не удержал удар ногой")
+	sim = _spar_at(plan, rules, SparPlan.Move.KICK)
+	sim.step(SparSim.DT, SparSim.Controls.new())
+	sim.step(SparSim.DT, SparSim.Controls.new())
+	_expect(sim.hero.hp == rules.hero_hp - rules.rival_kick_damage, "удар ногой без блока не прошёл")
+	sim = _spar_at(plan, rules, SparPlan.Move.HEAVY)
+	sim.step(SparSim.DT, c)
+	sim.step(SparSim.DT, c)
+	_expect(sim.hero.hp == rules.hero_hp - rules.heavy_damage, "блок удержал сильный удар")
+	# Шаг в глубину: мимо, соперник открыт сбоку, удар сбоку сильнее.
+	sim = _spar_at(plan, rules, SparPlan.Move.HEAVY)
+	var step := SparSim.Controls.new()
+	step.step = 1
+	sim.step(SparSim.DT, step)
+	sim.step(SparSim.DT, SparSim.Controls.new())
+	_expect(sim.dodges == 1 and sim.hero.hp == rules.hero_hp and sim.rival.flank > 0.0, "шаг в глубину не увёл от удара")
+	var strike := SparSim.Controls.new()
+	strike.strike = true
+	for i in int((rules.step_seconds + rules.hero_windup) / SparSim.DT) + 4:
+		sim.step(SparSim.DT, strike if sim.hero.state == SparSim.State.IDLE else SparSim.Controls.new())
+		if sim.hero_hits > 0:
+			break
+	_expect(sim.flank_hits == 1 and sim.rival.hp == rules.rival_hp - int(roundf(rules.punch_damage[0] * rules.flank_mult)),
+			"удар сбоку не сильнее: здоровье соперника %d" % sim.rival.hp)
+	# Связка по открытому сопернику: рука, рука, нога проходят подряд.
+	sim = _spar_at(plan, rules, SparPlan.Move.PUNCH)
+	sim.rival.open = true
+	sim.rival.begin(SparSim.State.RECOVER, rules.rival_punished)
+	var kick := SparSim.Controls.new()
+	kick.kick = true
+	for i in 90:
+		var press := SparSim.Controls.new()
+		if sim.hero.state == SparSim.State.IDLE and sim.hero_hits == 0:
+			press = strike
+		elif sim.hero.state == SparSim.State.RECOVER and sim.hero.chain == 1:
+			press = strike
+		elif sim.hero.state == SparSim.State.RECOVER and sim.hero.chain == 2:
+			press = kick
+		sim.step(SparSim.DT, press)
+		if sim.hero_hits >= 3:
+			break
+	_expect(sim.hero_hits == 3 and sim.rival.hp == rules.rival_hp - rules.punch_damage[0] - rules.punch_damage[1] - rules.kick_damage,
+			"связка рука, рука, нога не прошла: попаданий %d, здоровье соперника %d" % [sim.hero_hits, sim.rival.hp])
+	# Замах соперника не сбить: урон проходит, удар всё равно приходит.
+	sim = _spar_at(plan, rules, SparPlan.Move.PUNCH)
+	sim.rival.begin(SparSim.State.WINDUP, rules.hero_windup + 0.1)
+	for i in int((rules.hero_windup + 0.15) / SparSim.DT) + 2:
+		sim.step(SparSim.DT, strike if i == 0 else SparSim.Controls.new())
+	_expect(sim.hero_hits == 1 and sim.taken == 1, "замах соперника сбит ударом: попал %d, пропустил %d" % [sim.hero_hits, sim.taken])
+	# Удар мимо: герой открыт.
+	sim = _spar_at(plan, rules, SparPlan.Move.PUNCH)
+	sim.rival.begin(SparSim.State.IDLE, 0.0)
+	sim.wait = 10.0
+	sim.rival.x = sim.hero.x + rules.kick_reach + 1.5
+	for i in int(rules.hero_windup / SparSim.DT) + 2:
+		sim.step(SparSim.DT, strike if i == 0 else SparSim.Controls.new())
+	_expect(sim.hero.state == SparSim.State.RECOVER and sim.hero.open and sim.hero_hits == 0, "удар мимо не открыл героя")
+
+
+## Правила файтинга low poly посреди боя: бойцы рядом, соперник на последнем шаге замаха удара `move`.
+func _spar_at(plan: SparPlan, rules: FightingLowpolyTuning, move: SparPlan.Move) -> SparSim:
+	var sim := SparSim.create(plan, rules)
+	sim.phase = SparSim.Phase.FIGHT
+	sim.hero.x = -0.6
+	sim.rival.x = 0.6
+	sim.rival.move = move
+	sim.rival.begin(SparSim.State.WINDUP, SparSim.DT * 1.5)
+	return sim
 
 
 ## Спорт × low poly «броски в кольцо» (#115): сто сидов дают план, который проходит проверку

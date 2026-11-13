@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="FightingLowpolyGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/fighting_lowpoly_gen_tuning.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+combos = 30
+double_from = 2
+triple_from = 6
+heavy_from = 4
+heavy_share = 0.4
+kick_share = 0.45
+gap_first = 1.5
+gap_last = 0.75
+windup_first = 0.52
+windup_last = 0.36
+heavy_windup = 0.85
+guard_punch = 0.62
+guard_kick = 0.45
+guard_rolls = 160
