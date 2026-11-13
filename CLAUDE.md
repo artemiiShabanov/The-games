@@ -99,7 +99,9 @@
   (#123): `--scene=demo_test --genre=shooter --tech=threed --frames=9000` (`TIMEOUT=560`), план
   волн по сиду и бой ботов без окна текстом `debug/tools/dump_outpost.gd -- <seed> [count]`. Спорт × «продвинутые» «спуск по дюне» (#124):
   `--scene=demo_test --genre=sport --tech=threed --frames=13000` (`TIMEOUT=580`), склон по сиду и спуск ботов без
-  окна текстом `debug/tools/dump_dune.gd -- <seed> [count]`. Обзор
+  окна текстом `debug/tools/dump_dune.gd -- <seed> [count]`. Файтинг × «продвинутые» «дуэль на саблях» (#125):
+  `--scene=demo_test --genre=fighting --tech=threed --frames=9000`, план капитана по сиду и бой
+  ботов без окна текстом `debug/tools/dump_saber.gd -- <seed> [count]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
   `--input` это `кадр:look=DXxDY`. Весь план из 8 с проверкой багов: без `--minigame`,
   `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:

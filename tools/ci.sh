@@ -89,18 +89,21 @@ step "look mouse and stick" sh tools/autotest.sh --scene=lowpoly_test --look --f
 step "threed sheet" sh tools/autotest.sh --scene=lowpoly_test --tech=threed --frames=700
 step "threed probe behind bugs" sh tools/autotest.sh --scene=lowpoly_test --tech=threed --probe=behind --bugs --frames=5000
 step "threed probe first bugs" sh tools/autotest.sh --scene=lowpoly_test --tech=threed --probe=first --bugs --frames=4000
-step "demo platformer threed" sh tools/autotest.sh --scene=demo_test --tech=threed --frames=7000
-step "demo platformer threed bugs" sh tools/autotest.sh --scene=demo_test --tech=threed --bugs --frames=9000
+step "demo platformer threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --tech=threed --frames=7000
+step "demo platformer threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --tech=threed --bugs --frames=9000
 step "feed platformer threed" sh tools/autotest.sh --scene=feed_test --tech=threed --frames=400
-step "demo racing threed" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --frames=9000
-step "demo racing threed bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --bugs --frames=11000
+step "demo racing threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --frames=9000
+step "demo racing threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --bugs --frames=11000
 step "feed racing threed" sh tools/autotest.sh --scene=feed_test --genre=racing --tech=threed --frames=400
-step "demo shooter threed" sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --frames=9000
-step "demo shooter threed bugs" sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --bugs --frames=11000
+step "demo shooter threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --frames=9000
+step "demo shooter threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --bugs --frames=11000
 step "feed shooter threed" sh tools/autotest.sh --scene=feed_test --genre=shooter --tech=threed --frames=400
-step "demo sport threed" sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --frames=13000
-step "demo sport threed bugs" sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --bugs --frames=15000
+step "demo sport threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --frames=13000
+step "demo sport threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --bugs --frames=15000
 step "feed sport threed" sh tools/autotest.sh --scene=feed_test --genre=sport --tech=threed --frames=400
+step "demo fighting threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=fighting --tech=threed --frames=9000
+step "demo fighting threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=fighting --tech=threed --bugs --frames=11000
+step "feed fighting threed" sh tools/autotest.sh --scene=feed_test --genre=fighting --tech=threed --frames=400
 step "demo platformer lowpoly" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --frames=7000
 step "demo platformer lowpoly bugs" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --bugs --frames=9000
 step "feed platformer lowpoly" sh tools/autotest.sh --scene=feed_test --tech=lowpoly --frames=400
