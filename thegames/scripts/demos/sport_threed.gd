@@ -507,8 +507,11 @@ func _sync(dt: float) -> void:
 		_blink = 0.9
 	hero.flash(_blink > 0.0 and int(_blink * 12.0) % 2 == 0)
 	_pose(fallen)
-	_place_board(fallen, line, tilt)
-	_sand(dt, at, line, tilt, fallen)
+	# Во встроенном режиме (лента) демка стартует раньше, чем попадает в дерево сцены: мировых
+	# координат у доски и следа ещё нет.
+	if rider.is_inside_tree():
+		_place_board(fallen, line, tilt)
+		_sand(dt, at, line, tilt, fallen)
 	# Шорох песка по скорости.
 	if _wind.playing:
 		var loud := clampf(sim.speed / 44.0, 0.0, 1.0) * (0.0 if sim.airborne or fallen else 1.0)
