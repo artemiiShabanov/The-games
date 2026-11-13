@@ -14,6 +14,11 @@ extends Control
 ## стиком (#109): движение мыши поворачивает и наклоняет камеру пробы от первого лица и курс
 ## рейкастера 16/32 по чувствительности из настроек, пауза его глушит, стик считает мёртвую зону,
 ## правый стик снят с действий `look_left` и `look_right`.
+## `--tech=threed` (или «Продвинутые: …» в дебаг-меню) показывает то же на экране «продвинутых»
+## (#118): лист плотных мешей с текстурами 256, пробные демки на `ThreedScreen`; проверки: плотный
+## набор грузится и плотнее low poly, экран рисует в полном разрешении со светом, тенями и
+## пост-эффектами, розовая заглушка и чужая палитра работают, три экрана сразу держат кадры.
+## `--compare` ставит рядом два листа, low poly и «продвинутые»: сравнительный кадр технологий.
 
 const ProbeBehind := preload("res://debug/scenes/lowpoly_probe_behind.gd")
 const ProbeFirst := preload("res://debug/scenes/lowpoly_probe_first.gd")
@@ -29,6 +34,10 @@ const HELD: Array[String] = ["pistol"]
 const SHEET_TALL := 3.0
 const TEXTURES: Array[String] = ["sand", "planks", "water", "rock", "sail", "grass", "road", "mud", "wind", "sky"]
 const MAX_ATLAS := 64
+const MAX_ATLAS_THREED := 256
+const MAX_TRIS_THREED := 1500
+## Что стоит на сравнительном листе двух технологий.
+const COMPARE: Array[String] = ["palm", "hero", "captain", "enemy", "cart", "barrel", "crate", "cannon", "chest", "hoop"]
 const COLUMNS := 7
 const CELL := 2.7
 
@@ -37,6 +46,8 @@ var record: GameRecord
 var _args := {}
 var _probe := ""
 var _sheet: LowpolyScreen
+var _sheets: Array[LowpolyScreen] = []
+var _threed := false
 var _setting: SettingDef
 var _models: Array[LowpolyModel] = []
 var _labels: Array[String] = []
@@ -50,7 +61,10 @@ func _ready() -> void:
 	add_child(bg)
 	_args = AutoTest.parse_args(OS.get_cmdline_user_args()) if AutoTest.enabled else {}
 	_probe = str(_args.get("probe", "")) if AutoTest.enabled else Debug.lowpoly_probe
+	_threed = str(_args.get("tech", "")) == "threed" if AutoTest.enabled else Debug.lowpoly_threed
+	var compare := _args.has("compare") if AutoTest.enabled else Debug.lowpoly_compare
 	Debug.lowpoly_probe = ""
+	Debug.lowpoly_compare = false
 	if AutoTest.enabled and _args.has("look"):
 		AutoTest.require("look checks")
 		await _check_look()
@@ -61,7 +75,18 @@ func _ready() -> void:
 			AutoTest.require("lowpoly probe")
 		_launch()
 		return
+	if compare:
+		_build_compare()
+		return
 	_build_sheet()
+	if _threed:
+		if AutoTest.enabled and not _args.has("no-checks"):
+			AutoTest.require("threed checks")
+			_check_threed_assets()
+			_check_threed_screen()
+			await _check_threed_fps()
+			AutoTest.fulfill("threed checks")
+		return
 	if AutoTest.enabled and not _args.has("no-checks"):
 		AutoTest.require("lowpoly checks")
 		_check_assets()
@@ -82,41 +107,69 @@ func _process(delta: float) -> void:
 
 func _build_sheet() -> void:
 	_setting = SettingDef.of(int(_args.get("setting", Debug.demo_setting)) as Game.Setting)
-	_sheet = LowpolyScreen.make(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly(),
-			_setting.texture_lowpoly("sky"), Debug.lowpoly_scale)
-	_sheet.draw_hud = _draw_sheet_hud
-	add_child(_sheet)
 	var names := MODELS.duplicate()
 	names.append("chest")
-	var rows := ceili(float(names.size()) / COLUMNS)
-	_sheet.add_plane(Vector3.ZERO, Vector2(COLUMNS * CELL + 6.0, rows * CELL + 6.0), _setting.texture_lowpoly("sand"), 3.0)
-	_sheet.add_plane(Vector3(0.0, -0.4, 0.0), Vector2(300.0, 300.0), _setting.texture_lowpoly("water"), 6.0,
+	_sheet = _make_sheet(Vector2(Style.SCREEN), _threed, names, COLUMNS, true)
+	_sheet.draw_hud = _draw_sheet_hud
+	_sheet.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 6.0, 10.6)).looking_at(Vector3(0.0, 0.8, 0.0))
+
+
+## Лист моделей на песке у воды: экран low poly или «продвинутых» в области `area`. Последняя
+## модель при `pink_last` это розовая заглушка.
+func _make_sheet(area: Vector2, threed: bool, names: Array, columns: int, pink_last: bool) -> LowpolyScreen:
+	var sheet: LowpolyScreen
+	if threed:
+		sheet = ThreedScreen.make_threed(area, false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), Debug.lowpoly_scale)
+	else:
+		sheet = LowpolyScreen.make(area, false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), _setting.texture_lowpoly("sky"),
+				Debug.lowpoly_scale)
+	add_child(sheet)
+	_sheets.append(sheet)
+	var rows := ceili(float(names.size()) / columns)
+	sheet.add_plane(Vector3.ZERO, Vector2(columns * CELL + 6.0, rows * CELL + 6.0), _setting.texture_lowpoly("sand", threed), 3.0)
+	sheet.add_plane(Vector3(0.0, -0.4, 0.0), Vector2(300.0, 300.0), _setting.texture_lowpoly("water", threed), 6.0,
 			{"uv_scroll": Vector2(0.02, 0.035), "affine": 0.0})
 	for i in names.size():
-		var def := _setting.model(names[i])
-		var is_pink := i == names.size() - 1
-		var at := Vector3((i % COLUMNS - (COLUMNS - 1) / 2.0) * CELL, 0.0, (i / COLUMNS - (rows - 1) / 2.0) * CELL)
-		var m := _sheet.pink_model(def) if is_pink else _sheet.model(def)
-		m.position = at + (Vector3(0.0, 0.9, 0.0) if HELD.has(names[i]) else Vector3.ZERO)
+		var name: String = names[i]
+		var def := _setting.model(name, threed)
+		var is_pink := pink_last and i == names.size() - 1
+		var at := Vector3((i % columns - (columns - 1) / 2.0) * CELL, 0.0, (i / columns - (rows - 1) / 2.0) * CELL)
+		var m := sheet.pink_model(def) if is_pink else sheet.model(def)
+		m.position = at + (Vector3(0.0, 0.9, 0.0) if HELD.has(name) else Vector3.ZERO)
 		var tall := def.bounds().size.y if def != null else 1.0
 		if tall > SHEET_TALL:
 			m.scale = Vector3.ONE * SHEET_TALL / tall
-		_sheet.world.add_child(m)
-		_sheet.add_shadow(0.45).position = at + Vector3(0.0, 0.03, 0.0)
+		sheet.world.add_child(m)
+		sheet.add_shadow(0.45).position = at + Vector3(0.0, 0.03, 0.0)
 		_models.append(m)
-		_labels.append("заглушка" if is_pink else "%s %d%s" % [names[i], def.triangles() if def != null else 0,
+		_labels.append("заглушка" if is_pink else "%s %d%s" % [name, def.triangles() if def != null else 0,
 				" (1:%d)" % roundi(tall / SHEET_TALL) if tall > SHEET_TALL else ""])
-	_sheet.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 6.0, 10.6)).looking_at(Vector3(0.0, 0.8, 0.0))
+	return sheet
+
+
+## Сравнительный лист (#118): слева low poly, справа «продвинутые», одни и те же модели с одной
+## точки. Кадр уходит в `debug/playtest/` через `SHOT=` автотеста.
+func _build_compare() -> void:
+	_setting = SettingDef.of(int(_args.get("setting", Debug.demo_setting)) as Game.Setting)
+	var half := Vector2(floorf(Style.SCREEN.x / 2.0) - 6.0, Style.SCREEN.y)
+	for side in 2:
+		var sheet := _make_sheet(half, side == 1, COMPARE, 5, false)
+		sheet.position += Vector2(side * (half.x + 12.0), 0.0)
+		sheet.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 3.4, 9.2)).looking_at(Vector3(0.0, 0.9, 0.0))
+		sheet.camera.fov = 52.0
+		var title := "ПРОДВИНУТЫЕ" if side == 1 else "3D (LOW POLY)"
+		sheet.draw_hud = func(canvas: CanvasItem) -> void:
+			PixelFont16.draw(canvas, Vector2(8.0, 6.0), title, Color("#F4EFE6"), Color("#F4EFE6"), Color("#16141A"), 1.0)
 
 
 func _draw_sheet_hud(canvas: CanvasItem) -> void:
 	var dark := Color("#16141A")
 	var white := Color("#F4EFE6")
 	var own := _setting.lowpoly_colors.size() >= LowpolyScreen.ROLES
-	PixelFont16.draw(canvas, Vector2(8.0, 6.0), "low poly: %s%s" % [SettingDef.IDS[_setting.setting],
+	PixelFont16.draw(canvas, Vector2(8.0, 6.0), "%s: %s%s" % ["продвинутые" if _threed else "low poly", SettingDef.IDS[_setting.setting],
 			"" if own else " (меши и текстуры пиратов)"], white, white, dark, 1.0)
 	for i in _models.size():
-		var at := _sheet.camera.unproject_position(_models[i].position + Vector3(0.0, -0.05, 0.75))
+		var at := _sheet.project(_models[i].position + Vector3(0.0, -0.05, 0.75))
 		PixelFont16.draw(canvas, (at - Vector2(PixelFont16.width(_labels[i], 1.0) / 2.0, 0.0)).floor(), _labels[i], white, white, dark, 1.0)
 
 
@@ -393,7 +446,8 @@ func _mouse(rel: Vector2) -> void:
 # --- Пробные демки -----------------------------------------------------------------------------
 
 func _launch() -> void:
-	record = GameRecord.create(Game.Genre.PLATFORMER if _probe != "first" else Game.Genre.SHOOTER, Game.Tech.LOWPOLY,
+	record = GameRecord.create(Game.Genre.PLATFORMER if _probe != "first" else Game.Genre.SHOOTER,
+			Game.Tech.THREED if _threed else Game.Tech.LOWPOLY,
 			int(_args.get("seed", Debug.demo_seed)), "Проба low poly", int(_args.get("setting", Debug.demo_setting)) as Game.Setting)
 	if AutoTest.enabled:
 		if _args.has("bugs"):
@@ -424,8 +478,9 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 			probe.lowpoly.pink_count, record.has_bug(&"pink_placeholders")])
 	_expect(probe.lowpoly.alien == record.has_bug(&"alien_palette"), "чужая палитра %s при баге %s" % [probe.lowpoly.alien,
 			record.has_bug(&"alien_palette")])
-	_expect((probe.lowpoly.holes > 0.0) == record.has_bug(&"mesh_holes"), "дыры в моделях %.2f при баге %s" % [probe.lowpoly.holes,
-			record.has_bug(&"mesh_holes")])
+	_expect((probe.lowpoly.holes > 0.0) == (record.has_bug(&"mesh_holes") and not _threed), "дыры в моделях %.2f при баге %s" % [
+			probe.lowpoly.holes, record.has_bug(&"mesh_holes")])
+	_expect((probe.lowpoly is ThreedScreen) == _threed, "экран пробы не той технологии")
 	if win:
 		_expect(int(probe.get("collected")) > 0, "бот не собрал ни одного дублона")
 	else:
@@ -435,6 +490,86 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 			float(probe.get("travelled")), probe.lowpoly.view, record.bug_ids])
 	probe.queue_free()
 	AutoTest.fulfill("lowpoly probe")
+
+
+# --- Проверки «продвинутых» (#118) ---------------------------------------------------------------
+
+func _check_threed_assets() -> void:
+	var pirates := SettingDef.of(Game.Setting.PIRATES)
+	var names := MODELS.duplicate()
+	var denser := 0
+	for name: String in names:
+		var def := pirates.model(name, true)
+		var low := pirates.model(name)
+		_expect(def != null and def.resource_path.contains("/threed/"), "нет плотного меша %s" % name)
+		if def == null:
+			continue
+		_expect(def.triangles() <= MAX_TRIS_THREED, "%s: треугольников %d, больше %d" % [name, def.triangles(), MAX_TRIS_THREED])
+		_expect(def.triangles() >= low.triangles(), "%s: плотный меш беднее low poly" % name)
+		denser += 1 if def.triangles() > low.triangles() else 0
+		_expect(def.part_names == low.part_names, "%s: части плотного меша не те же" % name)
+		_expect(def.texture != null and def.texture.get_width() <= MAX_ATLAS_THREED and def.texture.get_width() > low.texture.get_width(),
+				"%s: атлас плотного меша %d" % [name, def.texture.get_width() if def.texture != null else 0])
+	for name in BIPEDS:
+		_expect(pirates.model(name, true).triangles() >= pirates.model(name).triangles() * 2, "%s: двуногий не вдвое плотнее" % name)
+	_expect(denser >= names.size() / 2, "плотнее low poly только %d мешей из %d" % [denser, names.size()])
+	for name in TEXTURES:
+		var tex := pirates.texture_lowpoly(name, true)
+		_expect(tex != null and tex.get_width() >= 128 and tex.resource_path.contains("/threed/"), "нет крупной текстуры %s" % name)
+
+
+func _check_threed_screen() -> void:
+	var screen := _sheet as ThreedScreen
+	_expect(screen != null, "лист не на экране «продвинутых»")
+	if screen == null:
+		return
+	# Сцена в полном разрешении, HUD в том же виртуальном экране, что у low poly.
+	_expect(screen.viewport.size.x >= int(screen.view.x) * 2 and is_equal_approx(screen.hud.scale.x, screen.viewport.size.x / screen.view.x),
+			"разрешение: сцена %s, виртуальный экран %s, HUD ×%.1f" % [screen.viewport.size, screen.view, screen.hud.scale.x])
+	_expect(screen.material == null, "на экране остался дизеринг low poly")
+	_expect(screen.sun_light != null and screen.sun_light.shadow_enabled, "нет солнца с тенями")
+	var env := screen.environment
+	_expect(env.glow_enabled and env.fog_enabled and env.adjustment_enabled and env.background_mode == Environment.BG_SKY,
+			"пост-эффекты выключены")
+	_expect(screen.sky_dome == null, "остался купол неба low poly")
+	var model := _models[MODELS.find("hero")]
+	var part := model.part(&"body")
+	var mat := part.mesh.surface_get_material(0) as ShaderMaterial
+	_expect(mat != null and mat.shader == ThreedScreen.SHADER, "модель не на материале «продвинутых»")
+	_expect(screen.add_shadow().mesh == null, "тень-блин осталась при настоящих тенях")
+	_expect(_models[_models.size() - 1].pink and screen.pink_count == 1, "нет розовой заглушки")
+	screen.set_alien(0.45)
+	_expect(screen.alien and is_equal_approx(float(mat.get_shader_parameter("hue_shift")), 0.45), "чужая палитра не легла на материал")
+	screen.set_alien(0.0)
+	screen.alien = false
+	# Встроенный режим: дорогие эффекты выключены.
+	var small := ThreedScreen.make_threed(Vector2(480, 240), true, _setting.colors_lowpoly(), _setting.sky_lowpoly())
+	_expect(not small.environment.ssao_enabled and small.viewport.msaa_3d == Viewport.MSAA_DISABLED, "во встроенном режиме дорогие эффекты включены")
+	small.free()
+
+
+## Три экрана «продвинутых» сразу, как три живых стрима ленты: кадры в секунду в окне.
+func _check_threed_fps() -> void:
+	var extra: Array[LowpolyScreen] = []
+	var models_before := _models.size()
+	for i in 3:
+		var screen := _make_sheet(Vector2(560, 280), true, COMPARE, 5, false)
+		screen.position = Vector2(40.0 + i * 600.0, 40.0)
+		screen.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 3.4, 9.2)).looking_at(Vector3(0.0, 0.9, 0.0))
+		extra.append(screen)
+	for i in 90:
+		await get_tree().process_frame
+	var fps := Performance.get_monitor(Performance.TIME_FPS)
+	var headless := DisplayServer.get_name() == "headless"
+	AutoTest.note("threed: лист и три экрана сразу, %s" % ("без окна, кадры не меряются" if headless else "%.0f кадров в секунду" % fps))
+	if not headless and not _args.has("fixed-fps"):
+		_expect(fps >= 30.0, "три экрана «продвинутых» дают %.0f кадров в секунду" % fps)
+	# Модели пробных экранов уходят из листа раньше самих экранов: лист их больше не крутит.
+	_models.resize(models_before)
+	_labels.resize(models_before)
+	for screen in extra:
+		_sheets.erase(screen)
+		screen.queue_free()
 
 
 func _expect(ok: bool, what: String) -> void:

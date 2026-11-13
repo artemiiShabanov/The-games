@@ -69,6 +69,8 @@ var draw_hud := Callable()
 var palette: Array[Color] = []
 var sky := Color.WHITE
 var tuning: LowpolyTuning
+## Встроенный режим (стрим ленты): картинка мельче, дорогие эффекты выключены.
+var embedded := false
 ## Чужая палитра включена (проверки).
 var alien := false
 var hue_shift := 0.0
@@ -93,29 +95,48 @@ var _shadow_mesh: ArrayMesh
 static func make(area: Vector2, embedded: bool, palette_: Array[Color], sky_: Color, sky_texture: Texture2D = null,
 		scale := 0) -> LowpolyScreen:
 	var s := LowpolyScreen.new()
-	s.tuning = LowpolyTuning.load_default()
-	var full := scale if scale > 0 else s.tuning.screen_scale
-	var shrink := maxi(full - 1, EMBED_SCALE) if embedded else full
-	s.palette = palette_
-	s.sky = sky_
-	s.view = (area / shrink).floor()
-	s.position = ((area - s.view * shrink) / 2.0).floor()
-	s.size = s.view * shrink
-	s.custom_minimum_size = s.size
-	s.stretch = true
-	s.stretch_shrink = shrink
-	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	s.viewport = SubViewport.new()
-	s.viewport.size = Vector2i(s.view)
-	s.viewport.own_world_3d = true
-	s.viewport.msaa_3d = Viewport.MSAA_DISABLED
-	s.viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
-	s.viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	s.viewport.snap_2d_transforms_to_pixel = true
-	s.add_child(s.viewport)
-	s._build_scene(sky_texture)
+	s._setup(area, embedded, palette_, sky_, sky_texture, scale)
 	return s
+
+
+## Сборка экрана. Виртуальный экран `view` (в нём рисуется HUD) втрое мельче области; сцена
+## рисуется в `_render_shrink` раз мельче области: у low poly это то же число, у «продвинутых»
+## (`ThreedScreen`) единица, и HUD растягивается до полного разрешения.
+func _setup(area: Vector2, embedded_: bool, palette_: Array[Color], sky_: Color, sky_texture: Texture2D, scale: int) -> void:
+	tuning = LowpolyTuning.load_default()
+	embedded = embedded_
+	var full := scale if scale > 0 else tuning.screen_scale
+	var shrink := maxi(full - 1, EMBED_SCALE) if embedded else full
+	var render := _render_shrink(shrink)
+	palette = palette_
+	sky = sky_
+	view = (area / shrink).floor()
+	position = ((area - view * shrink) / 2.0).floor()
+	size = view * shrink
+	custom_minimum_size = size
+	stretch = true
+	stretch_shrink = render
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	viewport = SubViewport.new()
+	viewport.size = Vector2i(view * shrink / render)
+	viewport.own_world_3d = true
+	viewport.msaa_3d = Viewport.MSAA_DISABLED
+	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	viewport.snap_2d_transforms_to_pixel = true
+	add_child(viewport)
+	_build_scene(sky_texture)
+	hud.scale = Vector2.ONE * (float(shrink) / render)
+
+
+func _render_shrink(shrink: int) -> int:
+	return shrink
+
+
+## Точка мира в координатах HUD (виртуального экрана).
+func project(p: Vector3) -> Vector2:
+	return camera.unproject_position(p) / hud.scale.x
 
 
 func _build_scene(sky_texture: Texture2D) -> void:

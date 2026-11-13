@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ThreedTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/threed_tuning.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+sun_pitch = -38.0
+sun_yaw = 58.0
+sun_energy = 1.75
+sun_color = Color(1.0, 0.95, 0.84, 1)
+shadow_distance = 60.0
+shadow_blur = 1.6
+ambient_energy = 0.28
+sky_top = 0.5
+sky_horizon = 1.12
+fog_density = 0.0012
+fog_aerial = 0.35
+glow_intensity = 0.4
+glow_bloom = 0.06
+glow_threshold = 0.95
+saturation = 1.22
+contrast = 1.06
+exposure = 0.84
+rim = 0.35
+rough = 0.82
+ssao = true
+msaa = true

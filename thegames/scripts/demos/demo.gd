@@ -143,6 +143,8 @@ var bit16: Bit16Screen
 var bit16_set: SettingDef
 ## Экран low poly демки и сеттинг записи (`lowpoly_screen`).
 var lowpoly: LowpolyScreen
+## Демка идёт на экране «продвинутых» (`ThreedScreen`).
+var threed := false
 var lowpoly_set: SettingDef
 ## Обзор от первого лица мышью и правым стиком (#109): включает `look_start`, читает `look_take`.
 var look_enabled := false
@@ -524,10 +526,17 @@ func _exit_tree() -> void:
 
 ## Экран low poly на всю область демки: 3D-сцена в духе первой PlayStation с небом сеттинга
 ## записи, HUD рисуется в колбэке поверх неё. Чужая палитра при баге ложится на материалы мира.
+## У записи технологии «продвинутые» (threed, #118) тот же код демки получает `ThreedScreen`,
+## плотные меши и крупные текстуры.
 func lowpoly_screen(draw_hud: Callable) -> LowpolyScreen:
 	lowpoly_set = SettingDef.of(record.setting if record != null else Game.Setting.PIRATES)
-	lowpoly = LowpolyScreen.make(embed_size if embedded else CardFrame.inner_size(), embedded,
-			lowpoly_set.colors_lowpoly(), lowpoly_set.sky_lowpoly(), lowpoly_set.texture_lowpoly("sky"), Debug.lowpoly_scale)
+	threed = record != null and record.tech == Game.Tech.THREED
+	var area := embed_size if embedded else CardFrame.inner_size()
+	if threed:
+		lowpoly = ThreedScreen.make_threed(area, embedded, lowpoly_set.colors_lowpoly(), lowpoly_set.sky_lowpoly(), Debug.lowpoly_scale)
+	else:
+		lowpoly = LowpolyScreen.make(area, embedded, lowpoly_set.colors_lowpoly(), lowpoly_set.sky_lowpoly(),
+				lowpoly_set.texture_lowpoly("sky"), Debug.lowpoly_scale)
 	lowpoly.draw_hud = draw_hud
 	if has_bug(&"alien_palette"):
 		lowpoly.set_alien(bug_param(&"alien_palette", &"hue_shift", 0.45))
@@ -540,7 +549,7 @@ func lowpoly_screen(draw_hud: Callable) -> LowpolyScreen:
 
 ## Модель слота сеттинга в мире демки; слот с розовой заглушкой приходит розовым ящиком.
 func spawn_model(slot: String, name: String, parent: Node3D = null) -> LowpolyModel:
-	var def := lowpoly_set.model(name)
+	var def := lowpoly_set.model(name, threed)
 	var m := lowpoly.pink_model(def) if is_pink(slot) else lowpoly.model(def)
 	(parent if parent != null else lowpoly.world).add_child(m)
 	return m
@@ -548,7 +557,7 @@ func spawn_model(slot: String, name: String, parent: Node3D = null) -> LowpolyMo
 
 ## Текстура уровня сеттинга записи для демки low poly: `sand`, `planks`, `water`, `rock`, `sail`.
 func lowpoly_texture(name: String) -> Texture2D:
-	return lowpoly_set.texture_lowpoly(name)
+	return lowpoly_set.texture_lowpoly(name, threed)
 
 
 ## Контур слота рассыпается на отрезки (враг от чиха, разбитое препятствие, потерянная жизнь):

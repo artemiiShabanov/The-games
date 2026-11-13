@@ -92,20 +92,25 @@ func colors16() -> Array[Color]:
 	return SettingDef.of(Game.Setting.PIRATES).bit16_colors if setting != Game.Setting.PIRATES else bit16_colors
 
 
-## Меш слота low poly по имени из папки сеттинга, без него пиратский.
-func model(name: String) -> LowpolyModelDef:
-	var path := meshes_lowpoly + name + ".tres"
+## Меш слота low poly по имени из папки сеттинга, без него пиратский. `threed` берёт плотный
+## набор «продвинутых» (#118) из соседней папки `threed`.
+func model(name: String, threed := false) -> LowpolyModelDef:
+	var path := _mesh_folder(meshes_lowpoly, threed) + name + ".tres"
 	if not ResourceLoader.exists(path):
-		path = FALLBACK_MESHES + name + ".tres"
+		path = _mesh_folder(FALLBACK_MESHES, threed) + name + ".tres"
 	return load(path) as LowpolyModelDef if ResourceLoader.exists(path) else null
+
+
+static func _mesh_folder(lowpoly_folder: String, threed: bool) -> String:
+	return lowpoly_folder.replace("/lowpoly/", "/threed/") if threed else lowpoly_folder
 
 
 ## Текстура уровня low poly по имени (`sand`, `planks`, `water`, `rock`, `sail`, `sky`), без неё
 ## пиратская.
-func texture_lowpoly(name: String) -> Texture2D:
-	var path := meshes_lowpoly + "tex_" + name + ".png"
+func texture_lowpoly(name: String, threed := false) -> Texture2D:
+	var path := _mesh_folder(meshes_lowpoly, threed) + "tex_" + name + ".png"
 	if not ResourceLoader.exists(path):
-		path = FALLBACK_MESHES + "tex_" + name + ".png"
+		path = _mesh_folder(FALLBACK_MESHES, threed) + "tex_" + name + ".png"
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 

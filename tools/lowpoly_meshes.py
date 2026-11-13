@@ -28,6 +28,12 @@ from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "thegames", "assets", "settings")
 MAX_TRIS = 300
+## Набор «продвинутых» (threed, #118): те же описания моделей, но тела вращения вдвое плотнее по
+## окружности и по высоте (кольца сглажены), атласы вчетверо крупнее и сглажены.
+MAX_TRIS_DENSE = 1500
+DENSE = 1
+TEX_SCALE = 1
+FOLDER = "lowpoly"
 
 
 # --- Рисование атласа ---------------------------------------------------------------------------
@@ -91,7 +97,21 @@ class Atlas:
         return ((x + e) / self.w, (y + e) / self.h, (x + w - e) / self.w, (y + h - e) / self.h)
 
     def save(self, path):
-        self.im.save(path)
+        if TEX_SCALE <= 1:
+            self.im.save(path)
+            return
+        # Крупная текстура для «продвинутых»: гладкое увеличение (по цвету с учётом прозрачности,
+        # чтобы вырезанные пиксели не давали тёмной каймы) и лёгкое зерно.
+        from PIL import Image
+        big = self.im.convert("RGBa").resize((self.w * TEX_SCALE, self.h * TEX_SCALE), Image.BICUBIC).convert("RGBA")
+        grain = random.Random(self.w * 131 + self.h)
+        px = big.load()
+        for y in range(big.height):
+            for x in range(big.width):
+                r, g, b, a = px[x, y]
+                k = 1.0 + grain.uniform(-0.035, 0.035)
+                px[x, y] = (min(255, int(r * k)), min(255, int(g * k)), min(255, int(b * k)), 255 if a >= 128 else 0)
+        big.save(path)
 
 
 # --- Геометрия ----------------------------------------------------------------------------------
@@ -128,6 +148,16 @@ def loft(rings, region, n=6, phase=0.0, caps=(None, None), flat=False):
     full = []
     for r in rings:
         full.append((r[0], r[1], r[2], r[3] if len(r) > 3 else 0.0, r[4] if len(r) > 4 else 0.0))
+    if DENSE > 1 and not flat:
+        # Плотный набор: вдвое больше точек в кольце, между кольцами вставлено сглаженное.
+        n *= DENSE
+        if len(full) >= 3:
+            smooth = []
+            for i in range(len(full) - 1):
+                p0, p1, p2, p3 = full[max(i - 1, 0)], full[i], full[i + 1], full[min(i + 2, len(full) - 1)]
+                mid = tuple(0.5 * (p1[j] + p2[j]) + 0.0625 * (p1[j] + p2[j] - p0[j] - p3[j]) for j in range(5))
+                smooth += [p1, (0.5 * (p1[0] + p2[0]), max(mid[1], 0.0), max(mid[2], 0.0), mid[3], mid[4])]
+            full = smooth + [full[-1]]
     tris = []
 
     def point(ring, k):
@@ -246,7 +276,7 @@ class Model:
             '[gd_resource type="Resource" script_class="LowpolyModelDef" load_steps=3 format=3]',
             "",
             '[ext_resource type="Script" path="res://scripts/demos/lowpoly_model_def.gd" id="1_def"]',
-            '[ext_resource type="Texture2D" path="res://assets/settings/%s/lowpoly/%s.png" id="2_tex"]' % (setting, self.name),
+            '[ext_resource type="Texture2D" path="res://assets/settings/%s/%s/%s.png" id="2_tex"]' % (setting, FOLDER, self.name),
             "",
             "[resource]",
             'script = ExtResource("1_def")',
@@ -1196,24 +1226,28 @@ SETS = {
 
 
 def main():
+    global DENSE, TEX_SCALE, FOLDER
     only_list = "--list" in sys.argv
     bad = False
-    for setting, content in SETS.items():
-        folder = os.path.join(ROOT, setting, "lowpoly")
-        for make in content["models"]:
-            m = make()
-            over = m.tris() > MAX_TRIS
-            bad = bad or over
-            print("%-8s %-8s частей %d, треугольников %3d, атлас %d×%d%s" % (
-                setting, m.name, len(m.parts), m.tris(), m.atlas.w, m.atlas.h, "  БОЛЬШЕ %d" % MAX_TRIS if over else ""))
-            if not only_list:
-                m.write(folder, setting)
-        for name, make in content["textures"].items():
-            a = make()
-            print("%-8s tex_%-8s %d×%d" % (setting, name, a.w, a.h))
-            if not only_list:
-                os.makedirs(folder, exist_ok=True)
-                a.save(os.path.join(folder, "tex_%s.png" % name))
+    # Два набора из одних описаний: low poly и плотный для «продвинутых» (threed).
+    for FOLDER, DENSE, TEX_SCALE, limit in (("lowpoly", 1, 1, MAX_TRIS), ("threed", 2, 4, MAX_TRIS_DENSE)):
+        for setting, content in SETS.items():
+            folder = os.path.join(ROOT, setting, FOLDER)
+            for make in content["models"]:
+                m = make()
+                over = m.tris() > limit
+                bad = bad or over
+                print("%-8s %-8s %-8s частей %d, треугольников %4d, атлас %d×%d%s" % (
+                    FOLDER, setting, m.name, len(m.parts), m.tris(), m.atlas.w * TEX_SCALE, m.atlas.h * TEX_SCALE,
+                    "  БОЛЬШЕ %d" % limit if over else ""))
+                if not only_list:
+                    m.write(folder, setting)
+            for name, make in content["textures"].items():
+                a = make()
+                print("%-8s %-8s tex_%-8s %d×%d" % (FOLDER, setting, name, a.w * TEX_SCALE, a.h * TEX_SCALE))
+                if not only_list:
+                    os.makedirs(folder, exist_ok=True)
+                    a.save(os.path.join(folder, "tex_%s.png" % name))
     sys.exit(1 if bad else 0)
 
 

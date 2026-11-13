@@ -75,6 +75,9 @@ var bit16_probe := ""
 ## `lowpoly_test` запускает пробную демку low poly: "behind" камера за спиной, "first" от первого
 ## лица; "" лист мешей.
 var lowpoly_probe := ""
+## `lowpoly_test` открывается на экране «продвинутых» (#118) или сравнительным листом двух технологий.
+var lowpoly_threed := false
+var lowpoly_compare := false
 ## Увеличение экрана low poly (0 из `LowpolyTuning`).
 var lowpoly_scale := 0
 ## Демки рисуют поверх хитбоксы героя и врагов (#98, тропа 16/32); под автотестом `--hitboxes`.
@@ -371,12 +374,30 @@ func _register_builtin() -> void:
 	add_action(SECTION_DEMOS, "16/32: проба вглубь с багами раздела", func() -> void:
 		bit16_probe = "depth"
 		run_test_scene("bit16_test"))
-	add_action(SECTION_DEMOS, "Low poly: лист мешей и палитра", func() -> void: run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Low poly: лист мешей и палитра", func() -> void:
+		lowpoly_threed = false
+		run_test_scene("lowpoly_test"))
 	add_action(SECTION_DEMOS, "Low poly: проба за спиной с багами раздела", func() -> void:
+		lowpoly_threed = false
 		lowpoly_probe = "behind"
 		run_test_scene("lowpoly_test"))
 	add_action(SECTION_DEMOS, "Low poly: проба от первого лица с багами раздела", func() -> void:
+		lowpoly_threed = false
 		lowpoly_probe = "first"
+		run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Продвинутые: лист мешей", func() -> void:
+		lowpoly_threed = true
+		run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Продвинутые: проба за спиной", func() -> void:
+		lowpoly_threed = true
+		lowpoly_probe = "behind"
+		run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Продвинутые: проба от первого лица", func() -> void:
+		lowpoly_threed = true
+		lowpoly_probe = "first"
+		run_test_scene("lowpoly_test"))
+	add_action(SECTION_DEMOS, "Low poly и продвинутые рядом", func() -> void:
+		lowpoly_compare = true
 		run_test_scene("lowpoly_test"))
 	add_number(SECTION_DEMOS, "Low poly: увеличение экрана (0 из ресурса)", func() -> int: return lowpoly_scale,
 			func(v: float) -> void: lowpoly_scale = int(v), 0, 4, 1, true)
