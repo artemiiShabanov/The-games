@@ -148,6 +148,10 @@ var threed := false
 var lowpoly_set: SettingDef
 ## Обзор от первого лица мышью и правым стиком (#109): включает `look_start`, читает `look_take`.
 var look_enabled := false
+## Заставка загрузки тяжёлой демки (`_slow_start`) и её время для анимации.
+const LOADING_FRAMES := 12
+var _loading: Control
+var _loading_time := 0.0
 var look_tuning: LookTuning
 var _look_mouse := Vector2.ZERO
 ## Отрезки рассыпавшихся контуров (`shatter_slot`): [a, b, скорость, возраст, чернила].
@@ -186,11 +190,57 @@ func start() -> void:
 	card.content.add_child(screen)
 	_build_overlay()
 	_setup_common_bugs()
-	_on_start()
-	await card.raise_card()
+	if _slow_start():
+		# Тяжёлая демка (плейтест #122): карточка всплывает сразу, с заставкой загрузки; мир
+		# строится под ней, первые его кадры (сборка шейдеров) тоже идут под заставкой.
+		_show_loading()
+		await card.raise_card()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_on_start()
+		for i in LOADING_FRAMES:
+			await get_tree().process_frame
+		var fade := create_tween()
+		fade.tween_property(_loading, "modulate:a", 0.0, 0.25)
+		await fade.finished
+		_loading.queue_free()
+		_loading = null
+	else:
+		_on_start()
+		await card.raise_card()
 	running = true
 	_look_capture()
 	demo_started.emit(record, source)
+
+
+## Демке нужно время на сборку мира: показывать заставку загрузки. Сейчас это «продвинутые».
+func _slow_start() -> bool:
+	return record != null and record.tech == Game.Tech.THREED
+
+
+## Заставка загрузки поверх экрана демки, в стиле оболочки: светлая подложка, три прыгающие
+## точки акцентных цветов и подпись.
+func _show_loading() -> void:
+	_loading = Control.new()
+	_loading.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.content.add_child(_loading)
+	_loading.draw.connect(_draw_loading)
+
+
+func _draw_loading() -> void:
+	var area := _loading.size
+	_loading.draw_rect(Rect2(Vector2.ZERO, area), Style.SURFACE_2)
+	var mid := area / 2.0
+	for i in 3:
+		var hop := maxf(sin(_loading_time * 5.5 - i * 0.7), 0.0)
+		var at := mid + Vector2((i - 1) * 46.0, -12.0 - hop * 30.0)
+		_loading.draw_circle(mid + Vector2((i - 1) * 46.0, 22.0), 13.0 - hop * 4.0, Color(Style.INK, 0.08), true, -1.0, true)
+		_loading.draw_circle(at, 15.0, Style.accent(i), true, -1.0, true)
+	var font := Jelly.fun_font(700)
+	var label := "Загрузка"
+	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY).x
+	_loading.draw_string(font, mid + Vector2(-width / 2.0, 78.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY, Style.INK_2)
 
 
 ## Бот ведёт демку: под автотестом или во встроенном режиме.
@@ -664,6 +714,9 @@ func _close(result: bool) -> void:
 
 
 func _process(delta: float) -> void:
+	if _loading != null:
+		_loading_time += delta
+		_loading.queue_redraw()
 	if _result_left > 0.0:
 		_result_left -= delta
 		if _result_left <= 0.0 and not finished and not _closing:

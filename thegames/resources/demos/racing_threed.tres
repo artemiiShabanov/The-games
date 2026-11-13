@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="RacingThreedTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/racing_threed_tuning.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+countdown = 2.0
+gear_speeds = Array[float]([11.0, 19.0, 27.0, 34.0, 40.0])
+gear_pulls = Array[float]([9.0, 7.0, 5.2, 3.8, 2.7])
+shift_up = 0.93
+shift_down = 0.62
+shift_seconds = 0.3
+shift_soft = 0.12
+engine_brake = 1.6
+brake = 11.0
+reverse_speed = 5.0
+rolling = 0.25
+air = 0.0009
+wheelbase = 2.6
+inertia = 1.25
+cornering = 9.0
+grip = 10.5
+grip_fade = 0.004
+rear_bias = 1.1
+stability = 2.4
+slide_damp = 1.2
+weight_shift = 0.022
+weight_follow = 7.0
+steer_low = 0.5
+steer_high = 0.1
+steer_rate = 3.2
+surface_grip = Array[float]([1.0, 0.62, 0.5, 0.74])
+surface_drag = Array[float]([0.0, 0.9, 0.0, 0.8])
+verge = 3.5
+wall_keep = 0.55
+rock_keep = 0.3
+car_radius = 1.1
+bump_keep = 0.85
+rival_skills = Array[float]([0.8, 0.86, 0.92])
+rival_lateral = 7.4
+rival_brake = 7.5
+grace_seconds = 8.0
+max_seconds = 150.0
+bot_lateral = 8.4
+bot_brake = 8.6
+bot_look = 6.0
+bot_look_time = 0.42
+cam_distance = 7.2
+cam_height = 2.6
+cam_look = 1.1
+cam_fov = 62.0
+cam_fov_speed = 14.0
+cam_return = 2.5
+hit_stop = 0.08
+music_db = -12.0
+sfx_db = -6.0
+engine_db = -14.0

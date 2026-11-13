@@ -65,6 +65,8 @@ func _ready() -> void:
 			_check_spits()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.LOWPOLY:
 			_check_rings()
+		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.THREED:
+			_check_sprints()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -721,6 +723,124 @@ func _hook_until_swing(level: HookLevel, rules: PlatformerThreedTuning) -> HookS
 		sim.step(HookSim.DT, sim.bot_move, sim.bot_jump, sim.bot_hook)
 		if sim.mode == HookSim.Mode.SWING:
 			break
+	return sim
+
+
+## Гонки × «продвинутые» «спринт» (#122): сто сидов дают трассу, которая проходит проверку
+## генератора (повороты, связка, сужения, песок, рельеф, витки не сходятся), генерация
+## детерминирована; на каждом сиде бот WIN без окна (`SprintSim.simulate`) финиширует не ниже
+## второго места, бот LOSE не доезжает. Отдельно правила: передачи переключаются сами с
+## провалом тяги, боковое ускорение не выше сцепления, песок держит хуже дороги, на гребне
+## машина легче, полный газ в повороте выносит дальше ровного, борт и камень отнимают скорость.
+func _check_sprints() -> void:
+	var t := RacingThreedGenTuning.load_default()
+	var rules := RacingThreedTuning.load_default()
+	var seconds: Array[float] = []
+	var places := [0, 0, 0, 0, 0]
+	for s in range(1, 101):
+		var track := SprintTrackGen.generate(s, t, rules)
+		var why := SprintTrackGen.validate(track, t)
+		_expect(why == "", "трасса сида %d: %s" % [s, why])
+		var win := SprintSim.simulate(track, rules, AutoTest.BotMode.WIN)
+		_expect(win.finished and win.place() <= 2, "трасса сида %d: бот WIN %s, место %d" % [s, "доехал" if win.finished else "не доехал", win.place()])
+		seconds.append(win.time)
+		places[win.place()] += 1
+		var lose := SprintSim.simulate(track, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.finished, "трасса сида %d: бот LOSE доехал" % s)
+	_expect(SprintTrackGen.generate(7, t, rules).signature() == SprintTrackGen.generate(7, t, rules).signature(), "трасса сида 7 не повторяется")
+	_expect(SprintTrackGen.generate(7, t, rules).signature() != SprintTrackGen.generate(8, t, rules).signature(), "трассы сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("racing threed: 100 сидов прошли проверку; бот WIN без окна доехал на всех, места %s: медиана %.1f с, от %.1f до %.1f" % [
+			places.slice(1), seconds[50], seconds[0], seconds[99]])
+	var track := SprintTrackGen.generate(1, t, rules)
+	# Разгон по прямой: передачи идут вверх сами, на переключении тяги нет.
+	var sim := _sprint_at(track, rules, 40.0, 0.0, 0.0)
+	var gears := 0
+	var stalled := true
+	for i in 210:
+		var before := sim.player().speed
+		var shifting := sim.player().shift_left > 0.05
+		sim.step(SprintSim.DT, 0.0, 1.0)
+		for ev in sim.events:
+			gears += 1 if ev[0] == &"shift" and ev[2] else 0
+		sim.events.clear()
+		if shifting and sim.player().shift_left > 0.02 and sim.player().speed > before + 0.001:
+			stalled = false
+	_expect(gears >= 1 and sim.player().gear >= 1 and stalled, "разгон: переключений %d, передача %d, тяга на переключении %s" % [gears,
+			sim.player().gear + 1, "есть" if not stalled else "нет"])
+	# Руль до упора на скорости: боковое ускорение не выше сцепления.
+	sim = _sprint_at(track, rules, 40.0, 0.0, 24.0)
+	var worst := 0.0
+	for i in 40:
+		sim.step(SprintSim.DT, 1.0, 0.3)
+		worst = maxf(worst, absf(sim.player().ay))
+	_expect(worst > 4.0 and worst <= rules.grip * rules.rear_bias * 1.03, "боковое ускорение %.1f при сцеплении %.1f" % [worst, rules.grip])
+	# Тот же манёвр на песке поворачивает слабее.
+	var turned: Array[float] = []
+	for surface: int in [SprintTrack.Surface.ROAD, SprintTrack.Surface.SAND]:
+		var copy := SprintTrackGen.generate(1, t, rules)
+		copy.surfaces.fill(surface)
+		sim = _sprint_at(copy, rules, 40.0, 0.0, 18.0)
+		var from := sim.player().yaw
+		for i in 45:
+			sim.step(SprintSim.DT, 1.0, 0.2)
+		turned.append(absf(angle_difference(from, sim.player().yaw)))
+	_expect(turned[1] < turned[0] * 0.8, "песок поворачивает как дорога: %.2f против %.2f" % [turned[1], turned[0]])
+	# Полный газ в повороте выносит наружу дальше, чем ровный.
+	var wide: Array[float] = []
+	for gas: float in [0.25, 1.0]:
+		var copy := SprintTrackGen.generate(1, t, rules)
+		copy.surfaces.fill(SprintTrack.Surface.ROAD)
+		sim = _sprint_at(copy, rules, 40.0, 0.0, 15.0)
+		for i in 80:
+			sim.step(SprintSim.DT, 0.7, gas)
+		wide.append(sim.player().spin / maxf(sim.player().speed, 1.0))
+	_expect(absf(wide[1]) < absf(wide[0]), "газ в повороте не выносит: кривизна %.3f против %.3f" % [wide[1], wide[0]])
+	# Гребень разгружает машину, ложбина прижимает.
+	var top_s := 0.0
+	var dip_s := 0.0
+	for i in range(40, track.count() - 40):
+		if track.crest(i * track.step) > track.crest(top_s):
+			top_s = i * track.step
+		if track.crest(i * track.step) < track.crest(dip_s):
+			dip_s = i * track.step
+	sim = SprintSim.create(track, rules)
+	_expect(sim.load_at(top_s, 25.0) < 0.97 and sim.load_at(dip_s, 25.0) > 1.03, "рельеф не меняет нагрузку: %.2f и %.2f" % [
+			sim.load_at(top_s, 25.0), sim.load_at(dip_s, 25.0)])
+	# В борт: машина остаётся в пределах, скорость падает.
+	sim = _sprint_at(track, rules, 40.0, 0.0, 16.0)
+	sim.player().yaw += 0.7
+	sim.player().vel = sim.player().forward() * 16.0
+	for i in 90:
+		sim.step(SprintSim.DT, 0.0, 0.0)
+	_expect(sim.scrapes >= 1 and absf(sim.player().d) <= track.half(sim.player().s) + rules.verge and sim.player().speed < 12.0,
+			"борт: ударов %d, вбок %.1f, скорость %.1f" % [sim.scrapes, sim.player().d, sim.player().speed])
+	# В камень на плече сужения.
+	var rock := track.rocks[0]
+	sim = _sprint_at(track, rules, rock.x - 14.0, rock.y, 18.0)
+	for i in 80:
+		sim.step(SprintSim.DT, 0.0, 0.3)
+	_expect(sim.crashes >= 1 and sim.player().speed < 10.0, "камень: ударов %d, скорость %.1f" % [sim.crashes, sim.player().speed])
+
+
+## Правила спринта с машиной игрока в `s`, `d` на скорости `v`, без отсчёта; соперники убраны
+## далеко вперёд.
+func _sprint_at(track: SprintTrack, rules: RacingThreedTuning, s: float, d: float, v: float) -> SprintSim:
+	var sim := SprintSim.create(track, rules)
+	sim.countdown = 0.0
+	var car := sim.player()
+	car.s = s
+	car.d = d
+	car.pos = track.at(s, d)
+	car.yaw = track.yaw(s)
+	car.vel = car.forward() * v
+	car.speed = v
+	for g in rules.gear_speeds.size():
+		car.gear = g
+		if v < rules.gear_speeds[g] * rules.shift_up:
+			break
+	for i in range(1, sim.cars.size()):
+		sim.cars[i].s = s + 400.0 + i * 20.0
 	return sim
 
 

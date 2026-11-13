@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="RacingThreedGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/racing_threed_gen_tuning.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+length = 1300.0
+step = 2.0
+half_width = 6.5
+narrow_half = 3.4
+narrow_min = 26.0
+narrow_max = 38.0
+narrow_ramp = 12.0
+narrows = 3
+straight_start = Vector2(90.0, 140.0)
+straight_end = Vector2(45.0, 85.0)
+radius_start = Vector2(42.0, 60.0)
+radius_end = Vector2(17.0, 30.0)
+angle = Vector2(38.0, 105.0)
+link_from = 0.35
+link_chance = 0.6
+link_gap = Vector2(6.0, 14.0)
+ease = 14.0
+hill = 4.5
+hill_waves = Vector2(150.0, 260.0)
+flat_start = 80.0
+sands = 4
+sand_length = Vector2(26.0, 44.0)
+clearance = 34.0

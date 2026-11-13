@@ -522,36 +522,12 @@ func _pose(dt: float, forward: Vector3) -> void:
 			rig.joint(&"head", Vector3(0.12, 0.0, 0.0))
 
 
-# --- HUD: гладкий, без пикселей (плейтест 2026-11-13) ----------------------------------------
-
-## Строка шрифтом оболочки с обводкой, середина в `center`; растр в полном разрешении экрана.
-func _text(canvas: CanvasItem, center: Vector2, text: String, size: float, color: Color, outline: Color) -> void:
-	var s := maxf(lowpoly.hud.scale.x, 1.0)
-	var font := Jelly.fun_font(800)
-	var px := int(size * s)
-	var box := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, px)
-	canvas.draw_set_transform(center, 0.0, Vector2.ONE / s)
-	var at := Vector2(-box.x / 2.0, box.y * 0.3)
-	canvas.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, px, int(px * 0.14) + 2, outline)
-	canvas.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, px, color)
-	canvas.draw_set_transform(Vector2.ZERO)
-
-
-func _heart(center: Vector2, size: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
-	for k in 40:
-		var a := TAU * k / 40.0
-		points.append(center + Vector2(16.0 * pow(sin(a), 3.0), -(13.0 * cos(a) - 5.0 * cos(2.0 * a) - 2.0 * cos(3.0 * a) - cos(4.0 * a))) * size / 17.0)
-	return points
-
+# --- HUD: в полном разрешении, плашки тёмного стекла (плейтест 2026-11-13) --------------------
 
 func _draw_hud(canvas: CanvasItem) -> void:
 	if sim == null:
 		return
-	var dark := Color(0.06, 0.09, 0.12, 0.72)
-	var red := Color(0.93, 0.27, 0.3)
-	var gold := Color(1.0, 0.8, 0.3)
-	var white := Color(1.0, 1.0, 1.0, 0.96)
+	var h := ThreedHud.begin(canvas, lowpoly)
 	var view := lowpoly.view
 	# Отметка на кольце, до которого достаёт крюк.
 	if sim.phase == HookSim.Phase.PLAY and (sim.mode == HookSim.Mode.GROUND or sim.mode == HookSim.Mode.AIR):
@@ -559,33 +535,39 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		if i >= 0 and not lowpoly.camera.is_position_behind(ring_nodes[i].position):
 			var at := lowpoly.project(ring_nodes[i].position)
 			var size := 9.0 + sin(_time * 9.0) * 1.2
-			canvas.draw_arc(at, size + 1.0, 0.0, TAU, 40, dark, 2.6, true)
+			h.arc(at, size + 0.6, 0.0, TAU, Color(0.0, 0.0, 0.0, 0.45), 2.4)
 			for k in 4:
-				canvas.draw_arc(at, size, TAU * k / 4.0 + _time * 1.5, TAU * k / 4.0 + _time * 1.5 + 1.1, 12, gold, 1.5, true)
+				h.arc(at, size, TAU * k / 4.0 + _time * 1.5, TAU * k / 4.0 + _time * 1.5 + 1.1, ThreedHud.GOLD, 1.4)
 	if _hurt > 0.0:
-		canvas.draw_rect(Rect2(Vector2.ZERO, view), Color(0.75, 0.9, 1.0, _hurt * 0.55))
+		h.rect(Rect2(Vector2.ZERO, view), Color(0.75, 0.9, 1.0, _hurt * 0.55))
 	# Жизни слева сверху.
+	h.panel(Rect2(10.0, 9.0, 22.0 + tuning.lives * 17.0, 26.0), 7.0)
 	for i in tuning.lives:
-		var c := Vector2(17.0 + i * 17.0, 15.0)
-		canvas.draw_colored_polygon(_heart(c + Vector2(0.0, 0.8), 7.6), dark)
-		canvas.draw_colored_polygon(_heart(c, 6.2), red if i < sim.lives else Color(1.0, 1.0, 1.0, 0.22))
-		if i < sim.lives:
-			canvas.draw_circle(c + Vector2(-2.3, -2.4), 1.1, Color(1.0, 1.0, 1.0, 0.7), true, -1.0, true)
-	# Путь до маяка сверху по центру: тонкая полоса, острова точками, герой бегунком.
-	var from := Vector2(view.x / 2.0 - 84.0, 13.0)
-	var span := 168.0
-	canvas.draw_line(from + Vector2(-3.0, 0.0), from + Vector2(span + 3.0, 0.0), dark, 7.0, true)
-	canvas.draw_circle(from + Vector2(-3.0, 0.0), 3.5, dark, true, -1.0, true)
-	canvas.draw_circle(from + Vector2(span + 3.0, 0.0), 3.5, dark, true, -1.0, true)
+		var c := Vector2(29.0 + i * 17.0, 21.5)
+		var alive := i < sim.lives
+		h.heart(c + Vector2(0.0, 0.7), 7.0, Color(0.0, 0.0, 0.0, 0.4))
+		h.heart(c, 6.2, ThreedHud.RED if alive else ThreedHud.FAINT)
+		if alive:
+			h.circle(c + Vector2(-2.4, -2.5), 1.2, Color(1.0, 1.0, 1.0, 0.75))
+	# Время справа сверху.
+	h.panel(Rect2(view.x - 76.0, 9.0, 66.0, 26.0), 7.0)
+	h.text(Vector2(view.x - 43.0, 22.0), "%d:%04.1f" % [int(sim.time) / 60, fmod(sim.time, 60.0)], 11.5)
+	# Путь до маяка сверху по центру: острова точками (камни мельче), герой бегунком.
+	var from := Vector2(view.x / 2.0 - 92.0, 22.0)
+	var span := 184.0
+	h.panel(Rect2(from.x - 12.0, 13.0, span + 24.0, 18.0), 9.0)
+	h.bar(from, from + Vector2(span, 0.0), ThreedHud.FAINT, 2.6)
 	var done := span * sim.progress()
-	canvas.draw_line(from, from + Vector2(span, 0.0), Color(1.0, 1.0, 1.0, 0.25), 2.0, true)
-	canvas.draw_line(from, from + Vector2(done, 0.0), gold, 2.4, true)
+	h.bar(from, from + Vector2(done, 0.0), ThreedHud.GOLD, 2.6)
 	var n := level.gaps.size()
 	for i in level.islets.size():
 		var dot := from + Vector2(span * i / n, 0.0)
 		var big := level.islets[i].radius > 2.2
-		canvas.draw_circle(dot, 2.0 if big else 1.3, white if i <= sim.islet else Color(1.0, 1.0, 1.0, 0.4), true, -1.0, true)
-	canvas.draw_circle(from + Vector2(done, 0.0), 3.6, dark, true, -1.0, true)
-	canvas.draw_circle(from + Vector2(done, 0.0), 2.7, gold, true, -1.0, true)
+		h.circle(dot, 2.3 if big else 1.4, ThreedHud.WHITE if i <= sim.islet else ThreedHud.DIM)
+	var knob := from + Vector2(done, 0.0)
+	h.circle(knob, 4.4, Color(0.0, 0.0, 0.0, 0.55))
+	h.circle(knob, 3.4, ThreedHud.GOLD)
+	h.circle(knob + Vector2(-0.9, -0.9), 1.1, Color(1.0, 1.0, 1.0, 0.7))
 	if sim.phase == HookSim.Phase.COUNTDOWN:
-		_text(canvas, Vector2(view.x / 2.0, view.y / 2.0 - 30.0), str(ceili(sim.countdown)), 46.0, white, dark)
+		h.text(Vector2(view.x / 2.0, view.y / 2.0 - 30.0), str(ceili(sim.countdown)), 46.0, ThreedHud.WHITE, 0, Color(0.05, 0.07, 0.11, 0.8))
+	h.end()
