@@ -30,6 +30,15 @@ void fragment() {
 
 var look: ThreedTuning
 var sun_light: DirectionalLight3D
+## Баг технологии «камера в стене» (#120): раз в `clip_period` секунд на `clip_seconds` ближняя
+## граница кадра уезжает на `clip_depth` метров, и всё, что ближе (герой, стена, оружие в руке),
+## пропадает: камера смотрит сквозь. 0 выключено.
+var clip_period := 0.0
+var clip_seconds := 1.3
+var clip_depth := 7.0
+## Камера сейчас «в стене» (проверки и HUD демок).
+var clipping := false
+var _clip_time := 0.0
 
 
 ## Экран в области `area`: цвета HUD `palette_`, цвет неба сеттинга `sky_`; `scale` 0 берёт
@@ -150,6 +159,24 @@ func _new_material(tex: Texture2D, extra := {}) -> ShaderMaterial:
 		if key in ["tint", "uv_scroll", "flash", "lit", "hue_shift", "rim", "rough"]:
 			m.set_shader_parameter(key, extra[key])
 	return m
+
+
+## Включить баг «камера в стене»: живёт на экране, поэтому работает в любой демке «продвинутых».
+func set_clip(period: float, seconds: float, depth: float) -> void:
+	clip_period = maxf(period, 0.0)
+	clip_seconds = seconds
+	clip_depth = depth
+	# Первый провал скоро: баг виден в первые секунды демки.
+	_clip_time = maxf(clip_period - 2.0, 0.0)
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	if clip_period <= 0.0 or camera == null:
+		return
+	_clip_time += delta
+	clipping = fmod(_clip_time, clip_period) < clip_seconds
+	camera.near = clip_depth if clipping else 0.1
 
 
 ## Тени настоящие: вместо тени-блина пустой узел, чтобы демки ставили его как обычно.

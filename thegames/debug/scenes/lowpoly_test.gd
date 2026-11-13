@@ -25,7 +25,7 @@ extends Control
 const ProbeBehind := preload("res://debug/scenes/lowpoly_probe_behind.gd")
 const ProbeFirst := preload("res://debug/scenes/lowpoly_probe_first.gd")
 const COMMON_BUGS: Array[StringName] = [&"frame_drops", &"audio_stutter", &"sticky_input",
-		&"pink_placeholders", &"alien_palette", &"mesh_holes"]
+		&"pink_placeholders", &"alien_palette", &"mesh_holes", &"camera_clip"]
 ## Меши стартового набора; у двуногих есть ноги и руки.
 const MODELS: Array[String] = ["palm", "lighthouse", "hoop", "flag", "cannon", "cart", "cart_rival", "hero", "enemy", "captain",
 		"chest", "barrel", "crate", "rock", "pistol", "coin", "bottle", "ball", "keg"]
@@ -597,6 +597,9 @@ func _on_finished(_r: GameRecord, reached: bool) -> void:
 	_expect((probe.lowpoly.holes > 0.0) == (record.has_bug(&"mesh_holes") and not _threed), "дыры в моделях %.2f при баге %s" % [
 			probe.lowpoly.holes, record.has_bug(&"mesh_holes")])
 	_expect((probe.lowpoly is ThreedScreen) == _threed, "экран пробы не той технологии")
+	if _threed:
+		_expect(((probe.lowpoly as ThreedScreen).clip_period > 0.0) == record.has_bug(&"camera_clip"), "камера в стене при баге %s" %
+				record.has_bug(&"camera_clip"))
 	if win:
 		_expect(int(probe.get("collected")) > 0, "бот не собрал ни одного дублона")
 	else:
@@ -682,6 +685,14 @@ func _check_threed_screen() -> void:
 	_expect(screen.alien and is_equal_approx(float(mat.get_shader_parameter("hue_shift")), 0.45), "чужая палитра не легла на материал")
 	screen.set_alien(0.0)
 	screen.alien = false
+	# Баг технологии «камера в стене»: ближняя граница кадра уезжает и возвращается.
+	screen.set_clip(1.0, 0.4, 7.0)
+	screen._clip_time = 0.0
+	screen._process(0.1)
+	_expect(screen.clipping and is_equal_approx(screen.camera.near, 7.0), "камера не провалилась в стену")
+	screen._process(0.5)
+	_expect(not screen.clipping and screen.camera.near < 0.2, "камера не вернулась из стены")
+	screen.set_clip(0.0, 0.0, 0.0)
 	# Встроенный режим: дорогие эффекты выключены.
 	var small := ThreedScreen.make_threed(Vector2(480, 240), true, _setting.colors_lowpoly(), _setting.sky_lowpoly())
 	_expect(not small.environment.ssao_enabled and small.viewport.msaa_3d == Viewport.MSAA_DISABLED, "во встроенном режиме дорогие эффекты включены")

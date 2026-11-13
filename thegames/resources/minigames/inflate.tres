@@ -1,6 +1,22 @@
 [gd_resource type="Resource" script_class="MinigameDef" format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/minigames/inflate.tscn" id="1_6p1y2"]
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_edllk"]
+
+[sub_resource type="Curve" id="Curve_ge3x3"]
+_limits = [0.99, 215.0, 0.0, 1.0]
+_data = [Vector2(0, 120), 0.0, 0.0, 0, 0, Vector2(1, 215), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_ulld8"]
+_limits = [0.99, 180.0, 0.0, 1.0]
+_data = [Vector2(0, 70), 0.0, 0.0, 0, 0, Vector2(1, 180), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_mb2dg"]
+_limits = [0.55, 2.2, 0.0, 1.0]
+_data = [Vector2(0, 2.2), 0.0, 0.0, 0, 0, Vector2(1, 0.55), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [resource]
 script = ExtResource("1_edllk")
@@ -8,5 +24,12 @@ id = &"inflate"
 kind = 1
 tech = 4
 verb = "Раздуй"
-hint = "Держи A: шар растёт, отпусти у метки"
+hint = "Запомни кольцо, держи A, отпусти у него"
+scene = ExtResource("1_6p1y2")
 inputs = Array[StringName]([&"action_a"])
+mouse_hint = "левая кнопка: держи и отпусти"
+params = Dictionary[StringName, Curve]({
+&"reach": SubResource("Curve_ulld8"),
+&"show": SubResource("Curve_mb2dg"),
+&"speed": SubResource("Curve_ge3x3")
+})

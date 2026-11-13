@@ -36,6 +36,8 @@ step "minigame mash" sh tools/autotest.sh --scene=sprint_runner_test --minigame=
 step "minigame stack" sh tools/autotest.sh --scene=sprint_runner_test --minigame=stack --frames=2500
 step "minigame doorway" sh tools/autotest.sh --scene=sprint_runner_test --minigame=doorway --frames=3500
 step "minigame doorway hard" sh tools/autotest.sh --scene=sprint_runner_test --minigame=doorway --t=1 --frames=3500
+step "minigame inflate" sh tools/autotest.sh --scene=sprint_runner_test --minigame=inflate --frames=3500
+step "minigame inflate hard" sh tools/autotest.sh --scene=sprint_runner_test --minigame=inflate --t=1 --frames=3500
 step "vector sheet" sh tools/autotest.sh --scene=vector_test --frames=90
 step "vector probe bugs" sh tools/autotest.sh --scene=vector_test --probe --bugs --frames=2500
 step "demo platformer vector" sh tools/autotest.sh --scene=demo_test --tech=vector --frames=5000
