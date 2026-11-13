@@ -67,6 +67,8 @@ func _ready() -> void:
 			_check_rings()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.THREED:
 			_check_sprints()
+		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.THREED:
+			_check_outposts()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -842,6 +844,137 @@ func _sprint_at(track: SprintTrack, rules: RacingThreedTuning, s: float, d: floa
 	for i in range(1, sim.cars.size()):
 		sim.cars[i].s = s + 400.0 + i * 20.0
 	return sim
+
+
+## Шутер × «продвинутые» «оборона аванпоста» (#123): сто сидов дают план, который проходит
+## проверку генератора (шесть волн, первая с одной стороны, последняя с трёх, один великан,
+## щитоносцы, метатели, бочки врозь), генерация детерминирована; на каждом сиде бот WIN без
+## окна (`OutpostSim.simulate`) выстоял, бот LOSE пал. Отдельно правила: настил не пропускает
+## пулю, бегун падает с одной, щит держит пулю в тело и не закрывает голову, на замахе щит
+## убран, голова великана на замахе слабое место, бочка бьёт всех рядом, бутылку можно сбить,
+## барабан перезаряжается сам, без запаса щёлкает, ящик пополняет запас.
+func _check_outposts() -> void:
+	var rules := ShooterThreedTuning.load_default()
+	var seconds: Array[float] = []
+	var health := 0
+	for s in range(1, 101):
+		var plan := OutpostPlanGen.generate(s, rules)
+		var why := OutpostPlanGen.validate(plan)
+		_expect(why == "", "план сида %d: %s" % [s, why])
+		var win := OutpostSim.simulate(plan, rules, AutoTest.BotMode.WIN)
+		_expect(win.won, "план сида %d: бот WIN не выстоял, волна %d, здоровья %d" % [s, win.wave + 1, win.health])
+		seconds.append(win.time)
+		health += win.health
+		var lose := OutpostSim.simulate(plan, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.won and lose.health <= 0, "план сида %d: бот LOSE выстоял" % s)
+	_expect(OutpostPlanGen.generate(7, rules).signature() == OutpostPlanGen.generate(7, rules).signature(), "план сида 7 не повторяется")
+	_expect(OutpostPlanGen.generate(7, rules).signature() != OutpostPlanGen.generate(8, rules).signature(), "планы сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("shooter threed: 100 сидов прошли проверку; бот WIN без окна выстоял на всех: медиана %.1f с, от %.1f до %.1f, здоровья на финише в среднем %d" % [
+			seconds[50], seconds[0], seconds[99], health / 100])
+	var plan := OutpostPlanGen.generate(1, rules)
+	var side := OutpostPlan.dir(plan.sides[0])
+	# Из середины настила вниз: пуля уходит в доски.
+	var sim := _outpost(plan, rules, OutpostPlan.Kind.RUNNER, side * 6.0)
+	sim.pos = Vector2.ZERO
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_expect(sim.shots == 1 and sim.hits == 0 and sim.foes[0].state != OutpostSim.State.DEAD, "пуля прошла сквозь настил")
+	# С края: бегун падает с одной пули в тело.
+	sim = _outpost(plan, rules, OutpostPlan.Kind.RUNNER, side * 8.0)
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_expect(sim.kills == 1, "бегун не упал с одной пули")
+	# Щитоносец: в тело щит держит, в голову нет; на замахе щит убран.
+	sim = _outpost(plan, rules, OutpostPlan.Kind.SHIELD, side * 8.0)
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_expect(sim.blocked == 1 and sim.foes[0].hp == rules.shield_hp, "щит не держит пулю в тело")
+	_outpost_fire(sim, sim.head_of(sim.foes[0]))
+	_expect(sim.kills == 1, "пуля в голову не взяла щитоносца")
+	sim = _outpost(plan, rules, OutpostPlan.Kind.SHIELD, side * 8.0)
+	sim.foes[0].cooldown = rules.shield_windup * 0.9
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_expect(sim.blocked == 0 and sim.foes[0].hp == rules.shield_hp - 1, "на замахе щит не убран")
+	# Великан: голова на замахе слабое место.
+	sim = _outpost(plan, rules, OutpostPlan.Kind.BRUTE, side * 8.0)
+	_outpost_fire(sim, sim.head_of(sim.foes[0]))
+	var calm := rules.brute_hp - sim.foes[0].hp
+	sim.foes[0].cooldown = rules.brute_windup * 0.9
+	_outpost_fire(sim, sim.head_of(sim.foes[0]))
+	_expect(calm == rules.brute_head and rules.brute_hp - sim.foes[0].hp == rules.brute_head + rules.brute_weak, "великан: голова %d, на замахе ещё %d" % [
+			calm, rules.brute_hp - sim.foes[0].hp - calm])
+	# Бочка бьёт всех рядом.
+	sim = _outpost(plan, rules, OutpostPlan.Kind.RUNNER, plan.kegs[0] + Vector2(2.0, 0.0))
+	sim.foes.append(_outpost_foe(sim, OutpostPlan.Kind.RUNNER, plan.kegs[0] + Vector2(-2.5, 1.0)))
+	sim.pos = plan.kegs[0].normalized() * (rules.deck_radius - rules.deck_margin)
+	_outpost_fire(sim, sim.keg_at(0))
+	_expect(sim.booms == 1 and sim.kills == 2 and not sim.kegs_alive[0], "бочка: взрывов %d, убито %d" % [sim.booms, sim.kills])
+	# Бутылка метателя: стоящего на месте ранит, сбитая нет.
+	for shoot: bool in [false, true]:
+		sim = _outpost(plan, rules, OutpostPlan.Kind.THROWER, side * rules.thrower_range)
+		sim.foes[0].cooldown = 0.01
+		sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.0, false, false)
+		_expect(sim.bottles.size() == 1, "метатель не бросил бутылку")
+		for i in 40:
+			sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, sim.pitch, false, false)
+		if shoot and sim.bottles.size() == 1:
+			var to := sim.bottles[0].at() - sim.eye()
+			sim.step(OutpostSim.DT, Vector2.ZERO, atan2(-to.x, -to.z), atan2(to.y, Vector2(to.x, to.z).length()), true, false)
+		sim.foes[0].cooldown = 99.0
+		for i in 120:
+			sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, sim.pitch, false, false)
+		_expect((sim.popped == 1 and sim.health == rules.health) if shoot else sim.health == rules.health - rules.bottle_damage,
+				"бутылка (%s): сбито %d, здоровья %d" % ["сбивают" if shoot else "стоят", sim.popped, sim.health])
+	# Барабан: после шестой пули перезарядка сама; без запаса щелчок; ящик пополняет.
+	sim = OutpostSim.create(plan, rules)
+	sim.phase = OutpostSim.Phase.PLAY
+	sim.reserve = rules.clip
+	for i in rules.clip:
+		sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.3, true, false)
+		for k in 20:
+			sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.3, false, false)
+	for i in 100:
+		sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.3, false, false)
+	_expect(sim.shots == rules.clip and sim.clip == rules.clip and sim.reserve == 0, "перезарядка: в барабане %d, запас %d" % [sim.clip, sim.reserve])
+	sim.clip = 0
+	sim.events.clear()
+	sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.3, true, false)
+	_expect(sim.shots == rules.clip and sim.events.any(func(ev: Array) -> bool: return ev[0] == &"empty"), "пустой барабан стреляет")
+	sim.pos = plan.crate
+	for i in 60:
+		sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.3, false, false)
+	_expect(sim.reserve + sim.clip >= rules.reserve_max and sim.refills == 1, "ящик не пополнил запас: %d" % sim.reserve)
+
+
+## Враг для проверок: стоит у вышки и не бьёт.
+func _outpost_foe(sim: OutpostSim, kind: OutpostPlan.Kind, at: Vector2) -> OutpostSim.Foe:
+	var spawn := OutpostPlan.Spawn.new()
+	spawn.kind = kind
+	spawn.stop = at.length()
+	sim._spawn(spawn)
+	var f: OutpostSim.Foe = sim.foes.pop_back()
+	f.pos = at
+	f.state = OutpostSim.State.ATTACK
+	f.cooldown = 99.0
+	return f
+
+
+## Правила обороны без отсчёта и волн: один враг в `at`, герой у края настила с его стороны.
+func _outpost(plan: OutpostPlan, rules: ShooterThreedTuning, kind: OutpostPlan.Kind, at: Vector2) -> OutpostSim:
+	var sim := OutpostSim.create(plan, rules)
+	sim.phase = OutpostSim.Phase.PLAY
+	# Волны не выходят: план считается отыгранным.
+	sim.wave = plan.waves.size() - 1
+	sim._spawned = plan.waves[sim.wave].spawns.size()
+	sim.foes.append(_outpost_foe(sim, kind, at))
+	sim.pos = at.normalized() * (rules.deck_radius - rules.deck_margin)
+	return sim
+
+
+## Выстрел точно в точку `at`.
+func _outpost_fire(sim: OutpostSim, at: Vector3) -> void:
+	var to := at - sim.eye()
+	for i in 20:
+		sim.step(OutpostSim.DT, Vector2.ZERO, atan2(-to.x, -to.z), atan2(to.y, Vector2(to.x, to.z).length()), false, false)
+	sim.step(OutpostSim.DT, Vector2.ZERO, atan2(-to.x, -to.z), atan2(to.y, Vector2(to.x, to.z).length()), true, false)
 
 
 func _run_hoop(sim: HoopSim) -> void:

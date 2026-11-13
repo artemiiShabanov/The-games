@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="ShooterThreedTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_threed_tuning.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+countdown = 1.5
+deck_height = 3.0
+deck_radius = 3.4
+eye = 1.6
+walk_speed = 4.2
+deck_margin = 0.35
+health = 100
+clip = 6
+reserve = 18
+reserve_max = 24
+reload_seconds = 1.25
+fire_gap = 0.2
+crate_reach = 1.3
+crate_seconds = 0.7
+ring_min = 7.4
+ring_max = 9.2
+runner_speed = 5.6
+runner_hp = 1
+runner_gap = 1.7
+runner_damage = 5
+shield_speed = 2.7
+shield_hp = 3
+shield_gap = 2.6
+shield_windup = 0.8
+shield_damage = 9
+thrower_speed = 3.6
+thrower_hp = 2
+thrower_range = 21.0
+thrower_gap = 3.0
+bottle_seconds = 1.9
+bottle_damage = 12
+bottle_blast = 1.9
+bottle_radius = 0.55
+brute_speed = 2.1
+brute_hp = 16
+brute_gap = 3.2
+brute_windup = 1.1
+brute_damage = 18
+brute_head = 2
+brute_weak = 5
+keg_blast = 5.5
+keg_damage = 5
+body_radius = 0.55
+body_height = 0.95
+head_radius = 0.33
+head_height = 1.66
+brute_scale = 1.7
+wave_lull = 1.0
+wave_overlap = 4.0
+max_seconds = 150.0
+bot_turn = 2.8
+bot_gap = 0.5
+bot_range = 27.0
+bot_tight = 0.55
+fov = 60.0
+hit_stop = 0.05
+music_db = -11.0
+sfx_db = -5.0

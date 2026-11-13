@@ -95,6 +95,9 @@ step "feed platformer threed" sh tools/autotest.sh --scene=feed_test --tech=thre
 step "demo racing threed" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --frames=9000
 step "demo racing threed bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --bugs --frames=11000
 step "feed racing threed" sh tools/autotest.sh --scene=feed_test --genre=racing --tech=threed --frames=400
+step "demo shooter threed" sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --frames=9000
+step "demo shooter threed bugs" sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --bugs --frames=11000
+step "feed shooter threed" sh tools/autotest.sh --scene=feed_test --genre=shooter --tech=threed --frames=400
 step "demo platformer lowpoly" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --frames=7000
 step "demo platformer lowpoly bugs" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --bugs --frames=9000
 step "feed platformer lowpoly" sh tools/autotest.sh --scene=feed_test --tech=lowpoly --frames=400
