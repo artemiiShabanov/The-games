@@ -631,7 +631,8 @@ func _check_threed_fps() -> void:
 		screen.position = Vector2(40.0 + i * 600.0, 40.0)
 		screen.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 3.4, 9.2)).looking_at(Vector3(0.0, 0.9, 0.0))
 		extra.append(screen)
-	for i in 90:
+	# Первые кадры уходят на сборку шейдеров, счётчик кадров обновляется раз в секунду: ждём дольше.
+	for i in 300:
 		await get_tree().process_frame
 	var fps := Performance.get_monitor(Performance.TIME_FPS)
 	var headless := DisplayServer.get_name() == "headless"

@@ -74,7 +74,7 @@
   (#108): лист мешей и палитры `--scene=lowpoly_test --frames=200`, пробные демки `--probe=behind`
   (камера за спиной) и `--probe=first` (от первого лица) `[--bugs|--bug=<id>] [--setting=N]
   [--seed=N] [--bot=lose] --frames=5000`; меши пишет `python3 tools/lowpoly_meshes.py [--list]`. Основа
-  «продвинутых» (threed, #118): то же с `--tech=threed` (лист плотных мешей `--frames=400`, пробы
+  «продвинутых» (threed, #118): то же с `--tech=threed` (лист плотных мешей `--frames=700`, пробы
   на `ThreedScreen`), сравнительный лист двух технологий `SHOT=debug/playtest/tech_compare.png
   sh tools/autotest.sh --scene=lowpoly_test --compare --frames=60`; генератор пишет оба набора. Платформер ×
   low poly «тропа вглубь экрана» (#112): `--scene=demo_test --tech=lowpoly --frames=7000`, коса по
