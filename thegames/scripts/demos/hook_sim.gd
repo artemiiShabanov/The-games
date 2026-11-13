@@ -65,6 +65,14 @@ var bot_move := Vector2.ZERO
 var bot_jump := false
 var bot_hook := false
 
+## Баги (#126): множитель прыжка и скорости качания (дикая физика); сколько секунд кольцо
+## держит героя, 0 вечно (кольца от чиха отваливаются); какие кольца уже отвалились.
+var jump_mult := 1.0
+var swing_mult := 1.0
+var ring_hold := 0.0
+var snapped: Array[int] = []
+var hang_time := 0.0
+
 var _armed := true
 var _coyote := 0.0
 var _jump_buf := 0.0
@@ -120,7 +128,7 @@ func target() -> int:
 	var best := -1
 	var best_score := INF
 	for i in level.rings.size():
-		if i == last_ring and rehook_left > 0.0:
+		if (i == last_ring and rehook_left > 0.0) or snapped.has(i):
 			continue
 		var p := ring_pos(i)
 		var d := p.distance_to(pos)
@@ -266,7 +274,7 @@ func _ground(dt: float, move: Vector2) -> void:
 
 func _jump() -> void:
 	mode = Mode.AIR
-	vel.y = tuning.jump_speed
+	vel.y = tuning.jump_speed * jump_mult
 	_jump_buf = 0.0
 	_coyote = 0.0
 	jumps += 1
@@ -340,10 +348,11 @@ func _try_hook(move: Vector2) -> void:
 		forward = forward.normalized()
 		var tangent := vel - up * vel.dot(up)
 		var along := tangent.dot(forward)
-		if along < tuning.swing_min:
-			tangent += forward * (tuning.swing_min - along)
+		if along < tuning.swing_min * swing_mult:
+			tangent += forward * (tuning.swing_min * swing_mult - along)
 		vel = tangent
 	mode = Mode.SWING
+	hang_time = 0.0
 	_armed = false
 	hooks += 1
 	events.append([&"hook", i])
@@ -383,7 +392,13 @@ func _swing(dt: float, move: Vector2, hook: bool) -> void:
 		ring = -1
 		_fall()
 		return
-	if not hook:
+	hang_time += dt
+	var snap := ring_hold > 0.0 and hang_time >= ring_hold
+	if snap:
+		# Кольцо от чиха: отваливается под героем и больше не держит.
+		snapped.append(ring)
+		events.append([&"snap", ring])
+	if not hook or snap:
 		# Отпустил: летит по касательной.
 		last_ring = ring
 		rehook_left = tuning.rehook

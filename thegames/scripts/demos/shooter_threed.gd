@@ -33,6 +33,8 @@ var blast: MeshInstance3D
 
 var yaw := 0.0
 var pitch := 0.0
+## Дикая физика: выстрел подбрасывает прицел на столько радиан.
+var _recoil := 0.0
 var _time := 0.0
 var _stop_left := 0.0
 var _want_fire := false
@@ -60,6 +62,14 @@ func _on_start() -> void:
 	tuning = ShooterThreedTuning.load_default()
 	plan = OutpostPlanGen.generate(record.seed if record != null else 1, tuning)
 	sim = OutpostSim.create(plan, tuning)
+	if has_bug(&"wild_physics"):
+		_recoil = bug_param(&"wild_physics", &"outpost_recoil", 0.16)
+		sim.foe_speed_mult = bug_param(&"wild_physics", &"outpost_foe_speed", 1.4)
+	if has_bug(&"through_enemies"):
+		sim.pass_every = maxi(int(bug_param(&"through_enemies", &"pass_every", 2.0)), 1)
+	if has_bug(&"sneeze_enemies"):
+		sim.near_mult = bug_param(&"sneeze_enemies", &"outpost_near_mult", 3.0)
+	sim.immortal = has_bug(&"unreachable_coins")
 	lowpoly_screen(_draw_hud)
 	look_start()
 	lowpoly.camera.fov = tuning.fov
@@ -372,6 +382,9 @@ func _on_event(ev: Array) -> void:
 		&"shot":
 			_play("shot")
 			_kick = 1.0
+			if _recoil > 0.0 and not bot_driven():
+				pitch = minf(pitch + _recoil, 1.2)
+				yaw += _recoil * 0.5 * sin(_time * 37.0)
 			_tracer_left = 0.06
 			var from := lowpoly.camera.global_transform * Vector3(0.28, -0.2, -0.9)
 			var to: Vector3 = ev[1]

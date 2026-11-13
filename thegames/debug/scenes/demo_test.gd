@@ -59,6 +59,7 @@ func _ready() -> void:
 			_check_towers()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.THREED:
 			_check_hooks()
+			_bugs_hook()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.BIT16:
 			_check_trails()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.LOWPOLY:
@@ -67,12 +68,16 @@ func _ready() -> void:
 			_check_rings()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.THREED:
 			_check_sprints()
+			_bugs_sprint()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.THREED:
 			_check_outposts()
+			_bugs_outpost()
 		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.THREED:
 			_check_dunes()
+			_bugs_dune()
 		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.THREED:
 			_check_frays()
+			_bugs_fray()
 		elif _genre() == Game.Genre.RACING and _tech() == Game.Tech.BIT16:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
@@ -1230,6 +1235,201 @@ func _fray_windup(sim: FraySim, index: int, left: float) -> void:
 	f.left = left
 	f.total = 0.8
 	f.close = true
+
+
+# --- Баги жанра и баланса в демках «продвинутых» (#126): каждый по отдельности на правилах ---
+
+func _bugs_hook() -> void:
+	var t := PlatformerThreedGenTuning.load_default()
+	var rules := PlatformerThreedTuning.load_default()
+	var level := HookLevelGen.generate(1, t, rules)
+	# Дикая физика: прыжок выше.
+	var tops: Array[float] = []
+	for mult: float in [1.0, 1.7]:
+		var sim := HookSim.create(level, rules)
+		sim.phase = HookSim.Phase.PLAY
+		sim.jump_mult = mult
+		var from := sim.pos.y
+		var top := 0.0
+		sim.step(HookSim.DT, Vector2.ZERO, true, false)
+		for i in 80:
+			sim.step(HookSim.DT, Vector2.ZERO, false, false)
+			top = maxf(top, sim.pos.y - from)
+		tops.append(top)
+	_expect(tops[1] > tops[0] * 2.0, "дикая физика крюка: прыжок %.1f против %.1f" % [tops[1], tops[0]])
+	# От чиха: кольцо отваливается и больше не держит.
+	var sim := _hook_until_swing(level, rules)
+	sim.ring_hold = 0.7
+	var held := sim.ring
+	for i in 60:
+		sim.step(HookSim.DT, Vector2.ZERO, false, true)
+	_expect(sim.mode != HookSim.Mode.SWING and sim.snapped == [held], "кольцо от чиха не отвалилось")
+	# Недостижимая цель: кольца перед маяком выше верёвки, бот не доходит.
+	for r in level.rings:
+		if r.gap == level.gaps.size() - 1:
+			r.pos.y += 7.0
+	var far := HookSim.simulate(level, rules, AutoTest.BotMode.WIN)
+	_expect(far.ended and not far.finished and far.islet == level.gaps.size() - 1, "до маяка дошли по поднятым кольцам: остров %d" % far.islet)
+
+
+func _bugs_sprint() -> void:
+	var t := RacingThreedGenTuning.load_default()
+	var rules := RacingThreedTuning.load_default()
+	var track := SprintTrackGen.generate(1, t, rules)
+	# Дикая физика: на льду тот же руль поворачивает слабее.
+	var turned: Array[float] = []
+	for grip: float in [1.0, 0.45]:
+		var sim := _sprint_at(track, rules, 40.0, 0.0, 18.0)
+		sim.grip_mult = grip
+		var from := sim.player().yaw
+		for i in 45:
+			sim.step(SprintSim.DT, 1.0, 0.2)
+		turned.append(absf(angle_difference(from, sim.player().yaw)))
+	_expect(turned[1] < turned[0] * 0.8, "дикая физика спринта: поворот %.2f против %.2f" % [turned[1], turned[0]])
+	# Сквозь стены: за бортик можно выехать, камень не держит.
+	var sim := _sprint_at(track, rules, 40.0, 0.0, 16.0)
+	sim.walls_open = true
+	sim.player().yaw += 0.7
+	sim.player().vel = sim.player().forward() * 16.0
+	for i in 70:
+		sim.step(SprintSim.DT, 0.0, 0.3)
+	_expect(sim.scrapes == 0 and absf(sim.player().d) > track.half(sim.player().s) + rules.verge, "бортик держит: вбок %.1f" % sim.player().d)
+	var rock := track.rocks[0]
+	sim = _sprint_at(track, rules, rock.x - 14.0, rock.y, 18.0)
+	sim.walls_open = true
+	for i in 80:
+		sim.step(SprintSim.DT, 0.0, 0.3)
+	_expect(sim.crashes == 0, "камень держит при баге «сквозь стены»")
+	# От чиха: задетый соперник встаёт.
+	sim = _sprint_at(track, rules, 60.0, 0.0, 14.0)
+	sim.sneeze = true
+	var other := sim.cars[1]
+	other.s = 63.0
+	other.d = 0.0
+	other.lane = 0.0
+	other.speed = 6.0
+	other.pos = track.at(other.s, 0.0)
+	for i in 90:
+		sim.step(SprintSim.DT, 0.0, 1.0)
+	_expect(sim.bumps >= 1 and other.speed < 0.5, "соперник от чиха едет: %.1f м/с" % other.speed)
+	# Недостижимая цель: соперники финишируют, игрок нет.
+	sim = SprintSim.create(track, rules)
+	sim.goal_extra = 900.0
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN)
+		sim.step(SprintSim.DT, sim.bot_steer, sim.bot_gas)
+		sim.events.clear()
+	_expect(not sim.finished and sim.cars[1].finished >= 0.0 and sim.player().s > track.length, "финиш не уехал: игрок на %.0f м" % sim.player().s)
+
+
+func _bugs_outpost() -> void:
+	var rules := ShooterThreedTuning.load_default()
+	var plan := OutpostPlanGen.generate(1, rules)
+	var side := OutpostPlan.dir(plan.sides[0])
+	# Сквозь врагов: вторая пуля проходит насквозь.
+	var sim := _outpost(plan, rules, OutpostPlan.Kind.BRUTE, side * 8.0)
+	sim.pass_every = 2
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_expect(sim.shots == 2 and sim.hits == 1, "сквозь врагов: попаданий %d из двух" % sim.hits)
+	# От чиха: пуля рядом валит.
+	for mult: float in [1.0, 3.0]:
+		sim = _outpost(plan, rules, OutpostPlan.Kind.RUNNER, side * 8.0)
+		sim.near_mult = mult
+		_outpost_fire(sim, sim.body_of(sim.foes[0]) + Vector3(-side.y, 0.0, side.x) * 1.2)
+		_expect(sim.kills == (1 if mult > 1.0 else 0), "пуля рядом при множителе %.0f: убито %d" % [mult, sim.kills])
+	# Недостижимая цель: попадание есть, здоровье не убывает.
+	sim = _outpost(plan, rules, OutpostPlan.Kind.RUNNER, side * 8.0)
+	sim.immortal = true
+	_outpost_fire(sim, sim.body_of(sim.foes[0]))
+	_expect(sim.hits == 1 and sim.kills == 0, "бессмертный враг убит")
+	# Дикая физика: враги бегут быстрее.
+	var gone: Array[float] = []
+	for mult: float in [1.0, 1.4]:
+		sim = _outpost(plan, rules, OutpostPlan.Kind.RUNNER, side * 30.0)
+		sim.foe_speed_mult = mult
+		sim.foes[0].state = OutpostSim.State.WALK
+		sim.foes[0].stop = 8.0
+		for i in 60:
+			sim.step(OutpostSim.DT, Vector2.ZERO, sim.yaw, 0.0, false, false)
+		gone.append(30.0 - sim.foes[0].pos.length())
+	_expect(gone[1] > gone[0] * 1.3, "дикая физика аванпоста: враг прошёл %.1f против %.1f" % [gone[1], gone[0]])
+
+
+func _bugs_dune() -> void:
+	var t := SportThreedTuning.load_default()
+	var course := DuneCourseGen.generate(1, t)
+	var clear_s := course.gates[0].s - 60.0
+	# Дикая физика и «в космос»: высота прыжков.
+	var peaks: Array[float] = []
+	for mode in 3:
+		var sim := _dune_at(course, t, clear_s, 0.0, 20.0)
+		if mode == 1:
+			sim.air_mult = 1.8
+			sim.air_gravity = 0.45
+		if mode == 2:
+			sim.space_every = 1
+		for i in 60:
+			sim.step(DuneSim.DT, 0.0, true, false)
+		var peak := 0.0
+		for i in 400:
+			sim.step(DuneSim.DT, 0.0, false, false)
+			peak = maxf(peak, sim.lift)
+		peaks.append(peak)
+	_expect(peaks[1] > peaks[0] * 3.0 and peaks[2] > peaks[0] * 8.0, "высота прыжков: обычный %.1f, дикая физика %.1f, в космос %.1f" % [
+			peaks[0], peaks[1], peaks[2]])
+	# От чиха: порыв сносит вбок без руля.
+	var sim := _dune_at(course, t, clear_s, 0.0, 20.0)
+	sim.gust = 7.0
+	for i in 50:
+		sim.step(DuneSim.DT, 0.0, false, false)
+	_expect(absf(sim.x) > 2.0, "порыв не сносит: %.1f" % sim.x)
+	# Недостижимая цель: бот проходит ворота, но нужно больше, чем есть.
+	sim = DuneSim.create(course, t)
+	sim.goal_extra = 8
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN)
+		sim.step(DuneSim.DT, sim.bot_steer, sim.bot_jump, sim.bot_crouch)
+		sim.events.clear()
+	_expect(sim.finished and not sim.won and sim.need() > course.gates.size(), "спуск засчитан при недостижимом пороге: надо %d" % sim.need())
+
+
+func _bugs_fray() -> void:
+	var t := FightingThreedTuning.load_default()
+	var plan := FrayPlanGen.generate(1, t)
+	var thug := FrayPlan.Kind.THUG
+	# Дикая физика: удар уносит врага.
+	var sim := _fray(plan, t, [thug], [Vector2(0.0, -2.0)])
+	sim.knock_mult = 9.0
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.foes[0].pos.length() > 4.0, "дикая физика драки: враг отлетел на %.1f" % sim.foes[0].pos.length())
+	# Мимо хитбокса: второй удар проходит насквозь.
+	sim = _fray(plan, t, [thug], [Vector2(0.0, -2.0)])
+	sim.ghost_every = 2
+	_fray_tap(sim, Vector2.ZERO)
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.landed == 1 and sim.swings == 2, "мимо хитбокса: попаданий %d из %d" % [sim.landed, sim.swings])
+	# От чиха: щитоносец падает от тычка в щит.
+	sim = _fray(plan, t, [FrayPlan.Kind.SHIELD], [Vector2(0.0, -2.0)])
+	sim.sneeze = true
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.foes[0].state == FraySim.Foe.OUT and sim.bounces == 0, "щитоносец от чиха устоял")
+	# Недостижимая цель: здоровье возвращается, бой кончается по времени.
+	sim = _fray(plan, t, [thug], [Vector2(0.0, -2.0)])
+	sim.regen = 3.0
+	_fray_tap(sim, Vector2.ZERO)
+	var hurt := sim.foes[0].hp
+	for i in 240:
+		sim.step(FraySim.DT, Vector2.ZERO, false, false)
+	_expect(hurt < t.foe_hp and sim.foes[0].hp == t.foe_hp, "здоровье врага не вернулось: %d" % sim.foes[0].hp)
+	sim = FraySim.create(plan, t)
+	sim.regen = 3.0
+	sim.time_limit = 40.0
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN, FraySim.DT)
+		sim.step(FraySim.DT, sim.bot_dir, sim.bot_a, sim.bot_b)
+		sim.events.clear()
+	_expect(not sim.won and sim.time <= 41.0, "бой с возвратом здоровья: %s за %.0f с" % ["победа" if sim.won else "нет", sim.time])
 
 
 func _run_hoop(sim: HoopSim) -> void:

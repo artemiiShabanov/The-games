@@ -58,6 +58,15 @@ func _on_start() -> void:
 	tuning = RacingThreedTuning.load_default()
 	track = SprintTrackGen.generate(record.seed if record != null else 1, null, tuning)
 	sim = SprintSim.create(track, tuning)
+	if has_bug(&"wild_physics"):
+		sim.grip_mult = bug_param(&"wild_physics", &"sprint_grip_mult", 0.45)
+		sim.rival_mult = bug_param(&"wild_physics", &"sprint_rival_mult", 1.15)
+	sim.walls_open = has_bug(&"through_walls")
+	if has_bug(&"sneeze_enemies"):
+		sim.sneeze = true
+		sim.sneeze_seconds = bug_param(&"sneeze_enemies", &"off_track_s", 2.5)
+	if has_bug(&"unreachable_coins"):
+		sim.goal_extra = bug_param(&"unreachable_coins", &"sprint_goal_extra", 900.0)
 	lowpoly_screen(_draw_hud)
 	look_start()
 	_build_world()

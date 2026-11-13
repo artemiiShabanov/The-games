@@ -81,6 +81,17 @@ var kos := 0
 ## прыжок за спину, `counter(враг)` удар в спину, `dodge`, `windup(враг)`, `miss(враг)`, `hurt(враг, урон)`, `special` добивание готово,
 ## `lost` серия сгорела, `win`, `dead`, `timeout`.
 var events: Array[Array] = []
+## Баги (#126): во сколько раз дальше отлетает враг (дикая физика); каждый такой по счёту удар
+## проходит насквозь, 0 нет (мимо хитбокса); враг падает от любого касания, даже в щит (от
+## чиха); здоровье врага возвращается с такой скоростью в секунду и бой кончается по времени
+## `time_limit`, 0 по `max_seconds` (недостижимая цель).
+var knock_mult := 1.0
+var ghost_every := 0
+var sneeze := false
+var regen := 0.0
+var time_limit := 0.0
+var swings := 0
+var _regen := 0.0
 var bot_dir := Vector2.ZERO
 var bot_a := false
 var bot_b := false
@@ -216,7 +227,7 @@ func step(dt: float, dir: Vector2, a: bool, b: bool) -> void:
 		ended = true
 		phase = Phase.DONE
 		events.append([&"win"])
-	elif time > tuning.max_seconds:
+	elif time > (time_limit if time_limit > 0.0 else tuning.max_seconds):
 		ended = true
 		phase = Phase.DONE
 		events.append([&"timeout"])
@@ -386,9 +397,20 @@ func _hit() -> void:
 	hero = Hero.AFTER
 	hero_left = t.after_hit
 	chain += 1
+	swings += 1
 	if not f.alive():
 		return
 	var to := f.pos - pos
+	if ghost_every > 0 and swings % ghost_every == 0:
+		# Мимо хитбокса: удар проходит насквозь.
+		events.append([&"ghost", target])
+		return
+	if sneeze:
+		# От чиха: падает от любого касания, щит не спасает.
+		landed += 1
+		_gain_combo()
+		_ko(target, false)
+		return
 	if special:
 		# Добивание укладывает любого.
 		special = false
@@ -415,7 +437,7 @@ func _hit() -> void:
 	landed += 1
 	f.hp -= power()
 	f.hit_for = 0.0
-	f.pos = (f.pos + to.normalized() * t.knock).limit_length(t.arena + 0.4)
+	f.pos = (f.pos + to.normalized() * t.knock * knock_mult).limit_length(t.arena + 0.4)
 	_gain_combo()
 	events.append([&"hit", target, heavy, blow])
 	if f.hp <= 0:
@@ -477,6 +499,9 @@ func _step_foe(index: int, dt: float) -> void:
 	var t := tuning
 	var f := foes[index]
 	f.hit_for += dt
+	if regen > 0.0 and f.alive() and f.hit_for > 1.0 and f.hp < t.foe_hp:
+		# Недостижимая цель: здоровье возвращается.
+		f.hp = mini(f.hp + int(regen), t.foe_hp) if fmod(time, 0.5) < dt else f.hp
 	if f.state == Foe.OUT:
 		f.out_for += dt
 		return

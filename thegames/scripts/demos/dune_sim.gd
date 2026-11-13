@@ -57,6 +57,15 @@ var marks := PackedInt32Array()
 ## События шага: `[имя, …]`. `go`, `gate(номер, пройдены ли)`, `ramp`, `hop`, `land`,
 ## `catch`, `fall`, `finish`, `timeout`.
 var events: Array[Array] = []
+## Баги (#126): множитель высоты прыжков и доля тяжести в воздухе (дикая физика); каждый
+## такой по счёту прыжок уносит в небо, 0 нет (мяч в космос); порыв сносит райдера вбок с
+## таким ускорением, 0 нет (от чиха); сколько ворот надо сверх тех, что есть (недостижимая
+## цель).
+var air_mult := 1.0
+var air_gravity := 1.0
+var space_every := 0
+var gust := 0.0
+var goal_extra := 0
 var bot_steer := 0.0
 var bot_jump := false
 var bot_crouch := false
@@ -86,7 +95,7 @@ static func simulate(course_: DuneCourse, tuning_: SportThreedTuning, mode: Auto
 
 ## Сколько ворот надо пройти.
 func need() -> int:
-	return ceili(course.gates.size() * tuning.goal_share)
+	return ceili(course.gates.size() * tuning.goal_share) + goal_extra
 
 
 func progress() -> float:
@@ -159,6 +168,11 @@ func _ground(dt: float, steer: float, jump: bool) -> void:
 	var before := s
 	s += speed * cos(heading) * dt
 	x += speed * sin(heading) * dt
+	if gust > 0.0:
+		# Порыв: раз в три секунды секунду сносит вбок, то влево, то вправо.
+		var beat := fmod(time, 3.0)
+		if beat < 1.0:
+			x += gust * (1.0 if int(time / 3.0) % 2 == 0 else -1.0) * dt
 	# Заряд прыжка копится, пока держат кнопку.
 	if jump:
 		charge = minf(charge + dt, t.charge_seconds)
@@ -169,7 +183,7 @@ func _ground(dt: float, steer: float, jump: bool) -> void:
 			airborne = true
 			lift = course.ramp_height
 			ride = 0.0
-			rise = t.ramp_lift * speed / t.ramp_ref * (1.0 + t.ramp_pop * power)
+			rise = t.ramp_lift * speed / t.ramp_ref * (1.0 + t.ramp_pop * power) * _lift_mult()
 			charge = 0.0
 			jumps += 1
 			events.append([&"ramp"])
@@ -180,7 +194,7 @@ func _ground(dt: float, steer: float, jump: bool) -> void:
 		airborne = true
 		lift = ride + 0.05
 		ride = 0.0
-		rise = t.hop * (1.0 + t.charge_gain * power)
+		rise = t.hop * (1.0 + t.charge_gain * power) * _lift_mult()
 		charge = 0.0
 		hops += 1
 		events.append([&"hop", power])
@@ -192,7 +206,7 @@ func _ground(dt: float, steer: float, jump: bool) -> void:
 func _air(dt: float, steer: float) -> void:
 	var t := tuning
 	heading = clampf(heading + steer * t.air_turn * dt, -1.6, 1.6)
-	rise -= t.gravity * dt
+	rise -= t.gravity * air_gravity * dt
 	lift += rise * dt
 	speed = maxf(speed - t.drag_crouch * speed * speed * dt, 1.5)
 	s += speed * cos(heading) * dt
@@ -218,6 +232,12 @@ func _bars(before: float) -> void:
 			_fall()
 			s = b.s + 1.2
 			return
+
+
+## Множитель подброса этого прыжка: дикая физика и каждый `space_every`-й прыжок в небо.
+func _lift_mult() -> float:
+	var launch := jumps + hops + 1
+	return air_mult * (4.0 if space_every > 0 and launch % space_every == 0 else 1.0)
 
 
 ## Удар о препятствие: камень перелетают (выше 1,1 м), пальму нет.

@@ -65,6 +65,14 @@ func _on_start() -> void:
 	tuning = FightingThreedTuning.load_default()
 	plan = FrayPlanGen.generate(record.seed if record != null else 1, tuning)
 	sim = FraySim.create(plan, tuning)
+	if has_bug(&"wild_physics"):
+		sim.knock_mult = bug_param(&"wild_physics", &"fray_knock_mult", 9.0)
+	if has_bug(&"ghost_hits"):
+		sim.ghost_every = maxi(int(bug_param(&"ghost_hits", &"ghost_every", 2.0)), 1)
+	sim.sneeze = has_bug(&"sneeze_enemies")
+	if has_bug(&"unreachable_coins"):
+		sim.regen = bug_param(&"unreachable_coins", &"fray_regen", 3.0)
+		sim.time_limit = bug_param(&"unreachable_coins", &"fray_seconds", 40.0)
 	lowpoly_screen(_draw_hud)
 	lowpoly.camera.fov = 50.0
 	_build_world()
@@ -375,6 +383,10 @@ func _on_event(ev: Array) -> void:
 			_combo_pop = 1.0
 			_impact(int(ev[1]), 1.1, Color(0.7, 0.9, 1.0), 1.6, tuning.hit_stop * 1.6)
 			_say("ЩИТ СБИТ", ThreedHud.GREEN)
+		&"ghost":
+			_punch = 0.22
+			_punch_kind = sim.blow
+			_say("МИМО", ThreedHud.RED)
 		&"bounce":
 			_play("clang")
 			_punch = 0.18

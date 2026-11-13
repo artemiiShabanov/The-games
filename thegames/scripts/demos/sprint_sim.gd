@@ -69,6 +69,16 @@ var events: Array[Array] = []
 ## Что бот хочет на этом шаге (`bot`).
 var bot_steer := 0.0
 var bot_gas := 0.0
+## Баги (#126): множители сцепления игрока и силы соперников (дикая физика); бортики и камни
+## не держат, за бортиком можно ехать по пляжу (сквозь стены); соперник от касания стоит
+## `sneeze_seconds` (от чиха); финиш игрока дальше на столько метров (недостижимая цель).
+var grip_mult := 1.0
+var rival_mult := 1.0
+var walls_open := false
+var sneeze := false
+var sneeze_seconds := 2.5
+var goal_extra := 0.0
+var _sneezed := {}
 
 
 static func create(track_: SprintTrack, tuning_: RacingThreedTuning) -> SprintSim:
@@ -121,7 +131,7 @@ func place() -> int:
 
 
 func progress() -> float:
-	return clampf(player().s / track.length, 0.0, 1.0)
+	return clampf(player().s / (track.length + goal_extra), 0.0, 1.0)
 
 
 ## Сцепление покрытия в точке трассы: доля от плотной дороги.
@@ -173,7 +183,7 @@ func step(dt: float, steer: float, gas: float) -> void:
 	_bounds(me)
 	_collide(me)
 	top = maxf(top, me.speed)
-	if me.finished < 0.0 and me.s >= track.length:
+	if me.finished < 0.0 and me.s >= track.length + goal_extra:
 		me.finished = time
 		finished = true
 		ended = true
@@ -206,8 +216,12 @@ func speed_plan(s: float, v: float, lateral: float, braking: float) -> float:
 
 ## Соперник: по оси трассы со своей полосой, разгоняется по тем же передачам, тормозит заранее.
 func _step_rival(car: Car, dt: float) -> void:
-	var want := minf(speed_plan(car.s, car.speed, tuning.rival_lateral * car.skill, tuning.rival_brake),
+	var want := minf(speed_plan(car.s, car.speed, tuning.rival_lateral * car.skill * rival_mult, tuning.rival_brake),
 			tuning.gear_speeds[tuning.gear_speeds.size() - 1])
+	if _sneezed.get(car, 0.0) > 0.0:
+		# От чиха: встал и стоит.
+		_sneezed[car] = float(_sneezed[car]) - dt
+		want = 0.0
 	if car.finished >= 0.0:
 		want = minf(want, 12.0)
 	var mu := grip_at(car.s, car.d)
@@ -237,7 +251,7 @@ func _step_player(car: Car, dt: float, steer: float, gas: float) -> void:
 	var vy := car.vel.dot(left)
 	var v := car.vel.length()
 	car.surface = surface_at(car.s, car.d)
-	var mu := t.surface_grip[car.surface] * maxf(1.0 - t.grip_fade * v, 0.5)
+	var mu := t.surface_grip[car.surface] * maxf(1.0 - t.grip_fade * v, 0.5) * grip_mult
 	var hill := track.slope(car.s) * fwd.dot(track.forward(car.s))
 	var weight := load_at(car.s, v)
 	# Руль запаздывает; чем быстрее, тем меньше угол колёс.
@@ -324,7 +338,7 @@ func _step_player(car: Car, dt: float, steer: float, gas: float) -> void:
 
 ## Борт за обочиной (на сужении сразу за дорогой), камни на плечах, начало трассы.
 func _bounds(car: Car) -> void:
-	var limit := track.half(car.s) + tuning.verge * track.shoulder(car.s) - 0.9
+	var limit := track.half(car.s) + tuning.verge * track.shoulder(car.s) - 0.9 + (13.0 * track.shoulder(car.s) if walls_open else 0.0)
 	var touching := false
 	if absf(car.d) > limit or car.s < -6.0:
 		touching = true
@@ -348,6 +362,8 @@ func _bounds(car: Car) -> void:
 		car.spin *= 0.8
 	car.scraping = touching
 	for rock in track.rocks:
+		if walls_open:
+			break
 		var at := track.at(rock.x, rock.y)
 		var gap := car.pos - at
 		var reach := rock.z + 0.9
@@ -377,6 +393,8 @@ func _collide(car: Car) -> void:
 		any = true
 		var away := gap.normalized() if gap.length() > 0.01 else -car.forward()
 		car.pos = other.pos + away * reach
+		if sneeze and _sneezed.get(other, 0.0) <= 0.0:
+			_sneezed[other] = sneeze_seconds
 		if not car.touching:
 			car.vel *= tuning.bump_keep
 			bumps += 1

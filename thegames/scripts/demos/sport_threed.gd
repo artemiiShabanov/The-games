@@ -69,6 +69,15 @@ func _on_start() -> void:
 	tuning = SportThreedTuning.load_default()
 	course = DuneCourseGen.generate(record.seed if record != null else 1, tuning)
 	sim = DuneSim.create(course, tuning)
+	if has_bug(&"wild_physics"):
+		sim.air_mult = bug_param(&"wild_physics", &"dune_air_mult", 1.8)
+		sim.air_gravity = bug_param(&"wild_physics", &"dune_air_gravity", 0.45)
+	if has_bug(&"ball_to_space"):
+		sim.space_every = maxi(int(bug_param(&"ball_to_space", &"dune_space_every", 2.0)), 1)
+	if has_bug(&"sneeze_enemies"):
+		sim.gust = bug_param(&"sneeze_enemies", &"dune_gust", 7.0)
+	if has_bug(&"unreachable_coins"):
+		sim.goal_extra = maxi(int(bug_param(&"unreachable_coins", &"dune_goal_extra", 8.0)), 1)
 	lowpoly_screen(_draw_hud)
 	look_start()
 	lowpoly.camera.fov = tuning.cam_fov

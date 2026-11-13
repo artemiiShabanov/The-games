@@ -99,7 +99,7 @@ step "demo shooter threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_tes
 step "demo shooter threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --bugs --frames=11000
 step "feed shooter threed" sh tools/autotest.sh --scene=feed_test --genre=shooter --tech=threed --frames=400
 step "demo sport threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --frames=13000
-step "demo sport threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --bugs --frames=15000
+step "demo sport threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=sport --tech=threed --bugs --frames=16000
 step "feed sport threed" sh tools/autotest.sh --scene=feed_test --genre=sport --tech=threed --frames=400
 step "demo fighting threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=fighting --tech=threed --frames=9000
 step "demo fighting threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=fighting --tech=threed --bugs --frames=11000

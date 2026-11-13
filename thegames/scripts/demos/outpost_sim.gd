@@ -93,6 +93,13 @@ var refills := 0
 ## `refill`, `win`, `dead`, `timeout`.
 var events: Array[Array] = []
 ## Что бот хочет на этом шаге (`bot`).
+## Баги (#126): множитель скорости врагов (дикая физика; отдачу прицела делает демка); каждая
+## такая по счёту пуля проходит сквозь врагов, 0 нет (сквозь врагов); во сколько раз шире
+## попадание по врагу (от чиха: падает от пули рядом); врагов не убить (недостижимая цель).
+var foe_speed_mult := 1.0
+var pass_every := 0
+var near_mult := 1.0
+var immortal := false
 var bot_move := Vector2.ZERO
 var bot_yaw := 0.0
 var bot_pitch := 0.0
@@ -307,7 +314,7 @@ func _step_foe(f: Foe, dt: float) -> void:
 			f.dead_for += dt
 		State.WALK:
 			var left := f.pos.length() - f.stop
-			var go := minf(f.speed * dt, maxf(left, 0.0))
+			var go := minf(f.speed * foe_speed_mult * dt, maxf(left, 0.0))
 			f.pos -= f.pos.normalized() * go
 			f.walked += go
 			if left <= 0.01:
@@ -362,9 +369,10 @@ func _shoot() -> void:
 	var best := INF
 	var what := -1
 	var index := -1
+	var through := pass_every > 0 and shots % pass_every == 0
 	for i in foes.size():
 		var f := foes[i]
-		if f.state == State.DEAD:
+		if f.state == State.DEAD or through:
 			continue
 		if f.kind == OutpostPlan.Kind.SHIELD and not f.winding():
 			var t := _ray_sphere(from, dir, shield_of(f), 0.62)
@@ -372,12 +380,12 @@ func _shoot() -> void:
 				best = t
 				what = 0
 				index = i
-		var head := _ray_sphere(from, dir, head_of(f), tuning.head_radius * f.scale)
+		var head := _ray_sphere(from, dir, head_of(f), tuning.head_radius * f.scale * near_mult)
 		if head < best:
 			best = head
 			what = 1
 			index = i
-		var body := _ray_sphere(from, dir, body_of(f), tuning.body_radius * f.scale)
+		var body := _ray_sphere(from, dir, body_of(f), tuning.body_radius * f.scale * near_mult)
 		if body < best:
 			best = body
 			what = 2
@@ -423,7 +431,8 @@ func _damage(index: int, amount: int, head: bool) -> void:
 	var f := foes[index]
 	if f.state == State.DEAD:
 		return
-	f.hp -= amount
+	if not immortal:
+		f.hp -= amount
 	f.hit_for = 0.0
 	events.append([&"hit", index, head])
 	if f.hp <= 0:

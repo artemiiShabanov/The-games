@@ -59,7 +59,17 @@ func _placeholder_slots() -> Array[String]:
 func _on_start() -> void:
 	tuning = PlatformerThreedTuning.load_default()
 	level = HookLevelGen.generate(record.seed if record != null else 1, null, tuning)
+	if has_bug(&"unreachable_coins"):
+		# Недостижимая цель: кольца последней пропасти висят выше верёвки.
+		for r in level.rings:
+			if r.gap == level.gaps.size() - 1:
+				r.pos.y += bug_param(&"unreachable_coins", &"hook_ring_rise", 7.0)
 	sim = HookSim.create(level, tuning)
+	if has_bug(&"wild_physics"):
+		sim.jump_mult = bug_param(&"wild_physics", &"hook_jump_mult", 1.7)
+		sim.swing_mult = bug_param(&"wild_physics", &"hook_swing_mult", 1.6)
+	if has_bug(&"sneeze_enemies"):
+		sim.ring_hold = bug_param(&"sneeze_enemies", &"hook_ring_hold", 0.7)
 	lowpoly_screen(_draw_hud)
 	look_start()
 	_build_world()
@@ -382,6 +392,9 @@ func _on_event(ev: Array) -> void:
 			_hooked = 0.0
 			_hang = (ring_nodes[int(ev[1])].position - sim.pos).normalized()
 			_hang_vel = Vector3.ZERO
+		&"snap":
+			_play("land")
+			ring_nodes[int(ev[1])].visible = false
 		&"release":
 			_play("release")
 		&"grab":
