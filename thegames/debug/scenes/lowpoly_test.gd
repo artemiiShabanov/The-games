@@ -18,6 +18,8 @@ extends Control
 ## (#118): лист плотных мешей с текстурами 256, пробные демки на `ThreedScreen`; проверки: плотный
 ## набор грузится и плотнее low poly, экран рисует в полном разрешении со светом, тенями и
 ## пост-эффектами, розовая заглушка и чужая палитра работают, три экрана сразу держат кадры.
+## `--rig` (или «Продвинутые: модель на скелете» в дебаг-меню) показывает прототип модели на
+## скелете (#119) рядом с прежней из жёстких кусков: шаг и удар ногой у обеих.
 ## `--compare` ставит рядом два листа, low poly и «продвинутые»: сравнительный кадр технологий.
 
 const ProbeBehind := preload("res://debug/scenes/lowpoly_probe_behind.gd")
@@ -48,6 +50,9 @@ var _probe := ""
 var _sheet: LowpolyScreen
 var _sheets: Array[LowpolyScreen] = []
 var _threed := false
+## Прототип модели на скелете (#119): новые модели и прежние рядом, у каждой режим позы.
+var _rigs: Array[RigModel] = []
+var _rig_olds: Array[LowpolyModel] = []
 var _setting: SettingDef
 var _models: Array[LowpolyModel] = []
 var _labels: Array[String] = []
@@ -78,6 +83,10 @@ func _ready() -> void:
 	if compare:
 		_build_compare()
 		return
+	if (_args.has("rig") if AutoTest.enabled else Debug.lowpoly_rig):
+		Debug.lowpoly_rig = false
+		_build_rig()
+		return
 	_build_sheet()
 	if _threed:
 		if AutoTest.enabled and not _args.has("no-checks"):
@@ -98,6 +107,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_pose_rig()
 	for i in _models.size():
 		_models[i].rotation.y = _t * 0.8 + i * 0.6
 		_models[i].walk(_t * 8.0, 0.6)
@@ -145,6 +155,70 @@ func _make_sheet(area: Vector2, threed: bool, names: Array, columns: int, pink_l
 		_labels.append("заглушка" if is_pink else "%s %d%s" % [name, def.triangles() if def != null else 0,
 				" (1:%d)" % roundi(tall / SHEET_TALL) if tall > SHEET_TALL else ""])
 	return sheet
+
+
+## Прототип модели на скелете (#119): слева прежний матрос «продвинутых» из жёстких кусков,
+## справа цельная сетка на скелете с текстурой 512 и рельефом; ближняя пара идёт, дальняя бьёт
+## ногой.
+func _build_rig() -> void:
+	_setting = SettingDef.of(Game.Setting.PIRATES)
+	var screen := ThreedScreen.make_threed(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly())
+	add_child(screen)
+	_sheets.append(screen)
+	screen.add_plane(Vector3.ZERO, Vector2(14.0, 10.0), _setting.texture_lowpoly("planks", true), 2.0)
+	screen.add_plane(Vector3(0.0, -0.4, 0.0), Vector2(300.0, 300.0), _setting.texture_lowpoly("water", true), 6.0,
+			{"uv_scroll": Vector2(0.02, 0.035)})
+	var def := load("res://assets/settings/pirates/rig/sailor.tres") as RigModelDef
+	for i in 2:
+		var old := screen.model(_setting.model("hero", true))
+		old.position = Vector3(-1.75 + i * 2.3, 0.0, 0.0)
+		old.rotation.y = PI - 0.55
+		screen.world.add_child(old)
+		_rig_olds.append(old)
+		var rig := RigModel.make(def, screen.look)
+		rig.position = Vector3(-0.75 + i * 2.3, 0.0, 0.0)
+		rig.rotation.y = PI - 0.55
+		screen.world.add_child(rig)
+		_rigs.append(rig)
+	screen.camera.fov = 36.0
+	screen.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.05, 1.25, 5.6)).looking_at(Vector3(0.05, 0.92, 0.0))
+	screen.draw_hud = func(canvas: CanvasItem) -> void:
+		var white := Color("#F4EFE6")
+		var dark := Color("#16141A")
+		for i in 2:
+			for item: Array in [[_rig_olds[i].position, "ЖЁСТКИЕ КУСКИ"], [_rigs[i].position, "НА СКЕЛЕТЕ"]]:
+				var at := screen.project((item[0] as Vector3) + Vector3(0.0, -0.08, 0.0))
+				var text: String = item[1]
+				PixelFont16.draw(canvas, (at - Vector2(PixelFont16.width(text, 1.0) / 2.0, 0.0)).floor(), text, white, white, dark, 1.0)
+
+
+func _pose_rig() -> void:
+	if _rigs.is_empty():
+		return
+	# Ближняя пара идёт.
+	_rig_olds[0].walk(_t * 6.0, 0.6)
+	_rigs[0].walk(_t * 6.0, 0.6)
+	# Дальняя пара: замах коленом и удар ногой по кругу, руки в стойке.
+	var k := fposmod(_t * 0.9, 1.0)
+	var strike := smoothstep(0.35, 0.5, k) * (1.0 - smoothstep(0.75, 0.95, k))
+	var chamber := smoothstep(0.05, 0.3, k) * (1.0 - smoothstep(0.85, 1.0, k))
+	var thigh := 1.45 * chamber
+	var shin := lerpf(-1.9, -0.05, strike) * chamber
+	var old := _rig_olds[1]
+	old.walk(0.0, 0.0)
+	for item: Array in [[&"leg_r", thigh], [&"shin_r", shin], [&"arm_l", 0.95], [&"fore_l", 1.55], [&"arm_r", 0.55], [&"fore_r", 1.75],
+			[&"leg_l", 0.1], [&"shin_l", -0.25]]:
+		var part := old.part(item[0])
+		if part != null:
+			part.rotation.x = item[1]
+	old.rotation.x = -0.25 * chamber
+	var rig := _rigs[1]
+	rig.pose({&"leg_r": thigh, &"shin_r": shin, &"foot_r": -0.5 * strike, &"arm_l": 0.95, &"fore_l": 1.55, &"arm_r": 0.55,
+			&"fore_r": 1.75, &"leg_l": 0.1 - 0.2 * chamber, &"shin_l": -0.25, &"hand_l": 0.3, &"hand_r": 0.3})
+	rig.joint(&"spine", Vector3(-0.16 * chamber, 0.2 * chamber, 0.0))
+	rig.joint(&"chest", Vector3(-0.12 * chamber, 0.2 * chamber, 0.0))
+	rig.joint(&"neck", Vector3(0.14 * chamber, -0.25 * chamber, 0.0))
+	rig.joint(&"hips", Vector3(-0.1 * chamber, 0.0, 0.0))
 
 
 ## Сравнительный лист (#118): слева low poly, справа «продвинутые», одни и те же модели с одной

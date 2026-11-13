@@ -23,5 +23,7 @@ contrast = 1.06
 exposure = 0.84
 rim = 0.35
 rough = 0.82
+normal_strength = 1.2
+cloth_sway = 0.018
 ssao = true
 msaa = true

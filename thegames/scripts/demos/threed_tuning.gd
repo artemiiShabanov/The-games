@@ -32,6 +32,9 @@ const PATH := "res://resources/demos/threed.tres"
 ## Контровой свет по краю моделей и шероховатость материала.
 @export var rim := 0.35
 @export var rough := 0.82
+## Модели на скелете (#119): сила карты рельефа и размах колыхания ткани, метры.
+@export var normal_strength := 1.2
+@export var cloth_sway := 0.018
 ## Дорогие эффекты в карточке (во встроенном режиме выключены): затенение в углах, сглаживание.
 @export var ssao := true
 @export var msaa := true
