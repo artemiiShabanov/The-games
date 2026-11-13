@@ -90,6 +90,9 @@ step "feed platformer lowpoly" sh tools/autotest.sh --scene=feed_test --tech=low
 step "demo racing lowpoly" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=lowpoly --frames=12000
 step "demo racing lowpoly bugs" sh tools/autotest.sh --scene=demo_test --genre=racing --tech=lowpoly --bugs --frames=14000
 step "feed racing lowpoly" sh tools/autotest.sh --scene=feed_test --genre=racing --tech=lowpoly --frames=400
+step "demo shooter lowpoly" sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=lowpoly --frames=6000
+step "demo shooter lowpoly bugs" sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=lowpoly --bugs --frames=8000
+step "feed shooter lowpoly" sh tools/autotest.sh --scene=feed_test --genre=shooter --tech=lowpoly --frames=400
 step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --frames=7000
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400

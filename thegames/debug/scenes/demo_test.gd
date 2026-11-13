@@ -67,6 +67,8 @@ func _ready() -> void:
 			_check_roads()
 		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.BIT16:
 			_check_holds()
+		elif _genre() == Game.Genre.SHOOTER and _tech() == Game.Tech.LOWPOLY:
+			_check_rails()
 		elif _genre() == Game.Genre.SPORT and _tech() == Game.Tech.BIT16:
 			_check_soccer()
 		elif _genre() == Game.Genre.FIGHTING and _tech() == Game.Tech.BIT16:
@@ -452,6 +454,112 @@ func _check_holds() -> void:
 	seconds.sort()
 	AutoTest.note("shooter bit16: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, здоровье на выходе в среднем %d" % [
 			seconds[50], seconds[0], seconds[99], health / 100])
+
+
+## Шутер × low poly «рельсовый тир» (#114): сто сидов дают маршрут, который проходит проверку
+## генератора (враги и бочки с порохом в кадре и не закрыты, бегуны видны в переезде, есть
+## капитан и пленные), генерация детерминирована; на каждом сиде бот WIN без окна
+## (`RailSim.simulate`) доезжает до флага и не стреляет в пленных, бот LOSE гибнет. Отдельно
+## правила: обойма кончается и перезаряжается, попадание в пленного стоит жизни, капитан
+## держит два попадания, бочка с порохом снимает врагов рядом, бутылка сбивается в полёте.
+func _check_rails() -> void:
+	var t := ShooterLowpolyGenTuning.load_default()
+	var rules := ShooterLowpolyTuning.load_default()
+	var seconds: Array[float] = []
+	var lives := 0
+	var foes := 0
+	for s in range(1, 101):
+		var level := RailLevelGen.generate(s, t, rules)
+		var why := RailLevelGen.validate(level, t, rules)
+		_expect(why == "", "маршрут сида %d: %s" % [s, why])
+		foes += level.hostiles()
+		var win := RailSim.simulate(level, rules, AutoTest.BotMode.WIN)
+		_expect(win.finished, "маршрут сида %d: бот WIN не доехал за %.0f с, жизней %d" % [s, win.time, win.lives])
+		_expect(win.hostage_hits == 0, "маршрут сида %d: бот WIN попал в пленного" % s)
+		seconds.append(win.time)
+		lives += win.lives
+		var lose := RailSim.simulate(level, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.finished and lose.lives <= 0, "маршрут сида %d: бот LOSE доехал" % s)
+	_expect(RailLevelGen.generate(7, t, rules).signature() == RailLevelGen.generate(7, t, rules).signature(), "маршрут сида 7 не повторяется")
+	_expect(RailLevelGen.generate(7, t, rules).signature() != RailLevelGen.generate(8, t, rules).signature(), "маршруты сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("shooter lowpoly: 100 сидов прошли проверку, врагов в среднем %d; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, жизней на финише в среднем %.1f" % [
+			foes / 100, seconds[50], seconds[0], seconds[99], lives / 100.0])
+	# Правила на маршруте сида 1: камера стоит на остановке, маршрут на паузе.
+	var level := RailLevelGen.generate(1, t, rules)
+	var sky := Vector2(0.0, -0.95)
+	var sim := _rail_at(level, rules, 0)
+	for i in rules.clip:
+		sim.fire_left = 0.0
+		sim.step(RailSim.DT, sky, true, false)
+	_expect(sim.ammo == 0 and sim.shots == rules.clip, "обойма не кончилась: патронов %d" % sim.ammo)
+	sim.fire_left = 0.0
+	sim.step(RailSim.DT, sky, true, false)
+	_expect(sim.reload_left > 0.0 and sim.shots == rules.clip, "выстрел с пустой обоймой не начал перезарядку")
+	for i in int(rules.reload / RailSim.DT) + 2:
+		sim.step(RailSim.DT, sky, false, false)
+	_expect(sim.ammo == rules.clip, "перезарядка не вернула обойму: %d" % sim.ammo)
+	# Пленный, капитан.
+	for kind: RailLevel.Kind in [RailLevel.Kind.HOSTAGE, RailLevel.Kind.CAPTAIN]:
+		var i := 0
+		while level.foes[i].kind != kind:
+			i += 1
+		sim = _rail_at(level, rules, level.foes[i].stop)
+		sim.actors[i].state = RailSim.State.OUT
+		sim.actors[i].k = 1.0
+		var at := sim.to_screen(sim.feet(i) + Vector3(0.0, rules.head_y, 0.0))
+		sim.step(RailSim.DT, Vector2(at.x, at.y), true, false)
+		if kind == RailLevel.Kind.HOSTAGE:
+			_expect(sim.hostage_hits == 1 and sim.lives == rules.lives - 1, "попадание в пленного не сняло жизнь")
+		else:
+			_expect(sim.actors[i].state == RailSim.State.OUT and sim.kills == 0, "капитан упал с одного попадания")
+			sim.fire_left = 0.0
+			sim.step(RailSim.DT, Vector2(at.x, at.y), true, false)
+			_expect(sim.actors[i].state == RailSim.State.DEAD and sim.kills == 1, "капитан держит больше двух попаданий")
+	# Бочка с порохом: все враги остановки на виду, выстрел в бочку снимает тех, кто рядом.
+	var keg := level.kegs[0]
+	sim = _rail_at(level, rules, keg.stop)
+	for i in level.foes.size():
+		if level.foes[i].stop == keg.stop and level.foes[i].group >= 0 and level.foes[i].hostile():
+			sim.actors[i].state = RailSim.State.OUT
+			sim.actors[i].k = 1.0
+	var reach := sim.keg_reach(0)
+	var keg_at := sim.to_screen(keg.pos + Vector3(0.0, rules.keg_y, 0.0))
+	sim.step(RailSim.DT, Vector2(keg_at.x, keg_at.y), true, false)
+	_expect(reach >= 1 and sim.kills == reach and not sim.kegs_alive[0], "бочка с порохом: рядом %d, убито %d" % [reach, sim.kills])
+	# Метатель: бросок, бутылка сбивается в полёте и жизнь цела.
+	var thrower := 0
+	while level.foes[thrower].kind != RailLevel.Kind.THROWER:
+		thrower += 1
+	sim = _rail_at(level, rules, level.foes[thrower].stop)
+	sim.actors[thrower].state = RailSim.State.OUT
+	sim.actors[thrower].k = 1.0
+	sim.actors[thrower].timer = level.foes[thrower].aim
+	for i in 30:
+		sim.step(RailSim.DT, sky, false, false)
+	_expect(sim.bottles.size() == 1, "метатель не бросил бутылку")
+	if sim.bottles.size() == 1:
+		var bottle_at := sim.to_screen(sim.bottle_pos(sim.bottles[0]))
+		sim.step(RailSim.DT, Vector2(bottle_at.x, bottle_at.y), true, false)
+		_expect(sim.bottles.is_empty() and sim.lives == rules.lives, "бутылка не сбита")
+	# Несбитая бутылка снимает жизнь.
+	sim = _rail_at(level, rules, level.foes[thrower].stop)
+	sim.actors[thrower].state = RailSim.State.OUT
+	sim.actors[thrower].k = 1.0
+	sim.actors[thrower].timer = level.foes[thrower].aim
+	for i in int((rules.bottle_flight + 0.3) / RailSim.DT):
+		sim.step(RailSim.DT, sky, false, false)
+	_expect(sim.lives == rules.lives - 1, "бутылка долетела и не ранила")
+
+
+## Правила тира на остановке `stop`: отсчёт пройден, маршрут стоит (пауза перед группой).
+func _rail_at(level: RailLevel, rules: ShooterLowpolyTuning, stop: int) -> RailSim:
+	var sim := RailSim.create(level, rules)
+	sim.phase = RailSim.Phase.HOLD
+	sim.stop = stop
+	sim.group_time = -1000.0
+	sim._pose()
+	return sim
 
 
 ## Гонки × 16/32-bit «псевдо-3D» (#99): сто сидов дают трассу, которая проходит проверку

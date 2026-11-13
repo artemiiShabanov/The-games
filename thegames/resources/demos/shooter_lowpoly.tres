@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="ShooterLowpolyTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_lowpoly_tuning.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+lives = 3
+countdown = 2.0
+fov = 50.0
+aspect = 2.0
+aim_speed = 1.5
+aim_edge = 0.96
+clip = 6
+fire_gap = 0.18
+reload = 1.0
+pop = 0.35
+duck = 0.3
+rest = 1.1
+hittable = 0.5
+runner_run = 0.9
+runner_hittable = 0.3
+torso_y = 1.08
+torso_r = 0.33
+head_y = 1.58
+head_r = 0.23
+hit_pad = 0.07
+captain_hp = 2
+bottle_flight = 1.5
+bottle_arc = 1.3
+bottle_r = 0.34
+keg_y = 0.4
+keg_r = 0.45
+mercy = 1.2
+group_gap = 0.5
+leave_gap = 0.6
+max_seconds = 150.0
+bot_react = 0.22
+bot_speed = 2.6
+bot_tolerance = 0.02
+hit_stop = 0.05
+hit_flash = 0.09
+shake = 0.35
+music_db = -10.0
+sfx_db = -6.0

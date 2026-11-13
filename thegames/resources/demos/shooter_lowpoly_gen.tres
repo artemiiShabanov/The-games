@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="ShooterLowpolyGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/shooter_lowpoly_gen_tuning.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+stops = 5
+leg_min = 10.0
+leg_max = 14.0
+turn_min = 25.0
+turn_max = 60.0
+heading_limit = 100.0
+view_turn = 30.0
+eye = 1.6
+speed = 3.6
+dune_a = 0.9
+dune_b = 0.5
+dune_length = 26.0
+island_height = 1.3
+shore_from = 17.0
+shore_slope = 0.3
+covers_min = 4
+covers_max = 5
+cover_near = 5.5
+cover_far = 10.5
+cover_spread = 0.74
+groups_first = 2
+groups_last = 3
+group_min = 1
+group_max = 3
+stagger = 0.7
+aim_first = 2.7
+aim_last = 1.9
+aim_captain = 1.5
+aim_runner = 2.1
+windup = 1.1
+thrower_from = 1
+thrower_share = 0.2
+captains = 2
+hostages_min = 3
+hostages_max = 4
+kegs = 2
+keg_radius = 3.2
+hostage_hold = 1.7
+runner_at = 0.12
+runner_near = 8.0
+runner_far = 11.0
