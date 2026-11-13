@@ -57,6 +57,8 @@ func _ready() -> void:
 		AutoTest.require("demo checks")
 		if _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.VECTOR:
 			_check_towers()
+		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.THREED:
+			_check_hooks()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.BIT16:
 			_check_trails()
 		elif _genre() == Game.Genre.PLATFORMER and _tech() == Game.Tech.LOWPOLY:
@@ -612,6 +614,79 @@ func _spar_at(plan: SparPlan, rules: FightingLowpolyTuning, move: SparPlan.Move)
 	sim.rival.move = move
 	sim.rival.begin(SparSim.State.WINDUP, SparSim.DT * 1.5)
 	return sim
+
+
+## Платформер × «продвинутые» «крюк-кошка» (#121): сто сидов дают уровень, который проходит
+## проверку генератора (в каждой пропасти есть кольца, соседние кольца цепочки в досягаемости
+## верёвки, есть цепочка из трёх, движущееся кольцо и маленький островок, первая пропасть
+## простая), генерация детерминирована; на каждом сиде бот WIN без окна (`HookSim.simulate`)
+## доходит до маяка, бот LOSE тонет. Отдельно правила: крюк цепляется только в досягаемости
+## верёвки, на верёвке герой качается и не падает, отпущенный рано не долетает, отпущенный
+## вовремя садится на островок, вода стоит жизни и возвращает на последний островок.
+func _check_hooks() -> void:
+	var t := PlatformerThreedGenTuning.load_default()
+	var rules := PlatformerThreedTuning.load_default()
+	var seconds: Array[float] = []
+	var lives := 0
+	var rings := 0
+	for s in range(1, 101):
+		var level := HookLevelGen.generate(s, t, rules)
+		var why := HookLevelGen.validate(level, t, rules)
+		_expect(why == "", "уровень сида %d: %s" % [s, why])
+		rings += level.rings.size()
+		var win := HookSim.simulate(level, rules, AutoTest.BotMode.WIN)
+		_expect(win.finished, "уровень сида %d: бот WIN не дошёл, островок %d из %d за %.0f с" % [s, win.islet, level.gaps(), win.time])
+		seconds.append(win.time)
+		lives += win.lives
+		var lose := HookSim.simulate(level, rules, AutoTest.BotMode.LOSE)
+		_expect(lose.ended and not lose.finished and lose.lives <= 0, "уровень сида %d: бот LOSE дошёл" % s)
+	_expect(HookLevelGen.generate(7, t, rules).signature() == HookLevelGen.generate(7, t, rules).signature(), "уровень сида 7 не повторяется")
+	_expect(HookLevelGen.generate(7, t, rules).signature() != HookLevelGen.generate(8, t, rules).signature(), "уровни сидов 7 и 8 одинаковые")
+	seconds.sort()
+	AutoTest.note("platformer threed: 100 сидов прошли проверку, колец в среднем %d; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, жизней на финише в среднем %.1f" % [
+			rings / 100, seconds[50], seconds[0], seconds[99], lives / 100.0])
+	# Правила на уровне сида 1: герой у края первого островка.
+	var level := HookLevelGen.generate(1, t, rules)
+	var first := level.islets[0]
+	var ring := level.rings[0]
+	var sim := HookSim.create(level, rules)
+	sim.phase = HookSim.Phase.PLAY
+	sim.s = first.s - first.radius * 0.8
+	_expect(sim.target() < 0, "крюк достаёт до кольца с дальнего края островка")
+	sim.step(HookSim.DT, 0.0, 0.0, true, false)
+	sim.step(HookSim.DT, 0.0, 0.0, false, true)
+	_expect(sim.mode == HookSim.Mode.AIR and sim.hooks == 0, "крюк зацепился вне досягаемости")
+	# С края островка: прыжок и крюк, герой качается и не падает, пока держит.
+	sim = HookSim.create(level, rules)
+	sim.phase = HookSim.Phase.PLAY
+	sim.s = first.s + first.radius - 0.1
+	sim.vs = rules.run_speed
+	sim.step(HookSim.DT, 1.0, 0.0, true, false)
+	for i in 240:
+		sim.step(HookSim.DT, 0.0, 0.0, false, true)
+	_expect(sim.hooks == 1 and sim.mode == HookSim.Mode.SWING and sim.lives == rules.lives and sim.y > sim.water,
+			"на верёвке герой не удержался: режим %d, зацепов %d" % [sim.mode, sim.hooks])
+	_expect(absf(Vector2(sim.s - ring.s, sim.y - level.ring_y(0, sim.time)).length() - sim.rope) < 0.05, "верёвка меняет длину")
+	# Отпустил сразу, едва зацепившись: недолёт, вода, минус жизнь и назад на островок.
+	sim = HookSim.create(level, rules)
+	sim.phase = HookSim.Phase.PLAY
+	sim.s = first.s + first.radius - 0.1
+	sim.vs = rules.run_speed
+	sim.step(HookSim.DT, 1.0, 0.0, true, false)
+	sim.step(HookSim.DT, 0.0, 0.0, false, true)
+	for i in 400:
+		sim.step(HookSim.DT, 0.0, 0.0, false, false)
+	_expect(sim.falls == 1 and sim.lives == rules.lives - 1 and sim.mode == HookSim.Mode.GROUND and sim.islet == 0,
+			"ранний отпуск: падений %d, жизней %d, островок %d" % [sim.falls, sim.lives, sim.islet])
+	# Отпустил вовремя (как бот): сел на следующий островок.
+	sim = HookSim.create(level, rules)
+	sim.phase = HookSim.Phase.PLAY
+	for i in 600:
+		sim.bot(AutoTest.BotMode.WIN)
+		sim.step(HookSim.DT, sim.bot_forward, sim.bot_side, sim.bot_jump, sim.bot_hook)
+		if sim.islet >= 1:
+			break
+	_expect(sim.islet == 1 and sim.falls == 0 and sim.mode == HookSim.Mode.GROUND, "вовремя отпущенный крюк не довёл до островка")
 
 
 func _run_hoop(sim: HoopSim) -> void:

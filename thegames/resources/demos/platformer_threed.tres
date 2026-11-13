@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="PlatformerThreedTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_threed_tuning.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+lives = 3
+countdown = 1.5
+run_speed = 6.2
+run_accel = 30.0
+jump_speed = 6.6
+gravity = 15.0
+air_accel = 5.0
+side_speed = 3.2
+rope_max = 7.6
+rope_min = 2.6
+swing_min = 8.4
+release_boost = 1.04
+rehook = 0.5
+water_drop = 4.0
+respawn_seconds = 0.9
+max_seconds = 150.0
+bot_margin = 0.45
+cam_distance = 8.2
+cam_height = 3.6
+cam_look = 1.6
+cam_turn = 2.6
+hit_stop = 0.1
+music_db = -10.0
+sfx_db = -6.0

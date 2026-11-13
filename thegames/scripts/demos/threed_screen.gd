@@ -156,7 +156,7 @@ func _new_material(tex: Texture2D, extra := {}) -> ShaderMaterial:
 	m.set_shader_parameter("rough", look.rough)
 	for key: String in extra:
 		# Параметры шейдера PS1, которых тут нет, пропускаются.
-		if key in ["tint", "uv_scroll", "flash", "lit", "hue_shift", "rim", "rough"]:
+		if key in ["tint", "uv_scroll", "uv_scale", "flash", "lit", "hue_shift", "rim", "rough"]:
 			m.set_shader_parameter(key, extra[key])
 	return m
 

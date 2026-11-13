@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PlatformerThreedGenTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demos/platformer_threed_gen_tuning.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+gaps = 15
+islet = 2.6
+islet_small = 1.1
+small_from = 9
+small_share = 0.5
+ring_height_min = 4.6
+ring_height_max = 5.8
+ring_step_min = 6.4
+ring_step_max = 7.8
+ring_lead = 3.4
+height_from = 4
+islet_rise = 1.6
+ring_rise = 1.4
+double_from = 2
+triple_from = 8
+moving_from = 9
+moving_share = 0.5
+moving_amp = 1.1
+moving_period = 2.6
+turn_min = 12.0
+turn_max = 38.0
+heading_limit = 70.0

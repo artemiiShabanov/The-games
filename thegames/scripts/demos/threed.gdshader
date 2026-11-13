@@ -9,6 +9,8 @@ uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec4 tint : source_color = vec4(1.0);
 uniform float hue_shift = 0.0;
 uniform vec2 uv_scroll = vec2(0.0);
+// Повтор текстуры на готовых сетках (цилиндры островков и мачт).
+uniform vec2 uv_scale = vec2(1.0);
 // Белая заливка на кадр попадания.
 uniform float flash = 0.0;
 // 0: без света, цвет как есть (вода, дым, ветер).
@@ -29,7 +31,7 @@ vec3 shift_hue(vec3 c, float turns) {
 }
 
 void vertex() {
-	UV += uv_scroll * TIME;
+	UV = UV * uv_scale + uv_scroll * TIME;
 	if (cloth_sway > 0.0 && UV2.x > 0.0) {
 		vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 		float wave = sin(TIME * 5.3 + world.x * 3.1 + world.y * 4.7) + 0.6 * sin(TIME * 8.9 + world.z * 5.3 + world.y * 2.3);

@@ -89,6 +89,9 @@ step "look mouse and stick" sh tools/autotest.sh --scene=lowpoly_test --look --f
 step "threed sheet" sh tools/autotest.sh --scene=lowpoly_test --tech=threed --frames=700
 step "threed probe behind bugs" sh tools/autotest.sh --scene=lowpoly_test --tech=threed --probe=behind --bugs --frames=5000
 step "threed probe first bugs" sh tools/autotest.sh --scene=lowpoly_test --tech=threed --probe=first --bugs --frames=4000
+step "demo platformer threed" sh tools/autotest.sh --scene=demo_test --tech=threed --frames=6000
+step "demo platformer threed bugs" sh tools/autotest.sh --scene=demo_test --tech=threed --bugs --frames=8000
+step "feed platformer threed" sh tools/autotest.sh --scene=feed_test --tech=threed --frames=400
 step "demo platformer lowpoly" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --frames=7000
 step "demo platformer lowpoly bugs" sh tools/autotest.sh --scene=demo_test --tech=lowpoly --bugs --frames=9000
 step "feed platformer lowpoly" sh tools/autotest.sh --scene=feed_test --tech=lowpoly --frames=400
