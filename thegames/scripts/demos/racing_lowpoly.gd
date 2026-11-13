@@ -38,6 +38,16 @@ var car_models: Array[LowpolyModel] = []
 var car_shadows: Array[MeshInstance3D] = []
 var water_y := -3.0
 
+## Дым из-под задних колёс в заносе: клубы-квадраты лицом к камере, по кругу из запаса.
+var _puffs: Array[MeshInstance3D] = []
+var _puff_age := PackedFloat32Array()
+var _puff_vel := PackedVector3Array()
+var _puff_next := 0
+var _puff_wait := 0.0
+var _puff_side := 1.0
+var _puff_white: ShaderMaterial
+var _puff_hot: ShaderMaterial
+
 var _time := 0.0
 var _lean := 0.0
 var _flash := 0.0
@@ -64,6 +74,7 @@ func _on_start() -> void:
 	cam.look_height = tuning.cam_look
 	cam.turn = tuning.cam_turn
 	_build_world()
+	_build_smoke()
 	_build_map()
 	_setup_audio()
 	var me := sim.player()
@@ -287,6 +298,67 @@ func _build_decor(rng: RandomNumberGenerator) -> void:
 		side = -side
 
 
+## Клуб дыма: текстура 8×8 с рваным краем (вырез по альфе), два материала (белый и рыжий, когда
+## заряд заноса уже даёт ускорение) и запас квадратов.
+func _build_smoke() -> void:
+	var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)
+	for y in 8:
+		for x in 8:
+			var d := Vector2(x - 3.5, y - 3.5).length()
+			var edge := 3.7 if (x + y) % 2 == 0 else 3.3
+			var shade := 0.72 if y > 4 else (1.0 if y < 3 and x < 5 else 0.86)
+			img.set_pixel(x, y, Color(shade, shade, shade, 1.0 if d < edge else 0.0))
+	var tex := ImageTexture.create_from_image(img)
+	_puff_white = lowpoly.tex_material(tex, {"lit": 0.0, "tint": tuning.smoke_color})
+	_puff_hot = lowpoly.tex_material(tex, {"lit": 0.0, "tint": tuning.smoke_hot})
+	var m := _mesh()
+	_quad(m, Vector3(-0.5, -0.5, 0.0), Vector3(0.5, -0.5, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(-0.5, 0.5, 0.0), Vector3(0, 0, 1),
+			Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0))
+	var mesh := LowpolyScreen._commit(m[0], m[1], m[2], _puff_white)
+	for i in tuning.smoke_count:
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.visible = false
+		lowpoly.world.add_child(node)
+		_puffs.append(node)
+		_puff_age.append(-1.0)
+		_puff_vel.append(Vector3.ZERO)
+
+
+## Дым за шагом: в заносе клубы выходят по очереди из-под задних колёс, поднимаются, растут и тают.
+func _smoke(dt: float, me: RingSim.Car, at: Vector3) -> void:
+	if me.drifting and me.air <= 0.0 and me.sunk <= 0.0:
+		_puff_wait -= dt
+		while _puff_wait <= 0.0:
+			_puff_wait += tuning.smoke_every
+			_puff_side = -_puff_side
+			var basis := Basis(Vector3.UP, me.yaw - _lean)
+			var i := _puff_next
+			_puff_next = (_puff_next + 1) % _puffs.size()
+			_puffs[i].position = at + basis * Vector3(_puff_side * 0.6, 0.2, 0.9)
+			_puffs[i].set_surface_override_material(0, _puff_hot if me.charge >= tuning.charge_min else _puff_white)
+			_puff_age[i] = 0.0
+			# Клуб понемногу отстаёт от шлюпки (иначе камера влетает в дым) и уходит вверх и вбок.
+			_puff_vel[i] = Vector3(me.vel.x, 0.0, me.vel.y) * tuning.smoke_follow + basis * Vector3(_puff_side * 0.9, tuning.smoke_rise, 0.0)
+	else:
+		_puff_wait = 0.0
+	var face := lowpoly.camera.basis.orthonormalized()
+	for i in _puffs.size():
+		if _puff_age[i] < 0.0:
+			continue
+		_puff_age[i] += dt
+		var k := _puff_age[i] / tuning.smoke_life
+		if k >= 1.0:
+			_puff_age[i] = -1.0
+			_puffs[i].visible = false
+			continue
+		_puffs[i].position += _puff_vel[i] * dt
+		# Быстро раздувается, под конец съёживается: без прозрачности, как на первой PlayStation.
+		var size := tuning.smoke_size * (0.45 + 0.55 * minf(k * 3.0, 1.0)) * (1.0 - maxf(k - 0.6, 0.0) / 0.4)
+		_puffs[i].basis = face.scaled(Vector3.ONE * maxf(size, 0.01))
+		_puffs[i].visible = true
+
+
 ## Мини-карта: точки оси в рамке HUD.
 func _build_map() -> void:
 	var lo := Vector2(INF, INF)
@@ -411,6 +483,7 @@ func _sync(dt: float) -> void:
 	var heading := atan2(-me.vel.x, -me.vel.y) if me.vel.length() > 3.0 else me.yaw
 	cam.step(dt, Vector3(me.pos.x, track.height(me.s), me.pos.y), heading, true)
 	cam.apply(lowpoly.camera)
+	_smoke(dt, me, Vector3(me.pos.x, track.height(me.s), me.pos.y))
 
 
 func _draw_hud(canvas: CanvasItem) -> void:

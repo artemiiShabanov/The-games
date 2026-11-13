@@ -191,7 +191,7 @@ static func _mark(track: RingTrack, rng: RandomNumberGenerator, t: RacingLowpoly
 		else:
 			var at := _straightest(bends, int(t.wind_length / step), wind_taken, int(46.0 / step))
 			wind.s0 = at * step
-			wind.d = rng.randf_range(-2.0, 2.0)
+			wind.d = rng.randf_range(-0.45, 0.45) * track.half_width
 			wind_taken.append(at)
 		wind.s1 = track.loop(wind.s0 + t.wind_length)
 		track.winds.append(wind)

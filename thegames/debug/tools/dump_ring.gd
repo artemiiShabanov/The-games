@@ -28,6 +28,8 @@ func _process(_delta: float) -> bool:
 		var boosts := 0
 		var seconds: Array[float] = []
 		var lost := 0
+		## На сколько секунд первый соперник обогнал бота.
+		var leads: Array[float] = []
 		for sd in range(seed_, seed_ + count):
 			var track := RingTrackGen.generate(sd, t)
 			var why := RingTrackGen.validate(track, t)
@@ -41,6 +43,11 @@ func _process(_delta: float) -> bool:
 			if win.finished:
 				places[win.place() - 1] += 1
 				seconds.append(win.time)
+				var first := win.time
+				for i in range(1, win.cars.size()):
+					if win.cars[i].finished >= 0.0:
+						first = minf(first, win.cars[i].finished)
+				leads.append(win.time - first)
 			if not win.finished or why != "" or win.sinks > 2 or not (lose.ended and not lose.finished):
 				print("сид %d: %s WIN %s %.1f с, место %d, в воде %d, бортов %d, ускорений %d | LOSE %s %.1f с" % [sd,
 						"" if why == "" else "ГЕНЕРАТОР: " + why + ";", "доехал" if win.finished else "НЕ ДОЕХАЛ", win.time, win.place(), win.sinks,
@@ -50,6 +57,9 @@ func _process(_delta: float) -> bool:
 		print("сидов %d: генератор отказал на %d; WIN доехал %d, места %s, в воде в среднем %.2f, ускорений от дрифта %.1f; LOSE не доехал %d; время: медиана %.1f с, от %.1f до %.1f" % [
 				count, bad, done, places, float(sinks) / count, float(boosts) / count, lost, seconds[n / 2] if n > 0 else 0.0,
 				seconds[0] if n > 0 else 0.0, seconds[n - 1] if n > 0 else 0.0])
+		leads.sort()
+		if not leads.is_empty():
+			print("первый соперник впереди бота: медиана %.1f с, от %.1f до %.1f" % [leads[leads.size() / 2], leads[0], leads[leads.size() - 1]])
 		quit(0)
 		return true
 	var track := RingTrackGen.generate(seed_, t)

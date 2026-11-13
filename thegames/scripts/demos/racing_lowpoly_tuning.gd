@@ -50,9 +50,9 @@ const PATH := "res://resources/demos/racing_lowpoly.tres"
 @export var ramp_height := 1.9
 @export var ramp_back := 30.0
 ## Соперники: доли предела скорости, разгон и поперечное ускорение в поворотах.
-@export var rival_skills: Array[float] = [0.9, 0.97, 1.03]
-@export var rival_accel := 8.0
-@export var rival_lateral := 13.0
+@export var rival_skills: Array[float] = [0.95, 1.01, 1.06]
+@export var rival_accel := 10.0
+@export var rival_lateral := 16.0
 ## Гонка кончается через столько секунд после финиша последнего соперника, если игрок не доехал.
 @export var grace_seconds := 8.0
 @export var max_seconds := 150.0
@@ -67,6 +67,17 @@ const PATH := "res://resources/demos/racing_lowpoly.tres"
 @export var cam_height := 2.5
 @export var cam_look := 1.0
 @export var cam_turn := 5.0
+## Дым в заносе: клубов в запасе, пауза между клубами, сколько живёт, размер, подъём (м/с) и
+## цвет, когда заряд уже даёт ускорение.
+@export var smoke_count := 24
+@export var smoke_every := 0.04
+@export var smoke_life := 0.45
+@export var smoke_size := 0.6
+@export var smoke_rise := 1.1
+## Какую долю скорости шлюпки клуб уносит с собой и цвет обычного дыма.
+@export var smoke_follow := 0.82
+@export var smoke_color := Color(0.92, 0.89, 0.8)
+@export var smoke_hot := Color(1.0, 0.62, 0.25)
 @export var music_db := -10.0
 @export var sfx_db := -6.0
 

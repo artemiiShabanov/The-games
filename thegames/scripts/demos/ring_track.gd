@@ -24,7 +24,7 @@ class Wind:
 
 
 var step := 2.0
-var half_width := 4.5
+var half_width := 9.0
 ## Точки оси: x и z, высота, курс как `rotation.y`, кривизна (плюс поворот влево), 1/м.
 var points := PackedVector2Array()
 var heights := PackedFloat32Array()

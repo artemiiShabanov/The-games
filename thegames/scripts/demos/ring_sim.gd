@@ -76,7 +76,8 @@ static func create(track_: RingTrack, tuning_: RacingLowpolyTuning) -> RingSim:
 	sim.track = track_
 	sim.tuning = tuning_
 	sim.countdown = tuning_.countdown
-	var lanes: Array[float] = [-2.2, 2.2, -0.8]
+	# Полосы соперников долями половины ширины трассы.
+	var lanes: Array[float] = [-0.5 * track_.half_width, 0.5 * track_.half_width, -0.18 * track_.half_width]
 	for i in tuning_.rival_skills.size() + 1:
 		var car := Car.new()
 		car.rival = i > 0
