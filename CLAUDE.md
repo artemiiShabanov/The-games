@@ -76,7 +76,10 @@
   [--seed=N] [--bot=lose] --frames=5000`; меши пишет `python3 tools/lowpoly_meshes.py [--list]`. Основа
   «продвинутых» (threed, #118): то же с `--tech=threed` (лист плотных мешей `--frames=700`, пробы
   на `ThreedScreen`), сравнительный лист двух технологий `SHOT=debug/playtest/tech_compare.png
-  sh tools/autotest.sh --scene=lowpoly_test --compare --frames=60`; генератор пишет оба набора. Платформер ×
+  sh tools/autotest.sh --scene=lowpoly_test --compare --frames=60`; генератор пишет оба набора.
+  Модели на скелете и крупные текстуры «продвинутых» (#119, #130): `python3 tools/rig_models.py
+  [--list] [--preview out.png]` (его же запускает `lowpoly_meshes.py`), ряд моделей
+  `--scene=lowpoly_test --rig --frames=120` (`--rig=compare` рядом с прежней из кусков). Платформер ×
   low poly «тропа вглубь экрана» (#112): `--scene=demo_test --tech=lowpoly --frames=7000`, коса по
   сиду и боты без окна текстом `debug/tools/dump_spit.gd -- <seed> [count] [wild,sneeze,coins]`. Гонки × low poly «кольцо с дрифтом» (#113):
   `--scene=demo_test --genre=racing --tech=lowpoly --frames=12000` (`TIMEOUT=500`), трасса по сиду и

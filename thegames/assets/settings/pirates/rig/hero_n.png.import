@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqlbvwiv6760x"
-path="res://.godot/imported/skeleton_n.png-73288f6f81aaef4f1646c4b65bb0d5af.ctex"
+uid="uid://cijhdyo5sem65"
+path="res://.godot/imported/hero_n.png-cab10d2b37fb36645e1d97a3845c2580.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/rig/skeleton_n.png"
-dest_files=["res://.godot/imported/skeleton_n.png-73288f6f81aaef4f1646c4b65bb0d5af.ctex"]
+source_file="res://assets/settings/pirates/rig/hero_n.png"
+dest_files=["res://.godot/imported/hero_n.png-cab10d2b37fb36645e1d97a3845c2580.ctex"]
 
 [params]
 

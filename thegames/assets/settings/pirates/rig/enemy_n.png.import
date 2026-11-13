@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ctw55wpajx51s"
-path="res://.godot/imported/sailor.png-98d93f16df976fb7c7baa341ef7aa75a.ctex"
+uid="uid://cwvi8n7e3jt5s"
+path="res://.godot/imported/enemy_n.png-6bce1fd125455debd8174d9074a19e34.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/settings/pirates/rig/sailor.png"
-dest_files=["res://.godot/imported/sailor.png-98d93f16df976fb7c7baa341ef7aa75a.ctex"]
+source_file="res://assets/settings/pirates/rig/enemy_n.png"
+dest_files=["res://.godot/imported/enemy_n.png-6bce1fd125455debd8174d9074a19e34.ctex"]
 
 [params]
 

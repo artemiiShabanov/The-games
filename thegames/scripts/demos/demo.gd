@@ -550,7 +550,13 @@ func lowpoly_screen(draw_hud: Callable) -> LowpolyScreen:
 ## Модель слота сеттинга в мире демки; слот с розовой заглушкой приходит розовым ящиком.
 func spawn_model(slot: String, name: String, parent: Node3D = null) -> LowpolyModel:
 	var def := lowpoly_set.model(name, threed)
-	var m := lowpoly.pink_model(def) if is_pink(slot) else lowpoly.model(def)
+	# У «продвинутых» двуногие на скелете (#130): та же модель по имени слота из папки `rig`.
+	var rig := lowpoly_set.rig(name) if threed and not is_pink(slot) else null
+	var m: LowpolyModel
+	if rig != null:
+		m = RigModel.make(rig, (lowpoly as ThreedScreen).look)
+	else:
+		m = lowpoly.pink_model(def) if is_pink(slot) else lowpoly.model(def)
 	(parent if parent != null else lowpoly.world).add_child(m)
 	return m
 

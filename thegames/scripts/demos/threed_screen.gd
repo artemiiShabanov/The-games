@@ -45,6 +45,37 @@ func _render_shrink(_shrink: int) -> int:
 	return 1
 
 
+## Прогрев (#130): материалы «продвинутых» собираются при первом показе, и кадр на секунду
+## замирает. Крошечный экран за краем окна с моделью на скелете, реквизитом, заглушкой и белой
+## заливкой рисуется несколько кадров и исчезает: сборка проходит в меню, а не в демке.
+static var warmed := false
+
+
+static func prewarm(host: Node) -> void:
+	if warmed or DisplayServer.get_name() == "headless":
+		return
+	warmed = true
+	var set := SettingDef.of(Game.Setting.PIRATES)
+	var screen := ThreedScreen.make_threed(Vector2(192, 96), false, set.colors_lowpoly(), set.sky_lowpoly())
+	screen.position = Vector2(-400, -400)
+	host.add_child(screen)
+	screen.add_plane(Vector3.ZERO, Vector2(6, 6), set.texture_lowpoly("sand", true), 3.0)
+	screen.add_plane(Vector3(0, -0.2, 0), Vector2(8, 8), set.texture_lowpoly("water", true), 6.0, {"uv_scroll": Vector2(0.02, 0.03)})
+	var at := -1.0
+	for item: LowpolyModel in [screen.model(set.model("barrel", true)), screen.pink_model(set.model("crate", true)),
+			RigModel.make(set.rig("hero"), screen.look), RigModel.make(set.rig("enemy"), screen.look)]:
+		item.position = Vector3(at, 0.0, 0.0)
+		at += 0.7
+		screen.world.add_child(item)
+		if item is RigModel:
+			item.flash(at > 0.8)
+	screen.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 1.2, 4.0)).looking_at(Vector3(0.0, 0.8, 0.0))
+	for i in 6:
+		await host.get_tree().process_frame
+	if is_instance_valid(screen):
+		screen.queue_free()
+
+
 func _build_scene(_sky_texture: Texture2D) -> void:
 	LowpolyScreen.with_tangents = true
 	super._build_scene(null)

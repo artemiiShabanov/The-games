@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="RigModelDef" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/demos/rig_model_def.gd" id="1_def"]
-[ext_resource type="Texture2D" path="res://assets/settings/pirates/rig/skeleton.png" id="2_tex"]
-[ext_resource type="Texture2D" path="res://assets/settings/pirates/rig/skeleton_n.png" id="3_nrm"]
+[ext_resource type="Texture2D" path="res://assets/settings/pirates/rig/enemy.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/settings/pirates/rig/enemy_n.png" id="3_nrm"]
 
 [resource]
 script = ExtResource("1_def")

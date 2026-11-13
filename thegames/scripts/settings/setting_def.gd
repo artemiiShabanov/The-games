@@ -101,6 +101,15 @@ func model(name: String, threed := false) -> LowpolyModelDef:
 	return load(path) as LowpolyModelDef if ResourceLoader.exists(path) else null
 
 
+## Модель слота на скелете для «продвинутых» (#119, #130) из папки `rig` сеттинга, без неё
+## пиратская; `null`, если у слота такой нет (реквизит остаётся жёстким).
+func rig(name: String) -> RigModelDef:
+	var path := meshes_lowpoly.replace("/lowpoly/", "/rig/") + name + ".tres"
+	if not ResourceLoader.exists(path):
+		path = FALLBACK_MESHES.replace("/lowpoly/", "/rig/") + name + ".tres"
+	return load(path) as RigModelDef if ResourceLoader.exists(path) else null
+
+
 static func _mesh_folder(lowpoly_folder: String, threed: bool) -> String:
 	return lowpoly_folder.replace("/lowpoly/", "/threed/") if threed else lowpoly_folder
 

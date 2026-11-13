@@ -1,5 +1,5 @@
 class_name RigModel
-extends Node3D
+extends LowpolyModel
 ## Модель на скелете в сцене «продвинутых» (#119): `Skeleton3D` с костями из `RigModelDef` и одна
 ## сетка со скиннингом. Позы задаются углами суставов (`joint`, `pose`): у всех костей оси в покое
 ## совпадают с осями модели, поэтому угол вокруг X у плеча или бедра это мах вперёд, как у
@@ -10,7 +10,10 @@ extends Node3D
 
 const SHADER := preload("res://scripts/demos/threed.gdshader")
 
-var def: RigModelDef
+## Описание модели на скелете (`def` у предка остаётся пустым: жёстких частей нет, `part` ничего
+## не находит, а `walk` и `flash` работают как у `LowpolyModel`, поэтому демкам всё равно, какая
+## модель им досталась).
+var rig: RigModelDef
 var skeleton: Skeleton3D
 var mesh_node: MeshInstance3D
 var material: ShaderMaterial
@@ -21,14 +24,13 @@ var _ids: Dictionary[StringName, int] = {}
 var _targets: Dictionary[int, Quaternion] = {}
 var _lift := Vector3.ZERO
 var _lift_now := Vector3.ZERO
-var _flash: ShaderMaterial
 ## Пружинные кости: номер, направление хвоста в мире сейчас, скорость, числа.
 var _springs: Array[Dictionary] = []
 
 
 static func make(def_: RigModelDef, look: ThreedTuning = null) -> RigModel:
 	var m := RigModel.new()
-	m.def = def_
+	m.rig = def_
 	m._build(look if look != null else ThreedTuning.load_default())
 	return m
 
@@ -36,35 +38,35 @@ static func make(def_: RigModelDef, look: ThreedTuning = null) -> RigModel:
 func _build(look: ThreedTuning) -> void:
 	skeleton = Skeleton3D.new()
 	add_child(skeleton)
-	for i in def.bone_names.size():
-		skeleton.add_bone(def.bone_names[i])
-		_ids[StringName(def.bone_names[i])] = i
-	for i in def.bone_names.size():
-		var parent := def.bone_parents[i]
+	for i in rig.bone_names.size():
+		skeleton.add_bone(rig.bone_names[i])
+		_ids[StringName(rig.bone_names[i])] = i
+	for i in rig.bone_names.size():
+		var parent := rig.bone_parents[i]
 		if parent >= 0:
 			skeleton.set_bone_parent(i, parent)
 		# Покой: кость стоит в своём месте без поворота, место относительно родителя.
-		var local := def.bone_rests[i] - (def.bone_rests[parent] if parent >= 0 else Vector3.ZERO)
+		var local := rig.bone_rests[i] - (rig.bone_rests[parent] if parent >= 0 else Vector3.ZERO)
 		skeleton.set_bone_rest(i, Transform3D(Basis.IDENTITY, local))
 		skeleton.set_bone_pose_position(i, local)
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = def.vertices
-	arrays[Mesh.ARRAY_NORMAL] = def.normals
-	arrays[Mesh.ARRAY_TEX_UV] = def.uvs
+	arrays[Mesh.ARRAY_VERTEX] = rig.vertices
+	arrays[Mesh.ARRAY_NORMAL] = rig.normals
+	arrays[Mesh.ARRAY_TEX_UV] = rig.uvs
 	# Доля ткани едет во второй развёртке: у сеток уровня её нет, там колыхания не будет.
 	var uv2 := PackedVector2Array()
-	for c in def.cloth:
+	for c in rig.cloth:
 		uv2.append(Vector2(c, 0.0))
 	arrays[Mesh.ARRAY_TEX_UV2] = uv2
-	arrays[Mesh.ARRAY_BONES] = def.bones
-	arrays[Mesh.ARRAY_WEIGHTS] = def.weights
+	arrays[Mesh.ARRAY_BONES] = rig.bones
+	arrays[Mesh.ARRAY_WEIGHTS] = rig.weights
 	# В файле против часовой стрелки наружу, у Godot лицевая сторона по часовой.
 	var indices := PackedInt32Array()
-	for t in def.triangles():
-		indices.append(def.indices[t * 3])
-		indices.append(def.indices[t * 3 + 2])
-		indices.append(def.indices[t * 3 + 1])
+	for t in rig.triangles():
+		indices.append(rig.indices[t * 3])
+		indices.append(rig.indices[t * 3 + 2])
+		indices.append(rig.indices[t * 3 + 1])
 	arrays[Mesh.ARRAY_INDEX] = indices
 	var raw := ArrayMesh.new()
 	raw.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
@@ -75,8 +77,8 @@ func _build(look: ThreedTuning) -> void:
 	var mesh := tool.commit()
 	material = ShaderMaterial.new()
 	material.shader = SHADER
-	material.set_shader_parameter("tex", def.texture)
-	material.set_shader_parameter("normal_tex", def.normal_map)
+	material.set_shader_parameter("tex", rig.texture)
+	material.set_shader_parameter("normal_tex", rig.normal_map)
 	material.set_shader_parameter("normal_strength", look.normal_strength)
 	material.set_shader_parameter("cloth_sway", look.cloth_sway)
 	material.set_shader_parameter("rim", look.rim)
@@ -87,14 +89,15 @@ func _build(look: ThreedTuning) -> void:
 	skeleton.add_child(mesh_node)
 	mesh_node.skin = skeleton.create_skin_from_rest_transforms()
 	mesh_node.skeleton = NodePath("..")
-	_flash = ShaderMaterial.new()
-	_flash.shader = SHADER
-	_flash.set_shader_parameter("flash", 1.0)
-	for i in def.spring_bones.size():
-		var id: int = _ids.get(StringName(def.spring_bones[i]), -1)
+	var white := ShaderMaterial.new()
+	white.shader = SHADER
+	white.set_shader_parameter("flash", 1.0)
+	_flash = white
+	for i in rig.spring_bones.size():
+		var id: int = _ids.get(StringName(rig.spring_bones[i]), -1)
 		if id >= 0:
-			var rest := def.spring_dirs[i].normalized() if i < def.spring_dirs.size() else Vector3(0.0, -1.0, 0.35).normalized()
-			_springs.append({"id": id, "rest": rest, "vel": Vector3.ZERO, "ready": false, "params": def.spring_params[i]})
+			var rest := rig.spring_dirs[i].normalized() if i < rig.spring_dirs.size() else Vector3(0.0, -1.0, 0.35).normalized()
+			_springs.append({"id": id, "rest": rest, "vel": Vector3.ZERO, "ready": false, "params": rig.spring_params[i]})
 
 
 func has_joint(name: StringName) -> bool:
@@ -134,11 +137,6 @@ func walk(phase: float, swing := 0.7) -> void:
 	_lift = Vector3(0.0, absf(lift) * 0.025 * bend, 0.0)
 
 
-## Белая заливка на кадр попадания.
-func flash(on: bool) -> void:
-	mesh_node.material_overlay = _flash if on else null
-
-
 ## Поставить заданную позу сразу, без доводки.
 func snap() -> void:
 	for id: int in _targets:
@@ -150,7 +148,7 @@ func snap() -> void:
 func _place_hips() -> void:
 	var hips: int = _ids.get(&"hips", -1)
 	if hips >= 0:
-		skeleton.set_bone_pose_position(hips, def.bone_rests[hips] + _lift_now)
+		skeleton.set_bone_pose_position(hips, rig.bone_rests[hips] + _lift_now)
 
 
 func _process(delta: float) -> void:

@@ -148,7 +148,13 @@ func _make_sheet(area: Vector2, threed: bool, names: Array, columns: int, pink_l
 		var def := _setting.model(name, threed)
 		var is_pink := pink_last and i == names.size() - 1
 		var at := Vector3((i % columns - (columns - 1) / 2.0) * CELL, 0.0, (i / columns - (rows - 1) / 2.0) * CELL)
-		var m := sheet.pink_model(def) if is_pink else sheet.model(def)
+		# У «продвинутых» двуногие на скелете (#130).
+		var rig := _setting.rig(name) if threed and not is_pink else null
+		var m: LowpolyModel
+		if rig != null:
+			m = RigModel.make(rig, (sheet as ThreedScreen).look)
+		else:
+			m = sheet.pink_model(def) if is_pink else sheet.model(def)
 		m.position = at + (Vector3(0.0, 0.9, 0.0) if HELD.has(name) else Vector3.ZERO)
 		var tall := def.bounds().size.y if def != null else 1.0
 		if tall > SHEET_TALL:
@@ -156,7 +162,8 @@ func _make_sheet(area: Vector2, threed: bool, names: Array, columns: int, pink_l
 		sheet.world.add_child(m)
 		sheet.add_shadow(0.45).position = at + Vector3(0.0, 0.03, 0.0)
 		_models.append(m)
-		_labels.append("заглушка" if is_pink else "%s %d%s" % [name, def.triangles() if def != null else 0,
+		var tris := rig.triangles() if rig != null else (def.triangles() if def != null else 0)
+		_labels.append("заглушка" if is_pink else "%s %d%s" % [name, tris,
 				" (1:%d)" % roundi(tall / SHEET_TALL) if tall > SHEET_TALL else ""])
 	return sheet
 
@@ -172,7 +179,7 @@ func _build_rig() -> void:
 	screen.add_plane(Vector3.ZERO, Vector2(14.0, 10.0), _setting.texture_lowpoly("planks", true), 2.0)
 	screen.add_plane(Vector3(0.0, -0.4, 0.0), Vector2(300.0, 300.0), _setting.texture_lowpoly("water", true), 6.0,
 			{"uv_scroll": Vector2(0.02, 0.035)})
-	var def := load("res://assets/settings/pirates/rig/sailor.tres") as RigModelDef
+	var def := load("res://assets/settings/pirates/rig/hero.tres") as RigModelDef
 	for i in 2:
 		var old := screen.model(_setting.model("hero", true))
 		old.position = Vector3(-1.75 + i * 2.3, 0.0, 0.0)
@@ -205,7 +212,7 @@ func _build_rig_lineup() -> void:
 	screen.add_plane(Vector3.ZERO, Vector2(14.0, 10.0), _setting.texture_lowpoly("planks", true), 2.0)
 	screen.add_plane(Vector3(0.0, -0.4, 0.0), Vector2(300.0, 300.0), _setting.texture_lowpoly("water", true), 6.0,
 			{"uv_scroll": Vector2(0.02, 0.035)})
-	var names: Array[String] = ["sailor", "captain", "skeleton"]
+	var names: Array[String] = ["hero", "captain", "enemy"]
 	for i in names.size():
 		var rig := RigModel.make(load("res://assets/settings/pirates/rig/%s.tres" % names[i]) as RigModelDef, screen.look)
 		rig.position = Vector3((i - 1) * 1.5, 0.0, 0.0)
@@ -216,7 +223,7 @@ func _build_rig_lineup() -> void:
 	screen.camera.transform = Transform3D(Basis.IDENTITY, Vector3(0.0, 1.3, 5.6)).looking_at(Vector3(0.0, 0.95, 0.0))
 	screen.draw_hud = func(canvas: CanvasItem) -> void:
 		for i in _rigs.size():
-			var text := "%s %d" % [names[i], _rigs[i].def.triangles()]
+			var text := "%s %d" % [names[i], _rigs[i].rig.triangles()]
 			var at := screen.project(_rigs[i].position + Vector3(0.0, -0.08, 0.0))
 			PixelFont16.draw(canvas, (at - Vector2(PixelFont16.width(text, 1.0) / 2.0, 0.0)).floor(), text, Color("#F4EFE6"), Color("#F4EFE6"),
 					Color("#16141A"), 1.0)
@@ -621,6 +628,8 @@ func _check_threed_assets() -> void:
 				"%s: атлас плотного меша %d" % [name, def.texture.get_width() if def.texture != null else 0])
 	for name in BIPEDS:
 		_expect(pirates.model(name, true).triangles() >= pirates.model(name).triangles() * 2, "%s: двуногий не вдвое плотнее" % name)
+		_expect(pirates.rig(name) != null, "%s: нет модели на скелете" % name)
+	_expect(pirates.rig("barrel") == null, "у бочки нашлась модель на скелете")
 	_expect(denser >= names.size() / 2, "плотнее low poly только %d мешей из %d" % [denser, names.size()])
 	for name in TEXTURES:
 		var tex := pirates.texture_lowpoly(name, true)
@@ -641,10 +650,32 @@ func _check_threed_screen() -> void:
 	_expect(env.glow_enabled and env.fog_enabled and env.adjustment_enabled and env.background_mode == Environment.BG_SKY,
 			"пост-эффекты выключены")
 	_expect(screen.sky_dome == null, "остался купол неба low poly")
-	var model := _models[MODELS.find("hero")]
+	var model := _models[MODELS.find("barrel")]
 	var part := model.part(&"body")
 	var mat := part.mesh.surface_get_material(0) as ShaderMaterial
 	_expect(mat != null and mat.shader == ThreedScreen.SHADER, "модель не на материале «продвинутых»")
+	_expect(mat != null and mat.get_shader_parameter("normal_tex") != null, "у реквизита нет карты рельефа")
+	# Двуногие на скелете: кости, веса на каждую вершину, текстура с рельефом, ходьба и заливка.
+	for name in BIPEDS:
+		var biped := _models[MODELS.find(name)] as RigModel
+		_expect(biped != null, "%s не на скелете" % name)
+		if biped == null:
+			continue
+		var rig := biped.rig
+		_expect(rig.bone_names.size() >= 17 and biped.skeleton.get_bone_count() == rig.bone_names.size(), "%s: костей %d" % [name, rig.bone_names.size()])
+		_expect(rig.bones.size() == rig.vertices.size() * 4 and rig.weights.size() == rig.bones.size(), "%s: веса не на каждую вершину" % name)
+		_expect(rig.texture != null and rig.texture.get_width() >= 512 and rig.normal_map != null, "%s: нет текстуры 512 или рельефа" % name)
+		_expect(rig.spring_bones.size() >= 1 and rig.spring_dirs.size() == rig.spring_bones.size(), "%s: нет пружинных костей" % name)
+		for joint: StringName in [&"arm_l", &"fore_r", &"leg_l", &"shin_r", &"spine", &"head"]:
+			_expect(biped.has_joint(joint), "%s: нет сустава %s" % [name, joint])
+		_expect(biped.part(&"body") == null and not biped.pink, "%s: остались жёсткие части" % name)
+		var worst := 0.0
+		for v in rig.vertices.size():
+			worst = maxf(worst, absf(rig.weights[v * 4] + rig.weights[v * 4 + 1] + rig.weights[v * 4 + 2] + rig.weights[v * 4 + 3] - 1.0))
+		_expect(worst < 0.01, "%s: веса вершины не в сумме 1 (%.3f)" % [name, worst])
+		biped.flash(true)
+		_expect(biped.mesh_node.material_overlay != null, "%s: белая заливка не легла" % name)
+		biped.flash(false)
 	_expect(screen.add_shadow().mesh == null, "тень-блин осталась при настоящих тенях")
 	_expect(_models[_models.size() - 1].pink and screen.pink_count == 1, "нет розовой заглушки")
 	screen.set_alien(0.45)
@@ -655,6 +686,12 @@ func _check_threed_screen() -> void:
 	var small := ThreedScreen.make_threed(Vector2(480, 240), true, _setting.colors_lowpoly(), _setting.sky_lowpoly())
 	_expect(not small.environment.ssao_enabled and small.viewport.msaa_3d == Viewport.MSAA_DISABLED, "во встроенном режиме дорогие эффекты включены")
 	small.free()
+	# Прогрев шейдеров: экран за краем окна живёт несколько кадров и уходит.
+	if DisplayServer.get_name() != "headless":
+		ThreedScreen.warmed = false
+		var before := get_child_count()
+		ThreedScreen.prewarm(self)
+		_expect(ThreedScreen.warmed and get_child_count() == before + 1, "прогрев не поставил экран")
 
 
 ## Три экрана «продвинутых» сразу, как три живых стрима ленты: кадры в секунду в окне.

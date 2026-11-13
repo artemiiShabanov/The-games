@@ -93,6 +93,13 @@ class Paint:
     def cut_ellipse(self, cx, cy, rx, ry):
         ImageDraw.Draw(self.a).ellipse(self._box(cx - rx, cy - ry, rx * 2, ry * 2), fill=0)
 
+    def solid(self, points):
+        """Непрозрачный многоугольник поверх выреза (лист пальмы, колесо)."""
+        ImageDraw.Draw(self.a).polygon([(px * self.k, py * self.k) for px, py in points], fill=255)
+
+    def solid_ellipse(self, cx, cy, rx, ry):
+        ImageDraw.Draw(self.a).ellipse(self._box(cx - rx, cy - ry, rx * 2, ry * 2), fill=255)
+
     def _slice(self, x, y, w, h):
         k = self.k
         return slice(int(y * k), int((y + h) * k)), slice(int(x * k), int((x + w) * k))
@@ -781,7 +788,7 @@ def pirate_sailor():
     """Матрос: тельняшка, штаны клёш, сапоги, бандана с хвостами."""
     p = paint_sailor()
     reg = regions(p)
-    r, _ = build_body("sailor", reg)
+    r, _ = build_body("hero", reg)
     # Хвосты банданы: две ленты из узла на затылке, ткань с пружинной костью.
     r.bone("tail", "head", (0.0, 1.665, 0.105))
     r.spring("tail", 45.0, 5.0, 1.2)
@@ -1023,7 +1030,7 @@ def pirate_skeleton():
     """Скелет: тонкие кости, грудная клетка с просветами, треуголка, сабля, рваный кушак."""
     p = paint_skeleton()
     reg = regions(p)
-    r, _ = build_body("skeleton", reg, bulk=0.9, limb=0.46, leg="straight")
+    r, _ = build_body("enemy", reg, bulk=0.9, limb=0.46, leg="straight")
     add_tricorn(r, reg)
     # Рваный кушак на поясе: два хвоста на пружинной кости.
     r.bone("sash", "hips", (-0.1, 0.98, 0.07))
@@ -1153,7 +1160,349 @@ def paint_barrel():
     return p
 
 
-PROPS = {"pirates": {"tex_sand": paint_sand, "tex_planks": paint_planks, "tex_water": paint_water, "crate": paint_crate, "barrel": paint_barrel}}
+def paint_keg():
+    """Бочонок: та же раскладка, что у бочки, свой рисунок волокон."""
+    p = paint_barrel()
+    p.stains(0, 10, 64, 28, 6, 2.2, 0.8)
+    return p
+
+
+def _bands(p, x, y, w, h, xs, width=3.0):
+    """Железные полосы поперёк досок с заклёпками."""
+    for bx in xs:
+        p.rect(x + bx, y, width, h, IRON, 188)
+        p.rect(x + bx, y, width * 0.3, h, IRON_L, 196)
+        for i in range(int(h // 4) + 1):
+            p.ellipse(x + bx + width / 2.0, y + 1.6 + i * 4.0, 0.42, 0.42, IRON_L, 214)
+    p.grain(x, y, w, h, 0.07, 1.0, 8.0)
+
+
+def paint_chest():
+    """Сундук (атлас 64×32: по вертикали единицы вдвое крупнее): бока, бока крышки, верх крышки, дно."""
+    p = Paint(311)
+    bands = (6.6, 22.6, 38.6, 54.6)
+    p.wood(0, 0, 64, 24, 4, False, WOOD, 0.3)
+    _bands(p, 0, 0, 64, 24, bands)
+    p.rect(5.6, 2.0, 5.0, 8.0, GOLD_D, 205)
+    p.ellipse(8.1, 5.0, 0.9, 1.4, BLACK, 110)
+    p.rect(7.8, 5.6, 0.6, 2.6, BLACK, 110)
+    p.stains(0, 0, 64, 24, 10, 1.8, 0.84)
+    p.shade_v(0, 0, 64, 24, 1.04, 0.8)
+    p.wood(0, 24, 64, 16, 3, False, mul(WOOD, 1.06), 0.3)
+    _bands(p, 0, 24, 64, 16, bands)
+    p.rect(0, 24, 64, 1.4, GOLD_D, 190)
+    p.shade_v(0, 24, 64, 16, 1.08, 0.86)
+    p.wood(0, 40, 24, 24, 4, False, mul(WOOD, 1.08), 0.3)
+    _bands(p, 0, 40, 24, 24, (4.0, 17.0))
+    p.stains(0, 40, 24, 24, 5, 1.6, 0.86)
+    p.rect(24, 40, 4, 8, WOOD_D, 128)
+    return p
+
+
+def _wheel(p, x, y, w, h):
+    """Колесо: обод, спицы, железная ступица; вокруг прозрачно. Кусок `w`×`h` единиц."""
+    cx, cy, rx, ry = x + w / 2.0, y + h / 2.0, w / 2.0, h / 2.0
+    p.cut(x, y, w, h)
+    p.solid_ellipse(cx, cy, rx * 0.97, ry * 0.97)
+    p.ellipse(cx, cy, rx * 0.97, ry * 0.97, WOOD_D, 170)
+    p.ellipse(cx, cy, rx * 0.72, ry * 0.72, rgb("241C16"), 80)
+    for i in range(8):
+        a = math.pi * i / 4.0
+        p.line([(cx, cy), (cx + math.cos(a) * rx * 0.78, cy + math.sin(a) * ry * 0.78)], WOOD, rx * 0.13, 160)
+    p.ellipse(cx, cy, rx * 0.26, ry * 0.26, IRON, 200)
+    p.ellipse(cx, cy, rx * 0.1, ry * 0.1, IRON_L, 220)
+    for i in range(12):
+        a = math.pi * i / 6.0
+        p.ellipse(cx + math.cos(a) * rx * 0.86, cy + math.sin(a) * ry * 0.86, rx * 0.035, ry * 0.035, IRON_L, 210)
+
+
+def paint_cannon():
+    """Пушка (атлас 64×32): ствол, жерло, колесо, обод колеса, лафет."""
+    p = Paint(313)
+    iron = rgb("34363C")
+    p.rect(0, 0, 32, 32, iron, 128)
+    for by, bh in ((1.0, 2.6), (9.0, 1.6), (20.0, 1.6), (27.4, 3.0)):
+        p.rect(0, by, 32, bh, mul(iron, 1.3), 180)
+        p.fold([(0, by + bh + 0.3), (32, by + bh + 0.3)], 0.4, 0.6, 50)
+    p.grain(0, 0, 32, 32, 0.12, 1.4, 12.0)
+    p.stains(0, 0, 32, 32, 9, 1.4, 0.8)
+    p.speckle(0, 0, 32, 32, 90, rgb("6A4A36"), 0.1)
+    p.shade_round(0, 0, 32, 32, 0.55, 1.6)
+    p.rect(32, 0, 8, 16, mul(iron, 1.2), 150)
+    p.ellipse(36, 8, 2.8, 5.6, rgb("0C0C0E"), 40)
+    _wheel(p, 40, 0, 16, 32)
+    p.rect(56, 0, 8, 8, WOOD_D, 128)
+    p.grain(56, 0, 8, 8, 0.1)
+    p.wood(0, 32, 32, 24, 3, False, WOOD, 0.3)
+    _bands(p, 0, 32, 32, 24, (3.0, 26.0), 2.4)
+    p.stains(0, 32, 32, 24, 6, 1.6, 0.84)
+    return p
+
+
+def paint_palm():
+    """Пальма (атлас 32×32, здесь вдвое крупнее): ствол с кольцами, лист с вырезанными перьями."""
+    p = Paint(315)
+    bark, bark_d = rgb("8A6A42"), rgb("5C4428")
+    p.rect(0, 0, 32, 64, bark, 128)
+    for i in range(16):
+        y = i * 4.0
+        p.rect(0, y, 32, 1.1, bark_d, 96)
+        p.fold([(0, y + 1.3), (32, y + 1.3)], 0.4, 0.8, 30)
+        for j in range(5):
+            x = (j * 6.4 + (i % 2) * 3.2) % 32
+            p.line([(x, y + 1.4), (x + 0.6, y + 3.6)], mul(bark, 1.18), 0.4, 150)
+    p.grain(0, 0, 32, 64, 0.1, 1.2, 12.0)
+    p.shade_round(0, 0, 32, 64, 0.7)
+    leaf, leaf_d, leaf_l = rgb("3E8A3A"), rgb("255E2C"), rgb("7CC050")
+    p.cut(32, 0, 32, 64)
+    p.rect(32, 0, 32, 64, leaf, 128)
+    count = 26
+    for i in range(count):
+        t = (i + 0.5) / count
+        y = 2.0 + t * 60.0
+        reach = 2.0 + 13.0 * math.sin(math.pi * min(t / 0.94, 1.0)) ** 0.7
+        for side in (-1.0, 1.0):
+            pts = [(48, y - 0.9), (48 + side * reach, y + 2.6), (48 + side * reach * 0.94, y + 3.5), (48, y + 0.9)]
+            p.solid(pts)
+            p.poly(pts, leaf_l if i % 3 == 0 else (leaf if i % 2 else mul(leaf, 0.9)), 140)
+            p.line([(48, y), (48 + side * reach * 0.96, y + 3.0)], leaf_d, 0.18, 110)
+    p.solid([(47.3, 0), (48.7, 0), (48.5, 63), (47.5, 63)])
+    p.line([(48, 0), (48, 63)], leaf_d, 1.0, 160)
+    p.grain(32, 0, 32, 64, 0.08, 1.0, 8.0)
+    return p
+
+
+def paint_rock():
+    """Камень: гранёные пятна, трещины, мох."""
+    p = Paint(317)
+    stone = np.array(rgb("6E6A66"), dtype=np.float32)
+    low, mid = p.tile_noise(4, 3), p.tile_noise(12, 3)
+
+    def fn(gx, gy):
+        tone = 1.0 + 0.16 * low + 0.1 * mid
+        return stone[None, None, :] * tone[..., None], 128.0 + low * 40.0 + mid * 22.0
+    p.field(fn)
+    p.wrinkles(2, 2, 60, 60, 16, 9.0, 1.4, 0.62, 60)
+    p.speckle(0.5, 0.5, 63, 63, 600, rgb("46423E"), 0.09)
+    p.speckle(0.5, 0.5, 63, 63, 400, rgb("96928A"), 0.08)
+    for _ in range(9):
+        x, y = p.rng.uniform(4, 60), p.rng.uniform(4, 60)
+        p.stains(x - 3, y - 2, 6, 4, 2, 1.6, 0.9)
+        p.speckle(x - 2.5, y - 1.5, 5, 3, 40, rgb("5E8A3E"), 0.16)
+    return p
+
+
+def paint_flag():
+    """Флаг (атлас 64×32): чёрное полотнище с черепом и костями, древко, каменное основание."""
+    p = Paint(319)
+    p.rect(0, 0, 32, 40, BLACK, 128)
+    p.weave(0, 0, 32, 40, 0.34, 0.1)
+    p.uneven(0, 0, 32, 40, 0.14, 2.4)
+    bone = rgb("ECE4D0")
+    for sx in (-1.0, 1.0):
+        p.line([(16 - sx * 8.0, 9.0), (16 + sx * 8.0, 31.0)], bone, 1.3, 150)
+        for ex, ey in ((16 - sx * 8.0, 9.0), (16 + sx * 8.0, 31.0)):
+            p.ellipse(ex - 0.6, ey - 0.7, 0.9, 1.5, bone, 150)
+            p.ellipse(ex + 0.6, ey + 0.7, 0.9, 1.5, bone, 150)
+    p.ellipse(16, 16.5, 5.2, 9.0, bone, 156)
+    p.rect(12.8, 23.0, 6.4, 5.0, bone, 156)
+    for sx in (-1.0, 1.0):
+        p.ellipse(16 + sx * 2.1, 16.5, 1.4, 2.6, BLACK, 100)
+    p.poly([(16, 20.2), (16.9, 23.0), (15.1, 23.0)], BLACK, 100)
+    for i in range(5):
+        p.line([(13.6 + i * 1.2, 24.4), (13.6 + i * 1.2, 27.6)], BLACK, 0.2)
+    p.wrinkles(0, 2, 32, 36, 9, 5.0, 2.5, 0.8, 40)
+    for i in range(7):
+        p.cut(30.6 + (i % 2) * 0.5, 2.0 + i * 5.4, 1.4 - (i % 2) * 0.5, 1.8)
+    p.wood(32, 0, 8, 64, 2, True, mul(WOOD, 0.9), 0.2)
+    p.shade_round(32, 0, 8, 64, 0.6)
+    p.rect(40, 0, 8, 16, rgb("6E6A66"), 128)
+    p.grain(40, 0, 8, 16, 0.14, 1.2, 14.0)
+    return p
+
+
+def paint_lighthouse():
+    """Маяк: башня в красную и белую полосу с кирпичом, окнами и дверью, фонарь, крыша, камень."""
+    p = Paint(321)
+    white, red = rgb("E8E2D4"), rgb("B5362E")
+    for i in range(5):
+        p.rect(0, i * 8.0, 64, 8.0, red if i % 2 == 0 else white, 128)
+    # Кирпич: ряды со сдвигом.
+    for row in range(20):
+        y = row * 2.0
+        p.fold([(0, y), (64, y)], 0.14, 0.86, 26)
+        for col in range(17):
+            x = col * 4.0 + (row % 2) * 2.0
+            p.fold([(x, y), (x, y + 2.0)], 0.14, 0.88, 22)
+    p.uneven(0, 0, 64, 40, 0.1, 3.0)
+    p.stains(0, 0, 64, 40, 22, 2.0, 0.84)
+    for wx, wy in ((8.0, 6.0), (40.0, 14.0), (24.0, 22.0), (56.0, 9.0)):
+        p.rect(wx - 1.5, wy - 2.2, 3.0, 4.4, rgb("EBD9A8"), 160)
+        p.rect(wx - 1.1, wy - 1.8, 2.2, 3.6, rgb("2A3440"), 90)
+        p.line([(wx, wy - 1.8), (wx, wy + 1.8)], rgb("EBD9A8"), 0.2)
+    p.rect(29.6, 31.4, 4.8, 8.6, WOOD_D, 110)
+    p.wood(30.1, 32.0, 3.8, 8.0, 3, True, WOOD, 0.14)
+    p.ellipse(33.2, 36.2, 0.3, 0.3, GOLD, 190)
+    p.shade_v(0, 0, 64, 40, 1.04, 0.84)
+    p.rect(0, 40, 32, 8, rgb("F6DE7A"), 150)
+    ys, xs = p._slice(0, 40, 32, 8)
+    gx, gy = p._grid(0, 40, 32, 8)
+    p._apply(0, 40, 32, 8, 1.0 + 0.18 * np.cos((gx % 4.0 - 2.0) * 1.2))
+    for i in range(9):
+        p.rect(i * 4.0 - 0.35, 40, 0.7, 8, rgb("3A3C44"), 190)
+    p.rect(0, 40, 32, 0.8, rgb("3A3C44"), 190)
+    p.rect(0, 47.2, 32, 0.8, rgb("3A3C44"), 190)
+    p.rect(32, 40, 16, 8, mul(red, 0.9), 128)
+    for row in range(4):
+        for col in range(9):
+            p.fold([(32 + col * 2.0 + (row % 2), 40 + row * 2.0), (33 + col * 2.0 + (row % 2), 42 + row * 2.0)], 0.2, 0.74, 36)
+        p.fold([(32, 40 + row * 2.0), (48, 40 + row * 2.0)], 0.2, 0.7, 40)
+    p.rect(48, 40, 8, 8, rgb("6E6A66"), 128)
+    p.grain(48, 40, 8, 8, 0.14, 1.2, 14.0)
+    return p
+
+
+def paint_cart(rival):
+    """Шлюпка на колёсах: борт с полосой, палуба, колесо, обод, мачта, парус."""
+    p = Paint(323 if not rival else 325)
+    p.wood(0, 0, 64, 12, 3, False, WOOD, 0.3)
+    p.rect(0, 2.0, 64, 3.0, BLACK if rival else RED, 150)
+    p.rect(0, 5.0, 64, 0.9, GOLD_D if rival else WHITE, 158)
+    p.stitch([(0, 9.6), (64, 9.6)], IRON_L, 0.26, 2.0)
+    p.stains(0, 0, 64, 12, 12, 1.5, 0.84)
+    p.shade_v(0, 0, 64, 12, 1.06, 0.82)
+    p.wood(0, 12, 16, 16, 4, True, mul(WOOD, 1.1), 0.24)
+    p.stains(0, 12, 16, 16, 4, 1.2, 0.86)
+    _wheel(p, 16, 12, 16, 16)
+    p.rect(32, 12, 8, 4, WOOD_D, 128)
+    p.wood(40, 12, 8, 16, 2, True, mul(WOOD, 0.92), 0.16)
+    p.shade_round(40, 12, 8, 16, 0.62)
+    cloth = BLACK if rival else rgb("E4DCC8")
+    p.rect(0, 32, 32, 28, cloth, 128)
+    if rival:
+        bone = rgb("ECE4D0")
+        for sx in (-1.0, 1.0):
+            p.line([(16 - sx * 6.0, 40.0), (16 + sx * 6.0, 54.0)], bone, 1.1, 150)
+        p.ellipse(16, 45.0, 4.0, 4.6, bone, 156)
+        p.rect(13.6, 48.2, 4.8, 3.4, bone, 156)
+        for sx in (-1.0, 1.0):
+            p.ellipse(16 + sx * 1.6, 45.0, 1.1, 1.3, BLACK, 100)
+    else:
+        for i in range(3):
+            p.band(0, 36.0 + i * 8.0, 32, 2.6, NAVY, 124, 0.1)
+    p.weave(0, 32, 32, 28, 0.36, 0.08)
+    p.uneven(0, 32, 32, 28, 0.1, 2.6)
+    for sx in (10.6, 21.3):
+        p.fold([(sx, 32), (sx + 0.2, 60)], 0.3, 0.84, 30)
+        p.stitch([(sx + 0.7, 32.4), (sx + 0.9, 59.6)], mul(cloth, 0.7) if not rival else rgb("5A5660"), 0.12, 0.6)
+    p.wrinkles(0, 33, 32, 26, 9, 5.0, 0.6, 0.86, 30)
+    p.stains(0, 34, 32, 24, 5, 1.8, 0.88)
+    return p
+
+
+def paint_bricks():
+    """Каменная кладка (борта, обрывы): блоки со сдвигом, тёмные швы, мох. Стыкуется по краям."""
+    p = Paint(327)
+    stone = np.array(rgb("6E6A66"), dtype=np.float32)
+    mid = p.tile_noise(16, 3)
+    tones = p.rng.uniform(0.84, 1.14, (8, 4)).astype(np.float32)
+
+    def fn(gx, gy):
+        row = np.clip((gy / 8.0).astype(np.int32), 0, 7)
+        shifted = (gx + (row % 2) * 8.0) % 64.0
+        col = np.clip((shifted / 16.0).astype(np.int32), 0, 3)
+        ex = np.minimum(shifted % 16.0, 16.0 - shifted % 16.0)
+        ey = np.minimum(gy % 8.0, 8.0 - gy % 8.0)
+        seam = np.clip(np.minimum(ex, ey) / 0.45, 0.0, 1.0)
+        tone = tones[row, col] * (1.0 + 0.09 * mid) * (0.42 + 0.58 * seam)
+        return stone[None, None, :] * tone[..., None], 128.0 + mid * 16.0 - (1.0 - seam) * 80.0 + (tones[row, col] - 1.0) * 60.0
+    p.field(fn)
+    p.speckle(0.5, 0.5, 63, 63, 700, rgb("46423E"), 0.08)
+    p.speckle(0.5, 0.5, 63, 63, 500, rgb("96928A"), 0.07)
+    for _ in range(10):
+        x, y = p.rng.uniform(5, 59), p.rng.uniform(5, 59)
+        p.speckle(x - 2.5, y - 1.2, 5, 2.4, 46, rgb("5E8A3E"), 0.17)
+    return p
+
+
+def _ground(seed, base, low_amp, mid_amp, relief):
+    p = Paint(seed)
+    color = np.array(base, dtype=np.float32)
+    low, mid = p.tile_noise(4, 3), p.tile_noise(16, 3)
+
+    def fn(gx, gy):
+        tone = 1.0 + low_amp * low + mid_amp * mid
+        return color[None, None, :] * tone[..., None], 128.0 + low * relief + mid * relief * 0.6
+    p.field(fn)
+    return p
+
+
+def paint_grass():
+    """Трава: пятна светлее и темнее, травинки, редкие цветы. Стыкуется по краям."""
+    g, gd, gl = rgb("4E8A3C"), rgb("386C30"), rgb("86BC54")
+    p = _ground(329, g, 0.12, 0.08, 20.0)
+    for _ in range(1500):
+        x, y = p.rng.uniform(1, 63), p.rng.uniform(1.6, 63)
+        lean = p.rng.uniform(-0.3, 0.3)
+        p.line([(x, y), (x + lean, y - p.rng.uniform(0.6, 1.3))], gd if p.rng.random() < 0.5 else gl, 0.12, 150)
+    for _ in range(22):
+        x, y = p.rng.uniform(3, 61), p.rng.uniform(3, 61)
+        p.ellipse(x, y, 0.3, 0.3, rgb("F2E6A0") if p.rng.random() < 0.6 else rgb("E8E8F0"), 170)
+    return p
+
+
+def paint_road():
+    """Укатанная дорога: две колеи вдоль, камешки, следы. Стыкуется по краям."""
+    dirt = rgb("8E7250")
+    p = _ground(331, dirt, 0.1, 0.07, 18.0)
+    for x in (19.0, 45.0):
+        p.fold([(x, -1), (x, 65)], 2.2, 0.8, 60)
+        p.line([(x + 1.6, 0), (x + 1.6, 64)], mul(dirt, 1.16), 0.5, 150)
+    p.speckle(0.5, 0.5, 63, 63, 1500, mul(dirt, 0.78), 0.08)
+    p.speckle(0.5, 0.5, 63, 63, 900, mul(dirt, 1.16), 0.07)
+    for _ in range(30):
+        x, y = p.rng.uniform(3, 61), p.rng.uniform(3, 61)
+        r = p.rng.uniform(0.3, 0.7)
+        p.ellipse(x + 0.12, y + 0.16, r, r * 0.8, mul(dirt, 0.66), 110)
+        p.ellipse(x, y, r, r * 0.8, rgb("9A948A"), 186)
+    return p
+
+
+def paint_mud():
+    """Грязь: мокрая тёмная земля с лужами и комьями. Стыкуется по краям."""
+    mud = rgb("4A3524")
+    p = _ground(333, mud, 0.16, 0.12, 30.0)
+    for _ in range(11):
+        x, y = p.rng.uniform(8, 56), p.rng.uniform(8, 56)
+        rx, ry = p.rng.uniform(2.5, 5.5), p.rng.uniform(1.4, 3.0)
+        p.ellipse(x, y, rx, ry, mul(mud, 0.62), 70)
+        p.ellipse(x - rx * 0.25, y - ry * 0.3, rx * 0.4, ry * 0.25, rgb("7A8894"), 74)
+    p.speckle(0.5, 0.5, 63, 63, 900, mul(mud, 1.4), 0.1)
+    p.speckle(0.5, 0.5, 63, 63, 700, mul(mud, 0.6), 0.1)
+    return p
+
+
+def paint_sail():
+    """Парусина: полотнища со швами и строчкой, заплата. Стыкуется по краям."""
+    cloth = rgb("D8D0B8")
+    p = _ground(335, cloth, 0.06, 0.04, 10.0)
+    p.weave(0, 0, 64, 64, 0.4, 0.07)
+    for x in (0.4, 32.0):
+        p.fold([(x, 0), (x, 64)], 0.5, 0.78, 44)
+        p.stitch([(x + 1.2, 0.4), (x + 1.2, 63.6)], mul(cloth, 0.66), 0.14, 0.8)
+    for y in (20.0, 42.0):
+        p.fold([(0, y), (64, y)], 0.4, 0.86, 26)
+    p.rect(10.0, 28.0, 8.0, 6.0, mul(cloth, 0.84), 150)
+    p.stitch([(10.4, 28.4), (17.6, 28.4), (17.6, 33.6), (10.4, 33.6), (10.4, 28.4)], mul(cloth, 0.6), 0.14, 0.7)
+    p.stains(2, 2, 60, 60, 9, 2.4, 0.9)
+    return p
+
+
+PROPS = {"pirates": {"tex_sand": paint_sand, "tex_planks": paint_planks, "tex_water": paint_water, "tex_rock": paint_bricks,
+                     "tex_grass": paint_grass, "tex_road": paint_road, "tex_mud": paint_mud, "tex_sail": paint_sail,
+                     "crate": paint_crate, "barrel": paint_barrel, "keg": paint_keg, "chest": paint_chest, "cannon": paint_cannon,
+                     "palm": paint_palm, "rock": paint_rock, "flag": paint_flag, "lighthouse": paint_lighthouse,
+                     "cart": lambda: paint_cart(False), "cart_rival": lambda: paint_cart(True)}}
 SETS = {"pirates": [pirate_sailor, pirate_captain, pirate_skeleton]}
 
 

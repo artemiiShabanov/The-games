@@ -41,6 +41,9 @@ func _ready() -> void:
 			_open_game.call_deferred(0, null)
 			return
 		AutoTest.bot_mode = AutoTest.BotMode.OFF
+	else:
+		# Материалы «продвинутых» собираются заранее, пока игрок в меню (#130).
+		ThreedScreen.prewarm(self)
 	var bg := ColorRect.new()
 	bg.color = Style.BG
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
