@@ -44,7 +44,7 @@ const PATH := "res://resources/demos/shooter_lowpoly_gen.tres"
 @export var aim_first := 2.7
 @export var aim_last := 1.9
 @export var aim_captain := 1.5
-@export var aim_runner := 2.1
+@export var aim_runner := 2.4
 @export var windup := 1.1
 ## Метатели: с какой остановки (с нуля) и доля среди матросов. Капитанов на маршрут, пленных на
 ## маршрут от и до, бочек с порохом.
@@ -58,7 +58,7 @@ const PATH := "res://resources/demos/shooter_lowpoly_gen.tres"
 ## Сколько секунд пленный стоит с поднятыми руками.
 @export var hostage_hold := 1.7
 ## Бегун в переезде: в какой доле переезда выбегает, расстояние от камеры от и до.
-@export var runner_at := 0.12
+@export var runner_at := 0.3
 @export var runner_near := 8.0
 @export var runner_far := 11.0
 

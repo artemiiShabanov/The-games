@@ -211,7 +211,13 @@ func _reload() -> void:
 
 func _step_route(dt: float) -> void:
 	if phase == Phase.MOVE:
-		move_k += dt / level.stops[stop + 1].travel
+		# Пока бегун на виду, камера почти стоит: по плывущей картинке в него не попасть.
+		var pace := 1.0
+		for i in actors.size():
+			if level.foes[i].kind == RailLevel.Kind.RUNNER and level.foes[i].stop == stop + 1 \
+					and (actors[i].state == State.RISE or actors[i].state == State.OUT):
+				pace = tuning.runner_slow
+		move_k += dt * pace / level.stops[stop + 1].travel
 		for i in actors.size():
 			var foe := level.foes[i]
 			if actors[i].state == State.WAIT and foe.kind == RailLevel.Kind.RUNNER and foe.stop == stop + 1 and move_k >= foe.delay:
@@ -321,7 +327,8 @@ func probe(aim: Vector2) -> Shot:
 			continue
 		var at := feet(i)
 		for part: Vector2 in [Vector2(tuning.torso_y, tuning.torso_r), Vector2(tuning.head_y, tuning.head_r)]:
-			var t := RailLevel.hit_sphere(cam, dir, at + Vector3(0.0, part.x, 0.0), part.y + tuning.hit_pad)
+			var pad := tuning.runner_pad if level.foes[i].kind == RailLevel.Kind.RUNNER else tuning.hit_pad
+			var t := RailLevel.hit_sphere(cam, dir, at + Vector3(0.0, part.x, 0.0), part.y + pad)
 			if t >= 0.0 and t < best:
 				best = t
 				shot.kind = &"foe"

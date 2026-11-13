@@ -26,6 +26,9 @@ const PATH := "res://resources/demos/shooter_lowpoly.tres"
 ## Бегун в переезде: сколько секунд выбегает в кадр и с какой доли пробежки в него можно попасть.
 @export var runner_run := 0.9
 @export var runner_hittable := 0.3
+## Пока бегун в кадре, камера едет во столько раз медленнее; запас попадания по бегуну.
+@export var runner_slow := 0.25
+@export var runner_pad := 0.14
 ## Мишени: середина и радиус туловища и головы над ступнями, запас попадания.
 @export var torso_y := 1.08
 @export var torso_r := 0.33

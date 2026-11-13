@@ -200,8 +200,9 @@ static func _build(seed_: int, attempt: int, t: ShooterLowpolyGenTuning, rules: 
 			level.kegs.append(keg)
 	# Бегуны: в переезде к каждой остановке со второй, выбегают сбоку в кадр.
 	for i in range(1, t.stops + 1):
-		var cam := level.pose_pos(i, 0.6)
-		var look := level.pose_look(i, 0.6)
+		# Ставится по кадру, каким он будет, пока бегун на виду (камера в это время почти стоит).
+		var cam := level.pose_pos(i, t.runner_at + 0.12)
+		var look := level.pose_look(i, t.runner_at + 0.12)
 		var from_side := 1.0 if rng.randf() < 0.5 else -1.0
 		var angle := atan(from_side * rng.randf_range(0.25, 0.5) * tan_half * rules.aspect)
 		var dir := _forward(look.x) * cos(angle) + _right(look.x) * sin(angle)
@@ -285,7 +286,7 @@ static func validate(level: RailLevel, t: ShooterLowpolyGenTuning = null, rules:
 			# Бегун виден, когда добежал и когда стреляет (камера ещё едет или уже встала).
 			var travel := level.stops[foe.stop].travel
 			for moment: float in [rules.runner_run, rules.runner_run + foe.aim]:
-				var k := minf(foe.delay + moment / travel, 1.0)
+				var k := minf(foe.delay + moment * rules.runner_slow / travel, 1.0)
 				var cam := level.pose_pos(foe.stop, k)
 				var at := RailLevel.project(head, cam, level.pose_look(foe.stop, k), tan_half, rules.aspect)
 				if at.z < 3.0 or absf(at.x) > 0.9 or absf(at.y) > 0.85 or not level.sees(cam, head):
