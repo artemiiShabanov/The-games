@@ -1117,12 +1117,12 @@ func _dune_at(course: DuneCourse, t: SportThreedTuning, s: float, x: float, v: f
 
 
 ## Файтинг × «продвинутые» «один против всех» (#125): сто сидов дают план, который проходит
-## проверку генератора (шесть волн, первая из простых пиратов, есть щитоносцы и ножи),
+## проверку генератора (три волны, первая из простых пиратов, есть щитоносцы и ножи),
 ## генерация детерминирована; на каждом сиде бот WIN без окна (`FraySim.simulate`) побеждает,
-## бот LOSE проигрывает. Отдельно правила: удар переносит героя к врагу в сторону стика, от
-## щита удар отскакивает и сжигает серию, сильный удар сбивает щит, контратака перехватывает
-## замах и не берёт нож, перекат уводит от ножа, серия удваивает урон и даёт добивание,
-## пропущенный удар её сжигает.
+## бот LOSE проигрывает. Отдельно правила: стик ведёт героя, удар переносит его к врагу в
+## сторону стика, от щита удар отскакивает и сжигает серию, удержанный удар сбивает щит, удар по
+## замахнувшемуся это перехват с прыжком за спину, нож ударом не сбить, перекат от него уводит,
+## серия удваивает урон и даёт добивание, пропущенный удар её сжигает.
 func _check_frays() -> void:
 	var t := FightingThreedTuning.load_default()
 	var seconds: Array[float] = []
@@ -1144,6 +1144,11 @@ func _check_frays() -> void:
 			seconds[50], seconds[0], seconds[99], hp / 100])
 	var plan := FrayPlanGen.generate(1, t)
 	var thug := FrayPlan.Kind.THUG
+	# Стик ведёт героя по палубе.
+	var walker := _fray(plan, t, [thug], [Vector2(0.0, -5.0)])
+	for i in 40:
+		walker.step(FraySim.DT, Vector2(1.0, 0.0), false, false)
+	_expect(walker.pos.x > 2.0 and walker.landed == 0, "герой не идёт за стиком: %.1f" % walker.pos.x)
 	# Удар: герой перелетает к врагу в сторону стика и попадает.
 	var sim := _fray(plan, t, [thug, thug], [Vector2(-3.0, 0.0), Vector2(3.5, 0.0)])
 	_fray_tap(sim, Vector2(1.0, 0.0))
@@ -1160,23 +1165,26 @@ func _check_frays() -> void:
 	_expect(sim.foes[0].state == FraySim.Foe.STUNNED, "сильный удар не сбил щит")
 	_fray_tap(sim, Vector2.ZERO)
 	_expect(sim.foes[0].hp == t.foe_hp - t.damage, "оглушённого щитоносца удар не берёт")
-	# Контратака перехватывает замах; нож не берёт, от ножа уводит перекат.
+	# Удар по замахнувшемуся это перехват: герой оказывается у него за спиной, урона нет.
 	sim = _fray(plan, t, [thug], [Vector2(0.0, -2.5)])
 	_fray_windup(sim, 0, 0.3)
-	sim.step(FraySim.DT, Vector2.ZERO, false, true)
-	for i in 40:
-		sim.step(FraySim.DT, Vector2.ZERO, false, false)
-	_expect(sim.counters == 1 and sim.taken == 0 and sim.hero_hp == t.hero_hp and sim.combo == 1, "контратака: перехватов %d, пропущено %d" % [sim.counters, sim.taken])
+	_fray_tap(sim, Vector2.ZERO)
+	_expect(sim.counters == 1 and sim.taken == 0 and sim.hero_hp == t.hero_hp and sim.combo == 1 and sim.pos.y < sim.foes[0].pos.y
+			and sim.foes[0].hp == t.foe_hp - t.counter_damage, "перехват: %d, пропущено %d, герой %.1f, враг %.1f" % [sim.counters, sim.taken,
+			sim.pos.y, sim.foes[0].pos.y])
 	for roll: bool in [false, true]:
 		sim = _fray(plan, t, [FrayPlan.Kind.KNIFE], [Vector2(0.0, -2.5)])
 		sim.combo = 4
 		sim.combo_left = 9.0
 		_fray_windup(sim, 0, 0.25)
-		sim.step(FraySim.DT, Vector2(0.0, 1.0) if roll else Vector2.ZERO, false, true)
+		if roll:
+			sim.step(FraySim.DT, Vector2(0.0, 1.0), false, true)
+		else:
+			sim.step(FraySim.DT, Vector2.ZERO, true, false)
 		for i in 40:
 			sim.step(FraySim.DT, Vector2.ZERO, false, false)
-		_expect(sim.taken == (0 if roll else 1) and sim.dodges == (1 if roll else 0) and sim.combo == (4 if roll else 0),
-				"нож (%s): пропущено %d, серия %d" % ["перекат" if roll else "контратака", sim.taken, sim.combo])
+		_expect(sim.taken == (0 if roll else 1) and sim.dodges == (1 if roll else 0) and sim.counters == 0 and sim.combo == (4 if roll else 0),
+				"нож (%s): пропущено %d, серия %d" % ["перекат" if roll else "удар", sim.taken, sim.combo])
 	# Серия: от пяти удар вдвое сильнее, десятый удар даёт добивание, оно укладывает и щитоносца.
 	sim = _fray(plan, t, [thug], [Vector2(0.0, -3.0)])
 	sim.combo = t.strong_combo

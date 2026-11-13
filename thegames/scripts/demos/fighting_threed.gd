@@ -1,14 +1,18 @@
 extends Demo
 ## Демка файтинг × «продвинутые», каталог `docs/specs/demos_catalog.md`: «один против всех»
 ## (#125, второе решение 2026-11-13 вместо дуэли на саблях; образцы Batman: Arkham, Shadow of
-## Mordor, Sleeping Dogs). Матрос один на палубе, пираты волнами выходят вокруг него, камера
-## сверху-сзади держит всех в кадре. Стик выбирает сторону; A удар: герой сам перелетает к
-## ближнему врагу в эту сторону, удары подряд копят серию; A подержать это сильный удар,
-## он сбивает щит. B без стика контратака: перехватывает замах, над которым горит метка; B
-## со стиком перекат: только он спасает от ножа (красная метка). Серия от пяти удваивает
+## Mordor, Sleeping Dogs). Матрос один на палубе, пираты тремя волнами выходят вокруг него,
+## камера сверху-сзади держит всех в кадре. Стик ведёт героя и выбирает сторону удара. A удар:
+## герой перелетает к ближнему врагу в эту сторону и бьёт; удары идут цепочкой (левой, правой,
+## ногой, с разворота, снизу) и копят серию. A по врагу, над которым горит метка замаха, это
+## перехват: кувырок ему за спину и удар ногой в спину. A держать у щитоносца: сильный удар,
+## сбивает щит. B перекат: только он спасает от ножа (красная метка). Серия от пяти удваивает
 ## урон, каждые десять ударов дают добивание. План волн из `FrayPlanGen` по сиду записи;
 ## правила и боты живут в `FraySim` (без окна, им же проверяются сто сидов), демка ведёт его
-## шагами по 1/60 с, рисует и озвучивает события.
+## шагами по 1/60 с, рисует и озвучивает события. Удар подаётся приёмами аркадных драк
+## (плейтест 2026-11-13): стоп-кадр на пару кадров и короткий разгон после него, звезда и
+## кольцо в точке удара, искры, след рывка, наезд камеры, сжатие моделей: всё это прикрывает
+## простые позы.
 ##
 ## Общие баги (#44) и баг технологии `camera_clip` живут в `Demo` и `ThreedScreen`, демка только
 ## зовёт хуки. Баги жанра и баланса для этой демки включит #126.
@@ -32,6 +36,18 @@ var _shake := 0.0
 var _hero_flash := 0.0
 var _punch := 0.0
 var _punch_kind := 0
+## После стоп-кадра мир коротко идёт быстрее; наезд камеры и сжатие героя на ударе.
+var _rush_left := 0.0
+var _zoom := 0.0
+var _squash := 0.0
+var _landing := 0.0
+var star: MeshInstance3D
+var ring: MeshInstance3D
+var streak: MeshInstance3D
+var sparks: CPUParticles3D
+var _star_left := 0.0
+var _streak_left := 0.0
+var _burst_color := Color.WHITE
 var _focus := Vector3.ZERO
 var _note := ""
 var _note_left := 0.0
@@ -133,7 +149,100 @@ func _build_world() -> void:
 	hero = spawn_model("hero", "hero")
 	var rig := hero as RigModel
 	if rig != null:
-		rig.smooth = 26.0
+		rig.smooth = 34.0
+	_build_effects()
+
+
+func _flare(tex: Texture2D) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = tex
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.no_depth_test = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+
+## Эффекты удара: звезда и кольцо в точке попадания, искры, след рывка.
+func _build_effects() -> void:
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	for y in 64:
+		for x in 64:
+			var d := Vector2(x - 31.5, y - 31.5) / 31.5
+			var reach := 0.22 + 0.78 * pow(absf(cos(d.angle() * 4.0)), 7.0)
+			img.set_pixel(x, y, Color(1.0, 1.0, 1.0, clampf(1.0 - d.length() / reach, 0.0, 1.0)))
+	var quad := QuadMesh.new()
+	quad.material = _flare(ImageTexture.create_from_image(img))
+	star = _add(quad, Vector3.ZERO)
+	var band := Gradient.new()
+	band.offsets = PackedFloat32Array([0.0, 0.62, 0.8, 1.0])
+	band.colors = PackedColorArray([Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 0.9), Color(1, 1, 1, 0)])
+	var hoop := GradientTexture2D.new()
+	hoop.gradient = band
+	hoop.fill = GradientTexture2D.FILL_RADIAL
+	hoop.fill_from = Vector2(0.5, 0.5)
+	hoop.fill_to = Vector2(0.5, 0.0)
+	hoop.width = 64
+	hoop.height = 64
+	var quad2 := QuadMesh.new()
+	quad2.material = _flare(hoop)
+	ring = _add(quad2, Vector3.ZERO)
+	var line := BoxMesh.new()
+	line.size = Vector3(0.5, 0.9, 1.0)
+	var trail := StandardMaterial3D.new()
+	trail.albedo_color = Color(1.0, 1.0, 1.0, 0.3)
+	trail.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	trail.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	line.material = trail
+	streak = _add(line, Vector3.ZERO)
+	for node: MeshInstance3D in [star, ring, streak]:
+		node.visible = false
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var speck := QuadMesh.new()
+	speck.size = Vector2(0.09, 0.09)
+	var hot := StandardMaterial3D.new()
+	hot.albedo_color = Color(1.0, 0.9, 0.55)
+	hot.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hot.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	hot.billboard_keep_scale = true
+	speck.material = hot
+	sparks = CPUParticles3D.new()
+	sparks.mesh = speck
+	sparks.amount = 18
+	sparks.lifetime = 0.32
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.spread = 180.0
+	sparks.initial_velocity_min = 3.5
+	sparks.initial_velocity_max = 9.0
+	sparks.gravity = Vector3(0.0, -14.0, 0.0)
+	sparks.scale_amount_min = 0.5
+	sparks.scale_amount_max = 1.5
+	sparks.emitting = false
+	sparks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	lowpoly.world.add_child(sparks)
+
+
+## Вспышка в точке удара: звезда, кольцо, искры, наезд камеры, стоп-кадр и разгон после него.
+func _impact(index: int, height: float, color: Color, size: float, stop: float) -> void:
+	var f := sim.foes[index]
+	var mid := (sim.pos + f.pos) / 2.0
+	var at := Vector3(lerpf(mid.x, f.pos.x, 0.5), height, lerpf(mid.y, f.pos.y, 0.5))
+	star.position = at
+	ring.position = at
+	sparks.position = at
+	sparks.restart()
+	_burst_color = color
+	_star_left = 0.16
+	star.scale = Vector3.ONE * size
+	_stop_left = stop
+	_rush_left = tuning.rush_seconds
+	_zoom = maxf(_zoom, 0.6 * size)
+	_squash = 1.0
+	_shake = maxf(_shake, 0.35 * size)
 
 
 ## Модель пирата под его род: простой, со щитом в левой руке, с ножом в правой.
@@ -183,6 +292,11 @@ func _on_tick(delta: float) -> void:
 	_punch = maxf(_punch - delta, 0.0)
 	_note_left = maxf(_note_left - delta, 0.0)
 	_combo_pop = maxf(_combo_pop - delta * 4.0, 0.0)
+	_zoom = maxf(_zoom - delta * 4.0, 0.0)
+	_squash = maxf(_squash - delta * 7.0, 0.0)
+	_landing = maxf(_landing - delta, 0.0)
+	_star_left = maxf(_star_left - delta, 0.0)
+	_streak_left = maxf(_streak_left - delta, 0.0)
 	if not bot_driven() and running and GameInput.b_just_pressed():
 		bug_press(func() -> void: _want_b = true)
 	# Фризы в бою с догоном времени (`Demo.bug_frame`).
@@ -195,12 +309,17 @@ func _step(dt: float) -> void:
 	var hold := minf(_stop_left, dt)
 	_stop_left -= hold
 	var left := dt - hold
+	# После стоп-кадра мир коротко идёт быстрее: удар «выстреливает».
+	if left > 0.0 and _rush_left > 0.0:
+		_rush_left -= left
+		left *= tuning.rush
 	while left > 0.0001 and running:
 		var h := minf(left, FraySim.DT)
 		left -= h
 		var dir := Vector2.ZERO
 		var a := false
 		var b := false
+		# Стик ведёт героя и выбирает сторону удара; удар и перехват на A, перекат на B.
 		if bot_driven():
 			sim.bot(active_bot_mode(), h)
 			dir = sim.bot_dir
@@ -228,43 +347,53 @@ func _say(text: String, color: Color) -> void:
 
 
 func _on_event(ev: Array) -> void:
+	var heights := [1.38, 1.38, 1.0, 1.3, 1.5]
 	match ev[0] as StringName:
 		&"go":
 			_play("go")
-		&"dash":
+		&"dash", &"leap":
 			_play("dash")
+			# След рывка от места старта к врагу.
+			var to := sim.foes[int(ev[1])].pos
+			var a := Vector3(sim.pos.x, 1.0, sim.pos.y)
+			var b := Vector3(to.x, 1.0, to.y)
+			if a.distance_to(b) > 1.4:
+				streak.visible = true
+				streak.scale = Vector3(1.0, 1.0, a.distance_to(b))
+				streak.look_at_from_position((a + b) / 2.0, b, Vector3.UP)
+				_streak_left = 0.16
 		&"hit":
 			_play("hit")
-			_punch = 0.2
-			_punch_kind = sim.landed % 3
-			_stop_left = tuning.hit_stop
-			_shake = maxf(_shake, 0.3 if not ev[2] else 0.6)
+			_punch = 0.22
+			_punch_kind = int(ev[3])
 			_combo_pop = 1.0
+			_impact(int(ev[1]), heights[_punch_kind], Color(1.0, 0.93, 0.6), 1.0 if sim.combo < tuning.strong_combo else 1.35, tuning.hit_stop)
 		&"break":
 			_play("clang")
-			_punch = 0.25
-			_punch_kind = 3
-			_shake = maxf(_shake, 0.6)
+			_punch = 0.28
+			_punch_kind = 5
 			_combo_pop = 1.0
+			_impact(int(ev[1]), 1.1, Color(0.7, 0.9, 1.0), 1.6, tuning.hit_stop * 1.6)
 			_say("ЩИТ СБИТ", ThreedHud.GREEN)
 		&"bounce":
 			_play("clang")
+			_punch = 0.18
+			_punch_kind = sim.blow
 			_shake = maxf(_shake, 0.4)
 			_say("ЩИТ: ДЕРЖИ УДАР", ThreedHud.RED)
 		&"ko":
 			_play("ko")
-			_shake = maxf(_shake, 0.7)
-			_stop_left = tuning.hit_stop * (3.0 if ev[2] else 1.6)
+			_impact(int(ev[1]), 1.2, Color(1.0, 0.7, 0.3), 2.0 if ev[2] else 1.6, tuning.hit_stop * (3.0 if ev[2] else 2.0))
 			if ev[2]:
-				_punch = 0.3
+				_punch = 0.32
 				_punch_kind = 3
 				_say("ДОБИВАНИЕ", ThreedHud.GOLD)
 		&"counter":
 			_play("counter")
-			_punch = 0.25
-			_punch_kind = 2
-			_stop_left = tuning.hit_stop
+			_punch = 0.26
+			_punch_kind = 6
 			_combo_pop = 1.0
+			_impact(int(ev[1]), 1.15, Color(0.6, 0.9, 1.0), 1.5, tuning.hit_stop * 1.5)
 			_say("ПЕРЕХВАТ", ThreedHud.GREEN)
 		&"dodge":
 			_play("dodge")
@@ -310,96 +439,162 @@ func _sync(dt: float) -> void:
 		_spawn_foe(sim.foes[foe_nodes.size()])
 	for i in sim.foes.size():
 		_pose_foe(sim.foes[i], foe_nodes[i], foe_models[i], i)
-	hero.position = Vector3(sim.pos.x, 0.0, sim.pos.y)
-	hero.rotation = Vector3(0.0, sim.facing, 0.0)
 	_pose_hero()
 	hero.flash(_hero_flash > 0.0)
-	# Камера сверху-сзади: идёт за героем вполсилы, чтобы круг драки оставался в кадре.
+	# Эффекты удара гаснут за доли секунды.
+	star.visible = _star_left > 0.0
+	ring.visible = _star_left > 0.0
+	if star.visible:
+		var k := 1.0 - _star_left / 0.16
+		var m := (star.mesh as QuadMesh).material as StandardMaterial3D
+		m.albedo_color = Color(_burst_color, 1.0 - k * k)
+		star.rotation.z = k * 0.6
+		ring.scale = Vector3.ONE * lerpf(0.6, 3.4, sqrt(k)) * star.scale.x
+		((ring.mesh as QuadMesh).material as StandardMaterial3D).albedo_color = Color(_burst_color, 0.8 * (1.0 - k))
+	streak.visible = _streak_left > 0.0
+	if streak.visible:
+		((streak.mesh as BoxMesh).material as StandardMaterial3D).albedo_color.a = 0.32 * _streak_left / 0.16
+	# Камера сверху-сзади: идёт за героем, на ударе коротко наезжает.
 	var want := Vector3(sim.pos.x * 0.7, 0.0, sim.pos.y * 0.7)
 	_focus = _focus.lerp(want, 1.0 - exp(-4.0 * dt)) if dt > 0.0 else want
 	var eye := _focus + Vector3(0.0, 6.4, 7.2) + Vector3(sin(_time * 61.0), cos(_time * 47.0), 0.0) * 0.06 * _shake
 	lowpoly.camera.transform = Transform3D(Basis.IDENTITY, eye).looking_at(_focus + Vector3(0.0, 0.9, -0.6))
+	lowpoly.camera.fov = 50.0 - 4.5 * _zoom
 
 
-## Поза героя: стойка, подлёт, удары по очереди (рука, рука, нога), сильный удар двумя
-## руками, перехват, перекат, пропущенный удар.
+## Поставить героя: курс, кувырок вокруг середины тела (чтобы не уходил под палубу), подъём.
+func _place_hero(spin: float, roll: float, lift: float) -> void:
+	var basis := Basis(Vector3.UP, sim.facing + spin) * Basis(Vector3.RIGHT, -roll)
+	var pivot := Vector3(0.0, 0.5, 0.0)
+	var squash := 1.0 + 0.07 * _squash
+	hero.transform = Transform3D(basis.scaled(Vector3(squash, 2.0 - squash, squash)), Vector3(sim.pos.x, lift, sim.pos.y) + pivot - basis * pivot)
+
+
+## Поза героя: стойка и шаг, подлёт, цепочка ударов (левой, правой, ногой, с разворота,
+## снизу), сильный удар двумя руками, кувырок перехвата и удар в спину, перекат в группировке,
+## пропущенный удар.
 func _pose_hero() -> void:
+	var spin := 0.0
+	var roll := 0.0
+	var lift := 0.0
+	var tuck := false
+	if sim.hero == FraySim.Hero.DODGE:
+		roll = clampf(1.0 - sim.hero_left / tuning.dodge_seconds, 0.0, 1.0) * TAU
+		tuck = true
+	elif sim.hero == FraySim.Hero.COUNTER:
+		var k := clampf(1.0 - sim.hero_left / tuning.counter_seconds, 0.0, 1.0)
+		roll = k * TAU
+		lift = sin(k * PI) * 1.25
+		tuck = true
+	elif _punch > 0.0 and _punch_kind == 3:
+		# Удар с разворота: корпус делает оборот за время удара.
+		spin = -(1.0 - _punch / 0.22) * TAU
+	elif _punch > 0.0 and _punch_kind == 4:
+		lift = 0.18 * sin(clampf(1.0 - _punch / 0.22, 0.0, 1.0) * PI)
+	_place_hero(spin, roll, lift)
 	if hero.pink:
 		return
 	var rig := hero as RigModel
 	if rig == null:
 		hero.walk(_time * 8.0 if sim.hero == FraySim.Hero.DASH else 0.0, 0.5)
 		return
-	var arm_l := Vector3(0.9, 0.0, -0.2)
-	var arm_r := Vector3(0.9, 0.0, 0.2)
+	var arm_l := Vector3(0.95, 0.0, -0.2)
+	var arm_r := Vector3(0.95, 0.0, 0.2)
 	var fore_l := 1.6
 	var fore_r := 1.6
-	var leg_l := 0.3
-	var leg_r := -0.3
+	var leg_l := Vector3(0.3, 0.0, 0.0)
+	var leg_r := Vector3(-0.3, 0.0, 0.0)
 	var shin_l := -0.4
 	var shin_r := -0.3
 	var spine := Vector3(-0.1, 0.0, 0.0)
-	var roll := 0.0
-	if _punch > 0.0:
+	if tuck:
+		# Группировка: колени к груди, руки обхватывают.
+		arm_l = Vector3(1.3, 0.0, 0.2)
+		arm_r = Vector3(1.3, 0.0, -0.2)
+		fore_l = 1.2
+		fore_r = 1.2
+		leg_l = Vector3(2.0, 0.0, 0.0)
+		leg_r = Vector3(1.9, 0.0, 0.0)
+		shin_l = -2.3
+		shin_r = -2.2
+		spine = Vector3(-0.9, 0.0, 0.0)
+	elif _punch > 0.0:
 		match _punch_kind:
 			0:
-				arm_r = Vector3(1.55, 0.0, 0.0)
-				fore_r = 0.1
-				spine = Vector3(-0.2, -0.45, 0.0)
-			1:
 				arm_l = Vector3(1.55, 0.0, 0.0)
-				fore_l = 0.1
-				spine = Vector3(-0.2, 0.45, 0.0)
-			2:
-				leg_r = 1.5
+				fore_l = 0.05
+				arm_r = Vector3(0.7, 0.0, 0.3)
+				spine = Vector3(-0.22, 0.5, 0.0)
+				leg_l = Vector3(0.55, 0.0, 0.0)
+			1:
+				arm_r = Vector3(1.55, 0.0, 0.0)
+				fore_r = 0.05
+				arm_l = Vector3(0.7, 0.0, -0.3)
+				spine = Vector3(-0.22, -0.5, 0.0)
+				leg_r = Vector3(0.45, 0.0, 0.0)
+				leg_l = Vector3(-0.35, 0.0, 0.0)
+			2, 6:
+				leg_r = Vector3(1.5, 0.0, 0.0)
+				shin_r = -0.05
+				leg_l = Vector3(-0.15, 0.0, 0.0)
+				spine = Vector3(0.3, 0.0, 0.0)
+				arm_l = Vector3(0.6, 0.0, -0.6)
+				arm_r = Vector3(-0.3, 0.0, 0.7)
+			3:
+				leg_l = Vector3(0.5, 0.0, -1.35)
+				shin_l = -0.05
+				spine = Vector3(0.0, 0.0, 0.35)
+				arm_l = Vector3(0.2, 0.0, -0.9)
+				arm_r = Vector3(0.4, 0.0, 0.9)
+			4:
+				arm_r = Vector3(2.5, 0.0, 0.1)
+				fore_r = 1.3
+				arm_l = Vector3(0.5, 0.0, -0.3)
+				spine = Vector3(0.22, -0.3, 0.0)
+				leg_l = Vector3(0.1, 0.0, 0.0)
+				leg_r = Vector3(-0.1, 0.0, 0.0)
+				shin_l = -0.1
 				shin_r = -0.1
-				spine = Vector3(0.25, 0.0, 0.0)
 			_:
 				arm_l = Vector3(1.3, 0.0, 0.0)
 				arm_r = Vector3(1.3, 0.0, 0.0)
-				fore_l = 0.2
-				fore_r = 0.2
-				spine = Vector3(-0.45, 0.0, 0.0)
+				fore_l = 0.15
+				fore_r = 0.15
+				spine = Vector3(-0.5, 0.0, 0.0)
+				leg_l = Vector3(0.6, 0.0, 0.0)
 	else:
 		match sim.hero:
 			FraySim.Hero.DASH:
 				arm_l = Vector3(-0.6, 0.0, -0.3)
 				arm_r = Vector3(-0.8, 0.0, 0.3)
-				leg_l = 0.9
-				leg_r = -0.7
-				spine = Vector3(-0.4, 0.0, 0.0)
+				leg_l = Vector3(0.9, 0.0, 0.0)
+				leg_r = Vector3(-0.7, 0.0, 0.0)
+				spine = Vector3(-0.45, 0.0, 0.0)
 			FraySim.Hero.HEAVY:
 				arm_l = Vector3(2.7, 0.0, 0.0)
 				arm_r = Vector3(2.7, 0.0, 0.0)
 				fore_l = 0.6
 				fore_r = 0.6
-				spine = Vector3(0.25, 0.0, 0.0)
-			FraySim.Hero.DODGE:
-				roll = clampf(1.0 - sim.hero_left / tuning.dodge_seconds, 0.0, 1.0) * TAU
-				leg_l = 1.4
-				leg_r = 1.2
-				shin_l = -1.9
-				shin_r = -1.8
-				spine = Vector3(-0.7, 0.0, 0.0)
+				spine = Vector3(0.28, 0.0, 0.0)
 			FraySim.Hero.STUN:
 				arm_l = Vector3(-0.3, 0.0, -0.7)
 				arm_r = Vector3(-0.3, 0.0, 0.7)
 				spine = Vector3(0.4, 0.0, 0.0)
 			_:
-				if sim.held > 0.08:
-					# Заряд сильного удара: руки отведены назад.
-					var k := clampf(sim.held / tuning.heavy_hold, 0.0, 1.0)
-					arm_l = Vector3(0.9 - 1.6 * k, 0.0, -0.3)
-					arm_r = Vector3(0.9 - 1.6 * k, 0.0, 0.3)
-					spine = Vector3(-0.1 - 0.2 * k, 0.0, 0.0)
+				# Шаг по палубе: стойка с кулаками у подбородка, ноги идут.
+				var axis := GameInput.axis() if not bot_driven() else sim.bot_dir
+				if axis.length() > 0.15 and sim.hero == FraySim.Hero.READY:
+					var stride := sin(_time * 11.0) * 0.55
+					leg_l = Vector3(stride, 0.0, 0.0)
+					leg_r = Vector3(-stride, 0.0, 0.0)
+					shin_l = -0.3 - maxf(-stride, 0.0) * 0.9
+					shin_r = -0.3 - maxf(stride, 0.0) * 0.9
 	rig.pose({&"arm_l": arm_l, &"arm_r": arm_r, &"fore_l": fore_l, &"fore_r": fore_r, &"leg_l": leg_l, &"leg_r": leg_r,
 			&"shin_l": shin_l, &"shin_r": shin_r, &"foot_l": 0.1, &"foot_r": 0.3})
 	rig.joint(&"hips", Vector3.ZERO)
 	rig.joint(&"spine", spine)
 	rig.joint(&"chest", Vector3(0.0, spine.y * 0.5, 0.0))
-	rig.joint(&"head", Vector3(0.1, 0.0, 0.0))
-	hero.rotation.x = -roll
-	hero.position.y = 0.55 * sin(roll * 0.5) if roll > 0.0 else 0.0
+	rig.joint(&"head", Vector3(0.1, -spine.y * 0.5, 0.0))
 
 
 func _pose_foe(f: FraySim.Pirate, node: Node3D, model: LowpolyModel, index: int) -> void:
@@ -407,7 +602,9 @@ func _pose_foe(f: FraySim.Pirate, node: Node3D, model: LowpolyModel, index: int)
 	var to := sim.pos - f.pos
 	if f.state != FraySim.Foe.OUT and f.state != FraySim.Foe.DOWN:
 		node.rotation.y = atan2(-to.x, -to.y)
-	model.flash(f.hit_for < 0.07)
+	model.flash(f.hit_for < 0.08)
+	var jolt := clampf(1.0 - f.hit_for / 0.14, 0.0, 1.0)
+	model.scale = Vector3(1.0 + 0.12 * jolt, 1.0 - 0.14 * jolt, 1.0 + 0.12 * jolt)
 	var lying := f.state == FraySim.Foe.OUT or f.state == FraySim.Foe.DOWN
 	# Упавший лежит навзничь; выбывший через полторы секунды уходит под палубу.
 	var fall := clampf(f.hit_for / 0.25, 0.0, 1.0) if lying else 0.0
@@ -441,7 +638,8 @@ func _pose_foe(f: FraySim.Pirate, node: Node3D, model: LowpolyModel, index: int)
 		FraySim.Foe.STAGGER:
 			model.walk(0.0, 0.0)
 			rig.pose({&"arm_r": Vector3(-0.4, 0.0, 0.8), &"arm_l": Vector3(-0.4, 0.0, -0.8), &"fore_r": 0.6, &"fore_l": 0.6})
-			rig.joint(&"spine", Vector3(0.45, 0.0, 0.0))
+			rig.joint(&"spine", Vector3(0.6, sin(index * 2.1) * 0.4, 0.0))
+			rig.joint(&"head", Vector3(0.5, 0.0, 0.0))
 		FraySim.Foe.STUNNED:
 			model.walk(0.0, 0.0)
 			rig.pose({&"arm_r": Vector3(0.2, 0.0, 0.3), &"arm_l": Vector3(0.2, 0.0, -0.3), &"fore_r": 0.3, &"fore_l": 0.3})
@@ -462,8 +660,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var mid := view / 2.0
 	if _hero_flash > 0.0:
 		h.rect(Rect2(Vector2.ZERO, view), Color(0.85, 0.1, 0.08, 0.25))
-	# Метки над замахнувшимися: кольцо сжимается к удару. Белая это контратака, красная с
-	# стрелками это нож: только перекат.
+	# Метки над замахнувшимися: кольцо сжимается к удару. Голубая это перехват ударом, красная
+	# со стрелками это нож: только перекат.
 	for f in sim.foes:
 		if not f.winding():
 			continue
@@ -480,11 +678,11 @@ func _draw_hud(canvas: CanvasItem) -> void:
 				h.polygon(PackedVector2Array([at + Vector2(side * 12.5, 0.0), at + Vector2(side * 8.5, -3.2), at + Vector2(side * 8.5, 3.2)]), color)
 			h.text(at, "!", 8.0, ThreedHud.WHITE)
 		else:
-			h.text(at, "B", 6.5, Color(0.05, 0.1, 0.18))
+			h.text(at, "A", 6.5, Color(0.05, 0.1, 0.18))
 	# Заряд сильного удара у героя.
-	if sim.held > 0.06 and sim.hero == FraySim.Hero.READY:
+	if sim.held > 0.03 and sim.hero == FraySim.Hero.HEAVY:
 		var at := lowpoly.project(Vector3(sim.pos.x, 2.3, sim.pos.y))
-		h.arc(at, 6.5, -PI / 2.0, -PI / 2.0 + TAU * clampf(sim.held / tuning.heavy_hold, 0.02, 1.0), ThreedHud.GOLD, 1.8)
+		h.arc(at, 6.5, -PI / 2.0, -PI / 2.0 + TAU * clampf(sim.held / maxf(tuning.heavy_hold - tuning.dash, 0.08), 0.02, 1.0), ThreedHud.GOLD, 1.8)
 	# Здоровье слева сверху.
 	h.panel(Rect2(10.0, 9.0, 150.0, 26.0), 7.0)
 	h.heart(Vector2(23.0, 22.0), 6.0, ThreedHud.RED)

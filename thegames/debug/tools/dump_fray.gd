@@ -53,7 +53,7 @@ func _init() -> void:
 				plan.waves[w].gap, plan.waves[w].pair * 100.0])
 	for mode: AutoTest.BotMode in [AutoTest.BotMode.WIN, AutoTest.BotMode.LOSE]:
 		var sim := FraySim.simulate(plan, t, mode)
-		print("бот %s: %s за %.1f с, здоровья %d, уложил %d из %d, ударов %d, контратак %d, перекатов %d, отскоков от щита %d, пропущено %d, добиваний %d, лучшая серия %d" % [
+		print("бот %s: %s за %.1f с, здоровья %d, уложил %d из %d, ударов %d, перехватов %d, перекатов %d, отскоков от щита %d, пропущено %d, добиваний %d, лучшая серия %d" % [
 				"WIN" if mode == AutoTest.BotMode.WIN else "LOSE", "победил" if sim.won else "не победил", sim.time, sim.hero_hp, sim.kos,
 				plan.total(), sim.landed, sim.counters, sim.dodges, sim.bounces, sim.taken, sim.specials, sim.best])
 	quit(0)

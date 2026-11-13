@@ -4,19 +4,23 @@ extends RefCounted
 ## `fighting_threed.gd` рисует это состояние и озвучивает события `events`; `simulate` гоняет
 ## бота по сиду целиком (проверки `demo_test`, `debug/tools/dump_fray.gd`).
 ##
-## Герой один на палубе, пираты стоят вокруг и нападают по очереди, а дальше и по двое. Удар:
-## герой сам перелетает к ближнему врагу в сторону стика и бьёт; удары подряд копят серию.
-## Замах врага виден заранее: контратака (без направления) перехватывает его и роняет врага,
-## серия не рвётся. Щитоносца обычный удар не берёт: герой отскакивает и теряет серию; щит
-## сбивает сильный удар (кнопку надо подержать), оглушённого бьют как всех. Удар ножом
-## контратака не берёт: от него уходят перекатом (уклонение с направлением). Серия от
-## `strong_combo` удваивает урон, каждые `special_every` ударов дают добивание: следующий удар
-## укладывает любого. Пропущенный удар, отскок от щита и простой сжигают серию.
+## Герой один на палубе, пираты стоят вокруг и нападают по очереди, а в последней волне
+## иногда по двое. Стик ведёт героя по палубе. Удар: герой перелетает к ближнему врагу в
+## сторону стика и бьёт, встав ровно на длину своего удара; удары идут цепочкой (левой,
+## правой, ногой, с разворота, снизу) и копят серию. Удар по врагу, который замахнулся и вот-вот
+## ударит, это контратака: герой кувырком перелетает ему за спину и бьёт ногой в спину. Щитоносца
+## обычный удар не берёт: герой отскакивает и теряет серию; щит сбивает сильный удар (кнопку
+## надо держать), оглушённого бьют как всех. Замах ножа ни ударом, ни контратакой не сбить: от
+## него уходят перекатом (вторая кнопка). Серия от `strong_combo` удваивает урон, каждые
+## `special_every` ударов дают добивание: следующий удар укладывает любого. Пропущенный удар,
+## отскок от щита и простой сжигают серию.
 
 const DT := 1.0 / 60.0
 
 enum Phase { COUNTDOWN, PLAY, DONE }
 enum Hero { READY, DASH, AFTER, HEAVY, COUNTER, DODGE, STUN }
+## Удары цепочки по порядку.
+enum Blow { LEFT, RIGHT, KICK, SPIN, UPPER }
 enum Foe { WALK, WINDUP, RECOVER, STAGGER, DOWN, STUNNED, OUT }
 
 class Pirate:
@@ -54,6 +58,9 @@ var safe_left := 0.0
 var target := -1
 var heavy := false
 var held := 0.0
+## Номер удара в цепочке (какой удар идёт или был последним) и сколько ударов сделано.
+var blow := Blow.LEFT
+var chain := 0
 var combo := 0
 var best := 0
 var combo_left := 0.0
@@ -69,9 +76,9 @@ var bounces := 0
 var taken := 0
 var specials := 0
 var kos := 0
-## События шага: `[имя, …]`. `go`, `wave(номер)`, `dash(враг)`, `hit(враг, сильный ли)`,
-## `bounce(враг)`, `break(враг)` щит сбит, `ko(враг, добивание ли)`, `counter(враг)`, `whiff`,
-## `dodge`, `windup(враг)`, `miss(враг)`, `hurt(враг, урон)`, `special` добивание готово,
+## События шага: `[имя, …]`. `go`, `wave(номер)`, `dash(враг)`, `hit(враг, сильный ли, удар
+## цепочки)`, `bounce(враг)`, `break(враг)` щит сбит, `ko(враг, добивание ли)`, `leap(враг)`
+## прыжок за спину, `counter(враг)` удар в спину, `dodge`, `windup(враг)`, `miss(враг)`, `hurt(враг, урон)`, `special` добивание готово,
 ## `lost` серия сгорела, `win`, `dead`, `timeout`.
 var events: Array[Array] = []
 var bot_dir := Vector2.ZERO
@@ -85,6 +92,7 @@ var _was_a := false
 var _from := Vector2.ZERO
 var _to := Vector2.ZERO
 var _bot_hold := 0.0
+var _countering := false
 
 
 static func create(plan_: FrayPlan, tuning_: FightingThreedTuning) -> FraySim:
@@ -137,10 +145,25 @@ func power() -> int:
 	return tuning.damage * (2 if combo >= tuning.strong_combo else 1)
 
 
-## Враг, к которому перелетит удар: ближний, с поправкой на сторону стика.
+## Враг, чей замах сейчас можно перехватить ударом, или −1: ближайший к своему удару.
+func counter_target() -> int:
+	var pick_i := -1
+	var soonest := INF
+	for i in foes.size():
+		var f := foes[i]
+		if counterable(f) and f.left <= tuning.counter_window and f.left < soonest and f.pos.distance_to(pos) <= tuning.reach:
+			soonest = f.left
+			pick_i = i
+	return pick_i
+
+
+## Враг, к которому перелетит удар. Со стиком это ближний из тех, кто в его стороне (конус
+## около 60°); если там никого, и без стика, просто ближний.
 func pick(dir: Vector2) -> int:
 	var best_i := -1
-	var best_score := INF
+	var best_d := INF
+	var aimed_i := -1
+	var aimed_d := INF
 	for i in foes.size():
 		var f := foes[i]
 		if not f.alive() or f.state == Foe.DOWN:
@@ -148,15 +171,17 @@ func pick(dir: Vector2) -> int:
 		var to := f.pos - pos
 		if to.length() > tuning.reach:
 			continue
-		var score := to.length() * (1.7 - (to.normalized().dot(dir.normalized()) if dir.length() > 0.3 else 0.0))
-		if score < best_score:
-			best_score = score
+		if to.length() < best_d:
+			best_d = to.length()
 			best_i = i
-	return best_i
+		if dir.length() > 0.3 and to.normalized().dot(dir.normalized()) > 0.5 and to.length() < aimed_d:
+			aimed_d = to.length()
+			aimed_i = i
+	return aimed_i if aimed_i >= 0 else best_i
 
 
-## Шаг мира: стик (x, z в мире), держат ли удар, нажато ли на этом шаге второе действие
-## (без стика контратака, со стиком перекат).
+## Шаг мира: стик (x, z в мире: ход героя и сторона удара), держат ли удар, нажат ли на этом
+## шаге перекат.
 func step(dt: float, dir: Vector2, a: bool, b: bool) -> void:
 	if ended:
 		return
@@ -176,6 +201,7 @@ func step(dt: float, dir: Vector2, a: bool, b: bool) -> void:
 			_lose_combo()
 	_step_hero(dt, dir, a, b)
 	_was_a = a
+	held = held + dt if hero == Hero.HEAVY else 0.0
 	_director(dt)
 	for i in foes.size():
 		_step_foe(i, dt)
@@ -234,14 +260,26 @@ func _step_hero(dt: float, dir: Vector2, a: bool, b: bool) -> void:
 				var k := clampf(1.0 - hero_left / t.dash, 0.0, 1.0)
 				pos = _from.lerp(_to, k)
 				if hero_left <= 0.0:
-					if heavy:
+					if heavy and a:
+						# Кнопку держат: замах сильного удара.
 						hero = Hero.HEAVY
-						hero_left = t.heavy_swing
+						hero_left = maxf(t.heavy_hold - t.dash, 0.08) + t.heavy_swing
 					else:
+						heavy = false
 						_hit()
 			Hero.HEAVY:
-				if hero_left <= 0.0:
+				if not a and hero_left > t.heavy_swing:
+					# Отпустил раньше: вышел обычный удар.
+					heavy = false
 					_hit()
+				elif hero_left <= 0.0:
+					_hit()
+			Hero.COUNTER:
+				# Кувырок за спину по дуге, в конце удар ногой в спину.
+				var k := clampf(1.0 - hero_left / t.counter_seconds, 0.0, 1.0)
+				pos = _from.lerp(_to, k)
+				if hero_left <= 0.0:
+					_counter_hit()
 			Hero.DODGE:
 				var k := clampf(1.0 - hero_left / t.dodge_seconds, 0.0, 1.0)
 				pos = _from.lerp(_to, sin(k * PI / 2.0))
@@ -250,49 +288,95 @@ func _step_hero(dt: float, dir: Vector2, a: bool, b: bool) -> void:
 			_:
 				if hero_left <= 0.0:
 					hero = Hero.READY
-	# Второе действие: контратака или перекат. Доступно и сразу после удара.
-	if b and (hero == Hero.READY or hero == Hero.AFTER):
-		held = 0.0
-		if dir.length() > 0.4:
-			hero = Hero.DODGE
-			hero_left = t.dodge_seconds
-			safe_left = t.dodge_safe
-			_from = pos
-			_to = (pos + dir.normalized() * t.dodge_length).limit_length(t.arena)
-			facing = atan2(-dir.x, -dir.y)
-			dodges += 1
-			events.append([&"dodge"])
-		else:
-			_counter()
+	var free := hero == Hero.READY or hero == Hero.AFTER
+	# Перекат: в сторону стика, без стика назад. Доступен и сразу после удара.
+	if b and free:
+		var away := dir.normalized() if dir.length() > 0.4 else -Vector2(-sin(facing), -cos(facing))
+		hero = Hero.DODGE
+		hero_left = t.dodge_seconds
+		safe_left = t.dodge_safe
+		_from = pos
+		_to = (pos + away * t.dodge_length).limit_length(t.arena)
+		facing = atan2(-away.x, -away.y)
+		dodges += 1
+		events.append([&"dodge"])
 		return
+	# Удар по нажатию: перехват замаха, если есть что перехватывать, иначе удар цепочки.
+	if a and not _was_a and free:
+		_press(dir)
+		return
+	if hero == Hero.READY and dir.length() > 0.15:
+		# Ход по палубе.
+		pos = (pos + dir * t.walk_speed * dt).limit_length(t.arena)
+		facing = rotate_toward(facing, atan2(-dir.x, -dir.y), 14.0 * dt)
+		for f in foes:
+			var gap := pos - f.pos
+			if f.alive() and f.state != Foe.DOWN and gap.length() < 0.9 and gap.length() > 0.01:
+				pos = f.pos + gap.normalized() * 0.9
+
+
+func _press(dir: Vector2) -> void:
+	var t := tuning
+	# Перехват: враг в стороне стика, а без стика любой, кто вот-вот ударит.
+	var grab := counter_target()
+	var aimed := pick(dir)
+	if grab >= 0 and (dir.length() <= 0.3 or aimed == grab or (foes[grab].pos - pos).normalized().dot(dir.normalized()) > 0.3):
+		var f := foes[grab]
+		var through := (f.pos - pos).normalized() if f.pos.distance_to(pos) > 0.05 else Vector2(-sin(facing), -cos(facing))
+		target = grab
+		hero = Hero.COUNTER
+		hero_left = t.counter_seconds
+		safe_left = maxf(safe_left, t.counter_seconds + 0.12)
+		_from = pos
+		_to = (f.pos + through * t.contact[Blow.KICK]).limit_length(t.arena + 0.3)
+		# Враг теряет замах: он бьёт туда, где героя уже нет.
+		f.state = Foe.RECOVER
+		f.left = t.counter_seconds + 0.2
+		f.close = false
+		events.append([&"leap", grab])
+		return
+	# Обычный удар ждёт конца прошлого; перехват можно нажать и сразу после удара.
 	if hero != Hero.READY:
-		held = 0.0
 		return
-	# Удар: короткое нажатие бьёт на отпускании, удержание заряжает сильный удар.
-	if a:
-		held += dt
-		if held >= t.heavy_hold:
-			_launch(dir, true)
-	elif _was_a and held > 0.0:
-		_launch(dir, false)
-	else:
-		held = 0.0
-
-
-func _launch(dir: Vector2, heavy_: bool) -> void:
-	held = 0.0
-	target = pick(dir)
+	target = aimed
 	if target < 0:
 		return
-	heavy = heavy_
 	var f := foes[target]
+	heavy = shielded(f) and not special
+	blow = (chain % Blow.size()) as Blow
 	var to := f.pos - pos
+	var stand: float = t.contact[blow]
 	hero = Hero.DASH
-	hero_left = tuning.dash
+	hero_left = t.dash
 	_from = pos
-	_to = f.pos - to.normalized() * 1.05 if to.length() > 1.05 else pos
+	_to = f.pos - to.normalized() * stand if to.length() > 0.05 else pos
 	facing = atan2(-to.x, -to.y)
 	events.append([&"dash", target])
+
+
+## Удар в спину после кувырка.
+func _counter_hit() -> void:
+	var t := tuning
+	var f := foes[target]
+	hero = Hero.AFTER
+	hero_left = t.after_hit
+	var to := f.pos - pos
+	facing = atan2(-to.x, -to.y)
+	blow = Blow.KICK
+	chain += 1
+	counters += 1
+	if not f.alive():
+		return
+	f.hp -= t.counter_damage * (2 if combo >= t.strong_combo else 1)
+	f.hit_for = 0.0
+	f.pos = (f.pos + to.normalized() * t.knock * 2.0).limit_length(t.arena + 0.4)
+	_gain_combo()
+	events.append([&"counter", target])
+	if f.hp <= 0:
+		_ko(target, false)
+	else:
+		f.state = Foe.DOWN
+		f.left = t.down_seconds
 
 
 ## Удар героя дошёл.
@@ -301,13 +385,16 @@ func _hit() -> void:
 	var f := foes[target]
 	hero = Hero.AFTER
 	hero_left = t.after_hit
+	chain += 1
 	if not f.alive():
 		return
+	var to := f.pos - pos
 	if special:
 		# Добивание укладывает любого.
 		special = false
 		specials += 1
 		landed += 1
+		blow = Blow.SPIN
 		_gain_combo()
 		_ko(target, true)
 		return
@@ -328,10 +415,14 @@ func _hit() -> void:
 	landed += 1
 	f.hp -= power()
 	f.hit_for = 0.0
+	f.pos = (f.pos + to.normalized() * t.knock).limit_length(t.arena + 0.4)
 	_gain_combo()
-	events.append([&"hit", target, heavy])
+	events.append([&"hit", target, heavy, blow])
 	if f.hp <= 0:
 		_ko(target, false)
+	elif f.state == Foe.WINDUP and f.kind == FrayPlan.Kind.KNIFE:
+		# Замах ножа ударом не сбить.
+		pass
 	elif f.state != Foe.STUNNED:
 		f.state = Foe.DOWN if heavy else Foe.STAGGER
 		f.left = t.down_seconds if heavy else t.stagger
@@ -346,40 +437,6 @@ func _ko(index: int, finisher: bool) -> void:
 	f.hp = 0
 	kos += 1
 	events.append([&"ko", index, finisher])
-
-
-## Контратака: перехватывает ближайший к удару замах; замах ножа не берёт.
-func _counter() -> void:
-	var t := tuning
-	var pick_i := -1
-	var soonest := INF
-	for i in foes.size():
-		var f := foes[i]
-		if counterable(f) and f.left <= t.counter_window and f.left < soonest:
-			soonest = f.left
-			pick_i = i
-	if pick_i < 0:
-		hero = Hero.AFTER
-		hero_left = t.whiff
-		events.append([&"whiff"])
-		return
-	var f := foes[pick_i]
-	var to := f.pos - pos
-	facing = atan2(-to.x, -to.y)
-	hero = Hero.COUNTER
-	hero_left = t.counter_seconds
-	safe_left = maxf(safe_left, t.counter_seconds)
-	counters += 1
-	f.hp -= 1
-	f.hit_for = 0.0
-	f.close = false
-	_gain_combo()
-	events.append([&"counter", pick_i])
-	if f.hp <= 0:
-		_ko(pick_i, false)
-	else:
-		f.state = Foe.DOWN
-		f.left = t.down_seconds
 
 
 ## Кто нападает следующим: один из стоящих рядом, а дальше по волнам и второй следом.
@@ -450,7 +507,6 @@ func _step_foe(index: int, dt: float) -> void:
 					taken += 1
 					hero = Hero.STUN
 					hero_left = t.stun
-					held = 0.0
 					_lose_combo()
 					events.append([&"hurt", index, amount])
 		_:
@@ -462,9 +518,9 @@ func _step_foe(index: int, dt: float) -> void:
 # --- Боты ------------------------------------------------------------------------------------
 
 ## Бот: ставит `bot_dir`, `bot_a`, `bot_b`. WIN от ножа уходит перекатом, остальные замахи
-## перехватывает контратакой, в остальное время бьёт: щитоносца сильным ударом (держит
-## кнопку), остальных короткими нажатиями; добивание тратит на щитоносца или на того, кто с
-## ножом. LOSE стоит.
+## перехватывает ударом, в остальное время бьёт: щитоносца сильным ударом (держит кнопку),
+## остальных короткими нажатиями; добивание тратит на щитоносца или на того, кто с ножом.
+## LOSE стоит.
 func bot(mode: AutoTest.BotMode, dt: float) -> void:
 	bot_dir = Vector2.ZERO
 	bot_b = false
@@ -472,23 +528,25 @@ func bot(mode: AutoTest.BotMode, dt: float) -> void:
 	bot_a = false
 	if ended or mode != AutoTest.BotMode.WIN or phase != Phase.PLAY:
 		return
-	# Угрозы: нож и обычный замах.
+	if hero == Hero.DASH or hero == Hero.HEAVY:
+		# Сильный удар: кнопка зажата до конца замаха.
+		bot_a = heavy
+		return
+	var free := hero == Hero.READY or hero == Hero.AFTER
+	if not free:
+		return
+	# Угрозы: от ножа перекат, обычный замах перехватить.
 	for f in foes:
-		if not f.winding():
-			continue
-		if f.kind == FrayPlan.Kind.KNIFE and f.left <= tuning.bot_dodge and f.pos.distance_to(pos) < tuning.strike_range + 1.0:
+		if f.winding() and f.kind == FrayPlan.Kind.KNIFE and f.left <= tuning.bot_dodge and f.pos.distance_to(pos) < tuning.strike_range + 1.0:
 			bot_dir = (pos - f.pos).normalized()
 			if (pos + bot_dir * 2.0).length() > tuning.arena - 0.5:
 				bot_dir = Vector2(-bot_dir.y, bot_dir.x)
 			bot_b = true
-			_bot_hold = 0.0
 			return
-		if f.kind != FrayPlan.Kind.KNIFE and f.left <= tuning.bot_counter:
-			bot_b = true
-			_bot_hold = 0.0
-			return
-	if hero != Hero.READY:
-		_bot_hold = 0.0
+	var grab := counter_target()
+	if grab >= 0:
+		if foes[grab].left <= tuning.bot_counter:
+			bot_a = not was
 		return
 	# Цель: добивание на щит или нож; иначе ближний без щита, если таких нет, щитоносец.
 	var open := -1
@@ -498,6 +556,9 @@ func bot(mode: AutoTest.BotMode, dt: float) -> void:
 	for i in foes.size():
 		var f := foes[i]
 		if not f.alive() or f.state == Foe.DOWN or f.pos.distance_to(pos) > tuning.reach:
+			continue
+		# Того, кто замахнулся ножом, не трогает: удар его не собьёт.
+		if f.winding() and f.kind == FrayPlan.Kind.KNIFE:
 			continue
 		if shielded(f):
 			shield = i
@@ -512,14 +573,4 @@ func bot(mode: AutoTest.BotMode, dt: float) -> void:
 	if pick_i < 0:
 		return
 	bot_dir = (foes[pick_i].pos - pos).normalized()
-	if pick(bot_dir) != pick_i:
-		# Стик не выбирает нужного: на этот раз бьёт того, кого выберет, если он не щит.
-		var other := pick(bot_dir)
-		if other >= 0 and shielded(foes[other]) and not special:
-			pick_i = other
-	if shielded(foes[pick_i]) and not special:
-		# Сильный удар: держать до срабатывания, если никто не замахнулся.
-		bot_a = true
-		return
-	# Короткое нажатие: шаг держит, шаг отпускает.
 	bot_a = not was

@@ -1,15 +1,15 @@
 class_name FrayPlanGen
 extends RefCounted
-## Генератор плана «одного против всех» (#125) из сида. Первая волна это трое простых
-## пиратов, которые нападают по одному; со второй выходит щитоносец и бывают атаки вдвоём, с
-## третьей пират с ножом; замахи короче, атаки чаще. План сида это первая попытка, что
+## Генератор плана «одного против всех» (#125) из сида. Три волны (плейтест 2026-11-13: шесть
+## было долго и тесно): трое простых пиратов, потом с ними щитоносец, в третьей двое с ножами
+## и редкие атаки вдвоём; замахи короче, атаки чаще. План сида это первая попытка, что
 ## проходит `validate`, в которой бот WIN побеждает с запасом здоровья, а бот LOSE проигрывает.
 
 const ATTEMPTS := 30
 const T := FrayPlan.Kind.THUG
 const S := FrayPlan.Kind.SHIELD
 const K := FrayPlan.Kind.KNIFE
-const WAVES := [[T, T, T], [T, T, S, T], [T, K, S, T], [T, K, S, K, T], [S, T, K, S, K], [T, S, K, T, K, S]]
+const WAVES := [[T, T, T], [T, S, T, T], [T, K, S, K, T]]
 
 
 static func generate(seed_: int, t: FightingThreedTuning = null) -> FrayPlan:
@@ -61,6 +61,6 @@ static func validate(plan: FrayPlan) -> String:
 	for k in plan.waves[0].kinds:
 		if k != T:
 			return "в первой волне не только простые пираты"
-	if plan.count(S) < 4 or plan.count(K) < 4:
+	if plan.count(S) < 2 or plan.count(K) < 2:
 		return "мало щитоносцев или ножей"
 	return ""
