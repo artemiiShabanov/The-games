@@ -344,6 +344,9 @@ func _build(state: StudioState, start_tech: int, start_genre: int) -> void:
 		_add_floor("cabinet", Vector2i(CABINET_X, BACK_Y))
 	var left := 9999
 	var right := -1
+	# «Продвинутые» (#127): к серверу идёт и рабочая станция, даже если 3D не куплено.
+	if techs.has(Game.Tech.THREED) and not techs.has(Game.Tech.LOWPOLY):
+		techs[Game.Tech.LOWPOLY] = true
 	for t in techs:
 		if t > 0 and t < 4:
 			left = mini(left, TECH_X[t] - 1)

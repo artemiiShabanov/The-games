@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_thrd"]
+
+[resource]
+script = ExtResource("1_thrd")
+id = &"tech_threed"
+kind = 0
+title = "Продвинутые"
+effect_line = "Новая технология в конструкторе: свой рендер демок, своя мини-игра в каждом релизе"
+tech = 4
+prop = "две станции и мигающий сервер"

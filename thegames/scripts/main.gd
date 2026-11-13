@@ -96,6 +96,10 @@ func _ready() -> void:
 	if AutoTest.enabled:
 		if args.has("draw"):
 			run.draw_start()
+		if args.has("start-tech"):
+			# `--start-tech=N` (#127): забег стартует с этой технологии, жанр платформер.
+			run.start_tech = int(str(args["start-tech"])) as Game.Tech
+			run.start_genre = Game.Genre.PLATFORMER
 		if args.has("cap"):
 			run.cap = int(str(args["cap"]))
 		if args.has("cash"):
@@ -116,9 +120,12 @@ func _ready() -> void:
 		# бот ведомости перебирает и технологию.
 		var pre: Array[StringName] = []
 		if _bot_remake:
-			pre.append_array([&"tech_vector", &"remakes"])
+			# `--remake=lowpoly` (#127): вторая технология для ремейка не вектор, а названная.
+			var other := str(args["remake"])
+			pre.append_array([StringName("tech_" + other) if other in ["bit16", "lowpoly", "threed"] else &"tech_vector", &"remakes"])
 		if args.has("techs"):
-			pre.append_array([&"tech_vector", &"tech_bit16"])
+			# С M4 (#127) это все пять технологий: стартовая плюс четыре купленные.
+			pre.append_array([&"tech_vector", &"tech_bit16", &"tech_lowpoly", &"tech_threed"])
 		if not pre.is_empty():
 			var pool := UpgradePool.load_all()
 			for id: StringName in pre:
@@ -798,6 +805,14 @@ func _bot_vary(c: Constructor) -> void:
 		if not open.is_empty():
 			# Сдвиг по колонке: раньше сеттинг брал `release * 3`, и при трёх сеттингах это всегда 0.
 			c.select(kind, open[(run.release + kind) % open.size()])
+	# С пятью технологиями (#127) дорогая может быть не по карману: тогда бот берёт первую
+	# технологию по порядку каталога, на которую денег хватает.
+	if c.estimate != null and not c.estimate.affordable and not c.is_locked_column(1):
+		for i in c.catalogs[1].entries.size():
+			if c.is_unlocked(1, i):
+				c.select(1, i)
+				if c.estimate != null and c.estimate.affordable:
+					break
 
 
 ## Строка ведомости релиза для сверки с моделью: тройка, руки, отклик, все движения денег

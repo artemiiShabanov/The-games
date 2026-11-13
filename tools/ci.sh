@@ -126,7 +126,9 @@ step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
 step "loop remake" sh tools/autotest.sh --loop --remake --releases=3 --time-scale=4 --frames=6500
 # Сверка модели (#72): игра на спокойном рынке с руками 0.75 пишет ведомость, модель её пересчитывает.
 step "model M2 replay" sh -c 'sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12 --releases=4 --ledger=debug/playtest/ledger_ci.json --time-scale=4 --frames=12000 && python3 tools/model_run.py --replay thegames/debug/playtest/ledger_ci.json'
-step "model M3 replay" sh -c 'sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12 --releases=4 --techs --ledger=debug/playtest/ledger_ci3.json --time-scale=4 --frames=12000 && python3 tools/model_run.py --replay thegames/debug/playtest/ledger_ci3.json'
+step "model M3 replay" sh -c 'TIMEOUT=600 sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12 --releases=4 --techs --ledger=debug/playtest/ledger_ci3.json --time-scale=4 --frames=30000 && python3 tools/model_run.py --replay thegames/debug/playtest/ledger_ci3.json'
+step "loop remake 2D to 3D" env TIMEOUT=400 sh tools/autotest.sh --loop --remake=lowpoly --start-tech=2 --releases=3 --time-scale=4 --frames=12000
+step "loop start threed" env TIMEOUT=400 sh tools/autotest.sh --loop --start-tech=4 --releases=2 --time-scale=4 --frames=14000
 step "loop rescue" sh tools/autotest.sh --loop --broke-at=2 --releases=3 --time-scale=4 --frames=9000
 step "slot save" sh tools/autotest.sh --slot=3 --refuse-events --time-scale=4 --frames=2600
 step "slot resume" sh tools/autotest.sh --slot=3 --resume --loop --releases=3 --refuse-events --time-scale=4 --frames=8000

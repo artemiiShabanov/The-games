@@ -372,7 +372,9 @@ func _check_demo_lock() -> void:
 			if closed_tech < 0 and not DemoCatalog.has_demo(genre, tech):
 				closed_tech = ti
 				closed_genre = gi
-	_expect(closed_tech >= 0, "у всех пар каталога есть демки, закрытую пару проверить негде")
+	# С M4 (#127) матрица 25 пар полная: закрытых пар нет, пилюля «демка в работе» не
+	# показывается; ветка ниже остаётся на случай новой технологии без демок.
+	_expect(closed_tech < 0, "в каталоге есть пара без демки: технология %d, жанр %d" % [closed_tech, closed_genre])
 	if closed_tech >= 0:
 		constructor.index[1] = closed_tech
 		_expect(not constructor.is_unlocked(0, closed_genre), "пара без демки открыта")

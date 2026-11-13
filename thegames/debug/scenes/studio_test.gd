@@ -329,8 +329,9 @@ func _run_checks() -> void:
 		genres_offered += 1 if d.kind == UpgradeDef.Kind.GENRE else 0
 		techs_offered += 1 if d.kind == UpgradeDef.Kind.TECH else 0
 	_expect(genres_offered <= 1 and techs_offered <= 1, "жанров в предложении %d, технологий %d" % [genres_offered, techs_offered])
-	# Пул M3 (#104): семь возможностей, четыре жанра и две технологии (вектор и 16/32).
-	_expect(pool.size() == 13, "пул из %d" % pool.size())
+	# Пул M4 (#127): семь возможностей, четыре жанра и четыре технологии (все, кроме стартовой
+	# 8-bit).
+	_expect(pool.size() == 15, "пул из %d" % pool.size())
 	# Ремейки не предлагаются, пока открыта одна технология.
 	var one_tech: Array[Game.Tech] = [Game.Tech.BIT8]
 	var avail := StudioOffer.available(pool, StudioState.new(), unlocked_genres, one_tech)
@@ -396,7 +397,7 @@ func _check_screen() -> void:
 		2:
 			_expect(last_bought != null and _signals.size() == 2 and _signals[0] == "shown 3"
 					and _signals[1] == "bought " + String(last_bought.id), "WIN: %s" % [_signals])
-			_expect(last_bought != null and wallet.cash == report.cash - last_bought.price(economy) and upkeep.total() == 950
+			_expect(last_bought != null and wallet.cash == report.cash - last_bought.price(economy) and upkeep.total() == report.upkeep + last_bought.upkeep(economy)
 					and state.has(last_bought.id), "WIN: деньги %s, содержание %s" % [wallet, upkeep])
 			_phase = 3
 			AutoTest.bot_mode = AutoTest.BotMode.LOSE

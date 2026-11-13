@@ -728,6 +728,32 @@ func _check_threed_fps() -> void:
 	for screen in extra:
 		_sheets.erase(screen)
 		screen.queue_free()
+	# Три живые демки «продвинутых» сразу (#127), как лента, галерея и экран концовки: платформер,
+	# гонки и спуск по дюне с водой, песком и ботами.
+	var streams: Array[Control] = []
+	var genres: Array[Game.Genre] = [Game.Genre.PLATFORMER, Game.Genre.RACING, Game.Genre.SPORT]
+	for i in genres.size():
+		var record := GameRecord.create(genres[i], Game.Tech.THREED, 3 + i, "Стрим")
+		var demo := DemoCatalog.create(record)
+		_expect(demo != null, "нет демки «продвинутых» жанра %d" % genres[i])
+		if demo == null:
+			continue
+		var holder := Control.new()
+		holder.position = Vector2(40.0 + i * 600.0, 420.0)
+		add_child(holder)
+		demo.setup(record, &"feed")
+		demo.embed(Vector2(560, 280))
+		holder.add_child(demo)
+		demo.start()
+		streams.append(holder)
+	for i in 300:
+		await get_tree().process_frame
+	fps = Performance.get_monitor(Performance.TIME_FPS)
+	AutoTest.note("threed: три живые демки сразу, %s" % ("без окна, кадры не меряются" if headless else "%.0f кадров в секунду" % fps))
+	if not headless and not _args.has("fixed-fps"):
+		_expect(fps >= 30.0, "три живые демки «продвинутых» дают %.0f кадров в секунду" % fps)
+	for holder in streams:
+		holder.queue_free()
 
 
 func _expect(ok: bool, what: String) -> void:
