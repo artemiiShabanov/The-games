@@ -44,6 +44,8 @@ var _shake := 0.0
 var _popup := ""
 var _popup_left := 0.0
 var _popup_good := true
+var _ko_wait := 0.0
+var _ko_goal := false
 var _want_strike := false
 var _want_kick := false
 var _want_step := 0
@@ -189,6 +191,11 @@ func _burst(at: Vector3, count: int, color: Color, size: float, speed: float) ->
 func _on_tick(delta: float) -> void:
 	bug_audio_tick(delta)
 	_popup_left = maxf(_popup_left - delta, 0.0)
+	if _ko_wait > 0.0:
+		_ko_wait -= delta
+		if _ko_wait <= 0.0:
+			end_demo(_ko_goal)
+			return
 	# Нажатия ловятся раз за кадр (с багом залипания из `Demo.bug_press`), правила берут их по одному.
 	if not bot_driven() and running:
 		var axis := GameInput.axis()
@@ -276,11 +283,15 @@ func _on_event(ev: Array) -> void:
 				_say("УШЁЛ", true)
 		&"step":
 			_play("step")
+		&"tired":
+			_say("ВЫДОХСЯ", true)
 		&"ko":
+			# Итог не сразу: нокаут сначала виден, боец падает.
 			_play("ko")
 			_stop_left = 0.25
 			_shake = 1.0
-			end_demo(ev[1] == 1)
+			_ko_goal = ev[1] == 1
+			_ko_wait = tuning.ko_seconds
 		&"timeout":
 			end_demo(false)
 

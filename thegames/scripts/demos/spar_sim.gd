@@ -12,7 +12,8 @@ extends RefCounted
 ## в это время в полтора раза сильнее. Соперник бьёт связками по плану: пока связка не
 ## кончилась, он не открыт и его замах не сбить. После последнего удара связки, принятого в
 ## блок или ушедшего мимо, он открыт: это время для ответа. Удар героя мимо или в блок
-## оставляет открытым героя, и соперник отвечает сразу. Бой до нокаута.
+## оставляет открытым героя, и соперник отвечает сразу. После нескольких ударов в блок подряд
+## соперник выдыхается и какое-то время не нападает. Бой до нокаута.
 
 const DT := 1.0 / 60.0
 
@@ -72,6 +73,10 @@ var combo_index := 0
 var move_index := 0
 var wait := 0.0
 var guard_index := 0
+## Сколько ударов соперника подряд ушло в блок; выдохся ли он (скажется на паузе до связки).
+var blocked_streak := 0
+var tired := false
+var tires := 0
 var ended := false
 var finished := false
 var hero_hits := 0
@@ -81,7 +86,7 @@ var dodges := 0
 var taken := 0
 ## События шага для звука и эффектов: `[имя, …]`. `go`, `windup(кто, удар)`, `hit(кого, урон,
 ## сбоку, сильный)`, `block(кто закрылся)`, `whiff(кто промахнулся)`, `step`, `ko(кого)`,
-## `timeout`; кто: 0 герой, 1 соперник. Демка читает и чистит.
+## `tired` (соперник выдохся), `timeout`; кто: 0 герой, 1 соперник. Демка читает и чистит.
 var events: Array[Array] = []
 ## Что бот хочет на этом шаге (`bot`).
 var bot_controls := Controls.new()
@@ -303,6 +308,12 @@ func _next_combo() -> void:
 	combo_index += 1
 	move_index = 0
 	wait = plan.combo(combo_index).gap
+	if tired:
+		# Выдохся: переводит дух, прежде чем напасть снова.
+		tired = false
+		tires += 1
+		wait += tuning.tire_seconds
+		events.append([&"tired"])
 
 
 func _rival_windup() -> void:
@@ -331,6 +342,10 @@ func _rival_strikes() -> void:
 		return
 	if hero.state == State.IDLE and hero.block and not heavy:
 		blocks += 1
+		blocked_streak += 1
+		if blocked_streak >= tuning.tire_blocks:
+			blocked_streak = 0
+			tired = true
 		f.open = last
 		f.begin(State.RECOVER, tuning.rival_punished if last else tuning.link)
 		events.append([&"block", 0])
@@ -338,6 +353,7 @@ func _rival_strikes() -> void:
 	var damage := tuning.heavy_damage if heavy else (tuning.rival_kick_damage if f.move == SparPlan.Move.KICK else tuning.rival_damage)
 	hero.hp -= damage
 	taken += 1
+	blocked_streak = 0
 	hero.z = 0.0
 	hero.open = false
 	hero.block = false

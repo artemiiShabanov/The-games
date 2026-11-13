@@ -8,7 +8,7 @@ const PATH := "res://resources/demos/fighting_lowpoly.tres"
 @export var countdown := 1.5
 ## Здоровье бойцов.
 @export var hero_hp := 100
-@export var rival_hp := 300
+@export var rival_hp := 260
 ## Палуба: половина длины; бойцы стартуют на таком расстоянии от середины и не сходятся ближе.
 @export var arena_half := 4.6
 @export var start_gap := 1.3
@@ -22,15 +22,15 @@ const PATH := "res://resources/demos/fighting_lowpoly.tres"
 @export var hero_windup := 0.2
 @export var hero_recover := 0.28
 @export var hero_punished := 0.5
-@export var hero_reach := 1.55
+@export var hero_reach := 1.75
 @export var hero_link := 0.08
 @export var hero_chain_windup := 0.15
-@export var punch_damage: Array[int] = [5, 5, 7]
+@export var punch_damage: Array[int] = [6, 6, 8]
 ## Удар ногой: замах сам по себе и в конце связки, дальность, урон, сколько герой открыт после
 ## попадания и после промаха или блока.
 @export var kick_windup := 0.32
 @export var kick_chain_windup := 0.2
-@export var kick_reach := 1.9
+@export var kick_reach := 2.1
 @export var kick_damage := 12
 @export var kick_recover := 0.36
 @export var kick_punished := 0.62
@@ -44,10 +44,15 @@ const PATH := "res://resources/demos/fighting_lowpoly.tres"
 @export var rival_recover := 0.35
 @export var link := 0.16
 ## Урон соперника: рукой, ногой и сильный удар (пробивает блок); замах ноги во столько раз дольше.
-@export var rival_damage := 8
-@export var rival_kick_damage := 12
+@export var rival_damage := 7
+@export var rival_kick_damage := 14
 @export var rival_kick_windup := 1.3
 @export var heavy_damage := 18
+## Соперник выдыхается: после стольких ударов в блок подряд он столько секунд не нападает.
+@export var tire_blocks := 3
+@export var tire_seconds := 2.2
+## Сколько секунд после нокаута бой ещё виден до итога.
+@export var ko_seconds := 1.3
 ## Оглушение после пропущенного удара и после блока.
 @export var stun := 0.38
 @export var block_stun := 0.1
