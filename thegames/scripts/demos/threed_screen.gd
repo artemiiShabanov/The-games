@@ -12,6 +12,7 @@ extends LowpolyScreen
 ## материалов. Во встроенном режиме (стрим ленты) затенение в углах и сглаживание выключены.
 
 const SHADER := preload("res://scripts/demos/threed.gdshader")
+const WATER_SHADER := preload("res://scripts/demos/threed_water.gdshader")
 const CHECKER_SHADER := """
 shader_type spatial;
 uniform float cell = 0.2;
@@ -177,6 +178,142 @@ func _process(delta: float) -> void:
 	_clip_time += delta
 	clipping = fmod(_clip_time, clip_period) < clip_seconds
 	camera.near = clip_depth if clipping else 0.1
+
+
+## Вода с волнами, глубиной и пеной (`threed_water.gdshader`): плоскость `size` метров с
+## серединой `at`, уровень воды это `at.y`. Сетка частая у середины хватает на волны; мелкая
+## рябь и пена идут по шумовым текстурам.
+func add_water(at: Vector3, size: float) -> MeshInstance3D:
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(size, size)
+	var cells := 90 if embedded else 260
+	plane.subdivide_width = cells
+	plane.subdivide_depth = cells
+	var m := ShaderMaterial.new()
+	m.shader = WATER_SHADER
+	var bumps := FastNoiseLite.new()
+	bumps.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	bumps.frequency = 0.035
+	bumps.fractal_octaves = 4
+	var ripple := NoiseTexture2D.new()
+	ripple.width = 256
+	ripple.height = 256
+	ripple.seamless = true
+	ripple.as_normal_map = true
+	ripple.bump_strength = 7.0
+	ripple.noise = bumps
+	var spots := FastNoiseLite.new()
+	spots.noise_type = FastNoiseLite.TYPE_CELLULAR
+	spots.frequency = 0.05
+	var foam := NoiseTexture2D.new()
+	foam.width = 256
+	foam.height = 256
+	foam.seamless = true
+	foam.noise = spots
+	m.set_shader_parameter("ripple", ripple)
+	m.set_shader_parameter("foam_noise", foam)
+	m.set_shader_parameter("deep_color", look.water_deep)
+	m.set_shader_parameter("shallow_color", look.water_shallow)
+	m.set_shader_parameter("clarity", look.water_clarity)
+	m.set_shader_parameter("wave_height", look.water_waves)
+	m.set_shader_parameter("hue_shift", hue_shift)
+	plane.material = m
+	var node := MeshInstance3D.new()
+	node.mesh = plane
+	node.position = at
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(node)
+	return node
+
+
+## Пальма (#121, плейтест 2026-11-13: листья объёмные, свисают и качаются): изогнутый ствол
+## трубой и крона из листьев-лент. Лист растёт из верхушки ствола, сначала вверх и в сторону,
+## потом провисает; в сечении он сложен вдоль жилки, обе стороны видны. Доля качания едет во
+## второй развёртке (к концу листа больше), качает шейдер. `tex` это атлас пальмы: слева кора,
+## справа лист.
+func add_palm(tex: Texture2D, at: Vector3, yaw: float, height: float, rng: RandomNumberGenerator) -> MeshInstance3D:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# Ствол: дуга в сторону `lean`, к верхушке тоньше.
+	var lean := Vector3(sin(rng.randf_range(0.0, TAU)), 0.0, cos(rng.randf_range(0.0, TAU))).normalized() * rng.randf_range(0.35, 0.8)
+	var spine: Array[Vector3] = []
+	var rows := 9
+	for i in rows:
+		var k := float(i) / (rows - 1)
+		spine.append(Vector3(0.0, height * k, 0.0) + lean * k * k)
+	var sides := 8
+	for i in rows - 1:
+		for j in sides:
+			var quad: Array = []
+			for corner: Vector2i in [Vector2i(i, j), Vector2i(i + 1, j), Vector2i(i + 1, j + 1), Vector2i(i, j + 1)]:
+				var k := float(corner.x) / (rows - 1)
+				var a := TAU * corner.y / sides
+				var r := lerpf(0.21, 0.11, k) * (1.18 if corner.x == 0 else 1.0)
+				quad.append([spine[corner.x] + Vector3(cos(a), 0.0, sin(a)) * r, Vector3(cos(a), 0.15, sin(a)).normalized(),
+						Vector2(0.02 + 0.46 * corner.y / sides, height * k / 2.2)])
+			for id: int in [0, 1, 2, 0, 2, 3]:
+				tool.set_normal(quad[id][1])
+				tool.set_uv(quad[id][2])
+				tool.set_uv2(Vector2.ZERO)
+				tool.add_vertex(quad[id][0])
+	# Крона: большие листья по кругу и короткие молодые вверх.
+	var top := spine[rows - 1] - Vector3(0.0, 0.05, 0.0)
+	var count := rng.randi_range(9, 11)
+	for n in count + 4:
+		var young := n >= count
+		var around := TAU * n / count + rng.randf_range(-0.2, 0.2) if not young else TAU * (n - count) / 4.0 + 0.6
+		var out := Vector3(sin(around), 0.0, cos(around))
+		var across := Vector3(out.z, 0.0, -out.x)
+		var length := rng.randf_range(2.5, 3.2) if not young else rng.randf_range(1.2, 1.6)
+		var rise := deg_to_rad(rng.randf_range(28.0, 48.0) if not young else rng.randf_range(62.0, 78.0))
+		var droop := deg_to_rad(rng.randf_range(95.0, 125.0) if not young else 50.0)
+		var half := (0.5 if not young else 0.3) * length / 2.9
+		var steps := 7
+		var mids: Array[Vector3] = [top]
+		var dirs: Array[Vector3] = []
+		for i in steps:
+			var k := (i + 0.5) / steps
+			var pitch := rise - droop * pow(k, 1.25)
+			var dir := (out * cos(pitch) + Vector3.UP * sin(pitch)).normalized()
+			dirs.append(dir)
+			mids.append(mids[i] + dir * length / steps)
+		dirs.append(dirs[steps - 1])
+		for i in steps:
+			for flank: float in [-1.0, 1.0]:
+				var quad: Array = []
+				for row: int in [i, i + 1]:
+					var k := float(row) / steps
+					# Сложен вдоль жилки: края ниже середины.
+					var up := dirs[row].cross(across).normalized() * (-1.0 if dirs[row].cross(across).y < 0.0 else 1.0)
+					var edge := mids[row] + (across * flank * 0.9 - up * 0.42).normalized() * half
+					var sway := k * k * 7.0
+					quad.append([mids[row], Vector2(0.75, 0.02 + 0.96 * k), sway, up])
+					quad.append([edge, Vector2(0.75 + flank * 0.245, 0.02 + 0.96 * k), sway * 1.15, (up + across * flank * 0.45).normalized()])
+				# Обе стороны листа.
+				for order: Array in [[0, 1, 3], [0, 3, 2], [0, 3, 1], [0, 2, 3]]:
+					var pa: Vector3 = quad[order[0]][0]
+					var pb: Vector3 = quad[order[1]][0]
+					var pc: Vector3 = quad[order[2]][0]
+					# Лицевая сторона у Godot по часовой: нормаль вершины смотрит туда же, куда грань.
+					var face := (pc - pa).cross(pb - pa)
+					for id: int in order:
+						var normal: Vector3 = quad[id][3]
+						var bend: float = quad[id][2]
+						tool.set_normal(normal if normal.dot(face) >= 0.0 else -normal)
+						tool.set_uv(quad[id][1])
+						tool.set_uv2(Vector2(bend, 0.0))
+						tool.add_vertex(quad[id][0])
+	tool.generate_tangents()
+	var mesh := tool.commit()
+	var m := _new_material(tex)
+	m.set_shader_parameter("cloth_sway", look.palm_sway)
+	mesh.surface_set_material(0, m)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.position = at
+	node.rotation.y = yaw
+	world.add_child(node)
+	return node
 
 
 ## Тени настоящие: вместо тени-блина пустой узел, чтобы демки ставили его как обычно.

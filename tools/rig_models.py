@@ -1425,6 +1425,33 @@ def paint_bricks():
     return p
 
 
+def paint_cliff():
+    """Скала обрыва (#121): слоистый природный камень с тёплым оттенком, трещины, редкий мох.
+    Слои идут волной и стыкуются по краям."""
+    p = Paint(331)
+    stone = np.array(rgb("7C7264"), dtype=np.float32)
+    warm = np.array(rgb("94826A"), dtype=np.float32)
+    low, mid, fine = p.tile_noise(4, 3), p.tile_noise(10, 3), p.tile_noise(28, 2)
+
+    def fn(gx, gy):
+        # Пласты: пять волнистых слоёв на высоту текстуры, у каждого тёмная кромка снизу.
+        phase = gy / 64.0 * 5.0 + low * 0.55 + mid * 0.16
+        band = phase - np.floor(phase)
+        ledge = np.clip(band / 0.16, 0.0, 1.0) * np.clip((1.0 - band) / 0.5, 0.0, 1.0)
+        layer = np.sin(np.floor(phase) * 2.4) * 0.5 + 0.5
+        tone = (0.7 + 0.3 * ledge) * (1.0 + 0.12 * mid + 0.07 * fine)
+        color = stone[None, None, :] * (1.0 - layer[..., None] * 0.55) + warm[None, None, :] * (layer[..., None] * 0.55)
+        return color * tone[..., None], 128.0 + ledge * 62.0 - 40.0 + mid * 26.0 + fine * 12.0
+    p.field(fn)
+    p.wrinkles(1, 1, 62, 62, 14, 8.0, 1.2, 0.6, 70)
+    p.speckle(0.5, 0.5, 63, 63, 700, rgb("4A433A"), 0.09)
+    p.speckle(0.5, 0.5, 63, 63, 450, rgb("A89C88"), 0.08)
+    for _ in range(7):
+        x, y = p.rng.uniform(5, 59), p.rng.uniform(5, 59)
+        p.speckle(x - 3.0, y - 1.0, 6, 2.0, 50, rgb("5E8A3E"), 0.16)
+    return p
+
+
 def _ground(seed, base, low_amp, mid_amp, relief):
     p = Paint(seed)
     color = np.array(base, dtype=np.float32)
@@ -1499,6 +1526,7 @@ def paint_sail():
 
 
 PROPS = {"pirates": {"tex_sand": paint_sand, "tex_planks": paint_planks, "tex_water": paint_water, "tex_rock": paint_bricks,
+                     "tex_cliff": paint_cliff,
                      "tex_grass": paint_grass, "tex_road": paint_road, "tex_mud": paint_mud, "tex_sail": paint_sail,
                      "crate": paint_crate, "barrel": paint_barrel, "keg": paint_keg, "chest": paint_chest, "cannon": paint_cannon,
                      "palm": paint_palm, "rock": paint_rock, "flag": paint_flag, "lighthouse": paint_lighthouse,

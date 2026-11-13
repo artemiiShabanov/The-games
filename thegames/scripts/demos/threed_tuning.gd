@@ -36,6 +36,14 @@ const PATH := "res://resources/demos/threed.tres"
 @export var normal_strength := 1.2
 @export var cloth_sway := 0.018
 ## Дорогие эффекты в карточке (во встроенном режиме выключены): затенение в углах, сглаживание.
+## Вода (`ThreedScreen.add_water`): цвет глубины и мелководья, на скольких метрах толщи она
+## становится непрозрачной, высота волн (1: до 0,45 м).
+## Качание листьев пальмы (`ThreedScreen.add_palm`): метры на единицу доли качания.
+@export var palm_sway := 0.03
+@export var water_deep := Color(0.02, 0.15, 0.23)
+@export var water_shallow := Color(0.13, 0.5, 0.53)
+@export var water_clarity := 7.0
+@export var water_waves := 1.0
 @export var ssao := true
 @export var msaa := true
 

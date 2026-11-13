@@ -90,7 +90,7 @@
   окна текстом `debug/tools/dump_hoop.gd -- <seed> [count]`. Файтинг × low poly «один на один сбоку
   в объёме» (#116): `--scene=demo_test --genre=fighting --tech=lowpoly --frames=7000`, план
   соперника по сиду и бой ботов без окна текстом `debug/tools/dump_spar.gd -- <seed> [count]`. Платформер ×
-  «продвинутые» «крюк-кошка» (#121): `--scene=demo_test --tech=threed --frames=6000` (кадр в
+  «продвинутые» «крюк-кошка» (#121): `--scene=demo_test --tech=threed --frames=7000` (кадр в
   движении `--no-checks --fixed-fps --frames=760`), уровень по сиду и боты без окна текстом
   `debug/tools/dump_hook.gd -- <seed> [count]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
