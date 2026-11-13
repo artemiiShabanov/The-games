@@ -33,8 +33,8 @@ const PATH := "res://resources/demos/racing_threed.tres"
 ## Помощь игроку: задняя ось держит чуть лучше передней, машину доворачивает к повороту руля
 ## (1/с), боковое скольжение гаснет (1/с).
 @export var rear_bias := 1.1
-@export var stability := 2.4
-@export var slide_damp := 1.2
+@export var stability := 1.7
+@export var slide_damp := 0.8
 ## Перенос веса: доля веса на ось на 1 м/с² продольного ускорения; как быстро он следует за
 ## ускорением (1/с).
 @export var weight_shift := 0.022
@@ -54,7 +54,7 @@ const PATH := "res://resources/demos/racing_threed.tres"
 @export var car_radius := 1.1
 @export var bump_keep := 0.85
 ## Соперники: доля предела бокового ускорения на повороте и тяги; тормозят с таким замедлением.
-@export var rival_skills: Array[float] = [0.8, 0.86, 0.92]
+@export var rival_skills: Array[float] = [0.85, 0.91, 0.97]
 @export var rival_lateral := 7.4
 @export var rival_brake := 7.5
 @export var grace_seconds := 8.0
