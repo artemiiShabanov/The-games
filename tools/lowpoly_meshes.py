@@ -972,20 +972,25 @@ def pirate_hoop():
         p = lambda r, t: (r * math.sin(t), rim_y, rim_z + r * math.cos(t))
         ring_tris += quad(p(0.19, a0), p(0.19, a1), p(0.245, a1), p(0.245, a0), ring)
     basket = at(loft([(rim_y - 0.42, 0.13, 0.13), (rim_y, 0.215, 0.215)], net, 8), 0.0, 0.0, rim_z)
-    # Лицо и изнанка щита целой текстурой (ящик разворачивает бока лентой и рвёт рамку); по 2×2
-    # плитки, чтобы аффинное наложение не перекашивало рамку.
+    # Щит собран из граней без ящика внутри: лицо и изнанка целой текстурой по 2×2 плитки
+    # (аффинное наложение не перекашивает рамку), торцы полосками. Слоёв друг под другом нет:
+    # при дрожании вершин нечему просвечивать.
     faces = []
     u0, v0, u1, v1 = board
-    for z, mirror in ((-0.153, 1.0), (-0.087, -1.0)):
+    for z, mirror in ((-0.15, 1.0), (-0.09, -1.0)):
         for ix in range(2):
             for iy in range(2):
                 xa, xb = 0.65 - 0.65 * ix, 0.65 - 0.65 * (ix + 1)
                 ya, yb = 3.875 - 0.475 * iy, 3.875 - 0.475 * (iy + 1)
                 part = (u0 + (u1 - u0) * ix / 2.0, v0 + (v1 - v0) * iy / 2.0, u0 + (u1 - u0) * (ix + 1) / 2.0, v0 + (v1 - v0) * (iy + 1) / 2.0)
-                faces += quad((xa * mirror, ya, z), (xb * mirror, ya, z), (xb * mirror, yb, z), (xa * mirror, yb, z), part)
+                faces += quad((xa * mirror, ya, z), (xb * mirror, ya, z), (xb * mirror, yb, z), (xa * mirror, yb, z), part, False)
+    edge = (u0, v0, u0 + (u1 - u0) / 16.0, v1)
+    for x in (-0.65, 0.65):
+        faces += quad((x, 3.875, -0.15), (x, 3.875, -0.09), (x, 2.925, -0.09), (x, 2.925, -0.15), edge)
+    for y in (2.925, 3.875):
+        faces += quad((0.65, y, -0.15), (-0.65, y, -0.15), (-0.65, y, -0.09), (0.65, y, -0.09), edge)
     return Model("hoop", a).part("body", (0.0, 0.0, 0.0),
                                  loft([(0.0, 0.09, 0.09), (3.9, 0.07, 0.07)], post, 5)
-                                 + at(box((1.3, 0.95, 0.06), board, board, board), 0.0, 3.4, -0.12)
                                  + at(box((0.06, 0.06, 0.2), ring, ring, ring), 0.0, rim_y, -0.2)
                                  + faces + ring_tris + basket + flip(basket))
 
