@@ -352,6 +352,28 @@ func _check_rings() -> void:
 			_expect(flew and sim.sinks == 0 and track.delta(track.ramp_s + track.ramp_gap, me.s) > 0.0, "трамплин на скорости не перебросил")
 		else:
 			_expect(sim.sinks == 1, "трамплин без скорости не уронил")
+	# Баги (#117) по одному.
+	var bug := RingSim.create(track, rules)
+	bug.extra_laps = 1
+	_run_ring(bug)
+	_expect(bug.ended and not bug.finished, "финиш уезжает, а бот доехал")
+	bug = RingSim.create(track, rules)
+	bug.walls_open = true
+	bug.countdown = 0.0
+	bug.player().pos = track.at(walled, 0.0)
+	bug.player().s = walled
+	bug.player().yaw = track.yaw(walled) - PI / 2.0
+	var beyond := false
+	for i in 200:
+		bug.step(RingSim.DT, 0.0, 1.0, false)
+		beyond = beyond or absf(bug.player().d) > track.half_width
+	_expect(bug.bumps == 0 and beyond, "борт удержал шлюпку с багом «сквозь стены»")
+	bug = RingSim.create(track, rules)
+	bug.grip_mult = 0.25
+	bug.rival_mult = 1.1
+	bug.sneeze = true
+	_run_ring(bug)
+	_expect(bug.ended, "гололёд и соперники от чиха: заезд не кончился")
 	seconds.sort()
 	AutoTest.note("racing lowpoly: 100 сидов прошли проверку, круг в среднем %.0f м; бот WIN без окна доехал на всех, места %s: медиана %.1f с, от %.1f до %.1f" % [
 			length / 100.0, places, seconds[seconds.size() / 2], seconds[0], seconds[seconds.size() - 1]])
@@ -555,6 +577,30 @@ func _check_spars() -> void:
 	for i in int(rules.hero_windup / SparSim.DT) + 2:
 		sim.step(SparSim.DT, strike if i == 0 else SparSim.Controls.new())
 	_expect(sim.hero.state == SparSim.State.RECOVER and sim.hero.open and sim.hero_hits == 0, "удар мимо не открыл героя")
+	# Баги (#117) по одному: бой кончается, проявление видно в счёте.
+	var bug := SparSim.create(plan, rules)
+	bug.ghost_every = 2
+	_run_spar(bug)
+	_expect(bug.ended and bug.hero_strikes >= bug.hero_hits * 2 - 1, "удары сквозь соперника: ударов %d, попаданий %d" % [bug.hero_strikes, bug.hero_hits])
+	bug = SparSim.create(plan, rules)
+	bug.sneeze = true
+	_run_spar(bug)
+	_expect(bug.finished and bug.hero_hits == 1, "нокаут от чиха: попаданий %d" % bug.hero_hits)
+	bug = SparSim.create(plan, rules)
+	bug.immortal = true
+	_run_spar(bug)
+	_expect(bug.ended and not bug.finished and bug.rival.hp > 0, "бессмертный соперник побеждён")
+	bug = SparSim.create(plan, rules)
+	bug.launch = 2.2
+	_run_spar(bug)
+	_expect(bug.ended, "невесомость: бой не кончился")
+
+
+func _run_spar(sim: SparSim) -> void:
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN)
+		sim.step(SparSim.DT, sim.bot_controls)
+		sim.events.clear()
 
 
 ## Правила файтинга low poly посреди боя: бойцы рядом, соперник на последнем шаге замаха удара `move`.
@@ -566,6 +612,27 @@ func _spar_at(plan: SparPlan, rules: FightingLowpolyTuning, move: SparPlan.Move)
 	sim.rival.move = move
 	sim.rival.begin(SparSim.State.WINDUP, SparSim.DT * 1.5)
 	return sim
+
+
+func _run_hoop(sim: HoopSim) -> void:
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN, HoopSim.DT)
+		sim.step(HoopSim.DT, sim.bot_yaw, sim.bot_hold)
+		sim.events.clear()
+
+
+func _run_rail(sim: RailSim) -> void:
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN, RailSim.DT)
+		sim.step(RailSim.DT, sim.bot_aim, sim.bot_fire, sim.bot_reload)
+		sim.events.clear()
+
+
+func _run_ring(sim: RingSim) -> void:
+	while not sim.ended:
+		sim.bot(AutoTest.BotMode.WIN)
+		sim.step(RingSim.DT, sim.bot_steer, sim.bot_gas, sim.bot_drift)
+		sim.events.clear()
 
 
 ## Спорт × low poly «броски в кольцо» (#115): сто сидов дают план, который проходит проверку
@@ -622,6 +689,23 @@ func _check_hoops() -> void:
 	var plain := plan.shots[3].points + rules.clean_bonus
 	_expect(sim.results[0] == plan.shots[0].points + rules.clean_bonus and sim.results[3] == plain * rules.fire_mult,
 			"серия не удвоила бросок: %s" % [sim.results])
+	# Баги (#117) по одному.
+	var bug := HoopSim.create(plan, rules)
+	bug.space_every = 2
+	_run_hoop(bug)
+	_expect(bug.ended and bug.made <= rules.shots / 2, "мяч в космос: попаданий %d" % bug.made)
+	bug = HoopSim.create(plan, rules)
+	bug.goal_mult = 3.0
+	_run_hoop(bug)
+	_expect(bug.ended and not bug.finished, "порог втрое выше набран: %d" % bug.score)
+	bug = HoopSim.create(plan, rules)
+	bug.gust = 2.2
+	_run_hoop(bug)
+	_expect(bug.ended and bug.clean < rules.shots, "порыв ветра не помешал: чистых %d" % bug.clean)
+	bug = HoopSim.create(plan, rules)
+	bug.bounce_mult = 1.9
+	_run_hoop(bug)
+	_expect(bug.ended, "попрыгунчик: броски не кончились")
 
 
 ## Шутер × low poly «рельсовый тир» (#114): сто сидов дают маршрут, который проходит проверку
@@ -719,6 +803,24 @@ func _check_rails() -> void:
 	for i in int((rules.bottle_flight + 0.3) / RailSim.DT):
 		sim.step(RailSim.DT, sky, false, false)
 	_expect(sim.lives == rules.lives - 1, "бутылка долетела и не ранила")
+	# Баги (#117) по одному.
+	var bug := RailSim.create(level, rules)
+	bug.pass_every = 2
+	_run_rail(bug)
+	_expect(bug.ended and bug.foe_shots > bug.hits, "пули сквозь врагов: по врагам %d, попаданий %d" % [bug.foe_shots, bug.hits])
+	bug = RailSim.create(level, rules)
+	bug.immortal = true
+	_run_rail(bug)
+	_expect(bug.ended and not bug.finished and bug.kills == 0, "бессмертные враги убиты: %d" % bug.kills)
+	bug = RailSim.create(level, rules)
+	bug.sneeze = true
+	_run_rail(bug)
+	_expect(bug.finished, "враги от чиха: бот не дошёл")
+	bug = RailSim.create(level, rules)
+	bug.walls_open = true
+	bug.aim_mult = 1.5
+	_run_rail(bug)
+	_expect(bug.ended, "пули сквозь укрытия и быстрые враги: бой не кончился")
 
 
 ## Правила тира на остановке `stop`: отсчёт пройден, маршрут стоит (пауза перед группой).

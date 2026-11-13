@@ -68,6 +68,12 @@ func _on_start() -> void:
 	tuning = PlatformerLowpolyTuning.load_default()
 	level = SpitLevelGen.generate(record.seed if record != null else 1)
 	sim = SpitSim.create(level, tuning)
+	# Баги жанра и баланса (#117): дикая физика, дублоны не достать, скелеты от чиха.
+	if has_bug(&"wild_physics"):
+		sim.jump_mult = maxf(bug_param(&"wild_physics", &"spit_jump_mult", 2.2), 1.0)
+		sim.enemy_mult = bug_param(&"wild_physics", &"enemy_speed_mult", 2.0)
+	sim.coins_high = has_bug(&"unreachable_coins")
+	sim.sneeze = has_bug(&"sneeze_enemies")
 	lowpoly_screen(_draw_hud)
 	cam = LowpolyFollowCam.make(lowpoly.tuning)
 	cam.distance = tuning.cam_distance

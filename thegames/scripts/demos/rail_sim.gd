@@ -67,8 +67,17 @@ var hits := 0
 var kills := 0
 var hostage_hits := 0
 var hurts := 0
+## Баги жанра и баланса (#117), демка ставит их по записи: `pass_every` каждая такая пуля по
+## врагу проходит насквозь (0 выключено), `sneeze` враг падает и от пули рядом, `immortal`
+## врагов не убить, `aim_mult` враги целятся быстрее, `walls_open` пули проходят сквозь укрытия.
+var pass_every := 0
+var sneeze := false
+var immortal := false
+var aim_mult := 1.0
+var walls_open := false
+var foe_shots := 0
 ## События шага для звука и эффектов: `[имя, …]`. `go`, `pop(i)`, `shot(точка, во что)`,
-## `kill(i)`, `wound(i)` (капитан ранен), `hostage(i)`, `fire(i)` (враг выстрелил), `throw(i)`,
+## `through(i)` (пуля прошла сквозь врага), `kill(i)`, `wound(i)` (капитан ранен или враг бессмертен), `hostage(i)`, `fire(i)` (враг выстрелил), `throw(i)`,
 ## `smash(точка)` (бутылка сбита), `boom(бочка)`, `hurt`, `empty`, `reload`, `loaded`, `move`,
 ## `arrive`, `finish`, `dead`, `timeout`. Демка читает и чистит.
 var events: Array[Array] = []
@@ -278,7 +287,7 @@ func _step_actor(i: int, dt: float) -> void:
 				a.state = State.OUT
 				a.timer = 0.0
 		State.OUT:
-			a.timer += dt
+			a.timer += dt * (aim_mult if foe.hostile() else 1.0)
 			if a.timer >= foe.aim:
 				a.state = State.DUCK
 				if foe.kind == RailLevel.Kind.THROWER:
@@ -317,6 +326,8 @@ func probe(aim: Vector2) -> Shot:
 	var best := 120.0
 	shot.point = cam + dir * 40.0
 	for i in level.covers.size():
+		if walls_open:
+			break
 		var t := RailLevel.hit_box(cam, dir, level.covers[i].box())
 		if t >= 0.0 and t < best:
 			best = t
@@ -328,6 +339,8 @@ func probe(aim: Vector2) -> Shot:
 		var at := feet(i)
 		for part: Vector2 in [Vector2(tuning.torso_y, tuning.torso_r), Vector2(tuning.head_y, tuning.head_r)]:
 			var pad := tuning.runner_pad if level.foes[i].kind == RailLevel.Kind.RUNNER else tuning.hit_pad
+			if sneeze and level.foes[i].hostile():
+				pad += 0.7
 			var t := RailLevel.hit_sphere(cam, dir, at + Vector3(0.0, part.x, 0.0), part.y + pad)
 			if t >= 0.0 and t < best:
 				best = t
@@ -371,8 +384,14 @@ func _shoot(aim: Vector2) -> void:
 				hurts += 1
 				events.append([&"hostage", i])
 				return
+			foe_shots += 1
+			if pass_every > 0 and foe_shots % pass_every == 0:
+				# Пуля прошла насквозь.
+				events.append([&"through", i])
+				return
 			hits += 1
-			actors[i].hp -= 1
+			if not immortal:
+				actors[i].hp -= 1
 			if actors[i].hp <= 0:
 				_kill(i)
 			else:
@@ -387,7 +406,7 @@ func _shoot(aim: Vector2) -> void:
 			var keg := level.kegs[shot.index]
 			events.append([&"boom", shot.index])
 			for i in actors.size():
-				if level.foes[i].hostile() and active(i) and level.foes[i].hide.distance_to(keg.pos) <= keg.radius + 1.0:
+				if not immortal and level.foes[i].hostile() and active(i) and level.foes[i].hide.distance_to(keg.pos) <= keg.radius + 1.0:
 					_kill(i)
 
 

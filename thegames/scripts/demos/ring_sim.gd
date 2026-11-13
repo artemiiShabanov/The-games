@@ -19,6 +19,8 @@ class Car:
 	var rival := false
 	## Соперник: доля предела скорости и полоса вбок от оси.
 	var skill := 1.0
+	## Сколько секунд ещё стоит после касания (баг «от чиха»).
+	var sneezed := 0.0
 	var lane := 0.0
 	var pos := Vector2.ZERO
 	## Курс как `rotation.y` и скорость вдоль него.
@@ -58,6 +60,16 @@ var finished := false
 var sinks := 0
 var bumps := 0
 var boosts := 0
+## Баги жанра и баланса (#117), демка ставит их по записи: `grip_mult` сцепление (гололёд),
+## `rival_mult` скорость соперников, `walls_open` борта не держат и по откосу можно ехать,
+## `sneeze` соперник от касания встаёт на `sneeze_seconds`, `extra_laps` игроку ехать на столько
+## кругов больше, чем соперникам (финиш недостижим вовремя).
+var grip_mult := 1.0
+var rival_mult := 1.0
+var walls_open := false
+var sneeze := false
+var sneeze_seconds := 2.5
+var extra_laps := 0
 ## События шага для звука и эффектов: `[имя, …]`. `go`, `drift`, `boost` (от заноса), `wind`,
 ## `bump` (борт), `hit` (соперник), `splash`, `jump`, `land`, `lap`, `finish`, `timeout`. Демка
 ## читает и чистит.
@@ -112,9 +124,14 @@ func goal() -> float:
 	return tuning.laps * track.length
 
 
+## Сколько ехать этой шлюпке: игроку с багом «финиш уезжает» на круг больше.
+func goal_of(car: Car) -> float:
+	return (tuning.laps + (0 if car.rival else extra_laps)) * track.length
+
+
 ## Круг шлюпки с единицы.
 func lap_of(car: Car) -> int:
-	return clampi(int(floorf(maxf(car.total, 0.0) / track.length)) + 1, 1, tuning.laps)
+	return clampi(int(floorf(maxf(car.total, 0.0) / track.length)) + 1, 1, tuning.laps + (0 if car.rival else extra_laps))
 
 
 ## Место игрока сейчас или на финише: 1 первый.
@@ -153,7 +170,7 @@ func step(dt: float, steer: float, gas: float, drift: bool) -> void:
 	_step_player(player(), dt, clampf(steer, -1.0, 1.0), clampf(gas, -1.0, 1.0), drift)
 	_collide(player())
 	var me := player()
-	if me.finished < 0.0 and me.total >= goal():
+	if me.finished < 0.0 and me.total >= goal_of(me):
 		me.finished = time
 		finished = true
 		ended = true
@@ -171,7 +188,11 @@ func step(dt: float, steer: float, gas: float, drift: bool) -> void:
 
 ## Соперник: по оси трассы со своей полосой, тормозит перед поворотом по своей силе.
 func _step_rival(car: Car, dt: float) -> void:
-	var top := tuning.top_speed * car.skill
+	var top := tuning.top_speed * car.skill * rival_mult
+	if car.sneezed > 0.0:
+		# От чиха: встал и стоит.
+		car.sneezed -= dt
+		top = 0.0
 	var bend := track.curve_ahead(car.s, 6.0 + car.speed * 0.9)
 	var want := minf(top, sqrt(tuning.rival_lateral * car.skill / maxf(bend, 0.001)))
 	if car.finished >= 0.0:
@@ -239,7 +260,7 @@ func _step_player(car: Car, dt: float, steer: float, gas: float, drift: bool) ->
 			car.charge += dt * absf(steer)
 		car.speed *= 1.0 - tuning.drift_drag * dt
 	car.yaw = wrapf(car.yaw - rate * dt * signf(car.speed if absf(car.speed) > 0.2 else 1.0), -PI, PI)
-	var hold := tuning.drift_grip if car.drifting else tuning.grip
+	var hold := (tuning.drift_grip if car.drifting else tuning.grip) * grip_mult
 	car.vel = car.vel.lerp(car.forward() * car.speed, 1.0 - exp(-hold * dt))
 	car.pos += car.vel * dt
 	var before := car.s
@@ -275,6 +296,12 @@ func _step_player(car: Car, dt: float, steer: float, gas: float, drift: bool) ->
 			_sink(car, false)
 		return
 	var limit := track.half_width - tuning.car_half
+	if walls_open:
+		# Борт не держит: по откосу за ним можно ехать, дальше вода.
+		car.scraping = false
+		if absf(car.d) > track.half_width + 5.5:
+			_sink(car, false)
+		return
 	if absf(car.d) > limit:
 		var out := track.right(car.s) * side
 		car.pos -= out * (absf(car.d) - limit)
@@ -341,6 +368,8 @@ func _collide(car: Car) -> void:
 		any = true
 		var away := gap.normalized() if gap.length() > 0.01 else -car.forward()
 		car.pos = other.pos + away * reach
+		if sneeze and other.sneezed <= 0.0:
+			other.sneezed = sneeze_seconds
 		if not car.touching:
 			car.speed *= tuning.bump_keep
 			events.append([&"hit"])

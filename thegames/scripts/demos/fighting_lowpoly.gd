@@ -73,6 +73,14 @@ func _on_start() -> void:
 	tuning = FightingLowpolyTuning.load_default()
 	plan = SparPlanGen.generate(record.seed if record != null else 1)
 	sim = SparSim.create(plan, tuning)
+	# Баги жанра и баланса (#117): удары сквозь соперника, невесомость, нокаут от чиха,
+	# бессмертный соперник.
+	if has_bug(&"ghost_hits"):
+		sim.ghost_every = maxi(int(bug_param(&"ghost_hits", &"pass_every", 2.0)), 1)
+	if has_bug(&"wild_physics"):
+		sim.launch = bug_param(&"wild_physics", &"spar_launch", 2.2)
+	sim.sneeze = has_bug(&"sneeze_enemies")
+	sim.immortal = has_bug(&"unreachable_coins")
 	lowpoly_screen(_draw_hud)
 	lowpoly.camera.fov = 40.0
 	_build_world()
@@ -277,6 +285,9 @@ func _on_event(ev: Array) -> void:
 			_burst(Vector3(f.x + (0.35 if ev[1] == 0 else -0.35), 1.2, 0.3), 3, WHITE, 0.25, 1.6)
 			if ev[1] == 0:
 				_say("БЛОК", true)
+		&"ghost":
+			_play("whiff")
+			_say("НАСКВОЗЬ", false)
 		&"whiff":
 			_play("whiff")
 			if ev[1] == 1 and sim.rival.flank > 0.0:
@@ -428,7 +439,8 @@ func _pose(i: int, dt: float) -> void:
 	var blend := clampf(speed * dt, 0.0, 1.0) if not now.is_empty() else 1.0
 	for key: StringName in pose:
 		now[key] = lerpf(float(now.get(key, pose[key])), float(pose[key]), blend)
-	model.position = at
+	# Невесомость: от удара боец летит по дуге.
+	model.position = at + Vector3(0.0, sin(PI * clampf(f.air / tuning.stun, 0.0, 1.0)) * 1.4, 0.0)
 	model.rotation = Vector3(float(now[&"lean"]), -facing * PI / 2.0 + float(now[&"twist"]) * facing, 0.0)
 	if model.pink:
 		return

@@ -48,16 +48,25 @@ var made := 0
 var clean := 0
 ## Итог каждого сделанного броска: очки (0 мимо).
 var results: Array[int] = []
+## Баги жанра и баланса (#117), демка ставит их по записи: `space_every` каждый такой бросок мяч
+## улетает в небо (0 выключено), `bounce_mult` упругость отскоков, `gust` порыв ветра посреди
+## полёта (м/с вбок, 0 выключено), `goal_mult` во сколько раз больше очков надо набрать.
+var space_every := 0
+var bounce_mult := 1.0
+var gust := 0.0
+var goal_mult := 1.0
+var throws := 0
 var ended := false
 var finished := false
 ## События шага для звука и эффектов: `[имя, …]`. `go`, `charge`, `throw`, `rim`, `board`,
-## `score(очки, чисто, горит)`, `miss`, `next`, `finish`, `fail`. Демка читает и чистит.
+## `space` (мяч улетел в небо), `gust` (порыв ветра), `score(очки, чисто, горит)`, `miss`, `next`, `finish`, `fail`. Демка читает и чистит.
 var events: Array[Array] = []
 ## Что бот хочет на этом шаге (`bot`).
 var bot_yaw := 0.0
 var bot_hold := false
 
 var _held := false
+var _gusted := false
 var _bot_wait := 0.0
 
 
@@ -134,7 +143,7 @@ static func make_ball(shot: HoopPlan.Shot, t: SportLowpolyTuning, yaw_: float, s
 
 
 ## Шаг мяча: тяжесть, ветер, обруч, щит, земля. `shift` это съезд кольца сейчас.
-static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: float, shift: float) -> void:
+static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: float, shift: float, bounce := 1.0) -> void:
 	b.hit = &""
 	var s := t.hoop_scale
 	var radius := t.ball_r
@@ -149,7 +158,7 @@ static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: f
 	if prev.z + radius <= board_z and b.pos.z + radius > board_z and absf(b.pos.x - shift) <= t.board_half * s + radius * 0.5 \
 			and b.pos.y >= (t.board_y0 * s - t.hoop_sink) - radius * 0.5 and b.pos.y <= (t.board_y1 * s - t.hoop_sink) + radius * 0.5:
 		b.pos.z = board_z - radius
-		b.vel.z = -b.vel.z * t.bounce_board
+		b.vel.z = -b.vel.z * minf(t.bounce_board * bounce, 1.2)
 		b.touched = true
 		b.hit = &"board"
 	# Обруч: ближайшая точка окружности.
@@ -163,7 +172,7 @@ static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: f
 			b.pos = on_rim + n * reach
 			var into := b.vel.dot(n)
 			if into < 0.0:
-				b.vel -= n * into * (1.0 + t.bounce_rim)
+				b.vel -= n * into * (1.0 + minf(t.bounce_rim * bounce, 1.2))
 				b.touched = true
 				b.hit = &"rim"
 	# В кольцо: середина мяча прошла плоскость обруча сверху вниз внутри него.
@@ -173,7 +182,7 @@ static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: f
 	if b.pos.y <= radius:
 		b.pos.y = radius
 		if b.vel.y < 0.0:
-			b.vel.y = -b.vel.y * t.bounce_ground if b.vel.y < -1.0 else 0.0
+			b.vel.y = -b.vel.y * minf(t.bounce_ground * bounce, 0.95) if b.vel.y < -1.0 else 0.0
 		b.vel.x *= 1.0 - minf(t.ground_drag * dt, 1.0)
 		b.vel.z *= 1.0 - minf(t.ground_drag * dt, 1.0)
 		b.done = true
@@ -232,6 +241,11 @@ func fire() -> bool:
 	return streak >= tuning.fire_streak
 
 
+## Сколько очков надо набрать (с багом «цель недостижима» больше).
+func goal_points() -> int:
+	return int(roundf(tuning.goal * goal_mult))
+
+
 ## Шкала силы от времени замаха: туда и обратно.
 func meter_of(seconds: float) -> float:
 	var k := fposmod(seconds / shot().meter, 1.0)
@@ -267,10 +281,31 @@ func step(dt: float, yaw_: float, hold: bool, pitch_ := 0.0) -> void:
 			if not hold:
 				ball = make_ball(shot(), tuning, yaw, speed_of(shot(), tuning, power) * reach_scale(), pitch)
 				phase = Phase.FLIGHT
+				throws += 1
+				_gusted = false
 				events.append([&"throw"])
 		Phase.FLIGHT:
+			if space_every > 0 and throws % space_every == 0 and ball.age >= shot().flight * 0.45:
+				# Мяч в космос: на полпути взмывает и не возвращается.
+				if not _gusted:
+					_gusted = true
+					events.append([&"space"])
+				ball.vel = ball.vel.lerp(Vector3(0.0, 34.0, 0.0), minf(6.0 * dt, 1.0))
+				ball.pos += ball.vel * dt
+				ball.age += dt
+				ball.touched = true
+				if ball.pos.y > 40.0:
+					ball.done = true
+					_settle()
+				_held = hold
+				return
+			if gust != 0.0 and not _gusted and ball.age >= shot().flight * 0.4:
+				# Порыв от чиха: мяч сносит вбок.
+				_gusted = true
+				ball.vel += right(shot(), tuning) * gust * (1.0 if throws % 2 == 0 else -1.0)
+				events.append([&"gust"])
 			for k in SUBSTEPS:
-				step_ball(ball, shot(), tuning, dt / SUBSTEPS, hoop_shift(shot(), time - dt + dt * (k + 1) / SUBSTEPS))
+				step_ball(ball, shot(), tuning, dt / SUBSTEPS, hoop_shift(shot(), time - dt + dt * (k + 1) / SUBSTEPS), bounce_mult)
 				if ball.hit != &"":
 					events.append([ball.hit])
 			if ball.done:
@@ -280,14 +315,15 @@ func step(dt: float, yaw_: float, hold: bool, pitch_ := 0.0) -> void:
 			# Мяч допадает до земли и катится, пока показан итог.
 			if ball != null:
 				for k in SUBSTEPS:
-					step_ball(ball, shot(), tuning, dt / SUBSTEPS, shift())
+					if ball.pos.y < 40.0:
+						step_ball(ball, shot(), tuning, dt / SUBSTEPS, shift(), bounce_mult)
 			if timer >= tuning.result_seconds:
 				ball = null
 				index += 1
 				if index >= plan.shots.size():
 					phase = Phase.DONE
 					ended = true
-					finished = score >= tuning.goal
+					finished = score >= goal_points()
 					events.append([&"finish" if finished else &"fail"])
 				else:
 					phase = Phase.MOVE

@@ -63,6 +63,15 @@ func _on_start() -> void:
 	tuning = SportLowpolyTuning.load_default()
 	plan = HoopPlanGen.generate(record.seed if record != null else 1, null, tuning)
 	sim = HoopSim.create(plan, tuning)
+	# Баги жанра и баланса (#117): мяч в космос, попрыгунчик, порыв от чиха, порог не набрать.
+	if has_bug(&"ball_to_space"):
+		sim.space_every = maxi(int(bug_param(&"ball_to_space", &"hoop_space_every", 2.0)), 1)
+	if has_bug(&"wild_physics"):
+		sim.bounce_mult = bug_param(&"wild_physics", &"soccer_bounce_mult", 1.9)
+	if has_bug(&"sneeze_enemies"):
+		sim.gust = bug_param(&"sneeze_enemies", &"hoop_gust", 2.2)
+	if has_bug(&"unreachable_coins"):
+		sim.goal_mult = bug_param(&"unreachable_coins", &"hoop_goal_mult", 3.0)
 	lowpoly_screen(_draw_hud)
 	look_start()
 	_build_world()
@@ -243,6 +252,10 @@ func _on_event(ev: Array) -> void:
 			_popup_good = true
 			_popup_left = tuning.result_seconds
 			_burst(sim.rim_now() - Vector3(0.0, 0.3, 0.0), 8 if pure else 4, HOT if ev[3] else WHITE, 0.45, 2.2)
+		&"space":
+			_play("throw")
+		&"gust":
+			_play("throw")
 		&"miss":
 			_play("miss")
 			_popup = "МИМО"
@@ -261,7 +274,7 @@ func _on_end(goal: bool) -> void:
 	if goal:
 		_play("finish")
 	if AutoTest.enabled and not embedded:
-		AutoTest.note("sport lowpoly: очков %d из %d (%s), попал %d из %d, чисто %d, броски %s, время %.1f с" % [sim.score, tuning.goal,
+		AutoTest.note("sport lowpoly: очков %d из %d (%s), попал %d из %d, чисто %d, броски %s, время %.1f с" % [sim.score, sim.goal_points(),
 				"порог взят" if goal else "порог не взят", sim.made, plan.shots.size(), sim.clean, sim.results, sim.time])
 
 
@@ -270,7 +283,7 @@ func _result_title(goal: bool) -> String:
 
 
 func _result_caption() -> String:
-	return "порог %d · попал %d из %d · чисто %d" % [tuning.goal, sim.made, plan.shots.size(), sim.clean]
+	return "порог %d · попал %d из %d · чисто %d" % [sim.goal_points(), sim.made, plan.shots.size(), sim.clean]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -413,7 +426,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 				canvas.draw_rect(Rect2(px, 31.0 + row * 2.0, 2.0, 2.0), gold)
 	# Очки слева сверху.
 	PixelFont16.draw(canvas, Vector2(10.0, 6.0), str(sim.score), white, gold, dark, 3.0)
-	PixelFont16.draw(canvas, Vector2(12.0 + PixelFont16.width(str(sim.score), 3.0), 18.0), "/%d" % tuning.goal, white, white, dark, 1.0)
+	PixelFont16.draw(canvas, Vector2(12.0 + PixelFont16.width(str(sim.score), 3.0), 18.0), "/%d" % sim.goal_points(), white, white, dark, 1.0)
 	if sim.fire() and int(_time * 6.0) % 2 == 0:
 		PixelFont16.draw(canvas, Vector2(10.0, 44.0), "ГОРИТ X%d" % tuning.fire_mult, white, red, dark, 1.0)
 	# Броски сверху по центру: кружки итогов.

@@ -40,6 +40,9 @@ var bottle_nodes: Array[LowpolyModel] = []
 var gun: LowpolyModel
 
 var _time := 0.0
+## Баг «лёд»: прицел едет с разгоном и не сразу останавливается (0 выключено).
+var _ice := 0.0
+var _aim_vel := Vector2.ZERO
 var _want_fire := false
 var _want_reload := false
 var _mouse_down := false
@@ -72,6 +75,16 @@ func _on_start() -> void:
 	tuning = ShooterLowpolyTuning.load_default()
 	level = RailLevelGen.generate(record.seed if record != null else 1, null, tuning)
 	sim = RailSim.create(level, tuning)
+	# Баги жанра и баланса (#117): пули сквозь врагов и сквозь укрытия, лёд под прицелом и
+	# быстрые враги, враги от чиха, бессмертные враги.
+	if has_bug(&"through_enemies"):
+		sim.pass_every = maxi(int(bug_param(&"through_enemies", &"pass_every", 2.0)), 1)
+	if has_bug(&"wild_physics"):
+		_ice = bug_param(&"wild_physics", &"ice_response", 2.5)
+		sim.aim_mult = bug_param(&"wild_physics", &"foe_speed_mult", 1.5)
+	sim.sneeze = has_bug(&"sneeze_enemies")
+	sim.immortal = has_bug(&"unreachable_coins")
+	sim.walls_open = has_bug(&"through_walls")
 	lowpoly_screen(_draw_hud)
 	lowpoly.camera.fov = tuning.fov
 	look_start()
@@ -285,8 +298,14 @@ func _step(dt: float) -> void:
 			var axis := bug_axis(GameInput.axis())
 			var tan_half := tan(deg_to_rad(tuning.fov) / 2.0)
 			var turn := look_take(h)
-			aim += Vector2(axis.x * 1.5 / tuning.aspect, axis.y) * tuning.aim_speed * h
-			aim += Vector2(turn.x / (tan_half * tuning.aspect), turn.y / tan_half)
+			var push := Vector2(axis.x * 1.5 / tuning.aspect, axis.y) * tuning.aim_speed
+			var look := Vector2(turn.x / (tan_half * tuning.aspect), turn.y / tan_half)
+			if _ice > 0.0:
+				# Лёд: прицел разгоняется и скользит дальше, когда ввод уже отпущен.
+				_aim_vel = _aim_vel.lerp(push + look / h, clampf(h * _ice, 0.0, 1.0))
+				aim += _aim_vel * h
+			else:
+				aim += push * h + look
 			aim = aim.clamp(Vector2(-tuning.aim_edge, -tuning.aim_edge), Vector2(tuning.aim_edge, tuning.aim_edge))
 			fire = _want_fire
 			reload = _want_reload
@@ -315,6 +334,9 @@ func _on_event(ev: Array) -> void:
 				_burst(at, 3, DUST, 0.3, 1.6)
 			elif kind == &"foe":
 				_burst(at, 3, WHITE, 0.28, 1.8)
+		&"through":
+			_shout = "НАСКВОЗЬ"
+			_shout_left = 0.6
 		&"kill":
 			_play("kill")
 			_flash[ev[1]] = tuning.hit_flash

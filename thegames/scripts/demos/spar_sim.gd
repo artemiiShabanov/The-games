@@ -40,6 +40,8 @@ class Fighter:
 	var flank := 0.0
 	var side := 1
 	var step_wait := 0.0
+	## Сколько секунд ещё летит по дуге после удара (баг «невесомость»).
+	var air := 0.0
 
 	func begin(state_: State, seconds: float) -> void:
 		state = state_
@@ -74,6 +76,17 @@ var move_index := 0
 var wait := 0.0
 var guard_index := 0
 ## Сколько ударов соперника подряд ушло в блок; выдохся ли он (скажется на паузе до связки).
+## Баги жанра и баланса (#117), демка ставит их по записи: `ghost_every` каждый такой удар героя
+## проходит сквозь соперника (0 выключено), `launch` на сколько метров отбрасывает удар
+## (невесомость), `sneeze` соперник падает от любого касания, даже в блок, `immortal` здоровье
+## соперника тут же возвращается и бой кончается по времени `immortal_seconds`. Событие `ghost`:
+## удар героя прошёл насквозь.
+var ghost_every := 0
+var launch := 0.0
+var sneeze := false
+var immortal := false
+var immortal_seconds := 40.0
+var hero_strikes := 0
 var blocked_streak := 0
 var tired := false
 var tires := 0
@@ -152,8 +165,12 @@ func step(dt: float, inp: Controls) -> void:
 	hero.flank = maxf(hero.flank - dt, 0.0)
 	rival.flank = maxf(rival.flank - dt, 0.0)
 	hero.step_wait = maxf(hero.step_wait - dt, 0.0)
+	hero.air = maxf(hero.air - dt, 0.0)
+	rival.air = maxf(rival.air - dt, 0.0)
 	_step_hero(dt, inp)
 	_step_rival(dt)
+	if immortal:
+		rival.hp = mini(rival.hp + int(ceilf(120.0 * dt)), tuning.rival_hp)
 	if hero.hp <= 0 or rival.hp <= 0:
 		var down := hero if hero.hp <= 0 else rival
 		down.begin(State.KO, 0.0)
@@ -161,7 +178,7 @@ func step(dt: float, inp: Controls) -> void:
 		ended = true
 		finished = hero.hp > 0
 		events.append([&"ko", 0 if hero.hp <= 0 else 1])
-	elif time > tuning.max_seconds:
+	elif time > (immortal_seconds if immortal else tuning.max_seconds):
 		phase = Phase.DONE
 		ended = true
 		events.append([&"timeout"])
@@ -240,6 +257,20 @@ func _hero_strikes() -> void:
 		var roll := plan.guard[guard_index % plan.guard.size()]
 		guard_index += 1
 		guarded = roll < (plan.guard_kick if kick else plan.guard_punch)
+	hero_strikes += 1
+	if sneeze:
+		# От чиха: соперник падает от любого касания, даже в блок.
+		rival.hp = 0
+		hero_hits += 1
+		f.begin(State.RECOVER, tuning.hero_recover)
+		events.append([&"hit", 1, tuning.rival_hp, false, kick])
+		return
+	if ghost_every > 0 and hero_strikes % ghost_every == 0:
+		# Удар прошёл сквозь соперника.
+		f.chain = 0
+		f.begin(State.RECOVER, tuning.hero_recover)
+		events.append([&"ghost"])
+		return
 	if guarded:
 		# Соперник закрылся: герой открыт, ответ идёт сразу.
 		f.open = true
@@ -266,6 +297,9 @@ func _hero_strikes() -> void:
 			_next_combo()
 		rival.open = false
 		rival.begin(State.STUN, tuning.stun)
+	if launch > 0.0:
+		rival.x = minf(rival.x + launch, tuning.arena_half)
+		rival.air = tuning.stun
 	events.append([&"hit", 1, damage, side, kick])
 
 
@@ -359,6 +393,9 @@ func _rival_strikes() -> void:
 	hero.block = false
 	hero.chain = 0
 	hero.begin(State.STUN, tuning.stun)
+	if launch > 0.0:
+		hero.x = maxf(hero.x - launch, -tuning.arena_half)
+		hero.air = tuning.stun
 	f.open = false
 	f.begin(State.RECOVER, tuning.rival_recover if last else tuning.link)
 	events.append([&"hit", 0, damage, false, heavy])

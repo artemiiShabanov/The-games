@@ -67,6 +67,16 @@ func _on_start() -> void:
 	tuning = RacingLowpolyTuning.load_default()
 	track = RingTrackGen.generate(record.seed if record != null else 1)
 	sim = RingSim.create(track, tuning)
+	# Баги жанра и баланса (#117): гололёд, борта не держат, соперники от чиха, финиш уезжает.
+	if has_bug(&"wild_physics"):
+		sim.grip_mult = bug_param(&"wild_physics", &"grip_mult", 0.25)
+		sim.rival_mult = bug_param(&"wild_physics", &"ring_rival_mult", 1.1)
+	sim.walls_open = has_bug(&"through_walls")
+	if has_bug(&"sneeze_enemies"):
+		sim.sneeze = true
+		sim.sneeze_seconds = bug_param(&"sneeze_enemies", &"off_track_s", 2.5)
+	if has_bug(&"unreachable_coins"):
+		sim.extra_laps = maxi(int(bug_param(&"unreachable_coins", &"ring_extra_laps", 1.0)), 1)
 	lowpoly_screen(_draw_hud)
 	cam = LowpolyFollowCam.make(lowpoly.tuning)
 	cam.distance = tuning.cam_distance
