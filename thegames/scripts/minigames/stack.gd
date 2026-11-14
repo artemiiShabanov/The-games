@@ -77,7 +77,7 @@ func _on_start() -> void:
 	start_width = clampf(def.param(&"width", t, 340.0), 120.0, 520.0)
 	flip_chance = clampf(def.param(&"flip", t, 0.0), 0.0, 1.0)
 	for note in STEP_NOTES:
-		var p := Sfx.player(Sfx.plop(STEP_BASE_HZ * pow(2.0, note / 12.0)))
+		var p := Sfx.player(Sfx.plop(STEP_BASE_HZ * pow(2.0, note / 12.0), 0.55, _steps.size()))
 		add_child(p)
 		_steps.append(p)
 	_cut = Sfx.player(Sfx.squelch())
@@ -194,7 +194,10 @@ func _land() -> void:
 	var shape := JellyShape.rect(Vector2(new_w, BLOCK_H), minf(RADIUS, new_w / 2.0))
 	shape.snap(_floor_center(floors_x.size() - 1))
 	_shapes.append(shape)
-	_steps[clampi(placed - 1, 0, _steps.size() - 1)].play()
+	# Высота шлепка чуть гуляет от раза к разу (не из геймплейного rng), и точная посадка звонче.
+	var step := _steps[clampi(placed - 1, 0, _steps.size() - 1)]
+	step.pitch_scale = randf_range(0.96, 1.04) * (1.06 if perfect else 1.0)
+	step.play()
 	if Jelly.on():
 		shape.poke(-260.0)
 		_shapes[_shapes.size() - 2].poke(-140.0)

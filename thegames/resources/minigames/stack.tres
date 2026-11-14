@@ -4,8 +4,8 @@
 [ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_jhshd"]
 
 [sub_resource type="Curve" id="Curve_jlicf"]
-_limits = [0.99, 800.0, 0.0, 1.0]
-_data = [Vector2(0, 534), 0.0, 0.0, 0, 0, Vector2(1, 800), 0.0, 0.0, 0, 0]
+_limits = [0.99, 920.0, 0.0, 1.0]
+_data = [Vector2(0, 534), 0.0, 0.0, 0, 0, Vector2(1, 920), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_k3hhe"]

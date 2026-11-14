@@ -94,6 +94,7 @@ func _on_start() -> void:
 	_player = AudioStreamPlayer.new()
 	_player.stream = gen
 	_player.volume_db = -6.0
+	_player.bus = Options.SFX_BUS
 	add_child(_player)
 	_player.play()
 	_playback = _player.get_stream_playback() as AudioStreamGeneratorPlayback

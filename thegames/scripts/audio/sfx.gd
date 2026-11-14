@@ -248,25 +248,39 @@ static func whirr(seconds := 0.8, volume := 0.22) -> AudioStreamWAV:
 # Мягкие «мокрые» звуки в тон мармеладной оболочке: мини-игры берут их отсюда, а не собирают
 # каждая свои щелчки. Высота параметром, чтобы один звук шёл лесенкой или в тон соседям.
 
-## Мармелад шлёпнулся на мармелад: короткий шлепок шумом, под ним низкий тон, который падает
-## сверху к `freq` и затухая дрожит, как желе после удара.
-static func plop(freq := 170.0, volume := 0.55, seconds := 0.34) -> AudioStreamWAV:
+## Мармелад шлёпнулся на мармелад: мокрый шлепок шумом и под ним низкий тон, который падает
+## сверху к `freq`; за ударом два затухающих отскока потише и чуть выше, как желе, которое
+## ещё раз-другой вздрогнуло. Ровной дрожи нет: она звучала роботом (плейтест 2026-11-14).
+## `variant` меняет шум, промежутки и высоту отскоков: соседние шлепки берут разные варианты.
+static func plop(freq := 170.0, volume := 0.55, variant := 0) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21 + variant * 977
+	var seconds := 0.36
 	var n := int(seconds * MIX_RATE)
 	var out := PackedFloat32Array()
 	out.resize(n)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 21
-	var phase := 0.0
-	var slap := 0.0
+	# Удары: [начало, высота относительно freq, громкость, скорость затухания].
+	var gap := rng.randf_range(0.075, 0.1)
+	var hits: Array[Array] = [
+		[0.0, 1.0, 1.0, 16.0],
+		[gap, rng.randf_range(1.12, 1.22), 0.34, 26.0],
+		[gap * rng.randf_range(1.75, 1.95), rng.randf_range(1.02, 1.1), 0.14, 34.0]]
+	for hit: Array in hits:
+		var start := int(float(hit[0]) * MIX_RATE)
+		var phase := 0.0
+		var wet := 0.0
+		for i in n - start:
+			var tm := float(i) / MIX_RATE
+			# Тон падает к своей высоте и дальше чуть проседает, как провисающее желе.
+			var f := freq * float(hit[1]) * (1.0 + 1.5 * exp(-tm * 38.0)) * (1.0 - 0.1 * minf(tm * 5.0, 1.0))
+			phase += TAU * f / MIX_RATE
+			var env := minf(1.0, tm * 350.0) * exp(-tm * float(hit[3]))
+			# Мокрый призвук: низкий шум, который живёт чуть дольше щелчка и модулирует тон.
+			wet = lerpf(wet, rng.randf_range(-1.0, 1.0), 0.12)
+			var body := sin(phase + wet * 0.5 * exp(-tm * 18.0)) + 0.22 * sin(phase * 2.0) * exp(-tm * 30.0)
+			out[start + i] += (body * env + wet * 1.1 * exp(-tm * 48.0)) * float(hit[2])
 	for i in n:
-		var tm := float(i) / MIX_RATE
-		var wobble := sin(TAU * 15.0 * tm)
-		var f := freq * (1.0 + 1.3 * exp(-tm * 42.0)) * (1.0 + 0.07 * wobble * exp(-tm * 6.0))
-		phase += TAU * f / MIX_RATE
-		var env := minf(1.0, tm * 500.0) * exp(-tm * 10.0) * (1.0 + 0.4 * wobble * exp(-tm * 5.0))
-		slap = lerpf(slap, rng.randf_range(-1.0, 1.0), 0.22)
-		var v := (sin(phase) + 0.28 * sin(phase * 2.0)) * env + slap * 0.9 * exp(-tm * 65.0)
-		out[i] = v * volume * minf(1.0, (seconds - tm) * 60.0)
+		out[i] *= volume * minf(1.0, float(n - i) / (0.02 * MIX_RATE))
 	return _wav(out)
 
 
