@@ -6,6 +6,10 @@ extends Minigame
 ## `PERFECT`): блок встаёт ровно и ничего не теряет.
 ## Параметры от `t` в `resources/minigames/stack.tres`: speed (скорость блока, пикселей в
 ## секунду), width (ширина первого блока), flip (шанс, что блок на проходе развернётся на лету).
+## Разворот на лету бывает не раньше, чем блок дойдёт передним краем до дальнего края основания
+## башни (плейтест 2026-11-14, #131): пройти мимо башни, не показавшись над ней целиком, нельзя.
+## Звуки мармеладные из общей библиотеки `Sfx`: шлепок посадки лесенкой вверх, чвяк обрезка,
+## боньк разворота, унылый съезд промаха.
 ## Вид как у всех мини-игр, в стиле оболочки: рендера технологии здесь нет (решение
 ## 2026-11-11). Мармелад: блоки мягкие тела `JellyShape`, едущий блок тянется за движением и
 ## стоит на бортике как текущий элемент, от посадки вздрагивает он и этаж под ним, а башня
@@ -25,13 +29,14 @@ const FALL_SECONDS := 0.16
 ## Свес меньше этого прощается: блок встаёт ровно. Перекрытие меньше `MIN_OVERLAP` это промах.
 const PERFECT := 10.0
 const MIN_OVERLAP := 6.0
-## Разворот на лету случается в этой доле пути от края до края.
-const FLIP_FROM := 0.3
-const FLIP_TO := 0.7
+## Разворот на лету: не раньше дальнего края основания, не дальше этой доли пути от края до края.
+const FLIP_TO := 0.8
+## Полутоны шлепка посадки по этажам: пентатоника вверх.
+const STEP_NOTES: Array[int] = [0, 2, 4, 7, 9, 12, 14, 16]
+const STEP_BASE_HZ := 150.0
 const BASE_BOTTOM := 132.0
 const DOT_R := 9.0
 const DOT_GAP := 34.0
-const STEP_PITCHES := 8
 const LIFT := 8.0
 ## Бот LOSE роняет блок через столько после его появления: блок ещё у края, мимо башни.
 const BOT_LOSE_WAIT := 0.05
@@ -62,6 +67,7 @@ var _steps: Array[AudioStreamPlayer] = []
 var _cut: AudioStreamPlayer
 var _miss: AudioStreamPlayer
 var _win: AudioStreamPlayer
+var _turn: AudioStreamPlayer
 var _miss_y := 0.0
 var _bot_wait := 0.0
 
@@ -70,14 +76,15 @@ func _on_start() -> void:
 	speed = maxf(def.param(&"speed", t, 380.0), 60.0)
 	start_width = clampf(def.param(&"width", t, 340.0), 120.0, 520.0)
 	flip_chance = clampf(def.param(&"flip", t, 0.0), 0.0, 1.0)
-	for i in STEP_PITCHES:
-		var p := Sfx.player(Sfx.blip(330.0 * pow(2.0, i / 7.0), 0.07, 0.3, 30.0))
+	for note in STEP_NOTES:
+		var p := Sfx.player(Sfx.plop(STEP_BASE_HZ * pow(2.0, note / 12.0)))
 		add_child(p)
 		_steps.append(p)
-	_cut = Sfx.player(Sfx.blip(180.0, 0.06, 0.2, 40.0))
-	_miss = Sfx.player(Sfx.thud(0.16, 0.35))
+	_cut = Sfx.player(Sfx.squelch())
+	_miss = Sfx.player(Sfx.droop())
 	_win = Sfx.player(Sfx.blip(990.0, 0.3, 0.45, 8.0))
-	var players: Array[AudioStreamPlayer] = [_cut, _miss, _win]
+	_turn = Sfx.player(Sfx.boing())
+	var players: Array[AudioStreamPlayer] = [_cut, _miss, _win, _turn]
 	for p in players:
 		add_child(p)
 	for i in FLOORS:
@@ -116,6 +123,7 @@ func _on_tick(delta: float) -> void:
 			if _flip_at >= 0.0 and (before - _flip_at) * (block_x - _flip_at) <= 0.0:
 				_flip_at = -1.0
 				dir = -dir
+				_turn.play()
 			elif absf(block_x) >= RANGE:
 				block_x = clampf(block_x, -RANGE, RANGE)
 				dir = -dir
@@ -147,7 +155,9 @@ func _spawn() -> void:
 func _plan_flip() -> void:
 	_flip_at = -1.0
 	if rng.randf() < flip_chance:
-		_flip_at = -RANGE * dir + 2.0 * RANGE * dir * rng.randf_range(FLIP_FROM, FLIP_TO)
+		# Передний край блока дошёл до дальнего края основания: середина блока вот здесь.
+		var reach := (floors_w[0] - block_w) / 2.0
+		_flip_at = dir * rng.randf_range(reach, maxf(RANGE * (2.0 * FLIP_TO - 1.0), reach))
 
 
 ## Блок долетел до башни: остаётся то, что легло на верхний этаж.
@@ -184,7 +194,7 @@ func _land() -> void:
 	var shape := JellyShape.rect(Vector2(new_w, BLOCK_H), minf(RADIUS, new_w / 2.0))
 	shape.snap(_floor_center(floors_x.size() - 1))
 	_shapes.append(shape)
-	_steps[clampi(placed - 1, 0, STEP_PITCHES - 1)].play()
+	_steps[clampi(placed - 1, 0, _steps.size() - 1)].play()
 	if Jelly.on():
 		shape.poke(-260.0)
 		_shapes[_shapes.size() - 2].poke(-140.0)

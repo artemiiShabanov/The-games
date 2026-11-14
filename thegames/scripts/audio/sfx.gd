@@ -244,6 +244,79 @@ static func whirr(seconds := 0.8, volume := 0.22) -> AudioStreamWAV:
 	return _wav(out)
 
 
+# --- Мармелад: общие звуки мини-игр (#131) ---------------------------------------------------
+# Мягкие «мокрые» звуки в тон мармеладной оболочке: мини-игры берут их отсюда, а не собирают
+# каждая свои щелчки. Высота параметром, чтобы один звук шёл лесенкой или в тон соседям.
+
+## Мармелад шлёпнулся на мармелад: короткий шлепок шумом, под ним низкий тон, который падает
+## сверху к `freq` и затухая дрожит, как желе после удара.
+static func plop(freq := 170.0, volume := 0.55, seconds := 0.34) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	var phase := 0.0
+	var slap := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var wobble := sin(TAU * 15.0 * tm)
+		var f := freq * (1.0 + 1.3 * exp(-tm * 42.0)) * (1.0 + 0.07 * wobble * exp(-tm * 6.0))
+		phase += TAU * f / MIX_RATE
+		var env := minf(1.0, tm * 500.0) * exp(-tm * 10.0) * (1.0 + 0.4 * wobble * exp(-tm * 5.0))
+		slap = lerpf(slap, rng.randf_range(-1.0, 1.0), 0.22)
+		var v := (sin(phase) + 0.28 * sin(phase * 2.0)) * env + slap * 0.9 * exp(-tm * 65.0)
+		out[i] = v * volume * minf(1.0, (seconds - tm) * 60.0)
+	return _wav(out)
+
+
+## Мармелад срезали: мокрый «чвяк», шум через резонанс, который быстро уезжает вверх.
+static func squelch(volume := 0.4, seconds := 0.11) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 23
+	var low := 0.0
+	var band := 0.0
+	for i in n:
+		var u := float(i) / n
+		var fc := lerpf(420.0, 2100.0, u * u)
+		var k := 2.0 * sin(PI * fc / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 0.25 * band
+		band += k * high
+		low += k * band
+		out[i] = band * sin(PI * u) * volume * 0.6
+	return _wav(out)
+
+
+## Мармелад сорвался мимо: тон уныло съезжает вниз и дрожит.
+static func droop(freq := 300.0, volume := 0.45, seconds := 0.4) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase := 0.0
+	for i in n:
+		var u := float(i) / n
+		var f := freq * pow(0.3, u) * (1.0 + 0.05 * sin(TAU * 11.0 * u * seconds))
+		phase += TAU * f / MIX_RATE
+		out[i] = (sin(phase) + 0.2 * sin(phase * 3.0)) * minf(1.0, u * 60.0) * (1.0 - u) * volume
+	return _wav(out)
+
+
+## Мармелад упруго ткнулся и отскочил: короткий «боньк» с подскоком высоты.
+static func boing(freq := 240.0, volume := 0.3, seconds := 0.14) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase := 0.0
+	for i in n:
+		var u := float(i) / n
+		phase += TAU * freq * (1.0 + 0.5 * sin(PI * u)) / MIX_RATE
+		out[i] = sin(phase) * sin(PI * minf(u * 6.0, 0.5 + u * 0.5)) * (1.0 - u) * volume
+	return _wav(out)
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()

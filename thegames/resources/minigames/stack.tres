@@ -5,18 +5,18 @@
 
 [sub_resource type="Curve" id="Curve_jlicf"]
 _limits = [0.99, 600.0, 0.0, 1.0]
-_data = [Vector2(0, 380), 0.0, 0.0, 0, 0, Vector2(1, 600), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 534), 0.0, 0.0, 0, 0, Vector2(1, 600), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_k3hhe"]
 _limits = [0.99, 340.0, 0.0, 1.0]
-_data = [Vector2(0, 340), 0.0, 0.0, 0, 0, Vector2(1, 300), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 312), 0.0, 0.0, 0, 0, Vector2(1, 300), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_ipvwg"]
 _limits = [0.0, 0.7, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.7), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.5, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.7), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_jhshd")

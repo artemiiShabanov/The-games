@@ -17,10 +17,41 @@ static func rect(size_: Vector2, radius: float, points := 40) -> JellyShape:
 	var s := JellyShape.new()
 	s.size = size_
 	s.blob = SoftBlob.new(minf(size_.x, size_.y) / 2.0)
-	s.blob.set_shape(rect_points(size_, radius, points))
+	s.blob.set_shape(rect_outline(size_, radius, points))
 	s.blob.collide = false
 	s.blob.stretch_free = true
 	return s
+
+
+## Контур скруглённого прямоугольника по периметру, а не по углу из центра: у каждого угла
+## своя дуга из `CORNER_SEGMENTS` отрезков, поэтому скругление одинаково круглое при любой
+## длине (плейтест 2026-11-14, #131: у длинных блоков углы выходили гранёными). Остаток
+## `points` идёт на прямые стороны по их длине. Порядок тот же, против часовой в
+## математических осях.
+const CORNER_SEGMENTS := 8
+
+static func rect_outline(size_: Vector2, radius: float, points := 40) -> PackedVector2Array:
+	var half := size_ / 2.0
+	var r := minf(radius, minf(half.x, half.y))
+	var straight: Array[float] = [size_.y - 2.0 * r, size_.x - 2.0 * r, size_.y - 2.0 * r, size_.x - 2.0 * r]
+	var total := 2.0 * (straight[0] + straight[1])
+	var spare := maxi(points - 4 * (CORNER_SEGMENTS + 1), 4)
+	var corners: Array[Vector2] = [Vector2(1, 1), Vector2(-1, 1), Vector2(-1, -1), Vector2(1, -1)]
+	var out := PackedVector2Array()
+	for k in 4:
+		var c := corners[k] * (half - Vector2(r, r))
+		for j in CORNER_SEGMENTS + 1:
+			var a := (k + float(j) / CORNER_SEGMENTS) * PI / 2.0
+			out.append(c + Vector2(cos(a), sin(a)) * r)
+		# Прямая сторона от конца этой дуги до начала следующей: точки внутри, без концов.
+		var from := out[out.size() - 1]
+		var next_c := corners[(k + 1) % 4] * (half - Vector2(r, r))
+		var a_next := (k + 1) * PI / 2.0
+		var to := next_c + Vector2(cos(a_next), sin(a_next)) * r
+		var inner := int(round(spare * straight[(k + 1) % 4] / total)) if total > 0.0 else 0
+		for j in inner:
+			out.append(from.lerp(to, float(j + 1) / (inner + 1)))
+	return out
 
 
 static func circle(r: float, points := 32) -> JellyShape:
