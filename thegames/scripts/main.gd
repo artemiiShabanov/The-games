@@ -83,7 +83,6 @@ var _defer_offer := true
 var _tail_boxes: Array[int] = []
 var _genres: Catalog
 var _after_content: FeedContent
-var _after_news: Array[int] = []
 
 
 func _ready() -> void:
@@ -246,8 +245,6 @@ func _on_studio_thing(kind: StringName, index: int) -> void:
 			hub.open_record(index)
 		&"parcel":
 			hub.open_offer()
-		&"news":
-			hub.open_wave(index as RunHub.Wave)
 
 
 ## Главный экран забега (#77): новый релиз начинается кнопкой «Новая игра».
@@ -266,26 +263,23 @@ func _open_hub() -> void:
 	_set_screen(hub)
 	_bot_timer = 0.0
 	if _bg != null:
-		_bg.set_news([])
 		_bg.pay_tails(_tail_boxes)
 	_tail_boxes.clear()
 
 
 func _on_wave(kind: RunHub.Wave) -> void:
-	_after_news.append(int(kind))
-	if kind == RunHub.Wave.CRITICS:
-		_save(&"feed")
 	if _bg == null:
 		return
-	_bg.set_news(_after_news)
-	if kind == RunHub.Wave.TWEETS:
+	if kind == RunHub.Wave.STREAM and _after_content.viral:
+		_bg.react(&"viral")
+	else:
 		_bg.nudge()
-	elif kind == RunHub.Wave.STREAM:
-		if _after_content.viral:
-			_bg.react(&"viral")
-		else:
-			_bg.nudge()
-	elif kind == RunHub.Wave.CRITICS and _after_content.critics_avg >= run.tuning.bet_high:
+
+
+## Рецензии открыты: слот запоминает это, на тёплые оценки студия машет.
+func _on_critics() -> void:
+	_save(&"feed")
+	if _bg != null and _after_content.critics_avg >= run.tuning.bet_high:
 		_bg.react(&"release")
 
 
@@ -308,8 +302,8 @@ func _open_after() -> void:
 	_hub_overlay = false
 	hub.overlay_changed.connect(func(on: bool) -> void: _hub_overlay = on)
 	_after_content = content
-	_after_news.clear()
 	hub.wave_arrived.connect(_on_wave)
+	hub.critics_revealed.connect(_on_critics)
 	hub.bet_resolved.connect(_on_bet)
 	hub.after_finished.connect(_open_studio)
 	_set_screen(hub)
@@ -576,8 +570,6 @@ func _open_studio() -> void:
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
 	screen.reserve_fn = run.cheapest_next
 	screen.defer_offer = _defer_offer
-	if _bg != null:
-		_bg.set_news([])
 	var offer := run.plan_event(report)
 	if report.rescue_due and (offer == null or offer.def.kind != EventDef.Kind.RESCUE):
 		# Спасти некому: банкротство сразу.

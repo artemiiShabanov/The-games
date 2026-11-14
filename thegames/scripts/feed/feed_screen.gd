@@ -43,6 +43,9 @@ var _stream_holder: Control
 var _demo: Demo
 var _revealed := false
 var archive := false
+## Пауза между появлением элементов. Большая (рецензии после релиза, #133) открывает их по
+## одному со звуком: саспенс перед оценками.
+var stagger := STAGGER_SECONDS
 
 
 func setup(content_: FeedContent, record_: GameRecord, release_: int, cash_: int) -> void:
@@ -293,7 +296,15 @@ func _reveal() -> void:
 	for i in _items.size():
 		var n := _items[i]
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-		tw.tween_property(n, "modulate:a", 1.0, Style.SWITCH_SECONDS).set_delay(i * STAGGER_SECONDS)
+		var slow := stagger > 0.3
+		var delay := (i + 1) * stagger if slow else i * stagger
+		if slow and i < _items.size() - 1:
+			tw.tween_callback(func() -> void:
+				ShellSounds.play(&"hit")
+				Jelly.poke(n, 1.2)).set_delay(delay)
+			tw.tween_property(n, "modulate:a", 1.0, Style.SWITCH_SECONDS)
+		else:
+			tw.tween_property(n, "modulate:a", 1.0, Style.SWITCH_SECONDS).set_delay(delay)
 
 
 ## Мармелад ленты: посты пружинят при листании и вминаются под курсором; текущий пост на

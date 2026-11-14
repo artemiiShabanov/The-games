@@ -18,7 +18,10 @@ extends Control
 ## уже пришло. Первой стоит карточка ставки: до прихода критиков можно угадать их оценку
 ## (`RunTuning.bet_*`). Кнопка внизу, пока волны идут, показывает всё сразу, потом ведёт к
 ## итогам (`after_finished`). Клик по предмету в студии это второй вход в те же действия:
-## хозяин зовёт `open_wave`, `open_offer`, `open_record`.
+## хозяин зовёт `open_offer` (посылка) и `open_record` (коробка на полке).
+## Оценки критиков не показываются, пока игрок не нажал на их карточку: тогда рецензии
+## открываются по одной с паузой и только после этого попадают в общую ленту; ставка
+## принимается, пока они закрыты. Коробка на полке студии открывает карточку игры как в галерее.
 ## Стрелки ходят по экрану (`FocusNav`), наведение мыши переносит фокус, ␣ или клик нажимают,
 ## колесо и тачпад листают релизы и окна. Esc, Ctrl или клик мимо закрывают окно; без окна Esc
 ## уходит хозяину (пауза).
@@ -31,6 +34,7 @@ signal overlay_changed(on: bool)
 ## досмотрел и идёт к итогам релиза.
 signal wave_arrived(kind: Wave)
 signal bet_resolved(won: bool)
+signal critics_revealed
 signal after_finished
 
 const RELEASE_CARD := Vector2(400, 116)
@@ -50,10 +54,12 @@ const ROW_GAP := 12
 const OFFER_COLOR := Color("#2BB37A")
 const OFFER_PULSE_SECONDS := 2.4
 
-enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET }
+enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME }
 ## Волны отклика после релиза по порядку прихода; ставка стоит первой и не приходит.
 enum Wave { BET, TWEETS, STREAM, CRITICS, SALES }
 
+const GAME_CARD_WIDTH := 840.0
+const GAME_BUTTON := Vector2(280, 72)
 const WAVE_CARD := Vector2(400, 96)
 const WAVES_TOP := 196.0
 const WAVE_NAMES: Array[String] = ["Ставка", "Твиты", "Стрим", "Критики", "Первая неделя"]
@@ -109,6 +115,12 @@ var _wave_nodes: Dictionary[Wave, PanelContainer] = {}
 var _bet_rows: Array[PanelContainer] = []
 var _bet_lifts: Array[JellyLift] = []
 var _bet_focus := 1
+## Открыта панель рецензий: с её закрытием оценки считаются увиденными.
+var _revealing := false
+## Карточка игры (коробка с полки): кнопки «Играть демку» и «Закрыть».
+var _game_buttons: Array[PanelContainer] = []
+var _game_lifts: Array[JellyLift] = []
+var _game_focus := 0
 
 
 func setup(run_: RunState) -> void:
@@ -160,6 +172,10 @@ func start_new_game() -> void:
 	if after and not _wave_plan.is_empty():
 		show_all_waves()
 		return
+	if after and not after_record.bet_done:
+		# Рецензии ещё не открыты: сначала они, итоги потом.
+		open_wave(Wave.CRITICS)
+		return
 	ShellSounds.play(&"done")
 	if after:
 		after_finished.emit()
@@ -180,6 +196,8 @@ func show_all_waves() -> void:
 ## После релиза: досмотреть всё и идти к итогам (бот и пропуск).
 func finish_after() -> void:
 	show_all_waves()
+	if not after_record.bet_done:
+		_reveal_critics()
 	after_finished.emit()
 
 
@@ -199,18 +217,26 @@ func _process(delta: float) -> void:
 	_rebuild_keeping_focus(kind)
 
 
-## Волна пришла. С критиками закрывается ставка: сыграла или нет, либо карточка уходит.
+## Волна пришла. Рецензии приходят закрытыми: оценки открывает игрок.
 func _arrive(kind: Wave, sound: bool) -> void:
 	_waves_shown.append(kind)
 	if sound:
 		ShellSounds.play(&"intro")
-	if kind == Wave.CRITICS:
-		after_record.bet_done = true
-		if after_record.bet < 0:
-			_waves_shown.erase(Wave.BET)
-		else:
-			bet_resolved.emit(bet_won())
 	wave_arrived.emit(kind)
+
+
+## Рецензии увидены: ставка сыграла или нет (без ставки её карточка уходит), оценка критиков
+## теперь видна на карточке и в общей ленте.
+func _reveal_critics() -> void:
+	if after_record.bet_done:
+		return
+	after_record.bet_done = true
+	if after_record.bet < 0:
+		_waves_shown.erase(Wave.BET)
+	else:
+		bet_resolved.emit(bet_won())
+	critics_revealed.emit()
+	_rebuild_keeping_focus()
 
 
 ## Какой исход ставки соответствует оценке критиков: 0 разнесут, 1 сойдёт, 2 полюбят.
@@ -247,9 +273,15 @@ func open_wave(kind: Wave) -> void:
 		elif _wave_nodes.has(kind):
 			Jelly.poke(_wave_nodes[kind], 1.0)
 		return
+	if kind == Wave.CRITICS and not after_record.bet_done:
+		# Первый раз: только рецензии, по одной с паузой.
+		_open_feed(after_record, after_content.only([FeedContent.Kind.CRITIC]), -1, run.tuning.after_critic_seconds)
+		_revealing = true
+		return
 	var kinds: Array = []
 	var first := -1
 	var want: FeedContent.Kind = FeedContent.Kind.TWEET
+	var seen := after_record.bet_done
 	for w in _waves_shown:
 		match w:
 			Wave.TWEETS:
@@ -257,9 +289,12 @@ func open_wave(kind: Wave) -> void:
 			Wave.STREAM:
 				kinds.append(FeedContent.Kind.CLIP)
 			Wave.CRITICS:
-				kinds.append(FeedContent.Kind.CRITIC)
+				if seen:
+					kinds.append(FeedContent.Kind.CRITIC)
 			Wave.SALES:
-				kinds.append(FeedContent.Kind.NUMBERS)
+				# В итоговых цифрах есть средняя критиков: до рецензий их не показываем.
+				if seen:
+					kinds.append(FeedContent.Kind.NUMBERS)
 	match kind:
 		Wave.STREAM:
 			want = FeedContent.Kind.CLIP
@@ -339,7 +374,113 @@ func open_release(i: int) -> void:
 ## Релиз по номеру в забеге с нуля (коробка на полке студии, #133).
 func open_record(index: int) -> void:
 	if index >= 0 and index < run.records.size() and not playing:
-		_open_release(run.records.size() - 1 - index)
+		_open_game(index)
+
+
+## Карточка игры по центру, как строка галереи: тройка, название, критики, штампы багов, кадр
+## демки; под ней «Играть демку» и «Закрыть».
+func _open_game(index: int) -> void:
+	_close_window(false)
+	window = Pop.GAME
+	overlay_changed.emit(true)
+	ShellSounds.play(&"intro")
+	var record := run.records[index]
+	_feed_record = record
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", Style.card(true))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 20)
+	panel.add_child(col)
+	col.add_child(GalleryScreen.game_card(GalleryEntry.of(record, run.run_number, index + 1, run.studio_name), GAME_CARD_WIDTH))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	col.add_child(row)
+	_game_buttons.clear()
+	_game_lifts.clear()
+	_game_focus = 0
+	for text in ["Играть демку", "Закрыть"]:
+		var b := PanelContainer.new()
+		b.custom_minimum_size = GAME_BUTTON
+		var l := _label(text, Style.FONT_H2, Style.INK)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		b.add_child(l)
+		row.add_child(b)
+		_game_buttons.append(b)
+		_game_lifts.append(Jelly.button(b, Style.R_CTL))
+	_window_node = panel
+	add_child(panel)
+	MouseUi.pass_through(panel)
+	_refresh_game()
+	panel.reset_size()
+	panel.position = ((Vector2(Style.SCREEN) - panel.size) / 2.0).floor()
+	_place_game.call_deferred(panel)
+	if not Debug.skip_cards:
+		panel.modulate.a = 0.0
+		create_tween().tween_property(panel, "modulate:a", 1.0, POP_SECONDS * 0.5)
+	_set_new_game_shown(false)
+
+
+## Размер карточки известен после раскладки: тогда она встаёт точно по центру.
+func _place_game(panel: PanelContainer) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(panel) and _window_node == panel:
+		panel.reset_size()
+		panel.position = ((Vector2(Style.SCREEN) - panel.size) / 2.0).floor()
+		panel.pivot_offset = panel.size / 2.0
+
+
+func _refresh_game() -> void:
+	for i in _game_buttons.size():
+		var on := i == _game_focus
+		_game_buttons[i].add_theme_stylebox_override("panel", Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
+		(_game_buttons[i].get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
+		_game_lifts[i].focused = on
+
+
+func _press_game(i: int) -> void:
+	_game_lifts[i].press()
+	if i == 0:
+		ShellSounds.play(&"done")
+		_play_demo()
+	else:
+		_close_window()
+
+
+## Карточка игры: ← → или наведение выбирают кнопку, ␣ или клик нажимают, Esc и клик мимо
+## закрывают.
+func _game_input(event: InputEvent, viewport: Viewport) -> void:
+	var over := -1
+	for i in _game_buttons.size():
+		if MouseUi.hit(_game_buttons[i], event):
+			over = i
+	if MouseUi.is_motion(event):
+		if over >= 0 and over != _game_focus:
+			_game_focus = over
+			ShellSounds.play(&"tick")
+			_refresh_game()
+		return
+	var key := event as InputEventKey
+	var esc := key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE
+	if MouseUi.is_click(event):
+		if over >= 0:
+			_press_game(over)
+		elif not MouseUi.hit(_window_node, event):
+			_close_window()
+	elif not event.is_echo() and GameInput.is_a(event):
+		_press_game(_game_focus)
+	elif esc or GameInput.is_b(event):
+		_close_window()
+	elif event.is_action_pressed(GameInput.LEFT, true) or event.is_action_pressed(GameInput.RIGHT, true):
+		var next := 0 if event.is_action_pressed(GameInput.LEFT, true) else 1
+		if next != _game_focus:
+			_game_focus = next
+			ShellSounds.play(&"tick")
+			_refresh_game()
+	else:
+		return
+	MouseUi.consume(viewport)
 
 
 # --- Ввод -------------------------------------------------------------------------------------
@@ -353,6 +494,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if MouseUi.is_click(event) and _feed != null and not FeedScreen.archive_rect().has_point((event as InputEventMouse).position):
 			_close_window()
 			MouseUi.consume(viewport)
+		return
+	if window == Pop.GAME:
+		_game_input(event, viewport)
 		return
 	if window != Pop.NONE:
 		_window_input(event, viewport)
@@ -582,6 +726,8 @@ func _close_window(sound := true) -> void:
 		_offer_lifts.clear()
 		_bet_rows.clear()
 		_bet_lifts.clear()
+		_game_buttons.clear()
+		_game_lifts.clear()
 		if Debug.skip_cards:
 			w.queue_free()
 		else:
@@ -592,6 +738,9 @@ func _close_window(sound := true) -> void:
 	window = Pop.NONE
 	overlay_changed.emit(false)
 	_set_new_game_shown(true)
+	if _revealing:
+		_revealing = false
+		_reveal_critics()
 
 
 ## Панель релиза закрывает левую половину: пилюли, «Новая игра» и подсказки уходят из-под неё.
@@ -786,7 +935,7 @@ func _bet_window_rows() -> Array[Control]:
 	_bet_lifts.clear()
 	_bet_focus = 1
 	var t := run.tuning
-	rows.append(_wrap_label("Рецензии ещё не вышли. Угадаешь тон: %s в кассу. Не угадаешь: ничего не теряешь." % Style.format_money(t.bet_bonus),
+	rows.append(_wrap_label("Пока рецензии не открыты, можно угадать их тон. Угадаешь: %s в кассу. Не угадаешь: ничего не теряешь." % Style.format_money(t.bet_bonus),
 			Style.FONT_CAPTION, Style.INK_2))
 	var ranges: Array[String] = ["ниже %s" % _score(t.bet_low), "от %s до %s" % [_score(t.bet_low), _score(t.bet_high)],
 			"от %s и выше" % _score(t.bet_high)]
@@ -879,13 +1028,15 @@ func _open_release(i: int) -> void:
 
 
 ## Панель ленты слева; `at` элемент, на котором она открывается (-1 с начала).
-func _open_feed(record: GameRecord, content: FeedContent, at: int) -> void:
+func _open_feed(record: GameRecord, content: FeedContent, at: int, stagger := -1.0) -> void:
 	_close_window(false)
 	window = Pop.RELEASE
 	overlay_changed.emit(true)
 	_feed_record = record
 	_feed = (load(Main.FEED_PATH) as PackedScene).instantiate() as FeedScreen
 	_feed.setup_archive(content, record)
+	if stagger > 0.0:
+		_feed.stagger = stagger
 	_feed.finished.connect(_close_window.bind(true))
 	_feed.demo_requested.connect(_play_demo)
 	add_child(_feed)
@@ -904,7 +1055,10 @@ func _play_demo() -> void:
 		return
 	playing = true
 	_chrome.visible = false
-	_feed.visible = false
+	if _feed != null:
+		_feed.visible = false
+	if _window_node != null:
+		_window_node.visible = false
 	_demo.setup(record, &"gallery")
 	_demo.demo_finished.connect(_on_demo_finished)
 	add_child(_demo)
@@ -919,6 +1073,8 @@ func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
 	_chrome.visible = true
 	if _feed != null:
 		_feed.visible = true
+	if _window_node != null:
+		_window_node.visible = true
 
 
 # --- Построение ---------------------------------------------------------------------------------
@@ -1101,8 +1257,12 @@ func _wave_card(kind: Wave) -> PanelContainer:
 			caption = "Стрим · " + after_content.clip_person.name
 			text = FeedContent.format_count(after_content.online) + " онлайн" + (" · разлетается" if after_content.viral else "")
 		Wave.CRITICS:
-			text = _score(after_content.critics_avg) + " · " + VERDICTS[bet_class()]
-			mono = true
+			if after_record.bet_done:
+				text = _score(after_content.critics_avg) + " · " + VERDICTS[bet_class()]
+				mono = true
+			else:
+				caption = "Критики · рецензии вышли"
+				text = "Открыть оценки"
 		Wave.SALES:
 			text = Style.format_money(after_content.sales_first)
 			color = Style.MONEY

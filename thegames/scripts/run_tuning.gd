@@ -33,10 +33,13 @@ const PATH := "res://resources/run.tres"
 @export var legend_critics := 9.0
 @export var legend_viral := 3
 ## После релиза (#133): отклик приходит на главный экран волнами. Первая волна через
-## `after_first_seconds`, следующие через `after_gap_seconds`. Ставка на критиков: «разнесут»
+## `after_first_seconds`, следующие через `after_gap_seconds`. Оценки критиков открываются
+## только по нажатию на их карточку, до того ставка ещё принимается. Ставка на критиков: «разнесут»
 ## ниже `bet_low`, «полюбят» от `bet_high`, между ними «сойдёт»; угадал: `bet_bonus` денег.
 @export var after_first_seconds := 1.5
 @export var after_gap_seconds := 3.0
+## Рецензии критиков открываются по одной с такой паузой.
+@export var after_critic_seconds := 0.9
 @export var bet_low := 5.0
 @export var bet_high := 7.5
 @export var bet_bonus := 1500

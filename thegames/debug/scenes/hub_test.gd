@@ -79,7 +79,6 @@ func _open() -> void:
 	_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
 	_bg.set_shelf(_shelf_colors())
 	_bg.set_parcel(not _after_on and not run.pending_defs().is_empty())
-	_bg.set_news([])
 	hub = RunHub.new()
 	if _after_on:
 		_open_after_hub()
@@ -109,6 +108,8 @@ func _show_pop() -> void:
 			hub.open_wave(RunHub.Wave.BET)
 		"wave":
 			hub.open_wave(RunHub.Wave.CRITICS if hub.waves_left() == 0 else RunHub.Wave.TWEETS)
+		"game":
+			hub.open_record(0)
 
 
 ## Экран после релиза: ещё один релиз разработан и оценён, но фаза студии не пройдена.
@@ -119,10 +120,6 @@ func _open_after_hub() -> void:
 		_record.add_sprint(k != 1)
 	run.score_release(_record)
 	hub.setup_after(run, _record, run.build_feed(_record))
-	var news: Array[int] = []
-	hub.wave_arrived.connect(func(kind: RunHub.Wave) -> void:
-		news.append(int(kind))
-		_bg.set_news(news))
 	hub.bet_resolved.connect(func(won: bool) -> void: _bets.append(won))
 	hub.after_finished.connect(func() -> void: _finished = true)
 	if _after == "all":
@@ -155,7 +152,7 @@ func _check_after() -> void:
 	# Первая волна приходит сама.
 	hub._wave_timer = 0.0
 	hub._process(0.016)
-	_expect(hub._wave_nodes.has(RunHub.Wave.TWEETS) and _bg.thing_info()["news"] == [int(RunHub.Wave.TWEETS)], "твиты пришли карточкой и значком")
+	_expect(hub._wave_nodes.has(RunHub.Wave.TWEETS), "твиты пришли карточкой")
 	hub.open_wave(RunHub.Wave.TWEETS)
 	var only_tweets := hub._feed != null
 	if only_tweets:
@@ -166,10 +163,28 @@ func _check_after() -> void:
 	# Кнопка внизу сначала показывает всё, потом ведёт к итогам.
 	hub.start_new_game()
 	_expect(hub.waves_left() == 0 and not _finished, "первое нажатие показало все волны")
-	_expect(_bets == [true] and _record.bet_done, "верная ставка сыграла: %s" % [_bets])
 	_expect(hub._wave_nodes.has(RunHub.Wave.SALES) and hub._wave_nodes.has(RunHub.Wave.CRITICS), "карточки критиков и продаж на месте")
+	# Оценки критиков закрыты, пока не нажата их карточка: в общей ленте нет ни их, ни цифр.
+	_expect(_bets.is_empty() and not _record.bet_done, "рецензии пришли закрытыми, ставка ещё не сыграла")
 	hub.open_wave(RunHub.Wave.SALES)
-	_expect(hub._feed != null and hub._feed.content.items.size() == run.build_feed(_record).items.size(), "лента после всех волн целая")
+	var hidden := hub._feed != null
+	if hidden:
+		for it in hub._feed.content.items:
+			hidden = hidden and it.kind != FeedContent.Kind.CRITIC and it.kind != FeedContent.Kind.NUMBERS
+	_expect(hidden, "до рецензий в ленте нет критиков и итоговых цифр")
+	hub._close_window(false)
+	# Кнопка внизу при закрытых рецензиях ведёт к ним, а не к итогам.
+	hub.start_new_game()
+	var only_critics := hub._feed != null and hub._feed.content.items.size() == 3
+	if only_critics:
+		for it in hub._feed.content.items:
+			only_critics = only_critics and it.kind == FeedContent.Kind.CRITIC
+	_expect(hub.window == RunHub.Pop.RELEASE and only_critics and not _finished, "рецензии открываются отдельно, три критика")
+	_expect(hub._feed.stagger >= 0.5, "рецензии открываются по одной с паузой")
+	hub._close_window(false)
+	_expect(_bets == [true] and _record.bet_done, "после рецензий верная ставка сыграла: %s" % [_bets])
+	hub.open_wave(RunHub.Wave.SALES)
+	_expect(hub._feed != null and hub._feed.content.items.size() == run.build_feed(_record).items.size(), "лента после рецензий целая")
 	hub._close_window(false)
 	# Вещи в студии: коробка на игру, клик шлёт сигнал с номером.
 	var got: Array = []
@@ -180,8 +195,10 @@ func _check_after() -> void:
 			"коробка нажимается")
 	_expect(got == [[&"box", 1]], "клик по коробке: %s" % [got])
 	hub.open_record(1)
-	_expect(hub.window == RunHub.Pop.RELEASE and hub._feed_record == run.records[1], "коробка открывает свой релиз")
+	_expect(hub.window == RunHub.Pop.GAME and hub._feed_record == run.records[1] and hub._game_buttons.size() == 2,
+			"коробка открывает карточку своей игры")
 	hub._close_window(false)
+	_expect(_bg.prop_info().has("tv_channel") and _bg.poke(&"tv"), "телевизор на месте и нажимается")
 	_bg.pay_tails([0, 1])
 	_expect(int(_bg.thing_info()["coins"]) == 2, "монеты хвоста вылетели")
 	hub.start_new_game()

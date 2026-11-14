@@ -420,6 +420,17 @@ func _add_row(c: PanelContainer) -> void:
 	_lifts.append(lift)
 
 
+## Карточка игры как строка галереи, но вне экрана галереи (главный экран забега, #133).
+static func game_card(e: GalleryEntry, w: float) -> PanelContainer:
+	var g := GalleryScreen.new()
+	for k in [CatalogEntry.Kind.GENRE, CatalogEntry.Kind.TECH, CatalogEntry.Kind.SETTING]:
+		g._catalogs.append(Catalog.load_kind(k))
+	g._bugs = BugCatalog.load_default()
+	var c := g._game_row(e, w)
+	g.free()
+	return c
+
+
 func _row_panel(w: float, h: float) -> PanelContainer:
 	var c := PanelContainer.new()
 	c.custom_minimum_size = Vector2(w, h)
