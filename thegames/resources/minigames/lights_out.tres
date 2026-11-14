@@ -14,8 +14,8 @@ _data = [Vector2(0, 1.4), 0.0, 0.0, 0, 0, Vector2(1, 2.2), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_slow"]
-_limits = [0.32, 0.4, 0.0, 1.0]
-_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 0.32), 0.0, 0.0, 0, 0]
+_limits = [0.35, 0.5, 0.0, 1.0]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0.35), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_bchance"]
