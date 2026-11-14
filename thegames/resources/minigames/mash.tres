@@ -5,7 +5,7 @@
 
 [sub_resource type="Curve" id="Curve_pull"]
 _limits = [0.0, 1.0, 0.0, 1.0]
-_data = [Vector2(0, 0.525), 0.0, 0.0, 0, 0, Vector2(1, 0.6), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.551), 0.0, 0.0, 0, 0, Vector2(1, 0.63), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_finish"]
@@ -20,7 +20,7 @@ kind = 1
 verb = "Разгони"
 hint = "Влево-вправо по очереди, как можно быстрее"
 mouse_hint = "левая и правая кнопка по очереди"
-time_seconds = 10.0
+time_seconds = 6.7
 scene = ExtResource("2_mash")
 inputs = Array[StringName]([&"move_left", &"move_right"])
 params = Dictionary[StringName, Curve]({
