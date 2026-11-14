@@ -222,7 +222,7 @@ func _tune() -> void:
 	_check(float(game.get("amp")) > a, "tune: ведение вверх не подняло амплитуду")
 	_check(game.mouse_last_action != GameInput.A, "tune: ведение зафиксировало волну")
 	await _click(from)
-	_check(game.mouse_last_action == GameInput.A, "tune: клик не фиксирует")
+	_check(game.mouse_last_action != GameInput.A, "tune: клик жмёт A, а фиксация теперь сама")
 
 
 func _beam() -> void:

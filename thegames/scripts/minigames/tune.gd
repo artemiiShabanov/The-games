@@ -1,9 +1,11 @@
 extends Minigame
 ## «Настрой волну» (tune, звук), каталог `docs/specs/minigames_catalog.md`. Две волны наложены
 ## друг на друга: эталон и своя. Влево и вправо меняют частоту своей, вверх и вниз амплитуду,
-## шагами; при совпадении волны сливаются в одну и A фиксирует. A без совпадения трясёт волну
-## и блокирует кнопку на миг. Четыре волны за раунд; провал, если к таймеру совпало меньше
-## трёх. Обе волны звучат: своя и эталон как два тона, при сближении слышны биения.
+## шагами; зажатая стрелка через `HOLD_DELAY` шагает сама раз в `HOLD_REPEAT`. Совпавшая волна
+## фиксируется сама, простояв совпавшей `FIX_DELAY` (дольше шага автоповтора, чтобы зажатая
+## стрелка проезжала мимо). Три волны за раунд, нужны все три (плейтест 2026-11-14, #131).
+## Обе волны звучат: своя и эталон как два мягких тона, которые вспыхивают на шаге и затихают
+## до тихого фона; при сближении слышны биения.
 ## Параметры от `t` в `resources/minigames/tune.tres`: offset (на сколько шагов эталон дальше
 ## от стартового положения), two_axes (вероятность, что отличается и амплитуда), tolerance
 ## (допуск в шагах).
@@ -13,7 +15,7 @@ extends Minigame
 ## мягкими каплями цвета успеха с нескольких гребней. Точки волн мягкие, текущая стоит на бортике,
 ## засчитанная вздрагивает с кругом и каплей-другой. Геймплей на настоящих числах.
 
-const WAVES := 4
+const WAVES := 3
 const NEED := 3
 const FREQ_MIN := 2.0
 const FREQ_MAX := 10.0
@@ -22,23 +24,27 @@ const AMP_MIN := 32.0
 const AMP_MAX := 192.0
 const AMP_STEP := 16.0
 const LINE_WIDTH := 6.0
-const SEGMENTS := 160
-const SHAKE_SECONDS := 0.3
-const LOCK_SECONDS := 0.4
+const SEGMENTS := 640
+const HOLD_DELAY := 0.5
+const HOLD_REPEAT := 0.3
+const FIX_DELAY := 0.4
 const MERGE_SECONDS := 0.35
 const BOT_STEP := 0.14
-const HZ_BASE := 180.0
-const HZ_PER_CYCLE := 36.0
-const TONE_VOLUME := 0.18
+const HZ_BASE := 110.0
+const HZ_PER_CYCLE := 22.0
+const TONE_VOLUME := 0.12
+## Тон не гудит ровно: на шаге вспыхивает до полной громкости и за `TONE_DECAY` с затихает до
+## доли `TONE_FLOOR`; `TONE_SLEW` сглаживает смену громкости, чтобы не щёлкало.
+const TONE_FLOOR := 0.22
+const TONE_DECAY := 0.9
+const TONE_SLEW := 0.002
 const DOT_R := 7.0
 const DOT_GAP := 28.0
 const SPLASH_CRESTS := 5
 
-## Мышь: сколько пикселей ведения на шаг частоты и амплитуды, и сдвиг, после которого клик уже
-## ведение, а не фиксация.
+## Мышь: сколько пикселей ведения на шаг частоты и амплитуды.
 const DRAG_FREQ_PX := 36.0
 const DRAG_AMP_PX := 24.0
-const CLICK_SLOP := 10.0
 
 var offset_steps := 3
 var two_axes := 0.0
@@ -50,20 +56,21 @@ var ref_freq := 4.0
 var ref_amp := 96.0
 var freq := 4.0
 var amp := 96.0
-var shake := 0.0
-var lock := 0.0
 var merge := 0.0
+var match_time := 0.0
 var done_this := false
 var _drag := false
 var _drag_acc := Vector2.ZERO
-var _drag_moved := false
+var _hold_action := &""
+var _hold_time := 0.0
+var _tone_env := 1.0
+var _tone_gain := 0.0
 var _bot_timer := 0.0
 var _player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
 var _phase_ref := 0.0
 var _phase_own := 0.0
 var _ok_sound: AudioStreamPlayer
-var _miss_sound: AudioStreamPlayer
 # Мармелад: только рисование, геймплей на freq и amp.
 var _jelly_freq := JellySpring.new()
 var _jelly_amp := JellySpring.new()
@@ -73,7 +80,6 @@ var _jelly_side := JellySpring.new()
 var _jelly_dots: Array[JellyShape] = []
 var _jelly_rings := RingFx.new()
 var _jelly_splash := SplashFx.new()
-var _jelly_side_dir := 1.0
 
 
 func _on_start() -> void:
@@ -81,9 +87,7 @@ func _on_start() -> void:
 	two_axes = def.param(&"two_axes", t, 0.0)
 	tolerance = maxi(int(round(def.param(&"tolerance", t, 1.0))), 0)
 	_ok_sound = Sfx.player(Sfx.blip(880.0, 0.18, 0.45, 12.0))
-	_miss_sound = Sfx.player(Sfx.thud(0.14, 0.45))
 	add_child(_ok_sound)
-	add_child(_miss_sound)
 	var gen := AudioStreamGenerator.new()
 	gen.mix_rate = 22050.0
 	gen.buffer_length = 0.12
@@ -102,6 +106,8 @@ func _on_start() -> void:
 func _new_wave() -> void:
 	done_this = false
 	merge = 0.0
+	match_time = 0.0
+	_tone_env = 1.0
 	# Своя волна стартует в середине диапазонов, эталон на offset шагов в сторону.
 	freq = snappedf((FREQ_MIN + FREQ_MAX) / 2.0 + rng.randi_range(-2, 2) * FREQ_STEP, FREQ_STEP)
 	amp = snappedf((AMP_MIN + AMP_MAX) / 2.0 + rng.randi_range(-2, 2) * AMP_STEP, AMP_STEP)
@@ -131,24 +137,31 @@ func matched() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if not running or event.is_echo():
 		return
-	if event.is_action_pressed(GameInput.LEFT):
-		_adjust(-FREQ_STEP, 0.0)
-	elif event.is_action_pressed(GameInput.RIGHT):
-		_adjust(FREQ_STEP, 0.0)
-	elif event.is_action_pressed(GameInput.UP):
-		_adjust(0.0, AMP_STEP)
-	elif event.is_action_pressed(GameInput.DOWN):
-		_adjust(0.0, -AMP_STEP)
-	elif GameInput.is_a(event):
-		_fix()
-	else:
-		return
-	get_viewport().set_input_as_handled()
+	for action: StringName in [GameInput.LEFT, GameInput.RIGHT, GameInput.UP, GameInput.DOWN]:
+		if event.is_action_pressed(action):
+			_step(action)
+			_hold_action = action
+			_hold_time = 0.0
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_released(action) and action == _hold_action:
+			_hold_action = &""
+
+
+func _step(action: StringName) -> void:
+	match action:
+		GameInput.LEFT:
+			_adjust(-FREQ_STEP, 0.0)
+		GameInput.RIGHT:
+			_adjust(FREQ_STEP, 0.0)
+		GameInput.UP:
+			_adjust(0.0, AMP_STEP)
+		GameInput.DOWN:
+			_adjust(0.0, -AMP_STEP)
 
 
 ## Мышь (#83): ведёшь с зажатой кнопкой, как крутишь ручку: вбок частота, вверх-вниз амплитуда,
-## шаг на каждые `DRAG_FREQ_PX` и `DRAG_AMP_PX`; клик без ведения фиксирует, как ␣; колесо
-## амплитуда.
+## шаг на каждые `DRAG_FREQ_PX` и `DRAG_AMP_PX`; колесо амплитуда. Клик сам ничего не жмёт.
 func _on_mouse(event: InputEventMouse) -> bool:
 	var w := MouseUi.wheel(event)
 	if w != 0:
@@ -156,21 +169,13 @@ func _on_mouse(event: InputEventMouse) -> bool:
 		return true
 	var b := event as InputEventMouseButton
 	if b != null and b.button_index == MOUSE_BUTTON_LEFT:
-		if b.pressed:
-			_drag = true
-			_drag_acc = Vector2.ZERO
-			_drag_moved = false
-		elif _drag:
-			_drag = false
-			if not _drag_moved:
-				tap_action(GameInput.A)
+		_drag = b.pressed
+		_drag_acc = Vector2.ZERO
 		return true
 	var m := event as InputEventMouseMotion
 	if m == null or not _drag:
 		return false
 	_drag_acc += m.relative
-	if _drag_acc.length() > CLICK_SLOP:
-		_drag_moved = true
 	while absf(_drag_acc.x) >= DRAG_FREQ_PX:
 		tap_action(GameInput.RIGHT if _drag_acc.x > 0.0 else GameInput.LEFT)
 		_drag_acc.x -= signf(_drag_acc.x) * DRAG_FREQ_PX
@@ -187,6 +192,8 @@ func _adjust(df: float, da: float) -> void:
 	var was_amp := amp
 	freq = clampf(snappedf(freq + df, FREQ_STEP), FREQ_MIN, FREQ_MAX)
 	amp = clampf(snappedf(amp + da, AMP_STEP), AMP_MIN, AMP_MAX)
+	match_time = 0.0
+	_tone_env = 1.0
 	# Струна выгибается серединой в сторону шага; упёрлась в край — лёгкий вздрог.
 	if not is_equal_approx(was_freq, freq) or not is_equal_approx(was_amp, amp):
 		_jelly_bend.kick(140.0 * (signf(df) if df != 0.0 else -signf(da)))
@@ -196,34 +203,21 @@ func _adjust(df: float, da: float) -> void:
 
 
 func _fix() -> void:
-	if done_this or lock > 0.0:
-		return
-	if matched():
-		done_this = true
-		matches += 1
-		merge = MERGE_SECONDS
-		_ok_sound.play()
-		_jelly_swell.kick(4.0)
-		if wave_index < _jelly_dots.size():
-			_jelly_dots[wave_index].poke(260.0)
-			_jelly_rings.add(_dot_pos(wave_index), DOT_R, DOT_R * 3.2, Color(Style.SUCCESS, 0.5), 1, 0.6)
-			if Jelly.on():
-				_jelly_splash.pop(_dot_pos(wave_index), Color(Style.SUCCESS, 0.7), 1, 170.0, 0.35)
+	done_this = true
+	matches += 1
+	merge = MERGE_SECONDS
+	_ok_sound.play()
+	_jelly_swell.kick(4.0)
+	if wave_index < _jelly_dots.size():
+		_jelly_dots[wave_index].poke(260.0)
+		_jelly_rings.add(_dot_pos(wave_index), DOT_R, DOT_R * 3.2, Color(Style.SUCCESS, 0.5), 1, 0.6)
 		if Jelly.on():
-			_splash_crests()
-	else:
-		shake = SHAKE_SECONDS
-		lock = LOCK_SECONDS
-		_miss_sound.play()
-		# Сторона толчка чередуется: общий rng не трогаем, он геймплейный.
-		_jelly_side_dir = -_jelly_side_dir
-		_jelly_side.kick(320.0 * _jelly_side_dir)
-		_jelly_swell.kick(-3.0)
+			_jelly_splash.pop(_dot_pos(wave_index), Color(Style.SUCCESS, 0.7), 1, 170.0, 0.35)
+	if Jelly.on():
+		_splash_crests()
 
 
 func _on_tick(delta: float) -> void:
-	shake = maxf(shake - delta, 0.0)
-	lock = maxf(lock - delta, 0.0)
 	if done_this:
 		merge -= delta
 		if merge <= 0.0:
@@ -233,8 +227,25 @@ func _on_tick(delta: float) -> void:
 				return
 			_new_wave()
 			_jelly_dots[wave_index].poke(180.0)
+	else:
+		# Автоповтор зажатой стрелки, затем автофиксация совпавшей волны.
+		if _hold_action != &"":
+			var was := _hold_steps(_hold_time)
+			_hold_time += delta
+			if _hold_steps(_hold_time) > was:
+				_step(_hold_action)
+		if matched():
+			match_time += delta
+			if match_time >= FIX_DELAY:
+				_fix()
+	_tone_env = maxf(_tone_env - delta / TONE_DECAY, 0.0)
 	_push_audio()
 	queue_redraw()
+
+
+## Сколько шагов автоповтора набежало за `held` секунд зажатия.
+func _hold_steps(held: float) -> int:
+	return 0 if held < HOLD_DELAY else floori((held - HOLD_DELAY) / HOLD_REPEAT) + 1
 
 
 func _on_timeout() -> bool:
@@ -255,15 +266,17 @@ func _push_audio() -> void:
 	var f_own := HZ_BASE + freq * HZ_PER_CYCLE
 	var v_ref := TONE_VOLUME * ref_amp / AMP_MAX
 	var v_own := TONE_VOLUME * amp / AMP_MAX
+	var target := lerpf(TONE_FLOOR, 1.0, _tone_env * _tone_env)
 	var frames := _playback.get_frames_available()
 	for i in frames:
+		_tone_gain += (target - _tone_gain) * TONE_SLEW
 		_phase_ref = fmod(_phase_ref + f_ref / rate, 1.0)
 		_phase_own = fmod(_phase_own + f_own / rate, 1.0)
-		var s := v_ref * sin(_phase_ref * TAU) + v_own * sin(_phase_own * TAU)
+		var s := _tone_gain * (v_ref * sin(_phase_ref * TAU) + v_own * sin(_phase_own * TAU))
 		_playback.push_frame(Vector2(s, s))
 
 
-## Бот: WIN шагает к эталону по частоте, потом по амплитуде, затем A; LOSE ничего не делает.
+## Бот: WIN шагает к эталону по частоте, потом по амплитуде и ждёт фиксации; LOSE ничего не делает.
 func _bot_step(delta: float) -> bool:
 	if AutoTest.bot_mode != AutoTest.BotMode.WIN or done_this:
 		return false
@@ -275,8 +288,6 @@ func _bot_step(delta: float) -> bool:
 		_adjust(FREQ_STEP * signf(ref_freq - freq), 0.0)
 	elif absf(amp - ref_amp) > 0.001:
 		_adjust(0.0, AMP_STEP * signf(ref_amp - amp))
-	else:
-		_fix()
 	return false
 
 
@@ -358,7 +369,7 @@ func _draw() -> void:
 	if def == null:
 		return
 	var is_match := matched()
-	var dx := sin(shake * 60.0) * 10.0 * shake / SHAKE_SECONDS if shake > 0.0 else 0.0
+	var dx := 0.0
 	# Мармелад: своя волна по частоте и амплитуде на пружинах, промах толкает её пружиной вбок.
 	var swell := 1.0
 	var own_freq := freq

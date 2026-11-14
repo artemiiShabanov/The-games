@@ -5,15 +5,15 @@
 
 [sub_resource type="Curve" id="Curve_jpbfp"]
 _limits = [0.99, 6.0, 0.0, 1.0]
-_data = [Vector2(0, 2), 0.0, 0.0, 0, 0, Vector2(1, 6), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 4), 0.0, 0.0, 0, 0, Vector2(1, 6), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_s2fsc"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_1e8e7"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [resource]
@@ -21,10 +21,10 @@ script = ExtResource("1_ohabf")
 id = &"tune"
 aspect = 1
 verb = "Настрой волну"
-hint = "← → частота, ↑ ↓ амплитуда, ␣ фиксирует"
-mouse_hint = "веди с зажатой кнопкой · клик фиксирует"
+hint = "← → частота, ↑ ↓ амплитуда: совмести волны"
+mouse_hint = "веди с зажатой кнопкой · колесо амплитуда"
 scene = ExtResource("1_xbiec")
-inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down", &"action_a"])
+inputs = Array[StringName]([&"move_left", &"move_right", &"move_up", &"move_down"])
 params = Dictionary[StringName, Curve]({
 &"offset": SubResource("Curve_jpbfp"),
 &"tolerance": SubResource("Curve_1e8e7"),
