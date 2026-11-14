@@ -22,6 +22,9 @@ signal menu_requested
 const TIMER_HEIGHT := 6.0
 const DANGER_SECONDS := 3.0
 const BOT_DELAY := 0.3
+## Звуки мини-игр тише на 30 % (плейтест 2026-11-14, #131): каждый плеер, добавленный в
+## мини-игру, приглушается на столько децибел.
+const SFX_TRIM_DB := -3.1
 
 var def: MinigameDef
 ## Сложность 0..1.
@@ -58,6 +61,13 @@ func setup(def_: MinigameDef, t_: float, seed_: int, time_multiplier := 1.0) -> 
 	rng.seed = seed_
 	time_limit = def.time_seconds * time_multiplier
 	time_left = time_limit
+	child_entered_tree.connect(_trim_sound)
+
+
+func _trim_sound(node: Node) -> void:
+	var player := node as AudioStreamPlayer
+	if player != null:
+		player.volume_db += SFX_TRIM_DB
 
 
 func start() -> void:
