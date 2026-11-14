@@ -314,6 +314,9 @@ func _register_builtin() -> void:
 	var ids: Array[String] = []
 	for d in MinigamePool.load_all():
 		ids.append(String(d.id))
+	# Прототипы на пробу (`resources/minigames/proto/`) в конце списка.
+	for d in MinigamePool.load_protos():
+		ids.append(String(d.id))
 	add_choice(SECTION_MINIGAMES, "Мини-игра", ids,
 			func() -> String: return minigame_id,
 			func(v: String) -> void: minigame_id = v, true)

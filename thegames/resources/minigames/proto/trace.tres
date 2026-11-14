@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/minigames/trace.tscn" id="1_scene"]
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_def"]
+
+[sub_resource type="Curve" id="Curve_speed"]
+_limits = [0, 380, 0.0, 1.0]
+_data = [Vector2(0, 240), 0.0, 0.0, 0, 0, Vector2(1, 380), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_corridor"]
+_limits = [0, 46, 0.0, 1.0]
+_data = [Vector2(0, 46), 0.0, 0.0, 0, 0, Vector2(1, 26), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_segments"]
+_limits = [0, 16, 0.0, 1.0]
+_data = [Vector2(0, 10), 0.0, 0.0, 0, 0, Vector2(1, 16), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_max_len"]
+_limits = [0, 3, 0.0, 1.0]
+_data = [Vector2(0, 3), 0.0, 0.0, 0, 0, Vector2(1, 2), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[resource]
+script = ExtResource("1_def")
+id = &"trace"
+aspect = 3
+verb = "Обведи"
+hint = "Перо едет само: стрелки поворачивают, не выходи из коридора"
+mouse_hint = "клик в сторону от пера: поворот"
+time_seconds = 20
+scene = ExtResource("1_scene")
+inputs = Array[StringName]([&"move_up", &"move_down", &"move_left", &"move_right"])
+params = Dictionary[StringName, Curve]({
+&"speed": SubResource("Curve_speed"),
+&"corridor": SubResource("Curve_corridor"),
+&"segments": SubResource("Curve_segments"),
+&"max_len": SubResource("Curve_max_len")
+})

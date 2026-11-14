@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MinigameDef" format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/minigames/spot.tscn" id="1_scene"]
+[ext_resource type="Script" path="res://scripts/minigames/minigame_def.gd" id="1_def"]
+
+[sub_resource type="Curve" id="Curve_size"]
+_limits = [0, 8, 0.0, 1.0]
+_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_pairs"]
+_limits = [0, 4, 0.0, 1.0]
+_data = [Vector2(0, 3), 0.0, 0.0, 0, 0, Vector2(1, 4), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_shade"]
+_limits = [0, 1, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.4, 1), 0.0, 0.0, 0, 0, Vector2(0.45, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 0.16), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="Curve" id="Curve_mirror"]
+_limits = [0, 1, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[resource]
+script = ExtResource("1_def")
+id = &"spot"
+aspect = 3
+verb = "Найди отличие"
+hint = "Стрелки ведут рамку по правой картинке, ␣ отмечает клетку, которая отличается"
+mouse_hint = "наведи на клетку и кликни"
+time_seconds = 24
+scene = ExtResource("1_scene")
+inputs = Array[StringName]([&"move_up", &"move_down", &"move_left", &"move_right", &"action_a"])
+params = Dictionary[StringName, Curve]({
+&"size": SubResource("Curve_size"),
+&"pairs": SubResource("Curve_pairs"),
+&"shade": SubResource("Curve_shade"),
+&"mirror": SubResource("Curve_mirror")
+})

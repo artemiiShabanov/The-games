@@ -98,7 +98,7 @@ func _run_plan() -> void:
 func _run_single() -> void:
 	single = true
 	record = GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, Debug.minigame_seed, "Одна мини-игра")
-	var def := MinigamePool.find(pool, StringName(Debug.minigame_id))
+	var def := MinigamePool.find(pool + MinigamePool.load_protos(), StringName(Debug.minigame_id))
 	if def == null:
 		_run_plan()
 		return
