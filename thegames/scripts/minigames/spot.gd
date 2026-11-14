@@ -1,11 +1,10 @@
 extends Minigame
-## «Найди отличие» (spot, графика): ПРОТОТИП на замену «Наведи» (плейтест 2026-11-14, #131), в
-## общий набор мини-игр не входит, лежит в `resources/minigames/proto/` и запускается из
-## дебаг-меню. Две пиксельные картинки рядом отличаются одной клеткой. Курсор стрелками ходит
+## «Найди отличие» (spot, графика), каталог `docs/specs/minigames_catalog.md`. Заменила «Наведи»
+## (beam) по плейтесту 2026-11-14, #131. Две пиксельные картинки рядом отличаются одной клеткой. Курсор стрелками ходит
 ## по правой картинке (на левой бледная рамка показывает ту же клетку), A отмечает. Угадал:
 ## следующая пара. Две неверные отметки или таймер: провал.
 ## Клетка всегда отличается цветом палитры (оттенки сняты плейтестом 2026-11-14).
-## Параметры от `t` в `resources/minigames/proto/spot.tres`: size (сторона сетки, 6 → 8), pairs
+## Параметры от `t` в `resources/minigames/spot.tres`: size (сторона сетки, 6 → 8), pairs
 ## (пар, одно число на всех `t`), mirror (от 0.5 правая картинка зеркальная).
 
 const GRID_PX := 480.0
@@ -34,6 +33,8 @@ var _found_left := 0.0
 var _bot_timer := 0.0
 var _shake := JellySpring.new()
 var _pop := JellySpring.new()
+## Мягкие брызги найденного отличия.
+var _splash := SplashFx.new()
 
 
 func _on_start() -> void:
@@ -111,6 +112,8 @@ func _mark() -> void:
 		found += 1
 		_found_left = FOUND_SECONDS
 		_pop.kick(8.0)
+		if Jelly.on():
+			_splash.pop(_cell_rect(1, cursor).get_center(), Style.SUCCESS, 7, 460.0, 0.55)
 		sfx(MiniSfx.Kind.HIT, 196.0, pow(2.0, (found - 1) / 6.0))
 	else:
 		errors += 1
@@ -167,6 +170,7 @@ func _process(delta: float) -> void:
 	var tu := Jelly.tuning()
 	_shake.step(delta, tu.spring_stiffness, tu.spring_damping)
 	_pop.step(delta, tu.spring_stiffness, tu.spring_damping)
+	_splash.step(delta, Callable())
 	if not running:
 		queue_redraw()
 
@@ -212,6 +216,7 @@ func _draw() -> void:
 	var right := _cell_rect(1, cursor).grow(5.0)
 	right.position += shake
 	draw_rect(right, Style.SUCCESS if hit else Style.FOCUS, false, 6.0)
+	_splash.draw_air(self, Vector2.ZERO)
 	# Пары точками, ошибки крестиками справа сверху.
 	for j in pairs_total:
 		draw_circle(Vector2(size.x - 48.0 - (pairs_total - 1 - j) * 28.0, 92.0), 7.0,

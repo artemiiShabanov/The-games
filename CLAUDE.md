@@ -28,8 +28,9 @@
   пишет Control под курсором: если там корень сцены, он съедает клики, нужен `MOUSE_FILTER_IGNORE`).
 - Одна мини-игра ботом (WIN, затем LOSE): `sh tools/autotest.sh --scene=sprint_runner_test
   --minigame=<id> --frames=3500` (часть мини-игр не укладывается в 1500). Под автотестом `t` и сид
-  не из дебаг-меню, а `--t=<0..1>` и `--seed=<n>` (по умолчанию 0 и 1); на высоком `t` бот
-  «Наведи» застревает на призме. Демка: `--scene=demo_test --frames=3000` (гонки
+  не из дебаг-меню, а `--t=<0..1>` и `--seed=<n>` (по умолчанию 0 и 1). Прототипы
+  мини-игр на пробу кладутся в `resources/minigames/proto/`: в планы не попадают, видны в
+  дебаг-меню и `--minigame=<id>`. Демка: `--scene=demo_test --frames=3000` (гонки
   `--genre=racing --frames=4000`, `--seed=N`, `--setting=N`; трасса по сиду текстом
   `Godot --headless --path thegames -s debug/tools/dump_track.gd -- <seed>`; шутер
   `--genre=shooter --frames=6000`, арена и волны текстом `debug/tools/dump_arena.gd -- <seed>`;

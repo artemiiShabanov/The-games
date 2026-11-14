@@ -30,7 +30,7 @@ func _run() -> void:
 	await _doorway()
 	await _flood_fill()
 	await _tune()
-	await _beam()
+	await _spot()
 	await _pause_hover()
 	await _pill()
 	_close()
@@ -224,17 +224,17 @@ func _tune() -> void:
 	_check(game.mouse_last_action != GameInput.A, "tune: клик жмёт A, а фиксация теперь сама")
 
 
-func _beam() -> void:
-	await _open(&"beam")
-	var angle := float(game.get("emitter_angle"))
-	var turn := 0.8 if angle < 0.0 else -0.8
-	var aim := Vector2(200, 550) + Vector2.from_angle(angle + turn) * 250.0
-	await _button(aim, MOUSE_BUTTON_LEFT, true)
-	await _frames(20)
-	await _button(aim, MOUSE_BUTTON_LEFT, false)
-	_check(absf(float(game.get("emitter_angle")) - angle) > 0.2, "beam: зажатая кнопка не ведёт луч к курсору")
-	await _click(Vector2(960, 540), MOUSE_BUTTON_RIGHT)
-	_check(game.mouse_last_action == GameInput.B and is_equal_approx(float(game.get("emitter_angle")), float(game.get("start_emitter"))), "beam: правая не вернула к началу")
+func _spot() -> void:
+	await _open(&"spot")
+	var cell := Vector2i(1, 2)
+	await _move((game.call("_cell_rect", 1, cell) as Rect2).get_center())
+	_check(game.get("cursor") == cell, "spot: наведение на правую картинку не двигает рамку")
+	await _move((game.call("_cell_rect", 0, Vector2i(4, 3)) as Rect2).get_center())
+	_check(game.get("cursor") == Vector2i(4, 3), "spot: наведение на левую картинку не двигает рамку")
+	var before := int(game.get("found")) + int(game.get("errors"))
+	await _click((game.call("_cell_rect", 1, cell) as Rect2).get_center())
+	_check(game.mouse_last_action == GameInput.A, "spot: клик не отмечает")
+	_check(int(game.get("found")) + int(game.get("errors")) == before + 1, "spot: отметка не засчитана")
 
 
 ## Наведение на кнопку паузы переносит фокус.
