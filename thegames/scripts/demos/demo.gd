@@ -769,7 +769,8 @@ func _shell_input(event: InputEvent) -> bool:
 		return false
 	if MouseUi.is_mouse(event):
 		return false
-	if GameInput.is_b(event):
+	# Esc закрывает паузу так же, как открыл (плейтест 2026-11-14, #132).
+	if GameInput.is_b(event) or _is_escape(event):
 		_resume()
 	elif GameInput.is_a(event):
 		if _menu_index == 0:
@@ -918,7 +919,7 @@ func _build_overlay() -> void:
 	_menu_hint.add_child(hint_row)
 	hint_row.add_child(HintPill.make("%s %s выбрать · %s подтвердить · %s вернуться" % [
 			GameInput.key(GameInput.LEFT), GameInput.key(GameInput.RIGHT),
-			GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
+			GameInput.key(GameInput.A), "Esc"]))
 	_menu_hint.visible = false
 	column.add_child(_menu_hint)
 	MouseUi.pass_through(_overlay)

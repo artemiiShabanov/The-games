@@ -270,16 +270,15 @@ func _on_end(goal: bool) -> void:
 		AutoTest.note("racing perf (среднее/максимум): " + _perf_text())
 
 
-func _result_title(goal: bool) -> String:
-	return "добрался первым" if goal else "не добрался"
+## Итог заезда это место игрока; не доехал за предел времени: так и сказано.
+func _result_title(_goal: bool) -> String:
+	return "%d место" % player.place if player.finished else "не доехал"
 
 
 func _result_caption() -> String:
 	var t := int(round(race_time))
 	if player.finished:
-		return "место %d из %d · %d с" % [player.place, CARS, t]
-	if bots_finished >= CARS - 1:
-		return "все соперники финишировали раньше · %d с" % t
+		return "из %d · %d с" % [CARS, t]
 	return "круг не пройден за %d с" % t
 
 
@@ -533,9 +532,9 @@ func _track_progress(c: Car) -> void:
 	if c.player:
 		end_demo(c.place == 1)
 	else:
+		# Соперники приехали, игрок доезжает круг: итог покажет его место (плейтест
+		# 2026-11-14, #132). Заезд обрывает только предел времени.
 		bots_finished += 1
-		if bots_finished >= CARS - 1 and not player.finished:
-			end_demo(false)
 
 
 ## Бот ведёт шлюпку по средней линии со сдвигом `lane`: цель на несколько точек вперёд,

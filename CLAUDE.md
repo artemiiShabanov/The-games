@@ -31,7 +31,7 @@
   не из дебаг-меню, а `--t=<0..1>` и `--seed=<n>` (по умолчанию 0 и 1). Прототипы
   мини-игр на пробу кладутся в `resources/minigames/proto/`: в планы не попадают, видны в
   дебаг-меню и `--minigame=<id>`. Демка: `--scene=demo_test --frames=3000` (гонки
-  `--genre=racing --frames=4000`, `--seed=N`, `--setting=N`; трасса по сиду текстом
+  `--genre=racing --frames=9000`, `--seed=N`, `--setting=N`; трасса по сиду текстом
   `Godot --headless --path thegames -s debug/tools/dump_track.gd -- <seed>`; шутер
   `--genre=shooter --frames=6000`, арена и волны текстом `debug/tools/dump_arena.gd -- <seed>`;
   гольф `--genre=sport --frames=9000`, поле текстом `debug/tools/dump_course.gd -- <seed>`;

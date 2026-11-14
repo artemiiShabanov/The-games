@@ -1394,6 +1394,30 @@ def png_bytes(width, height, rgba_rows):
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
 
 
+# Персонажи обводятся целиком (плейтест 2026-11-14, #132): где цветной пиксель касается
+# прозрачного, прозрачный становится чёрным. Раньше обводки не хватало между ног в кадрах бега
+# и у врагов снизу. Шлейф рывка у космоса и замков это не тело, его не трогаем.
+OUTLINED = ("hero_", "enemy_", "parrot_", "shoot_hero", "shoot_gunner", "golf_hero", "fight_hero", "fight_rival")
+OUTLINE_SKIP = {("space", "hero_dash"), ("castles", "hero_dash")}
+
+
+def outlined(set_name, name, rows, dark="K"):
+    """Спрайт персонажа с замкнутой обводкой; остальные спрайты как есть."""
+    if not name.startswith(OUTLINED) or (set_name, name) in OUTLINE_SKIP:
+        return rows
+    h, w = len(rows), len(rows[0])
+    out = [list(r) for r in rows]
+    for y in range(h):
+        for x in range(w):
+            if rows[y][x] in (".", dark):
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < w and 0 <= ny < h and rows[ny][nx] == ".":
+                    out[ny][nx] = dark
+    return ["".join(r) for r in out]
+
+
 def sets():
     """Наборы: имя папки сеттинга → (палитра, спрайты)."""
     return {
@@ -1428,7 +1452,7 @@ def main():
         assert PLATFORMER_SLOTS <= set(sprites) <= set(SPRITES), "у %s не те слоты: %s" % (
             set_name, (PLATFORMER_SLOTS - set(sprites)) | (set(sprites) - set(SPRITES)))
         for name, rows in sprites.items():
-            w, h, px = render(rows, 1, palette)
+            w, h, px = render(outlined(set_name, name, rows), 1, palette)
             with open(os.path.join(out, name + ".png"), "wb") as f:
                 f.write(png_bytes(w, h, px))
         print("%s: спрайтов %d в %s" % (set_name, len(sprites), os.path.relpath(out, ROOT)))
@@ -1454,7 +1478,7 @@ def main():
                     if name not in sprites:
                         ox += len(SPRITES[name][0]) * scale + 8
                         continue
-                    w, h, px = render(sprites[name], scale, palette)
+                    w, h, px = render(outlined(set_name, name, sprites[name]), scale, palette)
                     for y in range(h):
                         for x in range(w):
                             p = px[y][x * 4:x * 4 + 4]
