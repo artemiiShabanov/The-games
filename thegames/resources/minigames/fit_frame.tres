@@ -5,22 +5,22 @@
 
 [sub_resource type="Curve" id="Curve_lxmw3"]
 _limits = [0.99, 1.5, 0.0, 1.0]
-_data = [Vector2(0, 1.5), 0.0, 0.0, 0, 0, Vector2(1, 1.1), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 1.4), 0.0, 0.0, 0, 0, Vector2(1, 1.1), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_p32do"]
 _limits = [0.33, 0.53, 0.0, 1.0]
-_data = [Vector2(0, 0.33), 0.0, 0.0, 0, 0, Vector2(1, 0.53), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.38), 0.0, 0.0, 0, 0, Vector2(1, 0.53), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_a24ub"]
 _limits = [0.99, 8.0, 0.0, 1.0]
-_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 6.5), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_6i35d"]
-_limits = [0.99, 8.0, 0.0, 1.0]
-_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
+_limits = [0.99, 7.0, 0.0, 1.0]
+_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 7), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [resource]

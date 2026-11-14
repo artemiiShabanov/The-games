@@ -12,7 +12,11 @@ extends Minigame
 enum State { NONE, RISING, READY, HIT, MISS, SINK }
 
 const MIN_SIDES := 3
-const MAX_SIDES := 8
+## Семь сторон самое большее: восьмиугольник от семиугольника на глаз не отличить (плейтест
+## 2026-11-14, #131).
+const MAX_SIDES := 7
+## Соседние фигуры отличаются не больше, чем на столько сторон.
+const SIDES_JUMP := 2
 const SHAPE_R := 84.0
 const STENCIL_R := 110.0
 const STENCIL_WIDTH := 22.0
@@ -148,10 +152,14 @@ func _bot_step(_delta: float) -> bool:
 
 func _spawn() -> void:
 	spawned += 1
-	var sides := rng.randi_range(MIN_SIDES, sides_max)
-	if sides == cur_sides and sides_max > MIN_SIDES:
-		sides = MIN_SIDES + (sides - MIN_SIDES + 1) % (sides_max - MIN_SIDES + 1)
-	cur_sides = sides
+	# Не та же, что прошлая, и не дальше `SIDES_JUMP` сторон от неё (первая считает от
+	# трафарета): после семиугольника не бывает сразу треугольника.
+	var prev := cur_sides if spawned > 1 else stencil_sides
+	var options: Array[int] = []
+	for n in range(maxi(MIN_SIDES, prev - SIDES_JUMP), mini(sides_max, prev + SIDES_JUMP) + 1):
+		if n != prev or spawned == 1:
+			options.append(n)
+	cur_sides = options[rng.randi_range(0, options.size() - 1)]
 	cur_color = rng.randi_range(0, 1)
 	var a := rng.randf_range(0.0, TAU)
 	cur_origin = Vector2(cos(a), sin(a)) * rng.randf_range(0.0, SPAWN_SPREAD)
