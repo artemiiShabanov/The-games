@@ -72,10 +72,10 @@ func _trim_sound(node: Node) -> void:
 
 
 ## Сыграть звук общего набора (`MiniSfx`) без своего плеера: плеер заводится при первом вызове.
-func sfx(kind: MiniSfx.Kind, freq := 0.0, pitch := 1.0) -> void:
+func sfx(kind: MiniSfx.Kind, freq := 0.0, pitch := 1.0, volume_db := 0.0) -> void:
 	var key := Vector2(kind, freq)
 	if not _sfx.has(key):
-		_sfx[key] = MiniSfx.player(kind, freq)
+		_sfx[key] = MiniSfx.player(kind, freq, volume_db)
 		add_child(_sfx[key])
 	var p := _sfx[key]
 	p.pitch_scale = pitch

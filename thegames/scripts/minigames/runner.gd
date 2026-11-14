@@ -66,7 +66,8 @@ func _on_start() -> void:
 	combo_share = def.param(&"combo_share", t, 0.0)
 	track_length = RUN_SECONDS * speed
 	_build_track()
-	_jump_sound = MiniSfx.tap(560.0)
+	# Прыжок и приземление упругие: один шлёп, приземление тяжелее и тише.
+	_jump_sound = MiniSfx.squish(150.0)
 	_fall_sound = MiniSfx.miss()
 	_finish_sound = MiniSfx.win()
 	add_child(_jump_sound)
@@ -184,6 +185,7 @@ func _on_tick(delta: float) -> void:
 		air_time += delta
 		if dot_y >= 0.0:
 			jelly.land(world_x, vel_y)
+			sfx(MiniSfx.Kind.SQUISH, 80.0, 1.0, -5.0)
 			dot_y = 0.0
 			vel_y = 0.0
 			grounded = true

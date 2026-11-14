@@ -166,7 +166,7 @@ func _run_sprint(def: MinigameDef) -> void:
 		AutoTest.end_hand()
 		var offer := not success and plan.replay_left > 0
 		result_card = _make_result_card(def, success, plan.replay_left if offer else 0)
-		await _switch_view(result_card)
+		await _switch_view(result_card, false)
 		_minigame = null
 		ShellSounds.play(&"done" if success else &"bug")
 		if not success and not Debug.skip_cards:
@@ -241,13 +241,15 @@ func _set_view(view: Control) -> void:
 		_content.add_child(view)
 
 
-## Сменить содержимое карточки сдвигом справа налево: старое уходит влево и гаснет.
-func _switch_view(view: Control) -> void:
+## Сменить содержимое карточки сдвигом справа налево: старое уходит влево и гаснет. Уход
+## мини-игры к результату без шуха (`sound` false, плейтест 2026-11-14, #131): там уже звучит
+## сам результат.
+func _switch_view(view: Control, sound := true) -> void:
 	var old := _view
 	_view = view
 	_fit_view(view)
 	_content.add_child(view)
-	if old != null and not Debug.skip_cards:
+	if sound and old != null and not Debug.skip_cards:
 		ShellSounds.play(&"switch")
 	if Debug.skip_cards or old == null:
 		if old != null:
