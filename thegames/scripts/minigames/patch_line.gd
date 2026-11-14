@@ -171,17 +171,26 @@ func _under_cursor() -> Block:
 	return null
 
 
+## Блоки, которых касается гнездо курсора (оно шириной в блок), слева направо.
+func _touched() -> Array[Block]:
+	var cx := _cursor_x()
+	var out: Array[Block] = []
+	for b in blocks:
+		if b.x < cx + BLOCK / 2.0 and b.x + BLOCK > cx - BLOCK / 2.0:
+			out.append(b)
+	return out
+
+
+## Нажатие достаётся самому левому из задетых курсором блоков, которому оно подходит (плейтест
+## 2026-11-14, #131): блок, с которого курсор уже съезжает, ещё можно поправить, а два одинаково
+## сдвинутых подряд берутся двумя быстрыми нажатиями. Никому не подошло: дёргается блок под
+## курсором.
 func _press(dir: int) -> void:
-	var b := _under_cursor()
-	if b == null or b.fixed or b.missed:
-		return
-	if b.shift == 0:
-		b.shake = SHAKE_SECONDS
-		_wrong.play()
-		_jelly_wrong(b, dir)
-		return
-	# Сдвинут вверх: нужна стрелка вниз, и наоборот; двойной сдвиг сходит на один за нажатие.
-	if dir == -signi(b.shift):
+	var touched := _touched()
+	for b in touched:
+		# Сдвинут вверх: нужна стрелка вниз, и наоборот; двойной сдвиг сходит на один за нажатие.
+		if b.fixed or b.missed or b.shift == 0 or dir != -signi(b.shift):
+			continue
 		b.shift -= signi(b.shift)
 		b.move_dir = dir
 		_click.play()
@@ -191,10 +200,15 @@ func _press(dir: int) -> void:
 			b.fixed = true
 			b.pop = POP_SECONDS
 			fixed_count += 1
-	else:
-		b.shake = SHAKE_SECONDS
-		_wrong.play()
-		_jelly_wrong(b, dir)
+		return
+	var under := _under_cursor()
+	if under == null and not touched.is_empty():
+		under = touched[0]
+	if under == null or under.fixed or under.missed:
+		return
+	under.shake = SHAKE_SECONDS
+	_wrong.play()
+	_jelly_wrong(under, dir)
 
 
 func _on_tick(delta: float) -> void:
