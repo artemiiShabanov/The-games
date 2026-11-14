@@ -6,8 +6,8 @@ extends Minigame
 ## хлопком, иначе бьётся о фигуру. `WALLS` стен, две непройденные это провал.
 ## Параметры от `t` в `resources/minigames/doorway.tres`: travel (сколько секунд едет стена), gap
 ## (зазор, градусы в каждую сторону), hard (доля фигур без симметрии: стрелка, уголок, домик
-## и другие), tricky (доля фигур-обманок: почти симметричные, верное положение выдаёт одна
-## мелкая примета, плейтест 2026-11-14, #131).
+## и другие), tricky (доля сложных фигур, плейтест 2026-11-14, #131: обманки, симметричные с
+## одной мелкой приметой, и замудрённые, спираль, змея, ключ и подобные; на `t` 1 только они).
 ## Вид как у всех мини-игр, в стиле оболочки: рендера технологии здесь нет (решение
 ## 2026-11-11). Мармелад: фигура вздрагивает от прохода и трясётся от удара, стена после
 ## прохода тает, проход брызгает каплями.
@@ -100,6 +100,45 @@ const SHAPES := {
 			Vector2(0, 1), Vector2(-0.283, 0.283), Vector2(-1, 0), Vector2(-0.283, -0.283)], 1],
 	&"bowtie_chip": [[Vector2(-0.9, -0.7), Vector2(0, -0.2), Vector2(0.72, -0.6), Vector2(0.9, -0.5),
 			Vector2(0.9, 0.7), Vector2(0, 0.2), Vector2(-0.9, 0.7)], 1],
+	# Замудрённые: много изгибов и лучей, положение одно.
+	&"spiral": [[Vector2(0.11, 0.05), Vector2(0.11, -0.29), Vector2(0.34, -0.29), Vector2(0.34, 0.34),
+			Vector2(-0.34, 0.34), Vector2(-0.34, -0.74), Vector2(0.77, -0.74), Vector2(0.77, 0.88),
+			Vector2(0.99, 0.88), Vector2(0.99, -0.96), Vector2(-0.56, -0.96), Vector2(-0.56, 0.56),
+			Vector2(0.56, 0.56), Vector2(0.56, -0.51), Vector2(-0.11, -0.51), Vector2(-0.11, 0.05)], 1],
+	&"snake": [[Vector2(-0.961, 0.057), Vector2(-0.893, 0.11), Vector2(-0.825, 0.167), Vector2(-0.753, 0.224),
+			Vector2(-0.677, 0.276), Vector2(-0.594, 0.317), Vector2(-0.502, 0.34), Vector2(-0.405, 0.337),
+			Vector2(-0.31, 0.306), Vector2(-0.22, 0.252), Vector2(-0.137, 0.18), Vector2(-0.059, 0.096),
+			Vector2(0.017, 0.007), Vector2(0.09, -0.081), Vector2(0.159, -0.159), Vector2(0.221, -0.218),
+			Vector2(0.272, -0.25), Vector2(0.302, -0.257), Vector2(0.319, -0.253), Vector2(0.346, -0.235),
+			Vector2(0.392, -0.188), Vector2(0.449, -0.108), Vector2(0.511, -0.001), Vector2(0.577, 0.123),
+			Vector2(0.645, 0.254), Vector2(0.717, 0.384), Vector2(0.788, 0.495), Vector2(1.052, 0.314),
+			Vector2(0.982, 0.217), Vector2(0.912, 0.104), Vector2(0.838, -0.022), Vector2(0.763, -0.15),
+			Vector2(0.684, -0.27), Vector2(0.599, -0.376), Vector2(0.503, -0.46), Vector2(0.389, -0.514),
+			Vector2(0.264, -0.518), Vector2(0.153, -0.474), Vector2(0.062, -0.403), Vector2(-0.017, -0.318),
+			Vector2(-0.09, -0.225), Vector2(-0.158, -0.131), Vector2(-0.224, -0.043), Vector2(-0.287, 0.033),
+			Vector2(-0.346, 0.092), Vector2(-0.398, 0.131), Vector2(-0.444, 0.151), Vector2(-0.489, 0.157),
+			Vector2(-0.539, 0.15), Vector2(-0.597, 0.128), Vector2(-0.663, 0.091), Vector2(-0.732, 0.044),
+			Vector2(-0.805, -0.007), Vector2(-0.879, -0.057)], 1],
+	&"wild_star": [[Vector2(0, -1), Vector2(0.109, -0.301), Vector2(0.386, -0.46), Vector2(0.277, -0.16),
+			Vector2(0.837, -0.148), Vector2(0.315, 0.056), Vector2(0.476, 0.275), Vector2(0.206, 0.245),
+			Vector2(0.325, 0.893), Vector2(0, 0.32), Vector2(-0.239, 0.658), Vector2(-0.206, 0.245),
+			Vector2(-0.52, 0.3), Vector2(-0.315, 0.056), Vector2(-0.886, -0.156), Vector2(-0.277, -0.16),
+			Vector2(-0.482, -0.575), Vector2(-0.109, -0.301)], 1],
+	&"key": [[Vector2(-0.155, 0.144), Vector2(-0.291, 0.331), Vector2(-0.506, 0.418), Vector2(-0.734, 0.377),
+			Vector2(-0.906, 0.223), Vector2(-0.97, 0), Vector2(-0.906, -0.223), Vector2(-0.734, -0.377),
+			Vector2(-0.506, -0.418), Vector2(-0.291, -0.331), Vector2(-0.155, -0.144), Vector2(0.95, -0.144),
+			Vector2(0.95, 0.45), Vector2(0.75, 0.45), Vector2(0.75, 0.144), Vector2(0.55, 0.144),
+			Vector2(0.55, 0.35), Vector2(0.4, 0.35), Vector2(0.4, 0.144)], 1],
+	&"bolt": [[Vector2(0.1, -1), Vector2(0.6, -1), Vector2(0.2, -0.25), Vector2(0.6, -0.25),
+			Vector2(-0.3, 1), Vector2(-0.05, 0.1), Vector2(-0.5, 0.1)], 1],
+	&"comb": [[Vector2(-0.9, 0.7), Vector2(-0.9, -0.5), Vector2(-0.6, -0.5), Vector2(-0.6, 0.3),
+			Vector2(-0.3, 0.3), Vector2(-0.3, -0.9), Vector2(0, -0.9), Vector2(0, 0.3),
+			Vector2(0.3, 0.3), Vector2(0.3, -0.2), Vector2(0.6, -0.2), Vector2(0.6, 0.3),
+			Vector2(0.9, 0.3), Vector2(0.9, 0.7)], 1],
+	&"maze": [[Vector2(-0.93, -0.8), Vector2(-0.93, 0.23), Vector2(-0.07, 0.23), Vector2(-0.07, -0.47),
+			Vector2(0.37, -0.47), Vector2(0.37, 0.67), Vector2(-0.5, 0.67), Vector2(-0.5, 0.93),
+			Vector2(0.63, 0.93), Vector2(0.63, -0.73), Vector2(-0.33, -0.73), Vector2(-0.33, -0.03),
+			Vector2(-0.67, -0.03), Vector2(-0.67, -0.8)], 1],
 }
 const EASY: Array[StringName] = [&"bar", &"triangle", &"plus", &"rhombus", &"zee", &"star",
 		&"square", &"bowtie", &"star4", &"aitch", &"tristar"]
@@ -107,6 +146,8 @@ const HARD: Array[StringName] = [&"arrow", &"ell", &"house", &"tee", &"kite", &"
 		&"trapezoid", &"flag", &"cup", &"wedge", &"drop", &"hook"]
 const TRICKY: Array[StringName] = [&"plus_step", &"square_chip", &"square_nub", &"triangle_chip", &"star_blunt", &"bar_notch",
 		&"rhombus_chip", &"aitch_short", &"star4_blunt", &"bowtie_chip"]
+const FANCY: Array[StringName] = [&"spiral", &"snake", &"wild_star", &"key", &"bolt", &"comb",
+		&"maze"]
 
 var travel := 2.9
 var gap := 22.0
@@ -162,7 +203,7 @@ func _on_start() -> void:
 ## Новая стена: фигура по сложности, вырез повёрнут от неё заметно в случайную сторону.
 func _next_wall() -> void:
 	var roll := rng.randf()
-	var pool := TRICKY if roll < tricky_share else (HARD if rng.randf() < hard_share else EASY)
+	var pool := TRICKY + FANCY if roll < tricky_share else (HARD if rng.randf() < hard_share else EASY)
 	# Не та же фигура два раза подряд.
 	var prev := shape if wall > 0 else &""
 	shape = pool[rng.randi_range(0, pool.size() - 1)]
