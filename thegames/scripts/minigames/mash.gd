@@ -7,7 +7,7 @@ extends Minigame
 ## из `»` моноширинным шрифтом. Параметры от `t` в `resources/minigames/mash.tres`: pull
 ## (жёсткость резинки), finish (финиш долей полосы).
 ## Мармелад: бегунок мягкое тело, от толчка вздрагивает и наклоняется вперёд, клавиши
-## поджимаются от нажатия, резинка от натяжения истончается посередине, краснеет и на пределе дрожит, а бегунка оттягивает
+## поджимаются от нажатия, резинка от натяжения быстро краснеет и всё сильнее дрожит, а бегунка оттягивает
 ## назад каплей; на финише брызги, на
 ## провале резинка утаскивает бегунка к столбику.
 ## Мышь (#83): левая кнопка ←, правая →, чередовать.
@@ -24,13 +24,14 @@ const TRAIL_STEP := 40.0
 const BOT_RATE_WIN := 11.0
 const BOT_RATE_LOSE := 4.0
 const STEP_PITCHES := 8
-## Резинка: толщина у концов, в середине без натяжения и на пределе; с какого натяжения и на
-## сколько пикселей дрожит.
-const BAND_END := 24.0
-const BAND_SLACK := 20.0
-const BAND_TAUT := 2.0
-const BAND_BUZZ_FROM := 0.55
-const BAND_BUZZ_PX := 5.0
+## Резинка: толщина без натяжения и на пределе; при каком натяжении она уже совсем красная; с
+## какого натяжения и на сколько пикселей дрожит. `TAIL_ROOT` толщина хвоста бегунка у нити.
+const BAND_SLACK := 10.0
+const BAND_TAUT := 4.0
+const BAND_RED_AT := 0.5
+const BAND_BUZZ_FROM := 0.2
+const BAND_BUZZ_PX := 11.0
+const TAIL_ROOT := 14.0
 const BAND_POINTS := 24
 ## Хвост бегунка на пределе натяжения, px.
 const TAIL_PX := 64.0
@@ -206,26 +207,18 @@ func _process(delta: float) -> void:
 
 # --- Рисование --------------------------------------------------------------------------------
 
-## Резинка лентой от `from` до `to`: у концов толщиной `BAND_END`, в середине от `BAND_SLACK`
-## (не натянута) до `BAND_TAUT` (на пределе); с `BAND_BUZZ_FROM` натяжения дрожит поперёк.
+## Резинка нитью от `from` до `to`: с натяжением тоньше, быстро краснеет и дрожит струной всё
+## сильнее (плейтест 2026-11-14, #131: проще ленты, краснее и заметнее трясётся).
 func _draw_band(from: Vector2, to: Vector2, stretch: float) -> void:
 	if to.x - from.x < 2.0:
 		return
-	var color := Style.INK_3.lerp(Style.DANGER, stretch)
-	var mid_w := lerpf(BAND_SLACK, BAND_TAUT, stretch)
-	var buzz := BAND_BUZZ_PX * smoothstep(BAND_BUZZ_FROM, 1.0, stretch) * sin(elapsed * 85.0) if running else 0.0
-	var top := PackedVector2Array()
-	var bottom := PackedVector2Array()
+	var color := Style.INK_3.lerp(Style.DANGER, clampf(stretch / BAND_RED_AT, 0.0, 1.0))
+	var buzz := BAND_BUZZ_PX * smoothstep(BAND_BUZZ_FROM, 1.0, stretch) * sin(elapsed * 95.0) if running else 0.0
+	var pts := PackedVector2Array()
 	for i in BAND_POINTS + 1:
 		var u := float(i) / BAND_POINTS
-		var belly := sin(PI * u)
-		var at := from.lerp(to, u) + Vector2(0.0, buzz * belly)
-		var half := lerpf(BAND_END, mid_w, pow(belly, 0.6)) / 2.0
-		top.append(at - Vector2(0.0, half))
-		bottom.append(at + Vector2(0.0, half))
-	bottom.reverse()
-	top.append_array(bottom)
-	draw_colored_polygon(top, color)
+		pts.append(from.lerp(to, u) + Vector2(0.0, buzz * sin(PI * u)))
+	draw_polyline(pts, color, lerpf(BAND_SLACK, BAND_TAUT, stretch), true)
 
 
 func _draw() -> void:
@@ -240,10 +233,10 @@ func _draw() -> void:
 	var filled := Rect2(r.position, Vector2(rp.x - r.position.x + RUNNER_R, r.size.y))
 	Style.flat(Color(Style.accent(0), 0.18), Style.R_PILL, Color.TRANSPARENT, 0).draw(ci, filled)
 	# Финиш: шашечки поперёк полосы.
-	# Игра кончается, когда бегунок пересёк шашечки целиком, а не коснулся их (плейтест
-	# 2026-11-14, #131): полоса стоит левее, дистанция та же.
+	# Игра кончается, когда правый край бегунка дошёл до правого края шашечек (плейтест
+	# 2026-11-14, #131): полоса стоит левее на свою ширину, дистанция та же.
 	var cell := r.size.y / 6.0
-	var fx := lerpf(r.position.x + RUNNER_R + 12.0, r.end.x - RUNNER_R - 12.0, finish_at) - RUNNER_R - 2.0 * cell
+	var fx := lerpf(r.position.x + RUNNER_R + 12.0, r.end.x - RUNNER_R - 12.0, finish_at) + RUNNER_R - 2.0 * cell
 	for j in 6:
 		for k in 2:
 			if (j + k) % 2 == 0:
@@ -270,8 +263,8 @@ func _draw() -> void:
 	if stretch > 0.05 and _outcome == 0:
 		draw_colored_polygon(PackedVector2Array([
 			rp + Vector2(-RUNNER_R * 0.3, -RUNNER_R * 0.92),
-			rp + Vector2(-RUNNER_R - TAIL_PX * stretch, -BAND_END * 0.3),
-			rp + Vector2(-RUNNER_R - TAIL_PX * stretch, BAND_END * 0.3),
+			rp + Vector2(-RUNNER_R - TAIL_PX * stretch, -TAIL_ROOT / 2.0),
+			rp + Vector2(-RUNNER_R - TAIL_PX * stretch, TAIL_ROOT / 2.0),
 			rp + Vector2(-RUNNER_R * 0.3, RUNNER_R * 0.92)]), color)
 	if jelly:
 		_rings.draw(self)
