@@ -107,10 +107,10 @@ func _on_start() -> void:
 	flip_moves = int(round(def.param(&"flip", t, 12.0)))
 	if flip_moves >= FLIP_NEVER:
 		flip_moves = 0
-	_step_sound = Sfx.player(Sfx.blip(700.0, 0.04, 0.2, 50.0))
-	_bump = Sfx.player(Sfx.thud(0.08, 0.35))
-	_done_sound = Sfx.player(Sfx.blip(880.0, 0.18, 0.45, 12.0))
-	_flip_sound = Sfx.player(Sfx.blip(440.0, 0.12, 0.3, 18.0))
+	_step_sound = MiniSfx.tap(700.0, -5.0)
+	_bump = MiniSfx.squish()
+	_done_sound = MiniSfx.win()
+	_flip_sound = MiniSfx.tap(440.0)
 	for p in [_step_sound, _bump, _done_sound, _flip_sound]:
 		add_child(p)
 	_new_maze()

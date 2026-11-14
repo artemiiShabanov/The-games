@@ -83,9 +83,9 @@ func _on_start() -> void:
 	gap = def.param(&"gap", t, 50.0)
 	reverse = def.param(&"reverse", t, 0.0)
 	_bot_rng.seed = hash(str(rng.seed, ":rings_bot"))
-	_set_sound = Sfx.player(Sfx.blip(660.0, 0.08, 0.4, 30.0))
-	_jam_sound = Sfx.player(Sfx.thud())
-	_open_sound = Sfx.player(Sfx.blip(988.0, 0.2, 0.5, 10.0))
+	_set_sound = MiniSfx.hit(330.0)
+	_jam_sound = MiniSfx.miss()
+	_open_sound = MiniSfx.win()
 	for p in [_set_sound, _jam_sound, _open_sound]:
 		add_child(p)
 	for i in RINGS:

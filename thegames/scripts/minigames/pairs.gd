@@ -62,9 +62,9 @@ var _fx := SplashFx.new()
 func _on_start() -> void:
 	cols = clampi(int(round(def.param(&"cols", t, 3.0))), 2, 5)
 	close_seconds = def.param(&"close", t, 1.0)
-	_flip_sound = Sfx.player(Sfx.blip(760.0, 0.05, 0.25, 40.0))
-	_match_sound = Sfx.player(Sfx.blip(990.0, 0.14, 0.4, 16.0))
-	_miss_sound = Sfx.player(Sfx.thud(0.1, 0.35))
+	_flip_sound = MiniSfx.tap(760.0, -3.0)
+	_match_sound = MiniSfx.hit(494.0)
+	_miss_sound = MiniSfx.miss(220.0, -3.0)
 	for p in [_flip_sound, _match_sound, _miss_sound]:
 		add_child(p)
 	var n := cols * ROWS

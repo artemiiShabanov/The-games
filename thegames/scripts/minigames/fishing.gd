@@ -59,8 +59,8 @@ var _end_age := 0.0
 func _on_start() -> void:
 	sharp = clampf(def.param(&"sharp", t, 0.4), 0.05, 1.0)
 	bar_size = clampf(def.param(&"bar", t, 0.28), 0.08, 0.6)
-	_tick = Sfx.player(Sfx.blip(1200.0, 0.03, 0.12, 50.0))
-	_win = Sfx.player(Sfx.blip(990.0, 0.3, 0.45, 8.0))
+	_tick = MiniSfx.tap(880.0, -8.0)
+	_win = MiniSfx.win()
 	add_child(_tick)
 	add_child(_win)
 	ball = 0.5

@@ -90,10 +90,10 @@ func _on_start() -> void:
 	interval = def.param(&"interval", t, 1.0)
 	up_seconds = def.param(&"up", t, 1.2)
 	pair_chance = def.param(&"pair", t, 0.0)
-	_pop_sound = Sfx.player(Sfx.blip(440.0, 0.06, 0.25, 40.0))
-	_hit_sound = Sfx.player(Sfx.blip(784.0, 0.12, 0.5, 16.0))
-	_miss_sound = Sfx.player(Sfx.thud())
-	_whiff_sound = Sfx.player(Sfx.thud(0.08, 0.25))
+	_pop_sound = MiniSfx.tap(440.0, -3.0)
+	_hit_sound = MiniSfx.hit(392.0)
+	_miss_sound = MiniSfx.miss()
+	_whiff_sound = MiniSfx.tap(200.0)
 	for p in [_pop_sound, _hit_sound, _miss_sound, _whiff_sound]:
 		add_child(p)
 	for i in HOLES:
@@ -146,6 +146,7 @@ func _press(i: int) -> void:
 			hits += 1
 			_set_state(i, State.HIT)
 			_hit_sound.play()
+			sfx(MiniSfx.Kind.SQUISH)
 			_jelly_hit(i)
 		State.EMPTY:
 			whiffs += 1

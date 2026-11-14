@@ -43,6 +43,7 @@ var mouse_last_action := &""
 var _mouse_held: Dictionary[int, StringName] = {}
 
 var _done := false
+var _sfx: Dictionary[Vector2, AudioStreamPlayer] = {}
 var _timer_bar: ColorRect
 var _pause_overlay: Control
 var _resume_button: PanelContainer
@@ -68,6 +69,17 @@ func _trim_sound(node: Node) -> void:
 	var player := node as AudioStreamPlayer
 	if player != null:
 		player.volume_db += SFX_TRIM_DB
+
+
+## Сыграть звук общего набора (`MiniSfx`) без своего плеера: плеер заводится при первом вызове.
+func sfx(kind: MiniSfx.Kind, freq := 0.0, pitch := 1.0) -> void:
+	var key := Vector2(kind, freq)
+	if not _sfx.has(key):
+		_sfx[key] = MiniSfx.player(kind, freq)
+		add_child(_sfx[key])
+	var p := _sfx[key]
+	p.pitch_scale = pitch
+	p.play()
 
 
 func start() -> void:

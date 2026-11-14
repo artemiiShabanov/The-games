@@ -66,9 +66,9 @@ func _on_start() -> void:
 	combo_share = def.param(&"combo_share", t, 0.0)
 	track_length = RUN_SECONDS * speed
 	_build_track()
-	_jump_sound = Sfx.player(Sfx.blip(560.0, 0.1, 0.3, 24.0))
-	_fall_sound = Sfx.player(Sfx.thud(0.18, 0.5))
-	_finish_sound = Sfx.player(Sfx.blip(880.0, 0.3, 0.45, 8.0))
+	_jump_sound = MiniSfx.tap(560.0)
+	_fall_sound = MiniSfx.miss()
+	_finish_sound = MiniSfx.win()
 	add_child(_jump_sound)
 	add_child(_fall_sound)
 	add_child(_finish_sound)

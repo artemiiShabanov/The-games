@@ -8,8 +8,8 @@ extends Minigame
 ## секунду), width (ширина первого блока), flip (шанс, что блок на проходе развернётся на лету).
 ## Разворот на лету бывает не раньше, чем блок дойдёт передним краем до дальнего края основания
 ## башни (плейтест 2026-11-14, #131): пройти мимо башни, не показавшись над ней целиком, нельзя.
-## Звуки мармеладные из общей библиотеки `Sfx`: шлепок посадки лесенкой вверх, чвяк обрезка,
-## боньк разворота, унылый съезд промаха.
+## Звуки из общего набора `MiniSfx`: посадка это шлёп и нота этажа лесенкой вверх, разворот на
+## лету шлёп полегче, обрезок тык, промах «мимо».
 ## Вид как у всех мини-игр, в стиле оболочки: рендера технологии здесь нет (решение
 ## 2026-11-11). Мармелад: блоки мягкие тела `JellyShape`, едущий блок тянется за движением и
 ## стоит на бортике как текущий элемент, от посадки вздрагивает он и этаж под ним, а башня
@@ -33,7 +33,7 @@ const MIN_OVERLAP := 6.0
 const FLIP_TO := 0.8
 ## Полутоны шлепка посадки по этажам: пентатоника вверх.
 const STEP_NOTES: Array[int] = [0, 2, 4, 7, 9, 12, 14, 16]
-const STEP_BASE_HZ := 150.0
+const STEP_BASE_HZ := 196.0
 const BASE_BOTTOM := 132.0
 const DOT_R := 9.0
 const DOT_GAP := 34.0
@@ -77,13 +77,13 @@ func _on_start() -> void:
 	start_width = clampf(def.param(&"width", t, 340.0), 120.0, 520.0)
 	flip_chance = clampf(def.param(&"flip", t, 0.0), 0.0, 1.0)
 	for note in STEP_NOTES:
-		var p := Sfx.player(Sfx.plop(STEP_BASE_HZ * pow(2.0, note / 12.0), 0.55, _steps.size()))
+		var p := MiniSfx.hit(STEP_BASE_HZ, 0.0, pow(2.0, note / 12.0))
 		add_child(p)
 		_steps.append(p)
-	_cut = Sfx.player(Sfx.squelch())
-	_miss = Sfx.player(Sfx.droop())
-	_win = Sfx.player(Sfx.blip(990.0, 0.3, 0.45, 8.0))
-	_turn = Sfx.player(Sfx.boing())
+	_cut = MiniSfx.tap(260.0)
+	_miss = MiniSfx.miss()
+	_win = MiniSfx.win()
+	_turn = MiniSfx.squish(140.0, -3.0)
 	var players: Array[AudioStreamPlayer] = [_cut, _miss, _win, _turn]
 	for p in players:
 		add_child(p)
@@ -194,10 +194,9 @@ func _land() -> void:
 	var shape := JellyShape.rect(Vector2(new_w, BLOCK_H), minf(RADIUS, new_w / 2.0))
 	shape.snap(_floor_center(floors_x.size() - 1))
 	_shapes.append(shape)
-	# Высота шлепка чуть гуляет от раза к разу (не из геймплейного rng), и точная посадка звонче.
-	var step := _steps[clampi(placed - 1, 0, _steps.size() - 1)]
-	step.pitch_scale = randf_range(0.96, 1.04) * (1.06 if perfect else 1.0)
-	step.play()
+	# Посадка: упругий шлёп блока о башню и нота этажа поверх.
+	sfx(MiniSfx.Kind.SQUISH)
+	_steps[clampi(placed - 1, 0, _steps.size() - 1)].play()
 	if Jelly.on():
 		shape.poke(-260.0)
 		_shapes[_shapes.size() - 2].poke(-140.0)

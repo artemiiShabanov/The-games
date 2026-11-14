@@ -75,10 +75,10 @@ func _on_start() -> void:
 	fake_share = def.param(&"fake_share", t, 0.0)
 	for i in KEYS.size():
 		lit_color.append(Style.accent(0))
-		var p := Sfx.player(Sfx.blip(TONES[i], 0.18, 0.45, 14.0))
+		var p := MiniSfx.hit(TONES[0] / 2.0, 0.0, TONES[i] / TONES[0])
 		add_child(p)
 		_players.append(p)
-	_miss_sound = Sfx.player(Sfx.thud())
+	_miss_sound = MiniSfx.miss()
 	add_child(_miss_sound)
 	for i in KEYS.size():
 		_pads.append(JellyShape.rect(Vector2(PAD, PAD), Style.R_CTL))

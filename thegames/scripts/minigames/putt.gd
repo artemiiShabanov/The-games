@@ -118,10 +118,10 @@ func _on_start() -> void:
 	cup_w = def.param(&"cup", t, 160.0)
 	drift_max = def.param(&"drift", t, 0.0)
 	_bot_rng.seed = rng.seed + 7
-	_charge_sound = Sfx.player(Sfx.blip(330.0, 0.06, 0.25, 40.0))
-	_shot_sound = Sfx.player(Sfx.blip(520.0, 0.08, 0.35, 30.0))
-	_hit_sound = Sfx.player(Sfx.blip(784.0, 0.14, 0.5, 14.0))
-	_miss_sound = Sfx.player(Sfx.thud())
+	_charge_sound = MiniSfx.tap(330.0, -4.0)
+	_shot_sound = MiniSfx.tap(520.0)
+	_hit_sound = MiniSfx.hit(392.0)
+	_miss_sound = MiniSfx.miss()
 	for p in [_charge_sound, _shot_sound, _hit_sound, _miss_sound]:
 		add_child(p)
 	for i in HOLES:

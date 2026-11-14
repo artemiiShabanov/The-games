@@ -121,7 +121,7 @@ func _on_tick(delta: float) -> void:
 				cur_age = 0.0
 		State.READY:
 			if cur_age >= hold_seconds:
-				ShellSounds.play(&"miss")
+				sfx(MiniSfx.Kind.MISS)
 				_miss(State.SINK)
 		State.HIT:
 			if cur_age >= HIT_SECONDS:
@@ -171,10 +171,11 @@ func _send(target: int) -> void:
 		flash[target] = FLASH_SECONDS
 		state = State.HIT
 		cur_age = 0.0
-		ShellSounds.play(&"hit")
+		sfx(MiniSfx.Kind.SQUISH)
+		sfx(MiniSfx.Kind.HIT, 196.0, pow(2.0, mini(hits - 1, 8) / 6.0))
 	else:
 		shake[target] = SHAKE_SECONDS
-		ShellSounds.play(&"miss")
+		sfx(MiniSfx.Kind.MISS)
 		jelly_shake[target].kick(900.0 * (1.0 if target == 1 else -1.0))
 		_miss(State.MISS)
 

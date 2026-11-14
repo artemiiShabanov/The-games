@@ -86,7 +86,7 @@ func _on_start() -> void:
 	offset_steps = maxi(int(round(def.param(&"offset", t, 3.0))), 1)
 	two_axes = def.param(&"two_axes", t, 0.0)
 	tolerance = maxi(int(round(def.param(&"tolerance", t, 1.0))), 0)
-	_ok_sound = Sfx.player(Sfx.blip(880.0, 0.18, 0.45, 12.0))
+	_ok_sound = MiniSfx.hit(440.0)
 	add_child(_ok_sound)
 	var gen := AudioStreamGenerator.new()
 	gen.mix_rate = 22050.0

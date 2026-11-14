@@ -99,9 +99,9 @@ func _on_start() -> void:
 	card_seconds = def.param(&"card_seconds", t, 2.4)
 	two_conditions = def.param(&"two", t, 0.0) >= 0.5
 	change_rule = def.param(&"change", t, 0.0) >= 0.5
-	_ok = Sfx.player(Sfx.blip(880.0, 0.08, 0.35, 30.0))
-	_bad = Sfx.player(Sfx.thud(0.14, 0.5))
-	_swap = Sfx.player(Sfx.blip(440.0, 0.15, 0.3, 14.0))
+	_ok = MiniSfx.hit(440.0)
+	_bad = MiniSfx.miss()
+	_swap = MiniSfx.tap(440.0)
 	for p in [_ok, _bad, _swap]:
 		add_child(p)
 	rule = _make_rule(-1)

@@ -95,9 +95,9 @@ func _on_start() -> void:
 	shift_share = def.param(&"shift", t, 0.3)
 	shift_end = def.param(&"shift_end", t, 0.6)
 	double_share = def.param(&"double", t, 0.0)
-	_click = Sfx.player(Sfx.blip(1100.0, 0.06, 0.4, 40.0))
-	_miss_sound = Sfx.player(Sfx.thud(0.16, 0.5))
-	_wrong = Sfx.player(Sfx.blip(220.0, 0.08, 0.25, 30.0))
+	_click = MiniSfx.hit(392.0)
+	_miss_sound = MiniSfx.miss()
+	_wrong = MiniSfx.tap(260.0)
 	for p in [_click, _miss_sound, _wrong]:
 		add_child(p)
 	# Вся лента сразу: столько блоков, чтобы последний подошёл к курсору к концу таймера.

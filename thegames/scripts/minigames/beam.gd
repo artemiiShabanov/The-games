@@ -95,9 +95,9 @@ func _on_start() -> void:
 	target_r = def.param(&"target", t, 60.0)
 	move_amp = def.param(&"move", t, 0.0)
 	use_prism = def.param(&"prism", t, 0.0) >= 0.5
-	_handoff = Sfx.player(Sfx.blip(660.0, 0.08, 0.35, 30.0))
-	_win = Sfx.player(Sfx.blip(990.0, 0.25, 0.45, 10.0))
-	_deny = Sfx.player(Sfx.thud(0.08, 0.3))
+	_handoff = MiniSfx.hit(330.0)
+	_win = MiniSfx.win()
+	_deny = MiniSfx.miss()
 	for p in [_handoff, _win, _deny]:
 		add_child(p)
 	var right := size.x - TARGET_X_FROM_RIGHT

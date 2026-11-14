@@ -70,12 +70,12 @@ func _on_start() -> void:
 	show = clampf(def.param(&"show", t, 0.35), 0.0, 1.0)
 	for i in BALLOONS:
 		_dots.append(JellySpring.new())
-		var p := Sfx.player(Sfx.blip(392.0 * pow(2.0, i / 6.0), 0.12, 0.32, 20.0))
+		var p := MiniSfx.hit(196.0, 0.0, pow(2.0, i / 6.0))
 		add_child(p)
 		_ok_sfx.append(p)
-	_pop_sfx = Sfx.player(Sfx.thud(0.14, 0.5))
-	_low_sfx = Sfx.player(Sfx.blip(180.0, 0.2, 0.35, 9.0))
-	_win_sfx = Sfx.player(Sfx.blip(990.0, 0.3, 0.45, 8.0))
+	_pop_sfx = MiniSfx.miss()
+	_low_sfx = MiniSfx.miss(160.0)
+	_win_sfx = MiniSfx.win()
 	_grow_sfx = Sfx.player(Sfx.hiss(0.2, 0.08))
 	for p: AudioStreamPlayer in [_pop_sfx, _low_sfx, _win_sfx, _grow_sfx]:
 		add_child(p)
