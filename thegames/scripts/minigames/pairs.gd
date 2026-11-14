@@ -1,10 +1,12 @@
 extends Minigame
-## «Запомни» (pairs, технология 8-bit), каталог `docs/specs/minigames_catalog.md`. Два ряда
+## «Запомни» (pairs, технология 8-bit), каталог `docs/specs/minigames_catalog.md`. Поле
 ## закрытых карточек с пиктограммами, курсор стрелками, A открывает; две одинаковые остаются
 ## открытыми, разные закрываются через паузу. Собрать все пары до таймера, иначе провал. С `t`
 ## карточек больше (8 → 14) и они закрываются быстрее. Параметры в
-## `resources/minigames/pairs.tres`: cols (столбцов при двух рядах), close (секунды до закрытия
-## непарных).
+## `resources/minigames/pairs.tres`: cards (число карточек, округляется до чётного), close
+## (секунды до закрытия непарных). Раскладка стремится к квадрату (плейтест 2026-11-14, #131):
+## рядов и столбцов около корня из числа карточек, карточки делятся по рядам поровну, неполные
+## ряды стоят по центру: 8 это 3+3+2, 10 это 4+3+3, 12 это 4+4+4, 14 это 4+4+3+3.
 ## Мармелад (STYLE «Мармелад»): карточки мягкими телами `JellyShape`, курсор показан толщиной
 ## (карточка на бортике темнее себя, подъём пружинит) вместо синей рамки, переворот сжимает
 ## карточку по ширине и она садится вздрогом, пара вздрагивает обеими и брызгает мягкими каплями
@@ -14,9 +16,6 @@ extends Minigame
 
 enum Shape { CIRCLE, SQUARE, TRIANGLE, DIAMOND, RING, CROSS, STAR, HEX }
 
-## Два ряда, растёт число столбцов: 4 → 7, это 8, 10, 12 и 14 карточек (плейтест 2026-11-14,
-## #131: 16 слишком много, а рост ступенькой 12 → 16 резкий).
-const ROWS := 2
 const CARD := 128.0
 const GAP := 16.0
 const FLIP_SECONDS := 0.16
@@ -32,7 +31,9 @@ const POP_SPEED := 300.0
 const POP_LIFE := 0.5
 const POP_MUTE := 0.3
 
-var cols := 3
+## Сколько карточек в каждом ряду сверху вниз и с какой карточки ряд начинается.
+var row_sizes: Array[int] = []
+var row_starts: Array[int] = []
 var close_seconds := 1.0
 
 var kinds: Array[int] = []
@@ -63,14 +64,14 @@ var _fx := SplashFx.new()
 
 
 func _on_start() -> void:
-	cols = clampi(int(round(def.param(&"cols", t, 4.0))), 2, 7)
+	var n := clampi(int(round(def.param(&"cards", t, 8.0) / 2.0)) * 2, 4, Shape.size() * 2)
+	_layout(n)
 	close_seconds = def.param(&"close", t, 1.0)
 	_flip_sound = MiniSfx.tap(760.0, -3.0)
 	_match_sound = MiniSfx.hit(494.0)
 	_miss_sound = MiniSfx.miss(220.0, -3.0)
 	for p in [_flip_sound, _match_sound, _miss_sound]:
 		add_child(p)
-	var n := cols * ROWS
 	var deck: Array[int] = []
 	for i in n / 2:
 		deck.append(i % Shape.size())
@@ -87,13 +88,37 @@ func _on_start() -> void:
 		matched.append(false)
 		flip.append(0.0)
 		_bot_memory.append(-1)
-	cursor = Vector2i(cols / 2, ROWS / 2)
+	cursor = Vector2i(row_sizes[0] / 2, row_sizes.size() / 2)
+	cursor.x = mini(cursor.x, row_sizes[cursor.y] - 1)
 	_setup_jelly()
 	queue_redraw()
 
 
+## Ряды, стремящиеся к квадрату: столбцов не больше корня из `n` вверх, карточки по рядам
+## поровну, лишние в верхних.
+func _layout(n: int) -> void:
+	var cols := ceili(sqrt(float(n)))
+	var rows := ceili(float(n) / cols)
+	row_sizes.clear()
+	row_starts.clear()
+	var at := 0
+	for r in rows:
+		var count := n / rows + (1 if r < n % rows else 0)
+		row_sizes.append(count)
+		row_starts.append(at)
+		at += count
+
+
 func _index(c: Vector2i) -> int:
-	return c.y * cols + c.x
+	return row_starts[c.y] + c.x
+
+
+## Ряд и место в ряду карточки `i`.
+func _cell(i: int) -> Vector2i:
+	for r in range(row_sizes.size() - 1, -1, -1):
+		if i >= row_starts[r]:
+			return Vector2i(i - row_starts[r], r)
+	return Vector2i.ZERO
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -119,7 +144,7 @@ func _on_mouse(event: InputEventMouse) -> bool:
 	if event is InputEventMouseMotion:
 		var i := _card_at(event.position)
 		if i >= 0 and _index(cursor) != i:
-			cursor = Vector2i(i % cols, i / cols)
+			cursor = _cell(i)
 			queue_redraw()
 	return false
 
@@ -128,13 +153,13 @@ func _mouse_action(button: MouseButton, pos: Vector2) -> StringName:
 	var i := _card_at(pos)
 	if button != MOUSE_BUTTON_LEFT or i < 0:
 		return &""
-	cursor = Vector2i(i % cols, i / cols)
+	cursor = _cell(i)
 	return GameInput.A
 
 
 ## Карточка под точкой поля или −1.
 func _card_at(pos: Vector2) -> int:
-	for i in cols * ROWS:
+	for i in kinds.size():
 		var d := (pos - _card_home(i)).abs()
 		if d.x <= CARD / 2.0 and d.y <= CARD / 2.0:
 			return i
@@ -142,7 +167,17 @@ func _card_at(pos: Vector2) -> int:
 
 
 func _move(d: Vector2i) -> void:
-	cursor = Vector2i(wrapi(cursor.x + d.x, 0, cols), wrapi(cursor.y + d.y, 0, ROWS))
+	if d.y == 0:
+		cursor.x = wrapi(cursor.x + d.x, 0, row_sizes[cursor.y])
+	else:
+		# В ряд другой длины курсор переходит на карточку, ближайшую по горизонтали.
+		var from_x := _card_home(_index(cursor)).x
+		cursor.y = wrapi(cursor.y + d.y, 0, row_sizes.size())
+		var best := 0
+		for k in row_sizes[cursor.y]:
+			if absf(_card_home(row_starts[cursor.y] + k).x - from_x) < absf(_card_home(row_starts[cursor.y] + best).x - from_x) - 0.5:
+				best = k
+		cursor.x = best
 	queue_redraw()
 
 
@@ -230,7 +265,7 @@ func _bot_step(delta: float) -> bool:
 		if not options.is_empty():
 			target = options[rng.randi_range(0, options.size() - 1)]
 	if target >= 0:
-		cursor = Vector2i(target % cols, target / cols)
+		cursor = _cell(target)
 		_open(target)
 	return false
 
@@ -247,13 +282,12 @@ func _unknown() -> int:
 
 # --- Рисование ----------------------------------------------------------------------------
 
-func _origin() -> Vector2:
-	var grid := Vector2(cols * CARD + (cols - 1) * GAP, ROWS * CARD + (ROWS - 1) * GAP)
-	return (size - grid) / 2.0 + Vector2(0, -8)
-
-
 func _card_home(i: int) -> Vector2:
-	return _origin() + Vector2(i % cols, i / cols) * (CARD + GAP) + Vector2(CARD, CARD) / 2.0
+	var c := _cell(i)
+	var step := CARD + GAP
+	var x := size.x / 2.0 + (c.x - (row_sizes[c.y] - 1) / 2.0) * step
+	var y := size.y / 2.0 - 8.0 + (c.y - (row_sizes.size() - 1) / 2.0) * step
+	return Vector2(x, y)
 
 
 func _draw() -> void:

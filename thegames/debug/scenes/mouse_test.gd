@@ -140,12 +140,11 @@ func _mole() -> void:
 
 func _pairs() -> void:
 	await _open(&"pairs")
-	var cols := int(game.get("cols"))
 	await _move(game.call("_card_home", 5))
-	_check(game.get("cursor") == Vector2i(5 % cols, 5 / cols), "pairs: наведение не двигает курсор")
+	_check(game.get("cursor") == game.call("_cell", 5), "pairs: наведение не двигает курсор")
 	await _click(game.call("_card_home", 2))
 	var open: Array[bool] = game.get("open")
-	_check(open[2] and game.get("cursor") == Vector2i(2 % cols, 2 / cols), "pairs: клик не открыл карточку")
+	_check(open[2] and game.get("cursor") == game.call("_cell", 2), "pairs: клик не открыл карточку")
 
 
 ## «Разгони» (#89): левая кнопка ←, правая →; по очереди толкают бегунка, одна дважды нет.
