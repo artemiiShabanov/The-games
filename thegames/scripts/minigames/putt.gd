@@ -31,8 +31,14 @@ const AIM_MIN := 0.14
 const AIM_MAX := 0.96
 ## Снос меньше этого не действует и не показывается, лог. px.
 const DRIFT_MIN := 20.0
-## Снос лунки от этой доли `drift` до полного.
-const DRIFT_LOW := 0.5
+## Ветер трёх уровней (плейтест 2026-11-14, #131): уровень сносит шар на столько лог. px, над
+## лункой столько же галочек в сторону сноса. Параметр `drift` открывает уровни по порогу.
+const DRIFT_STEP := 43.0
+const DRIFT_LEVELS := 3
+## Галочка ветра: полувысота, глубина и шаг между соседними.
+const CHEVRON_H := 15.0
+const CHEVRON_D := 13.0
+const CHEVRON_GAP := 26.0
 ## Полёт: время от дальности прицела, с; высота дуги от дальности, px.
 const FLIGHT_BASE := 0.45
 const FLIGHT_PER_REACH := 0.35
@@ -57,7 +63,6 @@ const TIP_W := 12.0
 const TIP_H := 56.0
 const ARROW_Y := 132.0
 const ARROW_W := 8.0
-const ARROW_HEAD := 22.0
 const DOT_R := 12.0
 const DOT_GAP := 44.0
 const SLOT_R := 12.0
@@ -152,7 +157,8 @@ func _enter(p: Phase) -> void:
 func _next_cup() -> void:
 	var d := 0.0
 	if drift_max >= DRIFT_MIN:
-		d = drift_max * rng.randf_range(DRIFT_LOW, 1.0) * (1.0 if rng.randf() < 0.5 else -1.0)
+		var top := clampi(int(drift_max / DRIFT_STEP), 1, DRIFT_LEVELS)
+		d = DRIFT_STEP * rng.randi_range(1, top) * (1.0 if rng.randf() < 0.5 else -1.0)
 	var lo := maxf(near, AIM_MIN + d / REACH)
 	var hi := maxf(minf(far, AIM_MAX + d / REACH), lo)
 	var prev := cup
@@ -449,13 +455,13 @@ func _draw_ground() -> void:
 		Jelly.fill(self, pit, Color(Style.accent(1), 0.35))
 
 
-## Полоса силы по земле от шара и стойка на её конце: туда упадёт шар без сноса. После
-## удара полоса бледнеет и стоит до следующей лунки: видно, куда целил.
+## Полоса силы по земле от шара и стойка на её конце: туда упадёт шар без сноса. Видна только
+## пока тянешь: с ударом прячется целиком (плейтест 2026-11-14, #131).
 func _draw_bar() -> void:
-	if phase == Phase.READY:
+	if phase != Phase.CHARGE:
 		return
-	var tip := _sx(power * REACH if phase == Phase.CHARGE else aim)
-	var col := Style.accent(0) if phase == Phase.CHARGE else Color(Style.accent(0), 0.35)
+	var tip := _sx(power * REACH)
+	var col := Style.accent(0)
 	var y := _gy() + BAR_Y + BAR_W / 2.0
 	draw_line(Vector2(BALL_X, y), Vector2(tip, y), col, BAR_W)
 	draw_circle(Vector2(BALL_X, y), BAR_W / 2.0, col)
@@ -466,24 +472,22 @@ func _draw_bar() -> void:
 	draw_circle(bottom, TIP_W / 2.0, col)
 
 
-## Снос: стрелка над лункой от точки, куда целить, до лунки.
+## Ветер: над лункой от одной до трёх галочек в сторону, куда сдует шар; уровень это число
+## шагов `DRIFT_STEP`.
 func _draw_arrow() -> void:
 	if absf(drift) < DRIFT_MIN:
 		return
+	var level := clampi(int(round(absf(drift) / DRIFT_STEP)), 1, DRIFT_LEVELS)
+	var dir := signf(drift)
 	var y := _gy() - ARROW_Y + _arrow.value * 4.0
-	var to := _sx(_cup_x)
-	var from := _sx(_cup_x - drift)
-	var dir := signf(to - from)
-	var col := Style.INK_2
-	var head := minf(ARROW_HEAD, absf(to - from) * 0.5)
-	var neck := to - dir * head
-	draw_line(Vector2(from, y), Vector2(neck, y), col, ARROW_W)
-	draw_circle(Vector2(from, y), ARROW_W / 2.0, col)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(to, y),
-		Vector2(neck, y - head * 0.75),
-		Vector2(neck, y + head * 0.75),
-	]), col)
+	var x0 := _sx(_cup_x) - dir * (level - 1) * CHEVRON_GAP / 2.0
+	for i in level:
+		var tip := Vector2(x0 + dir * (i * CHEVRON_GAP + CHEVRON_D / 2.0), y)
+		var back := tip.x - dir * CHEVRON_D
+		draw_polyline(PackedVector2Array([Vector2(back, y - CHEVRON_H), tip, Vector2(back, y + CHEVRON_H)]),
+				Style.INK_2, ARROW_W, true)
+		for p: Vector2 in [Vector2(back, y - CHEVRON_H), tip, Vector2(back, y + CHEVRON_H)]:
+			draw_circle(p, ARROW_W / 2.0, Style.INK_2)
 
 
 ## Пять кружков лунок сверху по центру: забитые `success`, текущая крупнее.
