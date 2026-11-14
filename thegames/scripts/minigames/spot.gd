@@ -4,11 +4,9 @@ extends Minigame
 ## дебаг-меню. Две пиксельные картинки рядом отличаются одной клеткой. Курсор стрелками ходит
 ## по правой картинке (на левой бледная рамка показывает ту же клетку), A отмечает. Угадал:
 ## следующая пара. Две неверные отметки или таймер: провал.
-## Параметры от `t` в `resources/minigames/proto/spot.tres`: size (сторона сетки), pairs (пар),
-## shade (от 0.99 клетка отличается цветом палитры; ниже у каждого цвета два оттенка, обычный и
-## сдвинутый на эту долю к светлому или тёмному, оба раскиданы по всей картинке, а клетка
-## меняет один оттенок на другой: единственная бледная клетка выдавала себя без сравнения,
-## плейтест 2026-11-14), mirror (от 0.5 правая картинка зеркальная).
+## Клетка всегда отличается цветом палитры (оттенки сняты плейтестом 2026-11-14).
+## Параметры от `t` в `resources/minigames/proto/spot.tres`: size (сторона сетки, 6 → 8), pairs
+## (пар, одно число на всех `t`), mirror (от 0.5 правая картинка зеркальная).
 
 const GRID_PX := 480.0
 const CELL_GAP := 4.0
@@ -21,13 +19,10 @@ const BACK_SHARE := 0.4
 
 var n := 6
 var pairs_total := 3
-var shade := 1.0
 var mirror := false
 
 ## Картинка: номера цветов палитры по клеткам, строка за строкой.
 var cells: Array[int] = []
-## Оттенок клетки: сдвинутый или обычный (только в режиме оттенков).
-var tones: Array[bool] = []
 var diff := Vector2i.ZERO
 var diff_color := Color.WHITE
 ## Курсор в клетках правой картинки, как она на экране.
@@ -44,7 +39,6 @@ var _pop := JellySpring.new()
 func _on_start() -> void:
 	n = clampi(int(round(def.param(&"size", t, 6.0))), 3, 10)
 	pairs_total = maxi(int(round(def.param(&"pairs", t, 3.0))), 1)
-	shade = def.param(&"shade", t, 1.0)
 	mirror = def.param(&"mirror", t, 0.0) >= 0.5
 	cursor = Vector2i(n / 2, n / 2)
 	_new_pair()
@@ -52,26 +46,12 @@ func _on_start() -> void:
 
 func _new_pair() -> void:
 	cells.clear()
-	tones.clear()
-	var by_tone := shade < 0.99
 	for i in n * n:
 		cells.append(0 if rng.randf() < BACK_SHARE else rng.randi_range(1, PALETTE.size() - 1))
-		tones.append(by_tone and rng.randf() < 0.5)
 	diff = Vector2i(rng.randi_range(0, n - 1), rng.randi_range(0, n - 1))
 	var at := diff.y * n + diff.x
-	if by_tone:
-		diff_color = _tone(cells[at], not tones[at])
-	else:
-		diff_color = PALETTE[(cells[at] + rng.randi_range(1, PALETTE.size() - 1)) % PALETTE.size()]
+	diff_color = PALETTE[(cells[at] + rng.randi_range(1, PALETTE.size() - 1)) % PALETTE.size()]
 	queue_redraw()
-
-
-## Цвет клетки: обычный или сдвинутый к светлому (тёмные цвета) или тёмному (светлые).
-func _tone(color: int, shifted: bool) -> Color:
-	var base := PALETTE[color]
-	if not shifted:
-		return base
-	return base.lerp(Color.BLACK if base.get_luminance() > 0.5 else Color.WHITE, shade)
 
 
 ## Клетка картинки под клеткой экрана правой сетки.
@@ -217,7 +197,7 @@ func _draw() -> void:
 			for x in n:
 				var shown := Vector2i(x, y)
 				var cell := shown if which == 0 else _picture_cell(shown)
-				var col := _tone(cells[cell.y * n + cell.x], tones[cell.y * n + cell.x])
+				var col := PALETTE[cells[cell.y * n + cell.x]]
 				if which == 1 and cell == diff:
 					col = diff_color
 				var rect := _cell_rect(which, shown)
