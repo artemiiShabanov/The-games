@@ -85,8 +85,8 @@ func _inverted() -> void:
 func _fit_frame() -> void:
 	await _open(&"fit_frame")
 	var sides := int(game.get("stencil_sides"))
-	await _wheel(Vector2(960, 540), sides < 8)
-	_check(int(game.get("stencil_sides")) == sides + (1 if sides < 8 else -1), "fit_frame: колесо не меняет стороны")
+	await _wheel(Vector2(960, 540), sides < 7)
+	_check(int(game.get("stencil_sides")) == sides + (1 if sides < 7 else -1), "fit_frame: колесо не меняет стороны")
 	await _click(Vector2(300, 540))
 	_check(game.mouse_last_action == GameInput.LEFT, "fit_frame: клик слева не влево")
 	await _click(Vector2(1600, 540))

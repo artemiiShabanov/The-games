@@ -5,7 +5,9 @@ extends Minigame
 ## всплывает в своём месте около центра и покачивается на волнах. Слева и справа трафареты,
 ## по одному на цвет; ↑ ↓ меняют число сторон у обоих сразу, ← → отправляют фигуру в трафарет.
 ## Совпали цвет и стороны: влетает, трафарет пружинит. Нет: фигура и трафарет трясутся, фигура
-## тонет. Не успел: тонет. Провал при двух непопавших. (Компоновка и анимации: решения
+## тонет. Не успел: тонет. Под конец ожидания фигура погружается обратно тем же ходом, что
+## всплывала (мутнеет и уменьшается), и промах засчитывается, когда она скрылась; пока видна,
+## её ещё можно отправить (плейтест 2026-11-14, #131). Провал при двух непопавших. (Компоновка и анимации: решения
 ## 2026-11-05 по плейтесту.)
 ## Параметры от `t` в `resources/minigames/fit_frame.tres`: shapes, rise, hold, sides_max.
 
@@ -142,6 +144,15 @@ func _on_timeout() -> bool:
 	return misses < FAIL_AT
 
 
+## Насколько фигура уже ушла обратно в глубину, 0..1: последние `rise_seconds` ожидания она
+## погружается зеркально всплытию.
+func _sink_k() -> float:
+	if state != State.READY:
+		return 0.0
+	var span := minf(rise_seconds, hold_seconds * 0.5)
+	return clampf((cur_age - (hold_seconds - span)) / span, 0.0, 1.0)
+
+
 ## Бот: WIN подгоняет стороны и отправляет в нужный трафарет, LOSE ничего не трогает.
 func _bot_step(_delta: float) -> bool:
 	if AutoTest.bot_mode == AutoTest.BotMode.WIN and state == State.READY and cur_age >= BOT_REACTION:
@@ -233,7 +244,8 @@ func _draw() -> void:
 			_draw_shape(home + _float_offset(cur_age), lerpf(0.6, 1.0, p), Style.accent(cur_color), p, 1.0 - p, cur_age)
 		State.READY:
 			var age := rise_seconds + cur_age
-			_draw_shape(home + _float_offset(age), 1.0, Style.accent(cur_color), 1.0, 0.25, age)
+			var d := _sink_k()
+			_draw_shape(home + _float_offset(age), lerpf(1.0, 0.6, d), Style.accent(cur_color), 1.0 - d, lerpf(0.25, 1.0, d), age)
 		State.HIT:
 			var p := clampf(cur_age / HIT_SECONDS, 0.0, 1.0)
 			var e := 1.0 - (1.0 - p) * (1.0 - p)
@@ -245,9 +257,7 @@ func _draw() -> void:
 			var col := Style.accent(cur_color).lerp(Style.INK_3, p)
 			_draw_shape(pos, lerpf(1.0, 0.6, p), col, 1.0 - p * 0.9, p * 0.5, 0.0)
 		State.SINK:
-			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
-			var col := Style.accent(cur_color).lerp(Style.INK_3, p)
-			_draw_shape(home, lerpf(1.0, 0.5, p), col, 1.0 - p, p, 0.0)
+			pass  # уже скрылась под поверхностью, остаются круги
 
 	_draw_dots()
 
@@ -404,7 +414,8 @@ func _shape_pose() -> Vector4:
 			return Vector4(at.x, at.y, p, lerpf(0.6, 1.0, p))
 		State.READY:
 			var at := home + _float_offset(rise_seconds + cur_age)
-			return Vector4(at.x, at.y, 1.0, 1.0)
+			var d := _sink_k()
+			return Vector4(at.x, at.y, 1.0 - d, lerpf(1.0, 0.6, d))
 		State.HIT:
 			var p := clampf(cur_age / HIT_SECONDS, 0.0, 1.0)
 			var e := 1.0 - (1.0 - p) * (1.0 - p)
@@ -414,9 +425,6 @@ func _shape_pose() -> Vector4:
 			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
 			var at := home + Vector2(_shake_offset(MISS_SECONDS - cur_age, MISS_SECONDS, 14.0), 0)
 			return Vector4(at.x, at.y, 1.0 - p * 0.9, lerpf(1.0, 0.6, p))
-		State.SINK:
-			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
-			return Vector4(home.x, home.y, 1.0 - p, lerpf(1.0, 0.5, p))
 	return Vector4(0.0, 0.0, 0.0, 1.0)
 
 
@@ -439,11 +447,11 @@ func _draw_jelly() -> void:
 			blur = 1.0 - pose.z
 			alpha = pose.z
 		State.READY:
-			blur = 0.25
-		State.MISS, State.SINK:
+			blur = lerpf(0.25, 1.0, _sink_k())
+		State.MISS:
 			var p := clampf(cur_age / MISS_SECONDS, 0.0, 1.0)
 			col = col.lerp(Style.INK_3, p)
-			blur = p * (0.5 if state == State.MISS else 1.0)
+			blur = p * 0.5
 	var at := Vector2(pose.x, pose.y)
 	if blur > 0.0:
 		for k in 6:
