@@ -7,8 +7,7 @@ extends Minigame
 ## из `»` моноширинным шрифтом. Параметры от `t` в `resources/minigames/mash.tres`: pull
 ## (жёсткость резинки), finish (финиш долей полосы).
 ## Мармелад: бегунок мягкое тело, от толчка вздрагивает и наклоняется вперёд, клавиши
-## поджимаются от нажатия, резинка от натяжения быстро краснеет и всё сильнее дрожит, а бегунка оттягивает
-## назад каплей; на финише брызги, на
+## поджимаются от нажатия, резинка от натяжения всё сильнее дрожит и во второй половине краснеет; на финише брызги, на
 ## провале резинка утаскивает бегунка к столбику.
 ## Мышь (#83): левая кнопка ←, правая →, чередовать.
 
@@ -24,17 +23,14 @@ const TRAIL_STEP := 40.0
 const BOT_RATE_WIN := 11.0
 const BOT_RATE_LOSE := 4.0
 const STEP_PITCHES := 8
-## Резинка: толщина без натяжения и на пределе; при каком натяжении она уже совсем красная; с
-## какого натяжения и на сколько пикселей дрожит. `TAIL_ROOT` толщина хвоста бегунка у нити.
+## Резинка: толщина без натяжения и на пределе; с какого натяжения начинает краснеть (совсем
+## красная на пределе); с какого натяжения и на сколько пикселей дрожит.
 const BAND_SLACK := 10.0
 const BAND_TAUT := 4.0
-const BAND_RED_AT := 0.5
+const BAND_RED_FROM := 0.5
 const BAND_BUZZ_FROM := 0.2
 const BAND_BUZZ_PX := 11.0
-const TAIL_ROOT := 14.0
 const BAND_POINTS := 24
-## Хвост бегунка на пределе натяжения, px.
-const TAIL_PX := 64.0
 
 var pull := 0.45
 var finish_at := 0.6
@@ -207,12 +203,12 @@ func _process(delta: float) -> void:
 
 # --- Рисование --------------------------------------------------------------------------------
 
-## Резинка нитью от `from` до `to`: с натяжением тоньше, быстро краснеет и дрожит струной всё
-## сильнее (плейтест 2026-11-14, #131: проще ленты, краснее и заметнее трясётся).
+## Резинка нитью от `from` до `to`: с натяжением тоньше и дрожит струной всё сильнее, краснеть
+## начинает со второй половины натяжения (плейтест 2026-11-14, #131).
 func _draw_band(from: Vector2, to: Vector2, stretch: float) -> void:
 	if to.x - from.x < 2.0:
 		return
-	var color := Style.INK_3.lerp(Style.DANGER, clampf(stretch / BAND_RED_AT, 0.0, 1.0))
+	var color := Style.INK_3.lerp(Style.DANGER, smoothstep(BAND_RED_FROM, 1.0, stretch))
 	var buzz := BAND_BUZZ_PX * smoothstep(BAND_BUZZ_FROM, 1.0, stretch) * sin(elapsed * 95.0) if running else 0.0
 	var pts := PackedVector2Array()
 	for i in BAND_POINTS + 1:
@@ -259,13 +255,6 @@ func _draw() -> void:
 	var color := Style.accent(0)
 	if _outcome < 0:
 		color = color.lerp(Style.INK_3, clampf(_end_age / 0.4, 0.0, 1.0))
-	# Бегунка оттягивает назад: за ним хвост каплей, тем длиннее, чем сильнее натяжение.
-	if stretch > 0.05 and _outcome == 0:
-		draw_colored_polygon(PackedVector2Array([
-			rp + Vector2(-RUNNER_R * 0.3, -RUNNER_R * 0.92),
-			rp + Vector2(-RUNNER_R - TAIL_PX * stretch, -TAIL_ROOT / 2.0),
-			rp + Vector2(-RUNNER_R - TAIL_PX * stretch, TAIL_ROOT / 2.0),
-			rp + Vector2(-RUNNER_R * 0.3, RUNNER_R * 0.92)]), color)
 	if jelly:
 		_rings.draw(self)
 		_runner.draw(self, color)
