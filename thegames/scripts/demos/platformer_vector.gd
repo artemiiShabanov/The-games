@@ -117,7 +117,8 @@ func _y(h: float) -> float:
 # --- Ввод ------------------------------------------------------------------------------------
 
 func _game_input(event: InputEvent) -> void:
-	if GameInput.is_a(event):
+	# Вверх (стрелка или W) прыгает так же, как A (плейтест 2026-11-14, #132).
+	if GameInput.is_a(event) or (event.is_action_pressed(GameInput.UP) and not event.is_echo()):
 		# С багом управления нажатие уходит в очередь с задержкой (`Demo.bug_press`).
 		bug_press(_jump)
 		get_viewport().set_input_as_handled()
@@ -311,4 +312,4 @@ func _draw_vector(v: VectorScreen) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "бег"], [GameInput.key(GameInput.A), "прыжок вверх"]]
+	return [["← →", "бег"], [GameInput.key(GameInput.A) + " ↑", "прыжок вверх"]]

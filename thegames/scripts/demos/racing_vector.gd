@@ -157,7 +157,8 @@ func _step(dt: float) -> void:
 	step_shards(dt)
 	bug_input_tick()
 	# Газ: с багом управления из прошлого на delay_ms (`Demo.bug_axis`).
-	var raw := bot_gas if bot_driven() else Input.is_action_pressed(GameInput.A)
+	# Газ на A или вверх (стрелка или W; плейтест 2026-11-14, #132).
+	var raw := bot_gas if bot_driven() else (Input.is_action_pressed(GameInput.A) or Input.is_action_pressed(GameInput.UP))
 	sim.step(dt, bug_axis(Vector2(1.0 if raw else 0.0, 0.0)).x > 0.5)
 	for ev in sim.events:
 		_on_event(ev)
@@ -334,4 +335,4 @@ func _draw_hud(v: VectorScreen, size: Vector2, road_right: float) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "полоса"], [GameInput.key(GameInput.A), "газ"]]
+	return [["← →", "полоса"], [GameInput.key(GameInput.A) + " ↑", "газ"]]

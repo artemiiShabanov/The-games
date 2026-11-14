@@ -6,7 +6,9 @@
 script = ExtResource("1_tuning")
 lives = 3
 goal = 30
-turn_speed = 205.0
+turn_speed = 230.0
+turn_start = 55.0
+turn_ramp = 0.55
 fire_every = 0.25
 shot_speed = 900.0
 turret_radius = 46.0

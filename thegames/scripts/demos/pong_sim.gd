@@ -261,6 +261,14 @@ func _to_serve(dir: float) -> void:
 
 func _roll_ai_error() -> void:
 	var reach := game.ai_error * (1.0 + tuning.ai_tire * _ai_returns)
+	if vel.x > 0.0:
+		# Крутизна полёта 0..1 от наибольшего угла отскока; прямой мяч читается почти без ошибки.
+		var steep := clampf(absf(vel.y) / maxf(vel.x, 1.0) / tan(deg_to_rad(tuning.max_angle)), 0.0, 1.0)
+		reach *= lerpf(tuning.ai_straight, 1.0, steep)
+		# Долетит до ракетки только через стенку: ещё труднее.
+		var y_end := ball.y + vel.y * (ai_face() - ball.x) / vel.x
+		if y_end < top() or y_end > bottom():
+			reach *= tuning.ai_bounce
 	_ai_error = _rng.randf_range(-reach, reach)
 
 

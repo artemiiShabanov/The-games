@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_gen")
-ai_speed_min = 340.0
-ai_speed_max = 420.0
+ai_speed_min = 420.0
+ai_speed_max = 500.0
 ai_error_min = 100.0
 ai_error_max = 140.0
 ai_react_min = 0.3

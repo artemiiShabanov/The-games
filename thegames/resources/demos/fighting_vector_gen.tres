@@ -7,6 +7,6 @@ script = ExtResource("1_gen")
 rounds = 5
 wait_min = 1.4
 wait_max = 3.6
-delay_first = 0.62
+delay_first = 0.38
 delay_last = 0.3
 delay_jitter = 0.03

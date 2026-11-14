@@ -53,6 +53,9 @@ var one_hit := false
 ## Направление ствола, радианы, и его угловая скорость.
 var aim := -PI / 2.0
 var aim_vel := 0.0
+## Сколько секунд стрелку держат в одну сторону: от этого скорость поворота ствола.
+var _turn_hold := 0.0
+var _turn_dir := 0.0
 var lives := 3
 var kills := 0
 var goal := 30.0
@@ -124,7 +127,11 @@ func step(dt: float, axis: float, fire: bool) -> void:
 		return
 	time += dt
 	# Ствол: на льду набирает и теряет вращение не сразу.
-	var want := clampf(axis, -1.0, 1.0) * deg_to_rad(tuning.turn_speed)
+	var dir := signf(axis) if absf(axis) > 0.01 else 0.0
+	_turn_hold = _turn_hold + dt if dir != 0.0 and dir == _turn_dir else 0.0
+	_turn_dir = dir
+	var k := clampf(_turn_hold / tuning.turn_ramp, 0.0, 1.0) if tuning.turn_ramp > 0.0 else 1.0
+	var want := clampf(axis, -1.0, 1.0) * deg_to_rad(lerpf(tuning.turn_start, tuning.turn_speed, k * k))
 	aim_vel = lerpf(aim_vel, want, minf(ice * dt, 1.0)) if ice > 0.0 else want
 	aim = wrapf(aim + aim_vel * dt, -PI, PI)
 	_cooldown = maxf(_cooldown - dt, 0.0)
