@@ -2,12 +2,15 @@ extends Minigame
 ## «Бей» (mole, шутер), каталог `docs/specs/minigames_catalog.md`. Четыре лунки по сторонам от
 ## центра (вверх, вправо, вниз, влево). Кружки выскакивают из лунок и через `up` секунд прячутся;
 ## стрелка в сторону лунки с кружком бьёт его, пока он снаружи. Кружок спрятался небитым:
-## упущен. 5 упущенных провал, иначе успех по таймеру (20 с).
-## Стрелка в пустую лунку: промах без штрафа к счёту, но молоток в центре на `STUN_SECONDS`
-## сереет и не бьёт (иначе выигрывает долбёжка всеми четырьмя стрелками). Стрелка в лунку, где
+## упущен. 4 упущенных провал, иначе успех по таймеру (14 с; плейтест 2026-11-14, #131: было
+## 5 за 20 с, игра затянута).
+## Стрелка в пустую лунку: промах без штрафа к счёту, но молоток в центре на `stun` секунд
+## сереет и не бьёт (иначе выигрывает долбёжка всеми четырьмя стрелками). С `t` 0,5 промах стоит
+## кружка: реакция около 0,3 с плюс `stun` не короче времени кружка снаружи. Стрелка в лунку, где
 ## кружок уже прячется (после удара или упущенный), ничего не делает.
 ## Параметры от `t` в `resources/minigames/mole.tres`: interval (темп: пауза между выскоками),
-## up (сколько кружок снаружи), pair (вероятность, что выскочат два сразу).
+## up (сколько кружок снаружи), pair (вероятность, что выскочат два сразу), stun (сколько
+## молоток не бьёт после промаха).
 ## Мармелад (STYLE «Мармелад»): кружки мягкие `JellyShape`, выскакивают со вздрагом,
 ## снаружи стоят на бортике, перед тем как спрятаться, оседают; удар брызгает неяркими каплями
 ## цвета кружка и расходится кругом, кружок сплющивается обратно в лунку. Упущенный сереет в
@@ -19,7 +22,7 @@ enum State { EMPTY, UP, HIT, MISSED }
 const DIRS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 const KEYS: Array[StringName] = [GameInput.UP, GameInput.RIGHT, GameInput.DOWN, GameInput.LEFT]
 const HOLES := 4
-const MAX_MISSED := 5
+const MAX_MISSED := 4
 ## Первый выскок после старта, с.
 const FIRST_POP := 0.6
 ## После пары следующий выскок позже во столько раз.
@@ -36,7 +39,6 @@ const MISS_SECONDS := 0.3
 const SINK_SECONDS := 0.25
 const SINK_SCALE := 0.86
 ## Промах в пустую лунку: молоток не бьёт столько, с.
-const STUN_SECONDS := 0.3
 const JAB_SECONDS := 0.14
 const SHAKE_SECONDS := 0.3
 const HOLE_R := 84.0
@@ -53,6 +55,7 @@ const BOT_SECOND := 0.14
 
 var interval := 1.0
 var up_seconds := 1.2
+var stun_seconds := 0.3
 var pair_chance := 0.0
 
 var state: Array[State] = []
@@ -89,6 +92,7 @@ var _splash := SplashFx.new()
 func _on_start() -> void:
 	interval = def.param(&"interval", t, 1.0)
 	up_seconds = def.param(&"up", t, 1.2)
+	stun_seconds = def.param(&"stun", t, 0.3)
 	pair_chance = def.param(&"pair", t, 0.0)
 	_pop_sound = MiniSfx.tap(440.0, -3.0)
 	_hit_sound = MiniSfx.hit(392.0)
@@ -150,7 +154,7 @@ func _press(i: int) -> void:
 			_jelly_hit(i)
 		State.EMPTY:
 			whiffs += 1
-			stun = STUN_SECONDS
+			stun = stun_seconds
 			_shake = SHAKE_SECONDS
 			_whiff_sound.play()
 			if Jelly.on():
