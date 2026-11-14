@@ -42,6 +42,8 @@ var index := 0
 var ready_for_input := false
 ## Что куплено в этой фазе, null при отказе.
 var bought: UpgradeDef
+## Предложение прокачки не показывается здесь, а ждёт на главном экране посылкой (#133).
+var defer_offer := false
 
 var card: CardFrame
 var _money_label: Label
@@ -178,7 +180,7 @@ func move(dir: int) -> void:
 func confirm() -> void:
 	if not ready_for_input or _closing:
 		return
-	if report.game_over or report.offer.is_empty():
+	if report.game_over or report.offer.is_empty() or defer_offer:
 		proceed()
 		return
 	var def := report.offer[index]
@@ -201,7 +203,7 @@ func confirm() -> void:
 func skip() -> void:
 	if not ready_for_input or _closing:
 		return
-	if report.game_over or report.offer.is_empty():
+	if report.game_over or report.offer.is_empty() or defer_offer:
 		proceed()
 		return
 	ShellSounds.play(&"tick")
@@ -232,7 +234,7 @@ func _process(delta: float) -> void:
 	if _bot_timer < BOT_PAUSE:
 		return
 	_bot_timer = -INF
-	if report.game_over or report.offer.is_empty():
+	if report.game_over or report.offer.is_empty() or defer_offer:
 		proceed()
 	elif AutoTest.bot_mode == AutoTest.BotMode.WIN:
 		var pick := -1
@@ -365,6 +367,13 @@ func _show_offer() -> void:
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
+	if defer_offer:
+		_offer_title.text = "В студию привезли посылку"
+		_offer_caption.text = "Предложение прокачки ждёт на главном экране. Никуда не денется, пока не начата новая игра."
+		_fade_in(_offer_title)
+		_fade_in(_offer_caption)
+		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
+		return
 	_offer_title.text = "На что потратим?"
 	_fade_in(_offer_title)
 	index = 0
@@ -445,7 +454,7 @@ func _build() -> void:
 	_offer_caption.modulate.a = 0.0
 	content.add_child(_offer_caption)
 
-	var n := report.offer.size()
+	var n := report.offer.size() if not defer_offer else 0
 	var row_width := n * OFFER_CARD.x + maxi(n - 1, 0) * Style.GAP_CARDS
 	var x0 := (inner.x - row_width) / 2.0
 	for i in n:

@@ -32,6 +32,14 @@ const PATH := "res://resources/run.tres"
 ## Легенда: средняя критиков трёх лучших от или вирусных игр не меньше.
 @export var legend_critics := 9.0
 @export var legend_viral := 3
+## После релиза (#133): отклик приходит на главный экран волнами. Первая волна через
+## `after_first_seconds`, следующие через `after_gap_seconds`. Ставка на критиков: «разнесут»
+## ниже `bet_low`, «полюбят» от `bet_high`, между ними «сойдёт»; угадал: `bet_bonus` денег.
+@export var after_first_seconds := 1.5
+@export var after_gap_seconds := 3.0
+@export var bet_low := 5.0
+@export var bet_high := 7.5
+@export var bet_bonus := 1500
 ## Сколько переигровок в релизе (M0: ноль).
 @export var replays := 0
 

@@ -16,6 +16,13 @@ extends Control
 ## часы нажать (раздел «Мышь»). За окнами идут сутки (`StudioDaylight`, раздел «День и ночь»):
 ## небо, свет из окон на полу, лёгкий оттенок всей комнаты. Рисует свой фон `bg`.
 ## Арт в `StudioSprites`, числа в `resources/studio_backdrop.tres`.
+## После релиза (#133, раздел «Вещи релиза» внизу файла): полка с коробками выпущенных игр,
+## монеты хвоста продаж из коробок, посылка с предложением прокачки и значки пришедшего
+## отклика над первым столом. Всё рисуется прямо здесь прямоугольниками, без листа спрайтов;
+## клик по вещи шлёт `thing_clicked`, что с ним делать, решает хозяин.
+
+## Нажата вещь релиза: `&"box"` с номером игры в забеге, `&"parcel"`, `&"news"` с видом волны.
+signal thing_clicked(kind: StringName, index: int)
 
 ## Холст арта: 1920×1080 при пикселе 4.
 const ART := Vector2i(480, 270)
@@ -549,6 +556,7 @@ func _home_now(w: Worker) -> void:
 func _process(delta: float) -> void:
 	_day_clock += delta
 	var props := _tick_props(delta)
+	props = _tick_things(delta) or props
 	if not moving() or _workers.is_empty():
 		var h := hour()
 		if props or absf(fposmod(h - _drawn_hour + 12.0, 24.0) - 12.0) > 0.02:
@@ -821,6 +829,7 @@ func _draw() -> void:
 	for it in _wall:
 		draw_texture(_tex(it.sprite), Vector2(it.pos) + StudioSprites.offset(it.sprite))
 	_draw_clock_hands(colors, dl.hour)
+	_draw_shelf(colors)
 	var list: Array = []
 	var order := 0
 	for it in _floor:
@@ -838,6 +847,7 @@ func _draw() -> void:
 				_draw_tv(colors)
 			elif e[5] == _cooler:
 				_draw_bubbles(colors)
+	_draw_news(colors)
 	var amb := dl.ambient
 	if amb.a > 0.0:
 		draw_rect(Rect2(-ART.x, -ART.y, ART.x * 3, ART.y * 3), Color(amb, amb.a * strength))
@@ -1000,7 +1010,7 @@ func _input(event: InputEvent) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 		else:
-			var over := _shell_free() and (worker_at(at) >= 0 or prop_at(at) != &"")
+			var over := _shell_free() and (worker_at(at) >= 0 or prop_at(at) != &"" or not thing_at(at).is_empty())
 			_set_cursor(Input.CURSOR_POINTING_HAND if over else Input.CURSOR_ARROW)
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 		var b := event as InputEventMouseButton
@@ -1012,7 +1022,7 @@ func _input(event: InputEvent) -> void:
 			if i >= 0:
 				_pick(_workers[i], at)
 				get_viewport().set_input_as_handled()
-			elif poke(prop_at(at)):
+			elif poke(prop_at(at)) or _click_thing(at):
 				get_viewport().set_input_as_handled()
 		elif not b.pressed and _drag != null:
 			_drop(at)
@@ -1488,3 +1498,211 @@ func _play(sound: StringName) -> void:
 		add_child(p)
 		_sounds[sound] = p
 	(_sounds[sound] as AudioStreamPlayer).play()
+
+
+# --- Вещи релиза (#133) -------------------------------------------------------------------------
+
+## Полка у стены: левый край, плоскость полки, ширина; коробка и шаг между коробками.
+const SHELF_POS := Vector2i(196, 49)
+const SHELF_W := 88
+const BOX_SIZE := Vector2i(5, 7)
+const BOX_STEP := 6
+const BOX_DROP_SECONDS := 0.45
+const COIN_SECONDS := 0.9
+const COIN_GAP := 0.14
+const COIN_RISE := 9.0
+const COIN_COLOR := Color("#D99A0B")
+## Посылка слева от полки: левый край и низ.
+const PARCEL_POS := Vector2i(183, 60)
+const PARCEL_SIZE := Vector2i(9, 7)
+const PARCEL_COLOR := Color("#C9A26B")
+const PARCEL_MARK := Color("#2BB37A")
+## Значки отклика: квадрат со стороной `NEWS_SIZE`, ряд над первым столом.
+const NEWS_SIZE := 9
+const NEWS_STEP := 11
+const NEWS_POP_SECONDS := 0.3
+## Рисунки значков 5×5 по виду волны (`RunHub.Wave`): твиты, стрим, критики, продажи.
+const NEWS_GLYPHS := {
+	1: [".#.#.", "#####", ".#.#.", "#####", ".#.#."],
+	2: ["#....", "###..", "#####", "###..", "#...."],
+	3: ["..#..", "#####", ".###.", ".#.#.", "#...#"],
+	4: [".####", "#.#..", ".###.", "..#.#", "####."],
+}
+
+var _shelf: Array[Color] = []
+var _box_drop := 0.0
+## Монеты хвоста: [номер коробки, возраст]; отрицательный возраст это задержка до вылета.
+var _coins: Array = []
+var _parcel := false
+var _news: Array[int] = []
+var _news_age := {}
+
+
+## Коробки на полке: цвет на каждую выпущенную игру, по порядку релизов. Новая коробка
+## встаёт на полку с небольшого падения.
+func set_shelf(colors_: Array[Color]) -> void:
+	if colors_.size() == _shelf.size() + 1 and not _shelf.is_empty() or (_shelf.is_empty() and colors_.size() == 1):
+		_box_drop = BOX_DROP_SECONDS
+	_shelf = colors_.duplicate()
+	queue_redraw()
+
+
+## Хвост продаж: из коробок `boxes` (номера игр в забеге) вылетает по монете.
+func pay_tails(boxes: Array[int]) -> void:
+	var k := 0
+	for b in boxes:
+		if b >= 0 and b < _shelf.size():
+			_coins.append([b, -COIN_GAP * k])
+			k += 1
+	if k > 0:
+		_play(&"bulp")
+	queue_redraw()
+
+
+## Посылка с предложением прокачки стоит у полки, пока предложение в силе.
+func set_parcel(on: bool) -> void:
+	if on != _parcel:
+		_parcel = on
+		queue_redraw()
+
+
+## Значки пришедшего отклика (виды волн `RunHub.Wave`); пустой список убирает их.
+func set_news(kinds: Array[int]) -> void:
+	for k in kinds:
+		if not _news.has(k):
+			_news_age[k] = 0.0
+	_news = kinds.duplicate()
+	queue_redraw()
+
+
+func _tick_things(delta: float) -> bool:
+	var active := _box_drop > 0.0 or not _coins.is_empty() or _parcel or not _news.is_empty()
+	_box_drop = maxf(_box_drop - delta, 0.0)
+	for i in range(_coins.size() - 1, -1, -1):
+		_coins[i][1] += delta
+		if _coins[i][1] >= COIN_SECONDS:
+			_coins.remove_at(i)
+	for k in _news:
+		_news_age[k] = float(_news_age.get(k, 0.0)) + delta
+	return active
+
+
+func _box_rect(i: int) -> Rect2:
+	return Rect2(SHELF_POS.x + 2 + i * BOX_STEP, SHELF_POS.y - BOX_SIZE.y, BOX_SIZE.x, BOX_SIZE.y)
+
+
+func _parcel_rect() -> Rect2:
+	return Rect2(PARCEL_POS.x, PARCEL_POS.y - PARCEL_SIZE.y, PARCEL_SIZE.x, PARCEL_SIZE.y)
+
+
+## Квадрат значка волны `kind`: по порядку в ряду над первым столом (без столов над полкой).
+func _news_rect(kind: int) -> Rect2:
+	var at := _news.find(kind)
+	var base := Vector2(SHELF_POS.x + 4, SHELF_POS.y - 26)
+	if not _desks.is_empty():
+		base = Vector2(_desks[0].x - 6, _desks[0].base - 36)
+	return Rect2(base.x + at * NEWS_STEP, base.y, NEWS_SIZE, NEWS_SIZE)
+
+
+## Вещь под точкой арта: `[вид, номер]` или пустой массив.
+func thing_at(at: Vector2) -> Array:
+	for k in _news:
+		if _news_rect(k).grow(1.0).has_point(at):
+			return [&"news", k]
+	if _parcel and _parcel_rect().grow(2.0).has_point(at):
+		return [&"parcel", 0]
+	for i in _shelf.size():
+		if _box_rect(i).grow_individual(0.5, 2.0, 0.5, 1.0).has_point(at):
+			return [&"box", i]
+	return []
+
+
+func _click_thing(at: Vector2) -> bool:
+	var hit := thing_at(at)
+	if hit.is_empty():
+		return false
+	thing_clicked.emit(hit[0], hit[1])
+	return true
+
+
+## Прямоугольник вещи в координатах студии (для тестов и кликов бота); пустой, если её нет.
+func thing_local_rect(kind: StringName, index := 0) -> Rect2:
+	var r := Rect2()
+	match kind:
+		&"box":
+			if index >= 0 and index < _shelf.size():
+				r = _box_rect(index)
+		&"parcel":
+			if _parcel:
+				r = _parcel_rect()
+		&"news":
+			if _news.has(index):
+				r = _news_rect(index)
+	if r.size == Vector2.ZERO:
+		return r
+	return Rect2(_origin() + r.position * _px(), r.size * _px())
+
+
+func thing_info() -> Dictionary:
+	return {"boxes": _shelf.size(), "coins": _coins.size(), "parcel": _parcel, "news": _news.duplicate()}
+
+
+## Полка у стены с коробками игр, монеты хвоста над ними и посылка рядом.
+func _draw_shelf(colors: Dictionary) -> void:
+	var ink: Color = colors["#"]
+	var mid: Color = colors["+"]
+	draw_rect(Rect2(SHELF_POS.x, SHELF_POS.y, SHELF_W, 1), ink)
+	draw_rect(Rect2(SHELF_POS.x, SHELF_POS.y + 1, SHELF_W, 1), mid)
+	for x in [SHELF_POS.x + 1, SHELF_POS.x + SHELF_W - 2]:
+		draw_rect(Rect2(x, SHELF_POS.y + 2, 1, 9), ink)
+	for i in _shelf.size():
+		var r := _box_rect(i)
+		if i == _shelf.size() - 1 and _box_drop > 0.0:
+			var k := _box_drop / BOX_DROP_SECONDS
+			r.position.y -= roundf(8.0 * k * k)
+		var c := _shelf[i]
+		draw_rect(r, c)
+		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), c.lightened(0.35))
+		draw_rect(Rect2(r.position.x, r.position.y + 3, r.size.x, 1), c.darkened(0.25))
+	for coin in _coins:
+		var age: float = coin[1]
+		if age < 0.0:
+			continue
+		var k := age / COIN_SECONDS
+		var r := _box_rect(coin[0])
+		var at := Vector2(r.position.x + 1, r.position.y - 3 - roundf(COIN_RISE * (1.0 - (1.0 - k) * (1.0 - k))))
+		draw_rect(Rect2(at, Vector2(3, 3)), Color(COIN_COLOR, 1.0 - k * k))
+		draw_rect(Rect2(at + Vector2(1, 1), Vector2(1, 1)), Color(COIN_COLOR.lightened(0.5), 1.0 - k * k))
+	if _parcel:
+		var r := _parcel_rect()
+		# Раз в пару секунд подпрыгивает на пиксель, над ней мигает метка.
+		if moving() and fmod(_day_clock, 2.4) < 0.18:
+			r.position.y -= 1
+		draw_rect(r, PARCEL_COLOR)
+		draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), PARCEL_COLOR.lightened(0.3))
+		draw_rect(Rect2(r.position.x + 4, r.position.y, 1, r.size.y), PARCEL_COLOR.darkened(0.3))
+		if not moving() or fmod(_day_clock, 1.2) < 0.7:
+			draw_rect(Rect2(r.position.x + 3, r.position.y - 6, 3, 3), PARCEL_MARK)
+			draw_rect(Rect2(r.position.x + 4, r.position.y - 2, 1, 1), PARCEL_MARK)
+
+
+## Значки отклика: белый квадрат в рамке с рисунком волны, появляются с подскоком.
+func _draw_news(colors: Dictionary) -> void:
+	var ink: Color = colors["#"]
+	for kind in _news:
+		var r := _news_rect(kind)
+		var age := float(_news_age.get(kind, 1.0))
+		if age < NEWS_POP_SECONDS and moving():
+			var k := 1.0 - age / NEWS_POP_SECONDS
+			r.position.y -= roundf(4.0 * sin(k * PI))
+		elif moving():
+			r.position.y -= roundf(0.5 + 0.5 * sin(_day_clock * 2.0 + kind))
+		draw_rect(r, ink)
+		draw_rect(r.grow(-1.0), Style.SURFACE_SOLID)
+		draw_rect(Rect2(r.position.x + 4, r.position.y + NEWS_SIZE, 1, 1), ink)
+		var glyph: Array = NEWS_GLYPHS.get(kind, [])
+		for y in glyph.size():
+			var row: String = glyph[y]
+			for x in row.length():
+				if row[x] == "#":
+					draw_rect(Rect2(r.position.x + 2 + x, r.position.y + 2 + y, 1, 1), ink)

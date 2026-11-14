@@ -12,6 +12,13 @@ extends Control
 ##   покупка до старта новой игры, с тем же запасом на следующий релиз, что и в фазе студии.
 ## - Карточка релиза выдвигает слева на полэкрана ленту этого релиза (`FeedScreen` архивом)
 ##   с «Играть демку»; демка идёт на весь экран, по её концу панель снова на месте.
+## После релиза (#133, `setup_after`): тот же экран, но вместо «Новой игры» кнопка «Итоги
+## релиза», а слева под пилюлями столбик карточек отклика. Отклик приходит волнами с небольшим
+## перерывом: твиты, стример, критики, продажи; карточка волны открывает ленту релиза с тем, что
+## уже пришло. Первой стоит карточка ставки: до прихода критиков можно угадать их оценку
+## (`RunTuning.bet_*`). Кнопка внизу, пока волны идут, показывает всё сразу, потом ведёт к
+## итогам (`after_finished`). Клик по предмету в студии это второй вход в те же действия:
+## хозяин зовёт `open_wave`, `open_offer`, `open_record`.
 ## Стрелки ходят по экрану (`FocusNav`), наведение мыши переносит фокус, ␣ или клик нажимают,
 ## колесо и тачпад листают релизы и окна. Esc, Ctrl или клик мимо закрывают окно; без окна Esc
 ## уходит хозяину (пауза).
@@ -20,6 +27,11 @@ signal new_game
 signal upgrade_bought(upgrade: UpgradeDef)
 ## Окно или панель релиза открылись (`true`) или закрылись: хозяин притеняет студию под ними.
 signal overlay_changed(on: bool)
+## После релиза (#133): пришла волна отклика; ставка на критиков сыграла или нет; игрок
+## досмотрел и идёт к итогам релиза.
+signal wave_arrived(kind: Wave)
+signal bet_resolved(won: bool)
+signal after_finished
 
 const RELEASE_CARD := Vector2(400, 116)
 const RELEASES_TOP := 12.0
@@ -38,12 +50,22 @@ const ROW_GAP := 12
 const OFFER_COLOR := Color("#2BB37A")
 const OFFER_PULSE_SECONDS := 2.4
 
-enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER }
+enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET }
+## Волны отклика после релиза по порядку прихода; ставка стоит первой и не приходит.
+enum Wave { BET, TWEETS, STREAM, CRITICS, SALES }
+
+const WAVE_CARD := Vector2(400, 96)
+const WAVES_TOP := 196.0
+const WAVE_NAMES: Array[String] = ["Ставка", "Твиты", "Стрим", "Критики", "Первая неделя"]
+const BET_NAMES: Array[String] = ["Разнесут", "Сойдёт", "Полюбят"]
+## Как вышло на деле, теми же тремя ступенями.
+const VERDICTS: Array[String] = ["разнесли", "сойдёт", "полюбили"]
 
 ## Подписи строк истории денег по причине `Wallet`.
 const REASONS := {
 	"release": "Разработка", "bugfix": "Багфикс", "sales": "Первая неделя", "tail": "Хвосты",
 	"share": "Доли по договорам", "upkeep": "Содержание", "upgrade": "Прокачка", "event": "Вставка",
+	"bet": "Ставка на критиков",
 	"rescue": "Аванс издателя",
 }
 
@@ -75,10 +97,43 @@ var _feed: FeedScreen
 var _feed_record: GameRecord
 var _demo: Demo
 var _catalogs: Array[Catalog] = []
+## После релиза (#133): запись и лента свежего релиза, волны, которые ещё придут, и пришедшие.
+var after := false
+var after_record: GameRecord
+var after_content: FeedContent
+var _wave_plan: Array[Wave] = []
+var _waves_shown: Array[Wave] = []
+var _wave_timer := 0.0
+var _wave_focus: Dictionary[int, Wave] = {}
+var _wave_nodes: Dictionary[Wave, PanelContainer] = {}
+var _bet_rows: Array[PanelContainer] = []
+var _bet_lifts: Array[JellyLift] = []
+var _bet_focus := 1
 
 
 func setup(run_: RunState) -> void:
 	run = run_
+
+
+## Главный экран после релиза: `record` только что вышла, `content` её лента.
+func setup_after(run_: RunState, record: GameRecord, content: FeedContent) -> void:
+	run = run_
+	after = true
+	after_record = record
+	after_content = content
+	var plan: Array[Wave] = [Wave.TWEETS]
+	if content.clip_person != null:
+		plan.append(Wave.STREAM)
+	plan.append_array([Wave.CRITICS, Wave.SALES])
+	if record.bet_done:
+		# Слот продолжен после критиков: всё уже видели.
+		_waves_shown = plan
+		if record.bet >= 0:
+			_waves_shown.insert(0, Wave.BET)
+	else:
+		_waves_shown = [Wave.BET]
+		_wave_plan = plan
+		_wave_timer = run.tuning.after_first_seconds
 
 
 func _ready() -> void:
@@ -102,8 +157,122 @@ func start_new_game() -> void:
 		return
 	_close_window(false)
 	_lifts[_new_index].press()
+	if after and not _wave_plan.is_empty():
+		show_all_waves()
+		return
 	ShellSounds.play(&"done")
-	new_game.emit()
+	if after:
+		after_finished.emit()
+	else:
+		new_game.emit()
+
+
+## После релиза: все оставшиеся волны сразу.
+func show_all_waves() -> void:
+	if _wave_plan.is_empty():
+		return
+	ShellSounds.play(&"intro")
+	while not _wave_plan.is_empty():
+		_arrive(_wave_plan.pop_front(), false)
+	_rebuild_keeping_focus()
+
+
+## После релиза: досмотреть всё и идти к итогам (бот и пропуск).
+func finish_after() -> void:
+	show_all_waves()
+	after_finished.emit()
+
+
+func waves_left() -> int:
+	return _wave_plan.size()
+
+
+func _process(delta: float) -> void:
+	if not after or _wave_plan.is_empty() or window != Pop.NONE or playing or get_tree().paused:
+		return
+	_wave_timer -= delta
+	if _wave_timer > 0.0:
+		return
+	_wave_timer = run.tuning.after_gap_seconds
+	var kind: Wave = _wave_plan.pop_front()
+	_arrive(kind, true)
+	_rebuild_keeping_focus(kind)
+
+
+## Волна пришла. С критиками закрывается ставка: сыграла или нет, либо карточка уходит.
+func _arrive(kind: Wave, sound: bool) -> void:
+	_waves_shown.append(kind)
+	if sound:
+		ShellSounds.play(&"intro")
+	if kind == Wave.CRITICS:
+		after_record.bet_done = true
+		if after_record.bet < 0:
+			_waves_shown.erase(Wave.BET)
+		else:
+			bet_resolved.emit(bet_won())
+	wave_arrived.emit(kind)
+
+
+## Какой исход ставки соответствует оценке критиков: 0 разнесут, 1 сойдёт, 2 полюбят.
+func bet_class() -> int:
+	var avg := after_content.critics_avg
+	if avg < run.tuning.bet_low:
+		return 0
+	return 2 if avg >= run.tuning.bet_high else 1
+
+
+func bet_won() -> bool:
+	return after_record.bet >= 0 and after_record.bet == bet_class()
+
+
+## Сделать ставку: до прихода критиков, один раз.
+func place_bet(choice: int) -> bool:
+	if not after or after_record.bet_done or after_record.bet >= 0 or choice < 0 or choice > 2:
+		ShellSounds.play(&"miss")
+		return false
+	after_record.bet = choice
+	ShellSounds.play(&"done")
+	_close_window(false)
+	_rebuild_keeping_focus()
+	return true
+
+
+## Открыть волну: ставка окном, остальные лентой релиза с тем, что уже пришло.
+func open_wave(kind: Wave) -> void:
+	if not after or not _waves_shown.has(kind) or playing:
+		return
+	if kind == Wave.BET:
+		if after_record.bet < 0 and not after_record.bet_done:
+			_toggle_window(Pop.BET)
+		elif _wave_nodes.has(kind):
+			Jelly.poke(_wave_nodes[kind], 1.0)
+		return
+	var kinds: Array = []
+	var first := -1
+	var want: FeedContent.Kind = FeedContent.Kind.TWEET
+	for w in _waves_shown:
+		match w:
+			Wave.TWEETS:
+				kinds.append(FeedContent.Kind.TWEET)
+			Wave.STREAM:
+				kinds.append(FeedContent.Kind.CLIP)
+			Wave.CRITICS:
+				kinds.append(FeedContent.Kind.CRITIC)
+			Wave.SALES:
+				kinds.append(FeedContent.Kind.NUMBERS)
+	match kind:
+		Wave.STREAM:
+			want = FeedContent.Kind.CLIP
+		Wave.CRITICS:
+			want = FeedContent.Kind.CRITIC
+		Wave.SALES:
+			want = FeedContent.Kind.NUMBERS
+	var content := after_content.only(kinds)
+	for i in content.items.size():
+		if content.items[i].kind == want:
+			first = i
+			break
+	_open_feed(after_record, content, first)
 
 
 func activate(i: int) -> void:
@@ -119,6 +288,9 @@ func activate(i: int) -> void:
 		_toggle_window(Pop.MONEY)
 	elif i == _offer_index:
 		_toggle_window(Pop.OFFER)
+	elif _wave_focus.has(i):
+		_lifts[i].press()
+		open_wave(_wave_focus[i])
 
 
 func open_money() -> void:
@@ -162,6 +334,12 @@ func _offer_affordable(i: int) -> bool:
 
 func open_release(i: int) -> void:
 	_open_release(i)
+
+
+## Релиз по номеру в забеге с нуля (коробка на полке студии, #133).
+func open_record(index: int) -> void:
+	if index >= 0 and index < run.records.size() and not playing:
+		_open_release(run.records.size() - 1 - index)
 
 
 # --- Ввод -------------------------------------------------------------------------------------
@@ -212,6 +390,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _window_input(event: InputEvent, viewport: Viewport) -> void:
+	if window == Pop.BET and _bet_input(event):
+		MouseUi.consume(viewport)
+		return
 	var key := event as InputEventKey
 	var esc := key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE
 	var px := MouseUi.scroll_px(event)
@@ -256,6 +437,39 @@ func _window_input(event: InputEvent, viewport: Viewport) -> void:
 	else:
 		return
 	MouseUi.consume(viewport)
+
+
+## Окно ставки: ↑ ↓ или наведение выбирают, ␣ или клик по строке ставят. Правда: событие съедено.
+func _bet_input(event: InputEvent) -> bool:
+	var over := -1
+	for i in _bet_rows.size():
+		if MouseUi.hit(_bet_rows[i], event):
+			over = i
+	if MouseUi.is_motion(event):
+		if over >= 0 and over != _bet_focus:
+			_bet_focus = over
+			ShellSounds.play(&"tick")
+			_refresh_bet()
+		return false
+	if MouseUi.is_click(event):
+		if over < 0:
+			return false
+		_bet_lifts[over].press()
+		place_bet(over)
+		return true
+	if not event.is_echo() and GameInput.is_a(event):
+		_bet_lifts[_bet_focus].press()
+		place_bet(_bet_focus)
+		return true
+	var step := int(event.is_action_pressed(GameInput.DOWN, true)) - int(event.is_action_pressed(GameInput.UP, true))
+	if step != 0:
+		var next := clampi(_bet_focus + step, 0, _bet_rows.size() - 1)
+		if next != _bet_focus:
+			_bet_focus = next
+			ShellSounds.play(&"tick")
+			_refresh_bet()
+		return true
+	return false
 
 
 ## Пилюля шапки под курсором (деньги, прокачка, «Прокачаться»), или -1.
@@ -324,10 +538,15 @@ func _toggle_window(w: Pop) -> void:
 			pill = _focusables[_offer_index]
 			rows = _offer_window_rows()
 			title = "Предложение ещё в силе"
+		Pop.BET:
+			rows = _bet_window_rows()
+			title = "Что скажут критики?"
 	_window_node = _make_window(rows, title)
 	add_child(_window_node)
 	if w == Pop.OFFER:
 		_refresh_offer()
+	elif w == Pop.BET:
+		_refresh_bet()
 	# Окно раскрывается из своей пилюли: левый верхний угол под ней.
 	var pr := MouseUi.rect_of(pill)
 	_window_node.position = Vector2(Style.EDGE, WINDOW_TOP)
@@ -361,6 +580,8 @@ func _close_window(sound := true) -> void:
 		_window_scroll = null
 		_offer_rows.clear()
 		_offer_lifts.clear()
+		_bet_rows.clear()
+		_bet_lifts.clear()
 		if Debug.skip_cards:
 			w.queue_free()
 		else:
@@ -558,6 +779,54 @@ func _offer_window_rows() -> Array[Control]:
 	return rows
 
 
+## Окно ставки (#133): три исхода с границами оценок и выигрыш.
+func _bet_window_rows() -> Array[Control]:
+	var rows: Array[Control] = []
+	_bet_rows.clear()
+	_bet_lifts.clear()
+	_bet_focus = 1
+	var t := run.tuning
+	rows.append(_wrap_label("Рецензии ещё не вышли. Угадаешь тон: %s в кассу. Не угадаешь: ничего не теряешь." % Style.format_money(t.bet_bonus),
+			Style.FONT_CAPTION, Style.INK_2))
+	var ranges: Array[String] = ["ниже %s" % _score(t.bet_low), "от %s до %s" % [_score(t.bet_low), _score(t.bet_high)],
+			"от %s и выше" % _score(t.bet_high)]
+	for i in 3:
+		var row := PanelContainer.new()
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 16)
+		row.add_child(h)
+		var name := _label(BET_NAMES[i], Style.FONT_BODY, Style.INK)
+		name.add_theme_font_override("font", Jelly.fun_font(800))
+		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(name)
+		var range_ := _label(ranges[i], Style.FONT_BODY, Style.INK_2)
+		range_.add_theme_font_override("font", Style.mono_font())
+		h.add_child(range_)
+		rows.append(row)
+		_bet_rows.append(row)
+		_bet_lifts.append(Jelly.button(row, Style.R_CTL))
+	return rows
+
+
+func _refresh_bet() -> void:
+	for i in _bet_rows.size():
+		var on := i == _bet_focus
+		var sb := Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0)
+		sb.content_margin_left = 20
+		sb.content_margin_right = 20
+		sb.content_margin_top = 14
+		sb.content_margin_bottom = 14
+		_bet_rows[i].add_theme_stylebox_override("panel", sb)
+		_bet_lifts[i].focused = on
+		var h := _bet_rows[i].get_child(0) as HBoxContainer
+		(h.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
+		(h.get_child(1) as Label).add_theme_color_override("font_color", Style.SURFACE_2 if on else Style.INK_2)
+
+
+static func _score(v: float) -> String:
+	return ("%.1f" % v).replace(".", ",")
+
+
 ## Фокус строки предложения: тёмная подложка; цена красным, если покупка съест запас.
 func _refresh_offer() -> void:
 	for i in _offer_rows.size():
@@ -605,16 +874,23 @@ func _open_release(i: int) -> void:
 	if record.score == null:
 		ShellSounds.play(&"miss")
 		return
+	_lifts[i].press()
+	_open_feed(record, run.build_feed(record), -1)
+
+
+## Панель ленты слева; `at` элемент, на котором она открывается (-1 с начала).
+func _open_feed(record: GameRecord, content: FeedContent, at: int) -> void:
 	_close_window(false)
 	window = Pop.RELEASE
 	overlay_changed.emit(true)
-	_lifts[i].press()
 	_feed_record = record
 	_feed = (load(Main.FEED_PATH) as PackedScene).instantiate() as FeedScreen
-	_feed.setup_archive(run.build_feed(record), record)
+	_feed.setup_archive(content, record)
 	_feed.finished.connect(_close_window.bind(true))
 	_feed.demo_requested.connect(_play_demo)
 	add_child(_feed)
+	if at > 0:
+		_feed.open_at.call_deferred(at)
 	_set_new_game_shown(false)
 
 
@@ -655,7 +931,33 @@ func _rebuild() -> void:
 	_labels.clear()
 	_offer_index = -1
 	_offer_halo = null
+	_wave_focus.clear()
+	_wave_nodes.clear()
 	_build()
+
+
+## Хром заново, фокус остаётся на том же элементе; новая карточка волны `fresh` вздрагивает.
+func _rebuild_keeping_focus(fresh: Wave = Wave.BET) -> void:
+	var kept: Wave = _wave_focus.get(focus, Wave.BET)
+	var on_wave := _wave_focus.has(focus)
+	var release := focus if focus < _release_count else -1
+	var on_money := focus == _money_index
+	var on_upgrades := focus == _upgrades_index
+	_rebuild()
+	if on_wave and _wave_nodes.has(kept):
+		focus = _wave_focus.find_key(kept)
+	elif release >= 0:
+		focus = release
+	elif on_money:
+		focus = _money_index
+	elif on_upgrades:
+		focus = _upgrades_index
+	_refresh_focus()
+	if fresh != Wave.BET and _wave_nodes.has(fresh) and not Debug.skip_cards:
+		var node := _wave_nodes[fresh]
+		node.modulate.a = 0.0
+		create_tween().tween_property(node, "modulate:a", 1.0, Style.SWITCH_SECONDS)
+		Jelly.poke.call_deferred(node, 1.6)
 
 
 func _build() -> void:
@@ -716,7 +1018,10 @@ func _build() -> void:
 	b.custom_minimum_size = NEW_GAME_SIZE
 	b.size = NEW_GAME_SIZE
 	b.position = Vector2((Style.SCREEN.x - NEW_GAME_SIZE.x) / 2.0, Style.SCREEN.y - NEW_GAME_BOTTOM - NEW_GAME_SIZE.y)
-	var bl := _label("Новая игра", Style.FONT_H1, Style.INK)
+	var caption := "Новая игра"
+	if after:
+		caption = "Итоги релиза" if _wave_plan.is_empty() else "Показать всё"
+	var bl := _label(caption, Style.FONT_H1, Style.INK)
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	b.add_child(bl)
@@ -736,7 +1041,82 @@ func _build() -> void:
 	hints.add_child(HintPill.make("Esc пауза"))
 	_chrome.add_child(hints)
 	_hints = hints
+	if after:
+		_build_waves()
 	MouseUi.pass_through(self)
+
+
+## После релиза: столбик карточек отклика слева под пилюлями, по порядку прихода.
+func _build_waves() -> void:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	col.position = Vector2(Style.EDGE, WAVES_TOP)
+	_chrome.add_child(col)
+	for kind in _waves_shown:
+		var c := _wave_card(kind)
+		col.add_child(c)
+		_wave_focus[_focusables.size()] = kind
+		_wave_nodes[kind] = c
+		_add_focusable(c, Jelly.button(c, Style.R_CARD), null)
+
+
+## Карточка волны: подпись мелко и главное одной строкой.
+func _wave_card(kind: Wave) -> PanelContainer:
+	var c := PanelContainer.new()
+	c.custom_minimum_size = WAVE_CARD
+	var sb := Style.flat(Style.SURFACE_SOLID, Style.R_CARD, Color.TRANSPARENT, 0)
+	sb.content_margin_left = 20
+	sb.content_margin_right = 20
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 14
+	c.add_theme_stylebox_override("panel", sb)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	c.add_child(col)
+	var caption := WAVE_NAMES[kind]
+	var text := ""
+	var color := Style.INK
+	var mono := false
+	match kind:
+		Wave.BET:
+			if after_record.bet < 0:
+				text = "Что скажут критики?"
+			elif not after_record.bet_done:
+				caption = "Ставка сделана"
+				text = BET_NAMES[after_record.bet]
+			elif bet_won():
+				caption = "Ставка сыграла"
+				text = "+ " + Style.format_money(run.tuning.bet_bonus)
+				color = Style.MONEY
+			else:
+				caption = "Ставка не сыграла"
+				text = "%s, а вышло «%s»" % [BET_NAMES[after_record.bet], VERDICTS[bet_class()]]
+		Wave.TWEETS:
+			caption = "Твиты · " + after_content.tag
+			for it in after_content.items:
+				if it.kind == FeedContent.Kind.TWEET:
+					text = it.text
+					break
+		Wave.STREAM:
+			caption = "Стрим · " + after_content.clip_person.name
+			text = FeedContent.format_count(after_content.online) + " онлайн" + (" · разлетается" if after_content.viral else "")
+		Wave.CRITICS:
+			text = _score(after_content.critics_avg) + " · " + VERDICTS[bet_class()]
+			mono = true
+		Wave.SALES:
+			text = Style.format_money(after_content.sales_first)
+			color = Style.MONEY
+			mono = true
+	var cl := _label(caption, Style.FONT_CAPTION, Style.INK_3)
+	cl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	cl.clip_text = true
+	col.add_child(cl)
+	var tl := _label(text, Style.FONT_BODY, color)
+	tl.add_theme_font_override("font", Style.mono_font() if mono else Jelly.fun_font(800))
+	tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tl.clip_text = true
+	col.add_child(tl)
+	return c
 
 
 ## «Прокачаться»: зелёная пилюля, раз в пару секунд вздрагивает и пускает от себя ореол.
@@ -845,7 +1225,7 @@ func _refresh_focus() -> void:
 	for i in _focusables.size():
 		var on := i == focus
 		_lifts[i].focused = on
-		if i < _release_count:
+		if i < _release_count or _wave_focus.has(i):
 			continue
 		var c := _focusables[i] as PanelContainer
 		var radius := Style.R_PILL if i != _new_index else Style.R_CTL

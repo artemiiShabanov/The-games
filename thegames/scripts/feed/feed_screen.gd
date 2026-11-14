@@ -152,6 +152,14 @@ func move(dir: int) -> void:
 	_refresh_item_focus()
 
 
+## Открыть ленту на элементе `i` без звука и анимации (главный экран после релиза, #133).
+func open_at(i: int) -> void:
+	index = clampi(i, 0, _items.size() - 1)
+	_center_on(index, false)
+	_refresh_buttons()
+	_refresh_item_focus()
+
+
 func scroll_to_end() -> void:
 	index = _items.size() - 1
 	focus_demo = false

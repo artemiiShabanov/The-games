@@ -76,6 +76,14 @@ var _pause: PauseMenu
 var _dim: ColorRect
 var _dim_on := false
 var _hub_overlay := false
+## После релиза (#133): предложение прокачки не в фазе студии, а посылкой на главном экране
+## (у бота, кроме `--after`, по-старому: модель покупает в фазе); коробки, из которых на
+## главном экране вылетят монеты хвоста.
+var _defer_offer := true
+var _tail_boxes: Array[int] = []
+var _genres: Catalog
+var _after_content: FeedContent
+var _after_news: Array[int] = []
 
 
 func _ready() -> void:
@@ -105,6 +113,8 @@ func _ready() -> void:
 		if args.has("cash"):
 			run.wallet.cash = int(str(args["cash"]))
 		EventCard.bot_last = args.has("refuse-events")
+		# `--after` (#133): бот идёт путём игрока, прокачка ждёт на главном экране.
+		_defer_offer = args.has("after")
 		if args.has("broke-at"):
 			_broke_at = int(str(args["broke-at"]))
 		_loop_check = args.has("loop")
@@ -138,6 +148,7 @@ func _ready() -> void:
 
 	_bg = StudioBackdrop.new()
 	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_bg.thing_clicked.connect(_on_studio_thing)
 	add_child(_bg)
 	_dim = ColorRect.new()
 	_dim.color = Style.STUDIO_DIM
@@ -210,6 +221,33 @@ func _sync_studio() -> void:
 	if _bg != null:
 		_bg.busy = stage in [Stage.SPRINTS, Stage.FIXING]
 		_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
+		_bg.set_shelf(_shelf_colors())
+		_bg.set_parcel(stage == Stage.HUB and not run.pending_defs().is_empty())
+
+
+## Цвета коробок на полке студии: жанр каждой выпущенной игры забега.
+func _shelf_colors() -> Array[Color]:
+	if _genres == null:
+		_genres = Catalog.load_kind(0)
+	var out: Array[Color] = []
+	for r in run.records:
+		var entry := _genres.by_value(int(r.genre))
+		out.append(entry.color if entry != null else Style.INK_3)
+	return out
+
+
+## Клик по вещи в студии: второй вход в то же, что карточки главного экрана (#133).
+func _on_studio_thing(kind: StringName, index: int) -> void:
+	var hub := _screen as RunHub
+	if hub == null or not stage in [Stage.HUB, Stage.FEED]:
+		return
+	match kind:
+		&"box":
+			hub.open_record(index)
+		&"parcel":
+			hub.open_offer()
+		&"news":
+			hub.open_wave(index as RunHub.Wave)
 
 
 ## Главный экран забега (#77): новый релиз начинается кнопкой «Новая игра».
@@ -227,11 +265,62 @@ func _open_hub() -> void:
 		_save(&"release", true))
 	_set_screen(hub)
 	_bot_timer = 0.0
+	if _bg != null:
+		_bg.set_news([])
+		_bg.pay_tails(_tail_boxes)
+	_tail_boxes.clear()
+
+
+func _on_wave(kind: RunHub.Wave) -> void:
+	_after_news.append(int(kind))
+	if kind == RunHub.Wave.CRITICS:
+		_save(&"feed")
+	if _bg == null:
+		return
+	_bg.set_news(_after_news)
+	if kind == RunHub.Wave.TWEETS:
+		_bg.nudge()
+	elif kind == RunHub.Wave.STREAM:
+		if _after_content.viral:
+			_bg.react(&"viral")
+		else:
+			_bg.nudge()
+	elif kind == RunHub.Wave.CRITICS and _after_content.critics_avg >= run.tuning.bet_high:
+		_bg.react(&"release")
+
+
+func _on_bet(won: bool) -> void:
+	AutoTest.note("after: ставка %d, критики %.1f, %s" % [record.bet, _after_content.critics_avg, "сыграла" if won else "мимо"])
+	if won:
+		run.wallet.earn(run.tuning.bet_bonus, &"bet", record.title)
+		_expected_cash += run.tuning.bet_bonus
+
+
+## После релиза (#133): тот же главный экран, отклик приходит на него волнами. Студия
+## откликается просто: на твиты кто-то встаёт, на вирусный стрим прыгают, на тёплых критиков
+## машут.
+func _open_after() -> void:
+	stage = Stage.FEED
+	_sync_studio()
+	var hub := RunHub.new()
+	var content := run.build_feed(record)
+	hub.setup_after(run, record, content)
+	_hub_overlay = false
+	hub.overlay_changed.connect(func(on: bool) -> void: _hub_overlay = on)
+	_after_content = content
+	_after_news.clear()
+	hub.wave_arrived.connect(_on_wave)
+	hub.bet_resolved.connect(_on_bet)
+	hub.after_finished.connect(_open_studio)
+	_set_screen(hub)
+	_bot_timer = 0.0
 
 
 ## «Новая игра»: основа, если открыты сиквелы или ремейки, иначе конструктор.
 func _begin_next_game() -> void:
 	_via_base = false
+	if _bg != null:
+		_bg.set_parcel(false)
 	if run.contract_sequel() != null:
 		# Обещанный во вставке сиквел (#66): основа задана, экрана основы нет.
 		base = BaseOption.sequel_of(run.contract_sequel())
@@ -412,11 +501,8 @@ func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
 	if _demo_header != null:
 		_demo_header.queue_free()
 		_demo_header = null
-	if stage == Stage.FEED_DEMO:
-		_open_feed()
-	else:
-		bugfix_offers = 0
-		_offer_bugfix()
+	bugfix_offers = 0
+	_offer_bugfix()
 
 
 ## Предложение багфикса после демки, есть баги или нет (плейтест 2026-11-11: найти их игрок
@@ -473,26 +559,8 @@ func _finish_release() -> void:
 	_clear_all()
 	if record.score == null:
 		run.score_release(record)
-	if _bg != null:
-		_bg.react(&"viral" if record.score.viral else &"release")
 	_save(&"feed")
-	_open_feed()
-
-
-func _open_feed() -> void:
-	stage = Stage.FEED
-	var feed := (load(FEED_PATH) as PackedScene).instantiate() as FeedScreen
-	feed.setup(run.build_feed(record), record, run.release, run.wallet.cash)
-	feed.demo_requested.connect(_on_feed_demo)
-	feed.finished.connect(_open_studio)
-	_set_screen(feed)
-	_bot_timer = 0.0
-
-
-func _on_feed_demo() -> void:
-	_clear_all()
-	stage = Stage.FEED_DEMO
-	_run_demo(&"feed", "Демо")
+	_open_after()
 
 
 func _open_studio() -> void:
@@ -507,6 +575,9 @@ func _open_studio() -> void:
 	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
 	screen.reserve_fn = run.cheapest_next
+	screen.defer_offer = _defer_offer
+	if _bg != null:
+		_bg.set_news([])
 	var offer := run.plan_event(report)
 	if report.rescue_due and (offer == null or offer.def.kind != EventDef.Kind.RESCUE):
 		# Спасти некому: банкротство сразу.
@@ -549,6 +620,12 @@ func _on_studio_finished() -> void:
 		_bg.react(&"")
 	if _ledger_path != "":
 		_write_ledger()
+	# Монеты хвоста вылетят из коробок этих игр, когда игрок вернётся на главный экран (#133).
+	_tail_boxes.clear()
+	if report != null:
+		for tail in report.tails:
+			if tail.tick > 0:
+				_tail_boxes.append(run.records.find(tail.record))
 	run.close_release(record, report)
 	_profile.add_game(record, run.run_number, run.records.size(), run.studio_name)
 	if _loop_check:
@@ -643,7 +720,7 @@ func _resume(s: RunSave) -> void:
 		&"bugfix":
 			_offer_bugfix()
 		&"feed":
-			_open_feed()
+			_open_after()
 		&"studio":
 			_open_studio()
 		&"year":
@@ -739,11 +816,12 @@ func _process(delta: float) -> void:
 				offer.decline()
 		Stage.FEED:
 			_bot_timer = -INF
-			var feed := _screen as FeedScreen
-			if feed != null:
-				feed.scroll_to_end()
-				feed.set_focus_demo(false)
-				feed.confirm()
+			var after_hub := _screen as RunHub
+			if after_hub != null:
+				# Бот с `--after` ставит на «полюбят»: играет он чисто, ставка играет, деньги сверяются.
+				if _defer_offer:
+					after_hub.place_bet(2)
+				after_hub.finish_after()
 		Stage.END:
 			_bot_timer = -INF
 			# Экран концовки ведёт бот сам; петля автотеста засчитывает конец.
@@ -903,7 +981,7 @@ func _skip_stage() -> void:
 # --- Экраны и карточки ------------------------------------------------------------------------
 
 func _update_dim() -> void:
-	var want := stage != Stage.HUB or _hub_overlay
+	var want := not stage in [Stage.HUB, Stage.FEED] or _hub_overlay
 	if want == _dim_on or _dim == null:
 		return
 	_dim_on = want

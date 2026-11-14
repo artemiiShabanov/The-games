@@ -5,6 +5,9 @@ extends Control
 ## окно денег сходится с кошельком, окно прокачки по порядку покупки, панель релиза с лентой,
 ## «Новая игра» шлёт сигнал, отложенное предложение покупается с главного экрана один раз.
 ## `--no-checks [--pop=money|upgrades|release|offer]` держит экран для скриншота.
+## После релиза (#133): `--after` открывает экран со свежим релизом и волнами отклика
+## (`--after=all` все волны сразу, `--pop=bet` окно ставки, `--pop=wave` лента пришедшего);
+## под ботом после обычных проверок идут проверки волн, ставки и вещей в студии.
 
 const SECTION: StringName = &"Главный экран"
 
@@ -13,6 +16,11 @@ var hub: RunHub
 var past := 3
 var _checks := false
 var _pop := ""
+var _after := ""
+var _after_on := false
+var _record: GameRecord
+var _finished := false
+var _bets: Array[bool] = []
 var _started := false
 var _bg: StudioBackdrop
 var _dim: ColorRect
@@ -34,6 +42,8 @@ func _ready() -> void:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		past = int(str(args.get("past", past)))
 		_pop = str(args.get("pop", ""))
+		_after_on = args.has("after")
+		_after = str(args.get("after", ""))
 		if args.has("no-checks"):
 			AutoTest.bot_mode = AutoTest.BotMode.OFF
 		else:
@@ -45,6 +55,16 @@ func _ready() -> void:
 	Debug.add_action(SECTION, "Окно прокачки", func() -> void: hub.open_upgrades())
 	Debug.add_action(SECTION, "Последний релиз", func() -> void: hub.open_release(0))
 	Debug.add_action(SECTION, "Отложенная прокачка", func() -> void: hub.open_offer())
+	Debug.add_toggle(SECTION, "После релиза (#133)", func() -> bool: return _after_on,
+			func(v: bool) -> void:
+				_after_on = v
+				_open())
+	Debug.add_action(SECTION, "После релиза: все волны", func() -> void: hub.show_all_waves())
+	Debug.add_action(SECTION, "Студия: монеты хвоста", func() -> void:
+		var all: Array[int] = []
+		for i in run.records.size():
+			all.append(i)
+		_bg.pay_tails(all))
 	_open()
 
 
@@ -57,13 +77,19 @@ func _open() -> void:
 		hub.queue_free()
 	run = _make_run(past)
 	_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
+	_bg.set_shelf(_shelf_colors())
+	_bg.set_parcel(not _after_on and not run.pending_defs().is_empty())
+	_bg.set_news([])
 	hub = RunHub.new()
-	hub.setup(run)
+	if _after_on:
+		_open_after_hub()
+	else:
+		hub.setup(run)
 	hub.new_game.connect(func() -> void: _started = true)
 	hub.overlay_changed.connect(func(on: bool) -> void:
 		create_tween().tween_property(_dim, "modulate:a", 1.0 if on else 0.0, Style.STUDIO_DIM_SECONDS))
 	add_child(hub)
-	if _checks:
+	if _checks and not _after_on:
 		_check.call_deferred()
 	elif _pop != "":
 		_show_pop.call_deferred()
@@ -79,6 +105,87 @@ func _show_pop() -> void:
 			hub.open_release(0)
 		"offer":
 			hub.open_offer()
+		"bet":
+			hub.open_wave(RunHub.Wave.BET)
+		"wave":
+			hub.open_wave(RunHub.Wave.CRITICS if hub.waves_left() == 0 else RunHub.Wave.TWEETS)
+
+
+## Экран после релиза: ещё один релиз разработан и оценён, но фаза студии не пройдена.
+func _open_after_hub() -> void:
+	run.pending_offer.clear()
+	_record = run.start_development(run.first_config())
+	for k in run.last_plan.size():
+		_record.add_sprint(k != 1)
+	run.score_release(_record)
+	hub.setup_after(run, _record, run.build_feed(_record))
+	var news: Array[int] = []
+	hub.wave_arrived.connect(func(kind: RunHub.Wave) -> void:
+		news.append(int(kind))
+		_bg.set_news(news))
+	hub.bet_resolved.connect(func(won: bool) -> void: _bets.append(won))
+	hub.after_finished.connect(func() -> void: _finished = true)
+	if _after == "all":
+		hub.show_all_waves.call_deferred()
+
+
+func _shelf_colors() -> Array[Color]:
+	var genres := Catalog.load_kind(0)
+	var out: Array[Color] = []
+	for r in run.records:
+		var entry := genres.by_value(int(r.genre))
+		out.append(entry.color if entry != null else Style.INK_3)
+	return out
+
+
+## Проверки экрана после релиза (#133): ставка, волны, лента пришедшего, вещи в студии.
+func _check_after() -> void:
+	_after_on = true
+	_open()
+	await get_tree().process_frame
+	_expect(hub.after and hub.waves_left() >= 3, "после релиза: волны впереди, осталось %d" % hub.waves_left())
+	_expect(hub._wave_nodes.has(RunHub.Wave.BET) and hub._wave_nodes.size() == 1, "сначала только карточка ставки")
+	hub.open_wave(RunHub.Wave.BET)
+	_expect(hub.window == RunHub.Pop.BET and hub._bet_rows.size() == 3, "окно ставки открыто")
+	var right := hub.bet_class()
+	_expect(hub.place_bet(right) and _record.bet == right and hub.window == RunHub.Pop.NONE, "ставка сделана")
+	_expect(not hub.place_bet(0), "вторая ставка не принимается")
+	hub.open_wave(RunHub.Wave.CRITICS)
+	_expect(hub.window == RunHub.Pop.NONE, "критиков ещё нет: волна не открывается")
+	# Первая волна приходит сама.
+	hub._wave_timer = 0.0
+	hub._process(0.016)
+	_expect(hub._wave_nodes.has(RunHub.Wave.TWEETS) and _bg.thing_info()["news"] == [int(RunHub.Wave.TWEETS)], "твиты пришли карточкой и значком")
+	hub.open_wave(RunHub.Wave.TWEETS)
+	var only_tweets := hub._feed != null
+	if only_tweets:
+		for it in hub._feed.content.items:
+			only_tweets = only_tweets and it.kind == FeedContent.Kind.TWEET
+	_expect(hub.window == RunHub.Pop.RELEASE and only_tweets, "лента после первой волны: только твиты")
+	hub._close_window(false)
+	# Кнопка внизу сначала показывает всё, потом ведёт к итогам.
+	hub.start_new_game()
+	_expect(hub.waves_left() == 0 and not _finished, "первое нажатие показало все волны")
+	_expect(_bets == [true] and _record.bet_done, "верная ставка сыграла: %s" % [_bets])
+	_expect(hub._wave_nodes.has(RunHub.Wave.SALES) and hub._wave_nodes.has(RunHub.Wave.CRITICS), "карточки критиков и продаж на месте")
+	hub.open_wave(RunHub.Wave.SALES)
+	_expect(hub._feed != null and hub._feed.content.items.size() == run.build_feed(_record).items.size(), "лента после всех волн целая")
+	hub._close_window(false)
+	# Вещи в студии: коробка на игру, клик шлёт сигнал с номером.
+	var got: Array = []
+	_bg.thing_clicked.connect(func(kind: StringName, index: int) -> void: got.append([kind, index]))
+	_expect(int(_bg.thing_info()["boxes"]) == run.records.size(), "коробок на полке %d" % run.records.size())
+	var box := _bg.thing_local_rect(&"box", 1)
+	_expect(box.size != Vector2.ZERO and _bg._click_thing(_bg._to_art(_bg.get_global_transform_with_canvas() * box.get_center())),
+			"коробка нажимается")
+	_expect(got == [[&"box", 1]], "клик по коробке: %s" % [got])
+	hub.open_record(1)
+	_expect(hub.window == RunHub.Pop.RELEASE and hub._feed_record == run.records[1], "коробка открывает свой релиз")
+	hub._close_window(false)
+	_bg.pay_tails([0, 1])
+	_expect(int(_bg.thing_info()["coins"]) == 2, "монеты хвоста вылетели")
+	hub.start_new_game()
+	_expect(_finished, "второе нажатие ведёт к итогам релиза")
 
 
 ## Забег, прошедший `n` релизов: каждый как в петле, первая прокачка предложения куплена.
@@ -150,6 +257,7 @@ func _check() -> void:
 	_expect(_started and hub.window == RunHub.Pop.NONE, "«Новая игра» закрыла окно и дала сигнал")
 	AutoTest.note("hub: релизов %d, строк истории %d, прокачек %d" % [run.records.size(), run.wallet.history.size(),
 			run.studio.upgrade_ids.size()])
+	await _check_after()
 	AutoTest.fulfill("hub checks")
 
 

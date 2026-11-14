@@ -31,6 +31,25 @@ var views := 0
 var online := 0
 
 
+## Та же лента, но только элементы видов `kinds`: главный экран после релиза показывает то, что
+## уже пришло (#133).
+func only(kinds: Array) -> FeedContent:
+	var c := FeedContent.new()
+	for it in items:
+		if kinds.has(it.kind):
+			c.items.append(it)
+	c.tag = tag
+	c.critics_avg = critics_avg
+	c.sales_first = sales_first
+	c.streamers_word = streamers_word
+	c.viral = viral
+	c.veteran = veteran
+	c.clip_person = clip_person
+	c.views = views
+	c.online = online
+	return c
+
+
 ## «1,2 млн», «140 тыс.», «640».
 static func format_count(n: int) -> String:
 	if n >= 1000000:

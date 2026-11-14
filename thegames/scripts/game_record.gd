@@ -30,6 +30,11 @@ extends Resource
 @export var feed_built := false
 @export var feed_rep := 0.0
 @export var feed_veteran := false
+## После релиза (#133): ставка на критиков (-1 нет, 0 разнесут, 1 сойдёт, 2 полюбят) и то,
+## что волны отклика уже досмотрены до критиков (ставка закрыта, при продолжении слота волны
+## показываются сразу).
+@export var bet := -1
+@export var bet_done := false
 ## Кадр демки с плейтеста (галерея, плейтест 2026-11-11): PNG в `user://`, пусто без кадра.
 @export var shot := ""
 
