@@ -5,7 +5,9 @@ extends Minigame
 ## Стена дошла: если фигура повёрнута под вырез с точностью до зазора, стена проходит сквозь с
 ## хлопком, иначе бьётся о фигуру. `WALLS` стен, две непройденные это провал.
 ## Параметры от `t` в `resources/minigames/doorway.tres`: travel (сколько секунд едет стена), gap
-## (зазор, градусы в каждую сторону), hard (доля фигур без симметрии: стрелка, уголок, домик).
+## (зазор, градусы в каждую сторону), hard (доля фигур без симметрии: стрелка, уголок, домик
+## и другие), tricky (доля фигур-обманок: почти симметричные, верное положение выдаёт одна
+## мелкая примета, плейтест 2026-11-14, #131).
 ## Вид как у всех мини-игр, в стиле оболочки: рендера технологии здесь нет (решение
 ## 2026-11-11). Мармелад: фигура вздрагивает от прохода и трясётся от удара, стена после
 ## прохода тает, проход брызгает каплями.
@@ -39,13 +41,36 @@ const SHAPES := {
 	&"ell": [[Vector2(-0.8, -0.9), Vector2(-0.15, -0.9), Vector2(-0.15, 0.25), Vector2(0.8, 0.25), Vector2(0.8, 0.9),
 			Vector2(-0.8, 0.9)], 1],
 	&"house": [[Vector2(-0.72, 0.8), Vector2(-0.72, -0.15), Vector2(0, -0.95), Vector2(0.72, -0.15), Vector2(0.72, 0.8)], 1],
+	&"rhombus": [[Vector2(0, -1), Vector2(0.55, 0), Vector2(0, 1), Vector2(-0.55, 0)], 2],
+	&"zee": [[Vector2(-0.9, -0.6), Vector2(0.3, -0.6), Vector2(0.3, 0), Vector2(0.9, 0), Vector2(0.9, 0.6),
+			Vector2(-0.3, 0.6), Vector2(-0.3, 0), Vector2(-0.9, 0)], 2],
+	&"star": [[Vector2(0, -1), Vector2(0.265, -0.364), Vector2(0.951, -0.309), Vector2(0.428, 0.139),
+			Vector2(0.588, 0.809), Vector2(0, 0.45), Vector2(-0.588, 0.809), Vector2(-0.428, 0.139),
+			Vector2(-0.951, -0.309), Vector2(-0.265, -0.364)], 5],
+	&"tee": [[Vector2(-0.9, -0.8), Vector2(0.9, -0.8), Vector2(0.9, -0.2), Vector2(0.3, -0.2), Vector2(0.3, 0.9),
+			Vector2(-0.3, 0.9), Vector2(-0.3, -0.2), Vector2(-0.9, -0.2)], 1],
+	&"kite": [[Vector2(0, -1), Vector2(0.6, 0.2), Vector2(0, 0.7), Vector2(-0.6, 0.2)], 1],
+	&"step": [[Vector2(-0.9, 0.9), Vector2(-0.9, 0.3), Vector2(-0.3, 0.3), Vector2(-0.3, -0.3), Vector2(0.3, -0.3),
+			Vector2(0.3, -0.9), Vector2(0.9, -0.9), Vector2(0.9, 0.9)], 1],
+	# Обманки: почти симметричные, но подходят одним положением.
+	&"notch": [[Vector2(-0.72, -0.72), Vector2(-0.2, -0.72), Vector2(-0.2, -0.42), Vector2(0.2, -0.42),
+			Vector2(0.2, -0.72), Vector2(0.72, -0.72), Vector2(0.72, 0.72), Vector2(-0.72, 0.72)], 1],
+	&"short_plus": [[Vector2(-0.33, -1), Vector2(0.33, -1), Vector2(0.33, -0.33), Vector2(0.6, -0.33), Vector2(0.6, 0.33),
+			Vector2(0.33, 0.33), Vector2(0.33, 1), Vector2(-0.33, 1), Vector2(-0.33, 0.33), Vector2(-1, 0.33),
+			Vector2(-1, -0.33), Vector2(-0.33, -0.33)], 1],
+	&"short_star": [[Vector2(0, -0.62), Vector2(0.265, -0.364), Vector2(0.951, -0.309), Vector2(0.428, 0.139),
+			Vector2(0.588, 0.809), Vector2(0, 0.45), Vector2(-0.588, 0.809), Vector2(-0.428, 0.139),
+			Vector2(-0.951, -0.309), Vector2(-0.265, -0.364)], 1],
+	&"cut_triangle": [[Vector2(-0.2175, -0.625), Vector2(0.2175, -0.625), Vector2(0.87, 0.5), Vector2(-0.87, 0.5)], 1],
 }
-const EASY: Array[StringName] = [&"bar", &"triangle", &"plus"]
-const HARD: Array[StringName] = [&"arrow", &"ell", &"house"]
+const EASY: Array[StringName] = [&"bar", &"triangle", &"plus", &"rhombus", &"zee", &"star"]
+const HARD: Array[StringName] = [&"arrow", &"ell", &"house", &"tee", &"kite", &"step"]
+const TRICKY: Array[StringName] = [&"notch", &"short_plus", &"short_star", &"cut_triangle"]
 
 var travel := 2.9
 var gap := 22.0
 var hard_share := 0.0
+var tricky_share := 0.0
 ## Угол фигуры и выреза, градусы.
 var angle := 0.0
 var hole_angle := 0.0
@@ -79,6 +104,7 @@ func _on_start() -> void:
 	travel = clampf(def.param(&"travel", t, 2.9), 1.2, 2.95)
 	gap = clampf(def.param(&"gap", t, 22.0), 5.0, 40.0)
 	hard_share = clampf(def.param(&"hard", t, 0.0), 0.0, 1.0)
+	tricky_share = clampf(def.param(&"tricky", t, 0.0), 0.0, 1.0)
 	for i in WALLS:
 		_dots.append(JellySpring.new())
 		var p := MiniSfx.hit(196.0, 0.0, pow(2.0, i / 6.0))
@@ -94,8 +120,13 @@ func _on_start() -> void:
 
 ## Новая стена: фигура по сложности, вырез повёрнут от неё заметно в случайную сторону.
 func _next_wall() -> void:
-	var pool := HARD if rng.randf() < hard_share else EASY
+	var roll := rng.randf()
+	var pool := TRICKY if roll < tricky_share else (HARD if rng.randf() < hard_share else EASY)
+	# Не та же фигура два раза подряд.
+	var prev := shape if wall > 0 else &""
 	shape = pool[rng.randi_range(0, pool.size() - 1)]
+	if shape == prev:
+		shape = pool[(pool.find(shape) + 1) % pool.size()]
 	var info: Array = SHAPES[shape]
 	symmetry = int(info[1])
 	_points = PackedVector2Array(info[0])

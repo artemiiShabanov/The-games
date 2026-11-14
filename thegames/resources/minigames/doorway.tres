@@ -14,8 +14,12 @@ _data = [Vector2(0, 22), 0.0, 0.0, 0, 0, Vector2(1, 11), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_njcpt"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.6, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_trick"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.5, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.7), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_vj05j")
@@ -30,5 +34,6 @@ mouse_hint = "колесо или тяни вбок: вращай"
 params = Dictionary[StringName, Curve]({
 &"gap": SubResource("Curve_5t5tg"),
 &"hard": SubResource("Curve_njcpt"),
-&"travel": SubResource("Curve_mfgdi")
+&"travel": SubResource("Curve_mfgdi"),
+&"tricky": SubResource("Curve_trick")
 })
