@@ -252,14 +252,13 @@ func _pause_hover() -> void:
 	_check(not game.paused, "пауза: клик по «Продолжить» не продолжил")
 
 
-## Пилюля ввода: после клика мыши показывает подсказку мыши, после клавиши снова клавиши.
+## Пилюля ввода всегда клавиатурная (решение 2026-11-14): клик мыши её не меняет.
 func _pill() -> void:
 	await _open(&"runner")
 	await _click(Vector2(960, 540))
 	await _frames(2)
-	_check(GameInput.mouse, "пилюля: клик не включил мышь")
 	var pill := _find_pill(game)
-	_check(pill != null and pill.label().text == game.def.mouse_hint, "пилюля: нет подсказки мыши")
+	_check(pill != null and pill.label().text == GameInput.key(GameInput.A), "пилюля: после клика мыши не клавиша")
 	var key := InputEventKey.new()
 	key.keycode = KEY_SHIFT
 	key.pressed = true
@@ -269,7 +268,7 @@ func _pill() -> void:
 	key.pressed = false
 	Input.parse_input_event(key)
 	await _frames(2)
-	_check(not GameInput.mouse and pill.label().text == GameInput.key(GameInput.A), "пилюля: клавиша не вернула подсказку клавиш")
+	_check(pill.label().text == GameInput.key(GameInput.A), "пилюля: после клавиши не клавиша")
 
 
 # --- Помощники ----------------------------------------------------------------------------

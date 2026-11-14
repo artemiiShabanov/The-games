@@ -562,3 +562,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var x := 24.0 + tuning.lives * 24.0 + 6.0
 	bit16.sprite(canvas, tex["coin"], int(_time * 8.0), Vector2(x, 38.0))
 	PixelFont16.draw(canvas, Vector2(x + 14.0, 15.0), "×%02d" % sim.coins_got, Color("#fff2a0"), Color("#d8a440"), Fx16.INK, 2.0)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "бег"], [GameInput.key(GameInput.A), "прыжок"], [GameInput.key(GameInput.B), "слайд"]]

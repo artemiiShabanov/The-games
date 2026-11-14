@@ -589,3 +589,8 @@ func _draw_start(canvas: CanvasItem) -> void:
 		canvas.draw_circle(mid, 27.0, bit16.ink(Bit16Screen.LEAF))
 		canvas.draw_colored_polygon(PackedVector2Array([mid + Vector2(-9.0, -14.0), mid + Vector2(15.0, 0.0),
 				mid + Vector2(-9.0, 14.0)]), bit16.ink(Bit16Screen.WHITE))
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "руль"], [GameInput.key(GameInput.A), "газ"], [GameInput.key(GameInput.B), "нитро"]]

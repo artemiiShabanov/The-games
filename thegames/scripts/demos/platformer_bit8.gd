@@ -676,3 +676,8 @@ func _draw_hud() -> void:
 
 func _draw_number(pos: Vector2, n: int) -> void:
 	draw_pixel_text(hud, pos, str(n), HUD_INK, HUD_SHADOW)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "бег"], [GameInput.key(GameInput.A), "прыжок"], [GameInput.key(GameInput.B), "рывок"]]

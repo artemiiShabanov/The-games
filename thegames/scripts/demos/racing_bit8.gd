@@ -866,3 +866,8 @@ func _draw_minimap() -> void:
 	var p := (origin + player.pos * k).floor()
 	hud.draw_rect(Rect2(p - Vector2(1, 1), Vector2(3, 3)), HUD_SHADOW)
 	hud.draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), HUD_INK)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "поворот"], [GameInput.key(GameInput.A), "газ"], [GameInput.key(GameInput.B), "тормоз"]]

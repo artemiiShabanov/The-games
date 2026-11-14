@@ -255,3 +255,8 @@ static func _circle(center: Vector2, radius: float, points: int) -> PackedVector
 	for i in points:
 		pts.append(center + Vector2.from_angle(TAU * i / points) * radius)
 	return pts
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "ствол"], [GameInput.key(GameInput.A), "огонь"]]

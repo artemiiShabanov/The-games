@@ -70,6 +70,8 @@ void fragment() {
 }
 """
 const MENU_ITEMS: Array[String] = ["Вернуться", "Пропустить"]
+## Плитка управления в паузе.
+const CONTROL_TILE := Vector2(232, 176)
 ## Пиксельные цифры 3×5 для HUD демок 8-bit (`draw_pixel_text`), плюс «/» для места в гонке,
 ## «+», «-», «°» и буквы «ПАР» для гольфа (#52), «KO» и «ВРЕМЯ» для файтинга (#54).
 const PIXEL_DIGITS := {
@@ -114,6 +116,8 @@ var _menu_pills: Array[PanelContainer] = []
 var _menu_labels: Array[Label] = []
 var _menu_lifts: Array[JellyLift] = []
 var _menu_hint: Control
+## Плитки управления в паузе: клавиша крупно, под ней что она делает.
+var _controls_row: HBoxContainer
 
 # Общие баги (#44).
 ## Случайность багов из сида записи: проявления повторяются от запуска к запуску.
@@ -790,6 +794,7 @@ func _open_pause() -> void:
 	_show_overlay("пауза", "", Style.INK)
 	_menu_row.visible = true
 	_menu_hint.visible = true
+	_controls_row.visible = _controls_row.get_child_count() > 0
 	_refresh_menu()
 
 
@@ -820,6 +825,12 @@ func _bot_step(_delta: float) -> void:
 ## Ввод самой демки: приходит только на ходу, вне паузы.
 func _game_input(_event: InputEvent) -> void:
 	pass
+
+
+## Управление демки для паузы: пары `[клавиши, что делают]`, по порядку важности, не больше
+## пяти. Клавиши пишутся клавиатурные, даже если мышь тоже работает (решение 2026-11-14).
+func _controls() -> Array:
+	return []
 
 
 ## Подпись на экране итога: монеты, время и т.п.
@@ -864,6 +875,13 @@ func _build_overlay() -> void:
 	_overlay_caption.add_theme_font_size_override("font_size", Style.FONT_H2)
 	_overlay_caption.add_theme_color_override("font_color", Style.INK_2)
 	column.add_child(_overlay_caption)
+	_controls_row = HBoxContainer.new()
+	_controls_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_controls_row.add_theme_constant_override("separation", 16)
+	_controls_row.visible = false
+	column.add_child(_controls_row)
+	for pair: Array in _controls():
+		_controls_row.add_child(_control_tile(str(pair[0]), str(pair[1])))
 	_menu_row = HBoxContainer.new()
 	_menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu_row.add_theme_constant_override("separation", Style.GAP_CARDS)
@@ -892,6 +910,48 @@ func _build_overlay() -> void:
 	MouseUi.pass_through(_overlay)
 
 
+## Плитка управления (плейтест 2026-11-14): клавиши крупно в тёмной «кнопке», под ней подпись.
+func _control_tile(keys: String, text: String) -> Control:
+	var tile := PanelContainer.new()
+	tile.custom_minimum_size = CONTROL_TILE
+	var sb := Style.flat(Style.SURFACE_2, Style.R_CARD, Color.TRANSPARENT, 0)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 16
+	sb.content_margin_bottom = 14
+	tile.add_theme_stylebox_override("panel", sb)
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 12)
+	tile.add_child(col)
+	var cap := PanelContainer.new()
+	cap.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var cb := Style.flat(Style.INK, Style.R_CTL, Color.TRANSPARENT, 0)
+	cb.content_margin_left = 22
+	cb.content_margin_right = 22
+	cb.content_margin_top = 6
+	cb.content_margin_bottom = 10
+	cb.border_width_bottom = 6
+	cb.border_color = Style.INK_2
+	cap.add_theme_stylebox_override("panel", cb)
+	var kl := Label.new()
+	kl.text = keys
+	kl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kl.add_theme_font_size_override("font_size", Style.FONT_H1 if keys.length() <= 4 else Style.FONT_H2)
+	kl.add_theme_color_override("font_color", Style.SURFACE_SOLID)
+	cap.add_child(kl)
+	col.add_child(cap)
+	var tl := Label.new()
+	tl.text = text
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tl.custom_minimum_size = Vector2(CONTROL_TILE.x - 32, 0)
+	tl.add_theme_font_size_override("font_size", Style.FONT_BODY)
+	tl.add_theme_color_override("font_color", Style.INK)
+	col.add_child(tl)
+	return tile
+
+
 ## Выбранный пункт: заливка `ink` и толщина фокуса (мармелад); остальные `surface-2`.
 func _refresh_menu() -> void:
 	for i in _menu_pills.size():
@@ -909,5 +969,6 @@ func _show_overlay(title: String, caption: String, color: Color) -> void:
 	_overlay_caption.visible = caption != ""
 	_menu_row.visible = false
 	_menu_hint.visible = false
+	_controls_row.visible = false
 	_overlay.visible = true
 	_overlay.move_to_front()

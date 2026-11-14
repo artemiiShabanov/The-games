@@ -729,3 +729,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	if sim.phase == FraySim.Phase.COUNTDOWN:
 		h.text(Vector2(mid.x, mid.y - 30.0), str(ceili(sim.countdown)), 46.0, ThreedHud.WHITE, 0, Color(0.05, 0.07, 0.11, 0.8))
 	h.end()
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "куда бить"], [GameInput.key(GameInput.A), "удар, держать: сильный"], [GameInput.key(GameInput.B), "перекат"]]

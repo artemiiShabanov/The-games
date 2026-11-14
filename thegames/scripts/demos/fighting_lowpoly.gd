@@ -510,3 +510,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	elif _popup_left > 0.0:
 		PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(_popup, 2.0) / 2.0), 44.0), _popup, white,
 				gold if _popup_good else red, dark, 2.0)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "ходьба"], ["↑", "шаг вглубь"], ["↓", "блок"], [GameInput.key(GameInput.A), "рука"], [GameInput.key(GameInput.B), "нога"]]

@@ -549,3 +549,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		var text := "В ВОДЕ"
 		PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(text, 2.0) / 2.0), roundf(view.y / 2.0 - 20.0)), text,
 				white, blue, dark, 2.0)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "руль"], ["↑", "газ"], ["↓", "тормоз"], [GameInput.key(GameInput.A), "дрифт"]]

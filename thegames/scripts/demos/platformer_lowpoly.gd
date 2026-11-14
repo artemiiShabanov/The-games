@@ -540,3 +540,8 @@ func _draw_heart(canvas: CanvasItem, at: Vector2, fill: Color, outline: Color) -
 					canvas.draw_rect(r.grow(1.0), outline)
 				else:
 					canvas.draw_rect(r, fill.lightened(0.3) if y < 2 else (fill if y < 4 else fill.darkened(0.2)))
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "прыжок"]]

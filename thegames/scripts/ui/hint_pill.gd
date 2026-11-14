@@ -4,11 +4,6 @@ extends PanelContainer
 ## Клавиши набираются глифами из `GameInput.LABELS`: «← →  A».
 
 
-## Живая пилюля ввода: текст клавиш и мыши, между ними переключается по `GameInput.mouse`.
-var _keys_text := ""
-var _mouse_text := ""
-
-
 static func make(text: String) -> HintPill:
 	var pill := HintPill.new()
 	var sb := Style.flat(Style.SURFACE_2, Style.R_PILL, Color.TRANSPARENT, 0)
@@ -63,37 +58,16 @@ static func bottom_bar(pill: Control, margin := 40) -> Control:
 	return bar
 
 
-## Пилюля с глифами действий мини-игры: «← → ↑ ↓» или «A  B». С `mouse_text` пилюля живая
-## (#83): пока игрок на мыши (`GameInput.mouse`), показывает подсказку мыши, иначе клавиши.
-static func for_inputs(inputs: Array[StringName], mouse_text := "") -> HintPill:
+## Пилюля с глифами действий мини-игры: «← → ↑ ↓» или «␣ Ctrl». Всегда клавиатурные клавиши
+## (решение 2026-11-14): клавиатура и мышь одно средство ввода, мышь работает там, где
+## поддержана, но в подсказках её нет. `_mouse_text` остался в подписи вызова и не используется.
+static func for_inputs(inputs: Array[StringName], _mouse_text := "") -> HintPill:
 	var parts: PackedStringArray = []
 	for action in inputs:
 		parts.append(GameInput.key(action))
-	var pill := make(" ".join(parts) if not parts.is_empty() else "любая клавиша")
-	pill._keys_text = pill.label().text
-	pill._mouse_text = mouse_text
-	pill._sync_device()
-	return pill
-
-
-func _ready() -> void:
-	set_process(_mouse_text != "")
+	return make(" ".join(parts) if not parts.is_empty() else "любая клавиша")
 
 
 ## Подпись пилюли.
 func label() -> Label:
 	return get_child(0) as Label
-
-
-func _process(_delta: float) -> void:
-	_sync_device()
-
-
-func _sync_device() -> void:
-	if _mouse_text == "":
-		return
-	var want := _mouse_text if GameInput.mouse else _keys_text
-	if label().text != want:
-		label().text = want
-		if is_inside_tree():
-			Jelly.poke(self, 2.0)

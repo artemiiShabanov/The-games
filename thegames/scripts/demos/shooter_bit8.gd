@@ -1002,3 +1002,8 @@ func _draw_heart(pos: Vector2, full: bool, cell := 2.0) -> void:
 						hud.draw_rect(Rect2(r.position + Vector2(cell, cell) / 2.0, r.size), HUD_SHADOW)
 					else:
 						hud.draw_rect(r, HUD_INK if full else HUD_DIM)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "выстрел"], [GameInput.key(GameInput.B), "держать: целиться стоя"]]

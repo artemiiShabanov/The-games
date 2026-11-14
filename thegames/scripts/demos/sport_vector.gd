@@ -238,3 +238,8 @@ func _draw_vector(v: VectorScreen) -> void:
 		_:
 			draw_slot(&"ball", ball, BALL_PX)
 	draw_shards()
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["↑ ↓", "ракетка"]]

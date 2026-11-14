@@ -350,3 +350,8 @@ func _draw_frame(v: VectorScreen, size: Vector2, ink_i: int, alpha: float) -> vo
 	var m := 10.0
 	v.poly(PackedVector2Array([Vector2(m, m), Vector2(size.x - m, m), Vector2(size.x - m, size.y - m), Vector2(m, size.y - m)]),
 			ink_i, true, 6.0, alpha)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [[GameInput.key(GameInput.A), "удар после вспышки"]]

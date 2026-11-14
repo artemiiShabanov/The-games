@@ -388,3 +388,8 @@ func _frame_box(canvas: CanvasItem, r: Rect2, bright: bool) -> void:
 	canvas.draw_rect(Rect2(r.end.x - 1.0, r.position.y, 1.0, r.size.y), BRASS[0])
 	canvas.draw_rect(r.grow(-2.0), INK)
 	canvas.draw_rect(r.grow(-3.0), Color("#3a2a5a") if bright else Color("#140e1c"))
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "бег"], [GameInput.key(GameInput.A), "пас, держать: удар"], [GameInput.key(GameInput.B), "подкат"]]

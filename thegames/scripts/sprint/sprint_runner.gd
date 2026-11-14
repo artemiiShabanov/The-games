@@ -306,7 +306,7 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, "переиграть"))
 		row.add_child(_offer_pill)
-		row.add_child(HintPill.make("любая другая клавиша или клик дальше"))
+		row.add_child(HintPill.make("любая другая клавиша дальше"))
 		card.add_child(HintPill.bottom_bar(row))
 		# Полоса таймера по верхнему краю, как у мини-игр: убывает, пока карточка ждёт ответа.
 		var bar := ColorRect.new()

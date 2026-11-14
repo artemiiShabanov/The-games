@@ -307,3 +307,8 @@ func _draw_vector(v: VectorScreen) -> void:
 	v.digits(Vector2(258.0, 28.0), "%d" % sim.coins_got, 32.0, INK_HERO)
 	var where := "%d/%d" % [sim.level, tower.floors]
 	v.digits(Vector2(w - 32.0 - VectorScreen.digits_width(where, 32.0), 28.0), where, 32.0, INK_WORLD)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "бег"], [GameInput.key(GameInput.A), "прыжок вверх"]]

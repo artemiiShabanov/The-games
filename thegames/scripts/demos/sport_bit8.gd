@@ -1091,3 +1091,8 @@ func _draw_icon(rows: Array[String], pos: Vector2) -> void:
 				if rows[ry][rx] == "1":
 					var p := pos + Vector2(rx, ry) + (Vector2(1, 1) if pass_ == 0 else Vector2.ZERO)
 					hud.draw_rect(Rect2(p, Vector2.ONE), HUD_SHADOW if pass_ == 0 else HUD_INK)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["↑ ↓", "угол"], [GameInput.key(GameInput.A), "держать: сила, отпустить: удар"], [GameInput.key(GameInput.B), "разворот"]]

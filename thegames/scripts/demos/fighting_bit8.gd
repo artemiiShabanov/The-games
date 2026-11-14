@@ -646,3 +646,8 @@ func _draw_face(name: String, at: Vector2, flip: bool, pink: bool) -> void:
 	var tx: Texture2D = tex[name]
 	var dst := Rect2(at, Vector2(-16 if flip else 16, 11))
 	hud.draw_texture_rect_region(tx, dst, Rect2(0, 0, 16, 11))
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "шаг"], ["↓", "присед"], [GameInput.key(GameInput.A), "удар"], [GameInput.key(GameInput.B), "блок"]]

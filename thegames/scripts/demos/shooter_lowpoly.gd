@@ -610,3 +610,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	elif _shout_left > 0.0:
 		PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(_shout, 2.0) / 2.0), roundf(view.y / 2.0 - 50.0)), _shout,
 				white, red, dark, 2.0)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "прицел"], [GameInput.key(GameInput.A), "выстрел"], [GameInput.key(GameInput.B), "перезарядка"]]

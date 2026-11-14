@@ -464,3 +464,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		var lift := roundf((1.0 - _popup_left / tuning.result_seconds) * 14.0)
 		PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(_popup, 2.0) / 2.0), roundf(view.y / 2.0 + 10.0 - lift)), _popup,
 				white, gold if _popup_good else red, dark, 2.0)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "прицел"], [GameInput.key(GameInput.A), "держать: сила, отпустить: бросок"]]

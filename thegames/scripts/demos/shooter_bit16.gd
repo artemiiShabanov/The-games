@@ -530,3 +530,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	else:
 		PixelFont16.draw(canvas, key_box.position + Vector2(5.0, 9.0), "КЛЮЧ", Color("#6a5a7a"), Color("#4a3e58"), Fx16.INK, 1.0,
 				false)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["W A S D", "бег"], ["← →", "обзор"], [GameInput.key(GameInput.A), "выстрел"]]

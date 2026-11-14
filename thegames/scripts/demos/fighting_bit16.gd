@@ -552,3 +552,8 @@ func _bar(canvas: CanvasItem, r: Rect2, k: float, lag: float, ramp: Array[Color]
 			canvas.draw_rect(Rect2(inner.position.x + x, inner.position.y + 1.0, 1.0, h - 2.0), Color(ramp[0], 0.35))
 			x += 8.0
 		canvas.draw_rect(Rect2(inner.position.x + fill - 1.0, inner.position.y, 1.0, h), ramp[3])
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "удар"], [GameInput.key(GameInput.B), "тяжёлый удар"]]

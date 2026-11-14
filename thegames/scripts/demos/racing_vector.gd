@@ -330,3 +330,8 @@ func _draw_hud(v: VectorScreen, size: Vector2, road_right: float) -> void:
 		var w := 30.0 + i * 7.0
 		var on := i < lit
 		v.line(Vector2(x - w, y), Vector2(x + w, y), INK_HERO if on else INK_WORLD, 4.0 if on else 2.0, 1.0 if on else 0.3)
+
+
+## Управление для плиток в паузе (`Demo._controls`).
+func _controls() -> Array:
+	return [["← →", "полоса"], [GameInput.key(GameInput.A), "газ"]]
