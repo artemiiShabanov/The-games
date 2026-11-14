@@ -5,7 +5,7 @@
 
 [sub_resource type="Curve" id="Curve_mfgdi"]
 _limits = [0.99, 2.9, 0.0, 1.0]
-_data = [Vector2(0, 2.9), 0.0, 0.0, 0, 0, Vector2(1, 2.1), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 2.23), 0.0, 0.0, 0, 0, Vector2(1, 1.615), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_5t5tg"]
