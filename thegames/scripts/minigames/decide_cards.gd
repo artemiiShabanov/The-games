@@ -2,11 +2,13 @@ extends Minigame
 ## «Реши» (decide_cards, баланс), каталог `docs/specs/minigames_catalog.md`. Карточки едут
 ## слева направо по одной, на каждой цветная фигура с числом внутри. Правило вверху крупно
 ## словами (плейтест 2026-11-11, #86): «≤ 30», «≥ 40», «чётное», «нечётное», цвет словом его
-## цвета («синее»); стороны фигуры («≤ 5 сторон») только при `t` выше 0.8. Карточка въезжает в зону решения
+## цвета («синее»). Правил про стороны фигуры нет (сняты плейтестом 2026-11-14, #131): форма
+## фигуры только для вида. Карточка въезжает в зону решения
 ## по центру и ждёт там `card_seconds`: ↑ принимает, любая другая стрелка отклоняет; не
 ## дождалась, уезжает вправо, это ошибка. Две ошибки: провал. Подходящих и неподходящих
-## карточек поровну. С `t` темп выше, карточек больше, правило из двух условий («розовое и
-## ≤ 30»), затем правило меняется посреди раунда. Параметры в
+## карточек поровну. С `t` растёт только сложность правила (плейтест 2026-11-14, #131):
+## правило из двух условий («розовое и ≤ 30»), затем оно меняется посреди раунда; карточек
+## чуть больше, время на решение одно на всех `t`. Параметры в
 ## `resources/minigames/decide_cards.tres`: cards, card_seconds, two (от 0.5 два условия),
 ## change (от 0.5 смена правила на середине).
 ## Мармелад (STYLE «Мармелад»): карточка и фигура на ней мягкие тела, отстают на въезде,
@@ -15,7 +17,7 @@ extends Minigame
 ## встряхивает, при смене правила оно вспухает. Верное решение роняет с карточки несколько
 ## неярких капель цвета успеха.
 
-enum Kind { NUMBER_LE, NUMBER_GE, EVEN, ODD, COLOR, SIDES_LE, SIDES_GE }
+enum Kind { NUMBER_LE, NUMBER_GE, EVEN, ODD, COLOR }
 
 
 class Cond:
@@ -53,8 +55,6 @@ const ENTER_SECONDS := 0.35
 const GAP_SECONDS := 0.2
 const RULE_FLASH := 0.5
 const BOT_REACTION := 0.25
-## Условия на число сторон появляются только при `t` выше этого.
-const SHAPES_FROM_T := 0.8
 const FIGURE_R := 92.0
 ## Правило словами: крупно, не мельче `RULE_FONT_MIN`, с полями по бокам.
 const RULE_FONT := 72
@@ -114,19 +114,15 @@ func _on_start() -> void:
 
 # --- Правило и карточки ------------------------------------------------------------------------
 
-## Семейство условия: 0 число, 1 цвет, 2 стороны; второе условие берётся из другого семейства.
+## Семейство условия: 0 число, 1 цвет; второе условие берётся из другого семейства.
 static func _family(k: int) -> int:
-	if k <= Kind.ODD:
-		return 0
-	return 1 if k == Kind.COLOR else 2
+	return 0 if k <= Kind.ODD else 1
 
 
 ## Случайное условие; `avoid` вид, семейства которого не надо.
 func _make_cond(avoid: int) -> Cond:
 	var c := Cond.new()
 	var kinds: Array[int] = [Kind.NUMBER_LE, Kind.NUMBER_GE, Kind.EVEN, Kind.ODD, Kind.COLOR]
-	if t > SHAPES_FROM_T:
-		kinds.append_array([Kind.SIDES_LE, Kind.SIDES_GE])
 	if avoid >= 0:
 		kinds = kinds.filter(func(k: int) -> bool: return _family(k) != _family(avoid))
 	c.kind = kinds[rng.randi_range(0, kinds.size() - 1)] as Kind
@@ -135,10 +131,6 @@ func _make_cond(avoid: int) -> Cond:
 			c.value = rng.randi_range(2, 5) * 10
 		Kind.COLOR:
 			c.value = rng.randi_range(0, COLORS.size() - 1)
-		Kind.SIDES_LE:
-			c.value = rng.randi_range(4, 6)
-		Kind.SIDES_GE:
-			c.value = rng.randi_range(5, 7)
 	return c
 
 
@@ -163,10 +155,6 @@ static func _passes(card: Card, cond: Cond) -> bool:
 			return card.number % 2 == 1
 		Kind.COLOR:
 			return card.color == cond.value
-		Kind.SIDES_LE:
-			return card.sides <= cond.value
-		Kind.SIDES_GE:
-			return card.sides >= cond.value
 	return false
 
 
@@ -459,23 +447,18 @@ func _draw() -> void:
 
 
 ## Правило словами в ряд (плейтест 2026-11-11, #86): «чётное», «нечётное», цвет словом своего
-## цвета, «≤ 30», «≥ 5 сторон»; два условия через «и». Не влезает в ширину поля: шрифт мельче.
+## цвета, «≤ 30»; два условия через «и». Не влезает в ширину поля: шрифт мельче.
 ## При смене правила вспышка цветом фокуса.
 func _draw_rule(font: Font) -> void:
 	var y := 150.0
 	var ink := Style.INK if rule_flash <= 0.0 else Style.INK.lerp(Style.FOCUS, rule_flash / RULE_FLASH)
 	var parts: Array[String] = []
 	var colors: Array[Color] = []
-	# Рядом со сторонами голое «≤ 20» читается как про стороны: тогда «число ≤ 20».
-	var sides := rule.any(func(c: Cond) -> bool: return _family(c.kind) == 2)
 	for i in rule.size():
 		if i > 0:
 			parts.append(" и ")
 			colors.append(Style.INK_3)
-		var text := _cond_text(rule[i])
-		if sides and (rule[i].kind == Kind.NUMBER_LE or rule[i].kind == Kind.NUMBER_GE):
-			text = "число " + text
-		parts.append(text)
+		parts.append(_cond_text(rule[i]))
 		colors.append(COLORS[rule[i].value] if rule[i].kind == Kind.COLOR else ink)
 	var fs := RULE_FONT
 	var total := 0.0
@@ -505,8 +488,4 @@ static func _cond_text(c: Cond) -> String:
 			return "нечётное"
 		Kind.COLOR:
 			return COLOR_NAMES[c.value]
-		Kind.SIDES_LE:
-			return "≤ %d сторон" % c.value
-		Kind.SIDES_GE:
-			return "≥ %d сторон" % c.value
 	return ""
