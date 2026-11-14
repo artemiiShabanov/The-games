@@ -5,12 +5,15 @@ extends Minigame
 ## вправо: лабиринт уехал вправо, точка оказалась в клетке левее). Стены не пускают в обоих
 ## режимах, удар о стену блокирует движение на полсекунды. Какой режим сейчас, видно по тому,
 ## что движется, и по цвету: управляемое синее (акцент), остальное чёрное; выход это кольцо в
-## цвете стен, в которое садится точка (плейтест 2026-11-07). 2-4 лабиринта за 20 с;
+## цвете стен, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с;
 ## провал, если не прошёл их до таймера. Параметры от `t` в `resources/minigames/inverted.tres`:
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
 ## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется). Смена
 ## посреди лабиринта выключена числом в ресурсе (плейтест 2026-11-14, #131: бесит), режим
-## меняется только между лабиринтами, сложность растёт их числом и запутанностью.
+## меняется только между лабиринтами, сложность растёт их числом и запутанностью. С `t` 0,5
+## на пути к выходу стоит клетка-переключатель (параметр switches, сколько их): двухцветный
+## кружок, видный заранее; точка наступила на него, режим сменился, кружок пропал. Правило то
+## же, что было у смены посреди лабиринта, но игрок видит, где она случится.
 ## Мармелад (STYLE «Мармелад»): точка мягкое тело, тянется вдоль хода, отстаёт и качается после
 ## остановки, при ударе плющится о стену, а стена прогибается и дрожит, от удара отлетает пара
 ## мягких брызг; за точкой тянется склизкий след во всю её ширину (`SlimeTrail`), он лежит на
@@ -23,6 +26,9 @@ const N := 5
 const CELL := 88.0
 ## Интервал смены режима от этого значения считается «никогда».
 const FLIP_NEVER := 10
+## Переключатель режима: радиус кружка и сколько клеток пути от старта и выхода без него.
+const SWITCH_R := 19.0
+const SWITCH_MARGIN := 2
 const WALL := 8.0
 const DOT_R := 26.0
 const MOVE_SECONDS := 0.11
@@ -37,6 +43,9 @@ const DIRS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), 
 var mazes_total := 2
 var twist := 0.0
 var flip_moves := 0
+var switches_max := 0
+## Клетки-переключатели режима, ещё не сработавшие.
+var switch_cells: Array[Vector2i] = []
 
 var walls: Array[int] = []
 var cell := Vector2i(2, 2)
@@ -108,6 +117,7 @@ func _on_start() -> void:
 	flip_moves = int(round(def.param(&"flip", t, 12.0)))
 	if flip_moves >= FLIP_NEVER:
 		flip_moves = 0
+	switches_max = maxi(int(round(def.param(&"switches", t, 0.0))), 0)
 	_step_sound = MiniSfx.tap(700.0, -5.0)
 	_bump = MiniSfx.squish()
 	_done_sound = MiniSfx.win()
@@ -165,9 +175,31 @@ func _new_maze() -> void:
 	exit_cell = corners[rng.randi_range(0, 3)]
 	mode = Mode.MAZE if maze_index % 2 == 1 else Mode.DOT
 	moves_in_mode = 0
+	_place_switches()
 	anim_from = Vector2(cell)
 	anim_to = anim_from
 	anim = 1.0
+
+
+## Переключатели на единственном пути от старта к выходу, равномерно по его длине: не ближе
+## `SWITCH_MARGIN` клеток к старту и к выходу и не в соседних клетках. Путь короткий: без них.
+func _place_switches() -> void:
+	switch_cells.clear()
+	if switches_max <= 0:
+		return
+	var path := _path_to_exit()
+	var lo := SWITCH_MARGIN
+	var hi := path.size() - 1 - SWITCH_MARGIN
+	if hi < lo:
+		return
+	var last := -10
+	for k in switches_max:
+		var at := clampi(int(round(float(path.size() - 1) * (k + 1) / (switches_max + 1))), lo, hi)
+		if at - last >= 2:
+			switch_cells.append(path[at])
+			last = at
+	if AutoTest.enabled:
+		AutoTest.note("inverted: maze %d path %d switches %s" % [maze_index, path.size(), str(switch_cells)])
 
 
 func _flip_mode() -> void:
@@ -251,7 +283,10 @@ func _arrived() -> void:
 		_new_maze()
 		return
 	moves_in_mode += 1
-	if flip_moves > 0 and moves_in_mode >= flip_moves:
+	if switch_cells.has(cell):
+		switch_cells.erase(cell)
+		_flip_mode()
+	elif flip_moves > 0 and moves_in_mode >= flip_moves:
 		_flip_mode()
 
 
@@ -271,6 +306,33 @@ func _bot_step(delta: float) -> bool:
 	if d >= 0:
 		_press(d if mode == Mode.DOT else (d + 2) % 4)
 	return false
+
+
+## Путь от текущей клетки до выхода включительно (поиск в ширину); пусто, если пути нет.
+func _path_to_exit() -> Array[Vector2i]:
+	var prev := {}
+	var queue: Array[Vector2i] = [cell]
+	prev[cell] = Vector2i(-1, -1)
+	while not queue.is_empty():
+		var c: Vector2i = queue.pop_front()
+		if c == exit_cell:
+			break
+		for d in 4:
+			if _has_wall(c, d):
+				continue
+			var n := c + DIRS[d]
+			if not prev.has(n):
+				prev[n] = c
+				queue.append(n)
+	var out: Array[Vector2i] = []
+	if not prev.has(exit_cell):
+		return out
+	var step := exit_cell
+	while step != Vector2i(-1, -1):
+		out.append(step)
+		step = prev[step]
+	out.reverse()
+	return out
 
 
 ## Первый шаг кратчайшего пути от текущей клетки к выходу (поиск в ширину).
@@ -484,6 +546,15 @@ func _draw() -> void:
 	var exit_center := origin + (Vector2(exit_cell) + Vector2(0.5, 0.5)) * CELL
 	var ink := wall_color if flash <= 0.0 else wall_color.lerp(Style.FOCUS, flash / FLASH_SECONDS)
 	draw_arc(exit_center, DOT_R + 10.0, 0.0, TAU, 48, ink, 6.0, true)
+	# Переключатели режима: двухцветный кружок, половина цвета управляемого и половина чёрная.
+	for sc in switch_cells:
+		var at := origin + (Vector2(sc) + Vector2(0.5, 0.5)) * CELL
+		var half := PackedVector2Array()
+		for k in 17:
+			half.append(at + Vector2.from_angle(-PI / 4.0 + PI * k / 16.0) * SWITCH_R)
+		draw_circle(at, SWITCH_R, Style.INK)
+		draw_colored_polygon(half, Style.accent(0))
+		draw_arc(at, SWITCH_R + 5.0, 0.0, TAU, 32, Color(Style.INK, 0.25), 2.0, true)
 	# Стены прямоугольниками с нахлёстом на полтолщины, чтобы углы сходились без зазоров.
 	# Стена после удара рисуется дугой, пока качается.
 	var bent := jelly and absf(jelly_wall.value) > 0.05 and _hit_rect.has_area()
