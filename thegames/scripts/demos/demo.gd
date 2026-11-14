@@ -72,6 +72,9 @@ void fragment() {
 const MENU_ITEMS: Array[String] = ["Вернуться", "Пропустить"]
 ## Плитка управления в паузе.
 const CONTROL_TILE := Vector2(232, 176)
+## Воздух в карточке паузы: под плитками управления и под кнопками (плейтест 2026-11-14).
+const PAUSE_GAP_TILES := 28
+const PAUSE_GAP_BUTTONS := 24
 ## Пиксельные цифры 3×5 для HUD демок 8-bit (`draw_pixel_text`), плюс «/» для места в гонке,
 ## «+», «-», «°» и буквы «ПАР» для гольфа (#52), «KO» и «ВРЕМЯ» для файтинга (#54).
 const PIXEL_DIGITS := {
@@ -118,6 +121,7 @@ var _menu_lifts: Array[JellyLift] = []
 var _menu_hint: Control
 ## Плитки управления в паузе: клавиша крупно, под ней что она делает.
 var _controls_row: HBoxContainer
+var _controls_gap: Control
 
 # Общие баги (#44).
 ## Случайность багов из сида записи: проявления повторяются от запуска к запуску.
@@ -795,6 +799,7 @@ func _open_pause() -> void:
 	_menu_row.visible = true
 	_menu_hint.visible = true
 	_controls_row.visible = _controls_row.get_child_count() > 0
+	_controls_gap.visible = _controls_row.visible
 	_refresh_menu()
 
 
@@ -882,6 +887,10 @@ func _build_overlay() -> void:
 	column.add_child(_controls_row)
 	for pair: Array in _controls():
 		_controls_row.add_child(_control_tile(str(pair[0]), str(pair[1])))
+	_controls_gap = Control.new()
+	_controls_gap.custom_minimum_size = Vector2(0, PAUSE_GAP_TILES - 12)
+	_controls_gap.visible = false
+	column.add_child(_controls_gap)
 	_menu_row = HBoxContainer.new()
 	_menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu_row.add_theme_constant_override("separation", Style.GAP_CARDS)
@@ -900,9 +909,14 @@ func _build_overlay() -> void:
 		_menu_pills.append(pill)
 		_menu_labels.append(l)
 		_menu_lifts.append(Jelly.button(pill))
-	_menu_hint = HBoxContainer.new()
-	(_menu_hint as HBoxContainer).alignment = BoxContainer.ALIGNMENT_CENTER
-	_menu_hint.add_child(HintPill.make("%s %s выбрать · %s подтвердить · %s вернуться" % [
+	_menu_hint = VBoxContainer.new()
+	var hint_gap := Control.new()
+	hint_gap.custom_minimum_size = Vector2(0, PAUSE_GAP_BUTTONS - 12)
+	_menu_hint.add_child(hint_gap)
+	var hint_row := HBoxContainer.new()
+	hint_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_menu_hint.add_child(hint_row)
+	hint_row.add_child(HintPill.make("%s %s выбрать · %s подтвердить · %s вернуться" % [
 			GameInput.key(GameInput.LEFT), GameInput.key(GameInput.RIGHT),
 			GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	_menu_hint.visible = false
@@ -920,8 +934,8 @@ func _control_tile(keys: String, text: String) -> Control:
 	sb.content_margin_top = 16
 	sb.content_margin_bottom = 14
 	tile.add_theme_stylebox_override("panel", sb)
+	# Клавиши прижаты к верху: в ряду они стоят на одной линии при любой длине подписи.
 	var col := VBoxContainer.new()
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_theme_constant_override("separation", 12)
 	tile.add_child(col)
 	var cap := PanelContainer.new()
@@ -970,5 +984,6 @@ func _show_overlay(title: String, caption: String, color: Color) -> void:
 	_menu_row.visible = false
 	_menu_hint.visible = false
 	_controls_row.visible = false
+	_controls_gap.visible = false
 	_overlay.visible = true
 	_overlay.move_to_front()
