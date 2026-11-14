@@ -1,9 +1,10 @@
 extends Minigame
-## «Запомни» (pairs, технология 8-bit), каталог `docs/specs/minigames_catalog.md`. Сетка 3×4
+## «Запомни» (pairs, технология 8-bit), каталог `docs/specs/minigames_catalog.md`. Два ряда
 ## закрытых карточек с пиктограммами, курсор стрелками, A открывает; две одинаковые остаются
 ## открытыми, разные закрываются через паузу. Собрать все пары до таймера, иначе провал. С `t`
-## сетка 4×4 и карточки закрываются быстрее. Параметры в `resources/minigames/pairs.tres`:
-## cols (3 или 4 при четырёх рядах), close (секунды до закрытия непарных).
+## карточек больше (8 → 14) и они закрываются быстрее. Параметры в
+## `resources/minigames/pairs.tres`: cols (столбцов при двух рядах), close (секунды до закрытия
+## непарных).
 ## Мармелад (STYLE «Мармелад»): карточки мягкими телами `JellyShape`, курсор показан толщиной
 ## (карточка на бортике темнее себя, подъём пружинит) вместо синей рамки, переворот сжимает
 ## карточку по ширине и она садится вздрогом, пара вздрагивает обеими и брызгает мягкими каплями
@@ -13,7 +14,9 @@ extends Minigame
 
 enum Shape { CIRCLE, SQUARE, TRIANGLE, DIAMOND, RING, CROSS, STAR, HEX }
 
-const ROWS := 4
+## Два ряда, растёт число столбцов: 4 → 7, это 8, 10, 12 и 14 карточек (плейтест 2026-11-14,
+## #131: 16 слишком много, а рост ступенькой 12 → 16 резкий).
+const ROWS := 2
 const CARD := 128.0
 const GAP := 16.0
 const FLIP_SECONDS := 0.16
@@ -60,7 +63,7 @@ var _fx := SplashFx.new()
 
 
 func _on_start() -> void:
-	cols = clampi(int(round(def.param(&"cols", t, 3.0))), 2, 5)
+	cols = clampi(int(round(def.param(&"cols", t, 4.0))), 2, 7)
 	close_seconds = def.param(&"close", t, 1.0)
 	_flip_sound = MiniSfx.tap(760.0, -3.0)
 	_match_sound = MiniSfx.hit(494.0)
