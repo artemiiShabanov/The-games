@@ -18,7 +18,8 @@ enum Phase { SHOW, INPUT, PAUSE }
 
 const KEYS: Array[StringName] = [GameInput.LEFT, GameInput.UP, GameInput.DOWN, GameInput.RIGHT, GameInput.A, GameInput.B]
 const TONES: Array[float] = [392.0, 440.0, 494.0, 523.0, 587.0, 659.0]
-const ROUNDS := 4
+## Три раунда на то же время, что раньше четыре (плейтест 2026-11-14, #131).
+const ROUNDS := 3
 const MAX_ERRORS := 4
 const PAD := 140.0
 const PAD_GAP := 20.0
