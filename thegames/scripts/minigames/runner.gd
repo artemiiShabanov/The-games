@@ -2,7 +2,7 @@ extends Minigame
 ## «Прыгай» (runner, платформер), каталог `docs/specs/minigames_catalog.md`.
 ## Точка бежит сама по линии, A прыжок, высота по длине нажатия (отпустил раньше: короче),
 ## впереди ямы и столбики. Добежать до конца дорожки, провал при двух падениях. Хитбоксы
-## меньше картинки, чтобы прощать касания (плейтест 2026-11-05). С `t` препятствия плотнее, появляются двойные ямы и столбики
+## меньше картинки, чтобы прощать касания (плейтест 2026-11-05). С `t` препятствия плотнее, появляются широкие ямы и столбики
 ## подряд. Абстрактно, в стиле оболочки: линия, круг, прямоугольники.
 ## Параметры от `t` в `resources/minigames/runner.tres`: speed, gap, combo_share.
 
@@ -21,18 +21,19 @@ const JUMP_DISTANCE := 300.0
 const JUMP_HEIGHT := 170.0
 const PIT_W := Vector2(90.0, 120.0)
 const PIT_LANDING := 80.0
+const WIDE_PIT := 0.8
 const PILLAR_W := 40.0
 const PILLAR_H := 100.0
 const PILLAR_ROW_GAP := 260.0
 const GROUND_FROM_BOTTOM := 230.0
 const FALL_SECONDS := 0.5
-const SAFE_SECONDS := 0.7
+const SAFE_SECONDS := 0.91
 ## Отпустил A в подъёме: вертикальная скорость режется, прыжок короче.
 const JUMP_CUT := 0.45
 const STRETCH_SECONDS := 0.25
 const SQUASH_SECONDS := 0.18
 ## Доля радиуса, которая считается телом: меньше картинки, касания прощаются.
-const HIT_R := 0.55
+const HIT_R := 0.495
 const BOT_LOOKAHEAD := 140.0
 
 var speed := 420.0
@@ -111,7 +112,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
-## Препятствия по дорожке с промежутком `gap`; с `t` двойные ямы и столбики подряд.
+## Препятствия по дорожке с промежутком `gap`; с `t` широкие ямы и столбики подряд.
 func _build_track() -> void:
 	var x := speed * 1.5
 	while x < track_length - speed * 1.5:
@@ -119,12 +120,12 @@ func _build_track() -> void:
 		var combo := rng.randf() < combo_share
 		if pit:
 			var w := rng.randf_range(PIT_W.x, PIT_W.y)
-			_add(Kind.PIT, x, w)
 			if combo:
-				_add(Kind.PIT, x + w + PIT_LANDING, rng.randf_range(PIT_W.x, PIT_W.y))
-				x += w + PIT_LANDING + PIT_W.y
-			else:
-				x += w
+				# Вместо двух ям подряд одна широкая: `WIDE_PIT` от их общей длины с площадкой
+				# между ними (плейтест 2026-11-14, #131).
+				w = WIDE_PIT * (w + PIT_LANDING + rng.randf_range(PIT_W.x, PIT_W.y))
+			_add(Kind.PIT, x, w)
+			x += w
 		else:
 			_add(Kind.PILLAR, x, PILLAR_W)
 			if combo:
@@ -210,7 +211,8 @@ func _bot_step(_delta: float) -> bool:
 		return false
 	for o in obstacles:
 		var d := o.x - world_x
-		if d > 0.0 and d <= BOT_LOOKAHEAD:
+		# Широкую яму прыжок перекрывает впритык: отталкиваться ближе к краю.
+		if d > 0.0 and d <= minf(BOT_LOOKAHEAD, JUMP_DISTANCE - o.w - 20.0):
 			_jump()
 			break
 	return false
