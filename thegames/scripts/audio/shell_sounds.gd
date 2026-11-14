@@ -19,7 +19,8 @@ func _ready() -> void:
 	_add(&"bug", Sfx.thud(0.26, 0.6))
 	_add(&"hit", Sfx.blip(880.0, 0.07, 0.3, 30.0))
 	_add(&"miss", Sfx.thud(0.12, 0.4))
-	_add(&"switch", Sfx.thud(0.05, 0.12))
+	# Мягкий шух, а не стук: стук путался с промахом (плейтест 2026-11-14, #131).
+	_add(&"switch", Sfx.swish())
 	_add(&"tick", Sfx.blip(1320.0, 0.025, 0.06, 60.0))
 	_done_second = Sfx.player(Sfx.blip(990.0, 0.22, 0.3, 9.0))
 	add_child(_done_second)

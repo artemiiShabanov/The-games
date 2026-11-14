@@ -331,6 +331,27 @@ static func boing(freq := 240.0, volume := 0.3, seconds := 0.14) -> AudioStreamW
 	return _wav(out)
 
 
+## Мягкий «шух» сдвига: шум через резонанс, который плавно уезжает вверх, нарастает и гаснет
+## без удара. Нейтральный: не похож ни на успех, ни на промах.
+static func swish(volume := 0.2, seconds := 0.2) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 29
+	var low := 0.0
+	var band := 0.0
+	for i in n:
+		var u := float(i) / n
+		var k := 2.0 * sin(PI * lerpf(700.0, 2600.0, u) / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 0.9 * band
+		band += k * high
+		low += k * band
+		# Горб огибающей ближе к началу: звук приезжает и тает.
+		out[i] = band * pow(sin(PI * pow(u, 0.7)), 2.0) * volume
+	return _wav(out)
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
