@@ -12,7 +12,8 @@ const LADDER_STEP := 0.24
 const CHOICE_PATH := "res://debug/playtest/sounds_choice.txt"
 const BUTTON := Vector2(240, 96)
 
-var _choice: Array[int] = [0, 0, 0, 0]
+## По умолчанию выбор Артемия от 2026-11-14: тык 4, попал 3, мимо 1, готово 1; шлёп не выбран.
+var _choice: Array[int] = [3, 2, 0, 0, 0]
 var _buttons: Array[Array] = []
 var _players: Array[AudioStreamPlayer] = []
 var _footer: Label
@@ -30,9 +31,9 @@ func _ready() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.offset_left = Style.EDGE
 	box.offset_right = -Style.EDGE
-	box.offset_top = 48
-	box.offset_bottom = -48
-	box.add_theme_constant_override("separation", 14)
+	box.offset_top = 32
+	box.offset_bottom = -32
+	box.add_theme_constant_override("separation", 10)
 	add_child(box)
 	box.add_child(_label("Звуки мини-игр: клик играет вариант и выбирает его", Style.FONT_H2, Style.INK))
 	for kind in MiniSfx.Kind.size():
@@ -49,7 +50,7 @@ func _ready() -> void:
 			row.add_child(b)
 			row_buttons.append(b)
 		_buttons.append(row_buttons)
-		if kind == MiniSfx.Kind.TAP or kind == MiniSfx.Kind.HIT:
+		if kind != MiniSfx.Kind.MISS and kind != MiniSfx.Kind.WIN:
 			var ladder := Button.new()
 			ladder.text = "Лесенка"
 			ladder.custom_minimum_size = Vector2(160, BUTTON.y)
