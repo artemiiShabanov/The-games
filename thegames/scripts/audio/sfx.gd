@@ -48,6 +48,25 @@ static func thud(seconds := 0.12, volume := 0.4) -> AudioStreamWAV:
 	return wav
 
 
+## Мягкое приземление (плейтест 2026-11-15, #132): низкий тон, который съезжает вниз, с плавной
+## атакой и хвостом до нуля, и чуть глухого шума. Без щелчка в начале и обрыва в конце, как у `thud`.
+static func pat(seconds := 0.14, volume := 0.3) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var last := 0.0
+	var phase := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var env := minf(1.0, tm * 120.0) * exp(-26.0 * tm) * minf(1.0, (seconds - tm) * 40.0)
+		phase += TAU * lerpf(130.0, 70.0, tm / seconds) / MIX_RATE
+		last = lerpf(last, rng.randf_range(-1.0, 1.0), 0.03)
+		out[i] = (sin(phase) * 0.8 + last * 1.2) * env * volume
+	return _wav(out)
+
+
 ## Чиптюн-петля на три голоса: квадратная мелодия, квадратный бас октавой ниже, шумовой хэт.
 ## Ноты как полутоны от A4 (0), пауза null. Петля зациклена, подходит как музыка демки 8-bit.
 static func chiptune_loop(melody: Array, bass: Array, bpm := 140.0, volume := 0.35) -> AudioStreamWAV:

@@ -111,7 +111,7 @@ func _setup_audio() -> void:
 	if not embedded:
 		_music.play()
 	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.12, 0.3, 18.0))
-	_sfx["land"] = Sfx.player(Sfx.thud(0.06, 0.25))
+	_sfx["land"] = Sfx.player(Sfx.pat())
 	_sfx["slide"] = Sfx.player(Sfx.hiss(0.25, 0.14))
 	_sfx["grab"] = Sfx.player(Sfx.blip(330.0, 0.08, 0.25, 30.0))
 	_sfx["release"] = Sfx.player(Sfx.blip(660.0, 0.1, 0.25, 22.0))
