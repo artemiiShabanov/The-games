@@ -168,6 +168,7 @@ var _shard_rng := RandomNumberGenerator.new()
 
 
 func setup(record_: GameRecord, source_: StringName) -> void:
+	SettingDef.borrowed_reset()
 	record = record_
 	source = source_
 
@@ -715,10 +716,24 @@ func quit_demo() -> void:
 
 func _close(result: bool) -> void:
 	_closing = true
+	_report_borrowed()
 	if card != null:
 		await card.drop_card()
 	finished = true
 	demo_finished.emit(record, result)
+
+
+## Под автотестом (#135): что демка взяла у пиратов вместо набора своего сеттинга. С
+## `--strict-setting` любая подмена это провал, так проверяется готовый сеттинг.
+func _report_borrowed() -> void:
+	if not AutoTest.enabled or record == null or record.setting == Game.Setting.PIRATES:
+		return
+	var list := SettingDef.borrowed()
+	AutoTest.note("сеттинг %s, %s × %s: подмен %d%s" % [SettingDef.of(record.setting).id,
+			DemoCatalog.GENRE_KEYS[record.genre], DemoCatalog.TECH_KEYS[record.tech], list.size(),
+			"" if list.is_empty() else ": " + ", ".join(list)])
+	if not list.is_empty() and AutoTest.parse_args(OS.get_cmdline_user_args()).has("strict-setting"):
+		AutoTest.fail("сеттинг %s берёт у пиратов %d слотов" % [SettingDef.of(record.setting).id, list.size()])
 
 
 func _process(delta: float) -> void:

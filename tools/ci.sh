@@ -16,6 +16,7 @@ step() {
   fi
 }
 step "model_run --check" python3 tools/model_run.py --check
+step "settings check" python3 tools/check_settings.py --check
 export HEADLESS=1
 step "economy_test" sh tools/autotest.sh --scene=economy_test --frames=200
 step "success_test" sh tools/autotest.sh --scene=success_test --frames=200
@@ -137,5 +138,9 @@ step "slot save" sh tools/autotest.sh --slot=3 --refuse-events --time-scale=4 --
 step "slot resume" sh tools/autotest.sh --slot=3 --resume --loop --releases=3 --refuse-events --time-scale=4 --frames=8000
 step "menu" sh tools/autotest.sh --menu --frames=60
 step "loop refuse rescue" sh tools/autotest.sh --loop --broke-at=2 --refuse-events --releases=3 --time-scale=4 --frames=9000
+# Готовые сеттинги кроме пиратов (#135): все 25 демок без единой подмены на пиратский набор.
+for n in $(python3 tools/check_settings.py --complete); do
+  step "setting $n matrix" sh tools/setting_matrix.sh "$n"
+done
 [ $status -eq 0 ] && echo "ci: зелёный" || echo "ci: есть красные шаги"
 exit $status

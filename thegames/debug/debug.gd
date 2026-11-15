@@ -346,6 +346,10 @@ func _register_builtin() -> void:
 	var setting_names: Array[String] = ["пираты", "космос", "замки"]
 	add_choice(SECTION_DEMOS, "Сеттинг", setting_names, func() -> String: return setting_names[demo_setting],
 			func(v: String) -> void: demo_setting = maxi(setting_names.find(v), 0), true)
+	# Что последняя демка взяла у пиратов вместо набора своего сеттинга (#135).
+	add_action(SECTION_DEMOS, "Подмены сеттинга в консоль", func() -> void:
+		var list := SettingDef.borrowed()
+		print("Подмен на пиратов: %d%s" % [list.size(), "" if list.is_empty() else "\n  " + "\n  ".join(list)]))
 	var catalog := BugCatalog.load_default()
 	if catalog != null:
 		for bug in catalog.bugs:

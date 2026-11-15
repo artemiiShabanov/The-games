@@ -8,6 +8,7 @@ extends Resource
 ## отдельной задачей, а петля работает на любом сеттинге сразу.
 
 const DIR := "res://resources/settings/"
+const PIRATES_DIR := "res://assets/settings/pirates/"
 const FALLBACK_SPRITES := "res://assets/settings/pirates/8bit/"
 const IDS: Array[String] = ["pirates", "space", "castles"]
 const FALLBACK_SPRITES_16 := "res://assets/settings/pirates/16bit/"
@@ -27,6 +28,9 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 
 @export var setting: Game.Setting = Game.Setting.PIRATES
 @export var id: StringName = &"pirates"
+## Набор готов целиком (#135, `docs/specs/settings.md`): ни одного слота у пиратов сеттинг не
+## берёт. Готовые проверяет `tools/check_settings.py --check` и шаг ci.
+@export var complete := false
 ## Папка спрайтов 8-bit: `hero_run_0.png`, `enemy_0.png`, `coin.png` и остальные слоты.
 @export var sprites_8bit := "res://assets/settings/pirates/8bit/"
 ## Фон вида сбоку: полосы неба сверху вниз, светило, полоса горизонта с бликами, силуэты на
@@ -57,6 +61,8 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 @export var vector_shapes: Dictionary[StringName, Array] = {}
 
 static var _cache: Dictionary[int, SettingDef] = {}
+## Что сеттинг взял у пиратов с последнего `borrowed_reset` (#135): ключ «формат/имя».
+static var _borrowed: Dictionary[String, bool] = {}
 
 
 static func of(s: Game.Setting) -> SettingDef:
@@ -69,11 +75,36 @@ static func of(s: Game.Setting) -> SettingDef:
 	return d
 
 
+## Подмены на пиратский набор с последнего сброса, по алфавиту. Демка под автотестом пишет
+## их в лог, готовый сеттинг обязан дать пустой список.
+static func borrowed() -> PackedStringArray:
+	var out := PackedStringArray(_borrowed.keys())
+	out.sort()
+	return out
+
+
+static func borrowed_reset() -> void:
+	_borrowed.clear()
+
+
+func _borrow(format: String, name: String) -> void:
+	if setting != Game.Setting.PIRATES:
+		_borrowed[format + "/" + name] = true
+
+
+## Подмена по итоговому пути: файл нашёлся, но лежит в наборе пиратов. Ловит и сеттинг, у
+## которого папка формата не задана и по умолчанию смотрит в пиратскую.
+func _borrow_path(path: String, format: String, name: String) -> void:
+	if path.begins_with(PIRATES_DIR) and ResourceLoader.exists(path):
+		_borrow(format, name)
+
+
 ## Спрайт слота `name` из папки сеттинга, без него пиратский.
 func sprite(name: String) -> Texture2D:
 	var path := sprites_8bit + name + ".png"
 	if not ResourceLoader.exists(path):
 		path = FALLBACK_SPRITES + name + ".png"
+	_borrow_path(path, "8bit", name)
 	return load(path) as Texture2D
 
 
@@ -82,6 +113,9 @@ func sprite16(name: String) -> Texture2D:
 	var path := sprites_16bit + name + ".png"
 	if not ResourceLoader.exists(path):
 		path = FALLBACK_SPRITES_16 + name + ".png"
+	# Поле футбола `soccer_field_<id>` лежит в пиратской папке под именем сеттинга: это своё.
+	if not name.ends_with("_" + String(id)):
+		_borrow_path(path, "16bit", name)
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 
@@ -89,6 +123,7 @@ func sprite16(name: String) -> Texture2D:
 func colors16() -> Array[Color]:
 	if bit16_colors.size() >= 16:
 		return bit16_colors
+	_borrow("16bit", "палитра")
 	return SettingDef.of(Game.Setting.PIRATES).bit16_colors if setting != Game.Setting.PIRATES else bit16_colors
 
 
@@ -98,6 +133,7 @@ func model(name: String, threed := false) -> LowpolyModelDef:
 	var path := _mesh_folder(meshes_lowpoly, threed) + name + ".tres"
 	if not ResourceLoader.exists(path):
 		path = _mesh_folder(FALLBACK_MESHES, threed) + name + ".tres"
+	_borrow_path(path, "threed" if threed else "lowpoly", name)
 	return load(path) as LowpolyModelDef if ResourceLoader.exists(path) else null
 
 
@@ -107,6 +143,7 @@ func rig(name: String) -> RigModelDef:
 	var path := meshes_lowpoly.replace("/lowpoly/", "/rig/") + name + ".tres"
 	if not ResourceLoader.exists(path):
 		path = FALLBACK_MESHES.replace("/lowpoly/", "/rig/") + name + ".tres"
+	_borrow_path(path, "rig", name)
 	return load(path) as RigModelDef if ResourceLoader.exists(path) else null
 
 
@@ -120,6 +157,7 @@ func texture_lowpoly(name: String, threed := false) -> Texture2D:
 	var path := _mesh_folder(meshes_lowpoly, threed) + "tex_" + name + ".png"
 	if not ResourceLoader.exists(path):
 		path = _mesh_folder(FALLBACK_MESHES, threed) + "tex_" + name + ".png"
+	_borrow_path(path, "threed" if threed else "lowpoly", "tex_" + name)
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 
@@ -127,6 +165,7 @@ func texture_lowpoly(name: String, threed := false) -> Texture2D:
 func colors_lowpoly() -> Array[Color]:
 	if lowpoly_colors.size() >= LowpolyScreen.ROLES or setting == Game.Setting.PIRATES:
 		return lowpoly_colors
+	_borrow("lowpoly", "палитра")
 	return SettingDef.of(Game.Setting.PIRATES).lowpoly_colors
 
 
