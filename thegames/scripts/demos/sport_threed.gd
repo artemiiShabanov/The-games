@@ -96,18 +96,19 @@ func _setup_audio() -> void:
 	if not quiet:
 		_music.play()
 	# Шорох песка под доской: петля шума, громкость по скорости.
-	var hiss := Sfx.hiss(0.6, 0.2)
-	hiss.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	hiss.loop_end = hiss.data.size() / 2
-	_wind = Sfx.player(hiss, -40.0)
+	# Петля без шва (плейтест 2026-11-15: прежняя затухала каждые 0,6 с и звучала прерывисто).
+	_wind = Sfx.player(Sfx.sand_loop(), -40.0)
 	add_child(_wind)
 	if not quiet:
 		_wind.play()
 	_sfx["go"] = Sfx.player(Sfx.blip(880.0, 0.3, 0.4, 6.0))
 	_sfx["gate"] = Sfx.player(Sfx.blip(1180.0, 0.12, 0.35, 12.0))
 	_sfx["miss"] = Sfx.player(Sfx.blip(220.0, 0.16, 0.3, 10.0))
-	_sfx["ramp"] = Sfx.player(Sfx.blip(520.0, 0.2, 0.3, 6.0))
-	_sfx["land"] = Sfx.player(Sfx.thud(0.1, 0.4))
+	# Свои звуки прыжка и посадки (плейтест 2026-11-15, #132): толчок с трамплина, короткий
+	# подскок, посадка шлепком доски о песок.
+	_sfx["ramp"] = Sfx.player(Sfx.hop(150.0, 320.0, 0.18, 0.42))
+	_sfx["hop"] = Sfx.player(Sfx.hop(190.0, 330.0, 0.1, 0.34))
+	_sfx["land"] = Sfx.player(Sfx.pat(0.16, 0.42))
 	_sfx["catch"] = Sfx.player(Sfx.hiss(0.2, 0.2))
 	_sfx["fall"] = Sfx.player(Sfx.thud(0.3, 0.65))
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.4, 5.0))
@@ -433,7 +434,7 @@ func _on_event(ev: Array) -> void:
 		&"ramp":
 			_play("ramp")
 		&"hop":
-			_play("ramp")
+			_play("hop")
 		&"land":
 			_play("land")
 			_shake = maxf(_shake, 0.4)

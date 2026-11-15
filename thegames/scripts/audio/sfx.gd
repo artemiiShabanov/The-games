@@ -310,6 +310,31 @@ static func squeal_loop(seconds := 0.8, volume := 1.4) -> AudioStreamWAV:
 	return _loop(out)
 
 
+## Петля шороха песка под доской (плейтест 2026-11-15, #132): ровный шум без низов и без
+## треска, зациклен без шва и без провалов громкости; громкость и высоту ведёт демка.
+static func sand_loop(seconds := 1.6, volume := 0.2) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var fade := int(0.15 * MIX_RATE)
+	var raw := PackedFloat32Array()
+	raw.resize(n + fade)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 89
+	var last := 0.0
+	var soft := 0.0
+	for i in n + fade:
+		var white := rng.randf_range(-1.0, 1.0)
+		soft = lerpf(soft, white - last * 0.7, 0.6)
+		last = white
+		raw[i] = soft * volume
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in n:
+		# Равномощный переход хвоста в начало: шум не проседает на шве.
+		var f := float(i) / fade
+		out[i] = raw[i] if i >= fade else raw[i] * sqrt(f) + raw[n + i] * sqrt(1.0 - f)
+	return _loop(out)
+
+
 static func _loop(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var wav := _wav(samples)
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
