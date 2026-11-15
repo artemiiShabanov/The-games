@@ -1,7 +1,7 @@
 """Рисунок футбола × 16/32-bit «один на одного» (#101) для pixel_sprites16.py, графика по
-Sensible Soccer (решение 2026-11-12): вид сверху, крошечные стоящие игроки 16×16 в восьми
-направлениях
-(три кадра бега, подкат, лежит), формы четырёх цветов и двух вратарей, мяч, трава полосами.
+Sensible Soccer (решение 2026-11-12): вид сверху, стоящие игроки 24×24 в восьми направлениях
+(стойка и четыре кадра бега, подкат, лежит; с плейтеста 2026-11-15 крупнее и подробнее), формы
+четырёх цветов и двух вратарей в перчатках, мяч, трава полосами.
 Всё в палитре спрайтов сеттинга.
 """
 import math
@@ -9,81 +9,157 @@ import math
 from pixel_sprites16 import (Canvas, strip, K, NAVY, SEA, AQUA, WHITE, GREY, SKIN, TAN, GOLD, BRASS, WOOD, BARK,
                              RED, LEAF, PINE)
 
-F = 16
+F = 24
 # Направления по кругу: 0 вправо, дальше по часовой (y вниз), как угол atan2.
 DIRS = [(math.cos(a), math.sin(a)) for a in [i * math.pi / 4.0 for i in range(8)]]
+# Кадров на направление: стойка и четыре кадра бега (шаг, пролёт, шаг другой ногой, пролёт).
+RUN = 5
 
 
-def player(d, frame, shirt, shorts, hair=BARK, mode="run", shirt2=None):
-    """Игрок маленькой стоящей фигуркой под крутым углом, как в Sensible Soccer: ноги, трусы,
-    футболка, голова. Взгляд вниз: лицо; вверх: затылок; вбок: профиль, руки и ноги шагают."""
+def _head(c, x, y, hair, side, back, sgn):
+    """Голова 7×7: волосы шапкой, сзади затылок целиком, в профиль ещё и за ухом."""
+    c.ellipse(x, y, 3.4, 3.4, SKIN)
+    for yy in range(int(y - 4), int(y + 5)):
+        for xx in range(int(x - 4), int(x + 5)):
+            if c.get(xx, yy) != SKIN:
+                continue
+            if back or yy <= y - 2 or (side and (xx - x) * sgn <= -2 and yy <= y + 1):
+                c.set(xx, yy, hair)
+
+
+def player(d, frame, shirt, shorts, hair=BARK, mode="run", shirt2=None, keeper=False):
+    """Игрок 24×24 (плейтест 2026-11-15, #132: крупнее, с выраженными руками и ногами, чтобы бег
+    читался). Стоящая фигурка под крутым углом: голова, футболка с рукавами, трусы, ноги с
+    гетрами и бутсами. Взгляд вниз: лицо; вверх: затылок; вбок: профиль. Бег в четыре кадра: ноги
+    и руки в противофазе, на пролёте тело выше на пиксель. У вратаря длинные рукава и перчатки."""
     c = Canvas(F, F)
     dx, dy = DIRS[d]
+    sgn = 1 if dx >= 0 else -1
+    sleeve = shirt if keeper else SKIN
+    sock = shirt2 if shirt2 is not None else shirt
     if mode == "down":
-        # Лежит на траве поперёк.
-        c.rect(3, 10, 12, 12, shirt)
-        c.rect(10, 10, 12, 12, shorts)
-        c.ellipse(3, 11, 2, 1.5, SKIN)
-        c.rect(1, 10, 3, 10, hair)
+        # Лежит на спине поперёк: голова слева, ноги справа, рука откинута.
+        c.line(18, 17, 22, 15, SKIN, 2)
+        c.line(18, 19, 22, 20, SKIN, 2)
+        c.rect(21, 14, 22, 15, K)
+        c.rect(21, 20, 22, 21, K)
+        c.line(9, 15, 6, 12, sleeve, 2)
+        c.rect(7, 16, 14, 20, shirt)
+        if shirt2 is not None:
+            for xx in (8, 10, 12, 14):
+                c.rect(xx, 16, xx, 20, shirt2)
+        c.rect(15, 16, 17, 20, shorts)
+        _head(c, 4, 18, hair, True, False, 1)
+        if keeper:
+            c.rect(5, 11, 6, 12, WHITE)
         return c.finish()
     if mode == "slide":
-        # Подкат: тело низко, нога вытянута по ходу.
-        sgn = 1 if dx >= 0 else -1
-        c.rect(5, 10, 10, 12, shirt)
-        c.line(8, 12, 8 + sgn * 6, 13, shorts, 2)
-        c.ellipse(8 - sgn * 4, 10, 2, 2, SKIN)
-        c.rect(8 - sgn * 5, 8, 8 - sgn * 3, 8, hair)
+        # Подкат по ходу: нога вытянута вперёд, вторая согнута, тело сзади низко. У вратаря это
+        # прыжок за мячом: руки в перчатках вытянуты вперёд, ноги сзади.
+        n = math.hypot(dx, dy * 0.7)
+        ux, uy = dx / n, dy * 0.7 / n
+        cx, cy = 12.0, 16.0
+        tx, ty = cx - ux * 5.0, cy - uy * 5.0
+        if keeper:
+            c.line(tx, ty, tx - ux * 6.0, ty - uy * 6.0 + 1.0, SKIN, 2)
+            c.line(tx - uy * 2.0, ty + ux * 2.0, tx - ux * 6.0 - uy * 3.0, ty - uy * 6.0 + ux * 3.0, SKIN, 2)
+            c.line(tx, ty, cx + ux * 2.0, cy + uy * 2.0, shirt, 5)
+            c.line(tx - ux, ty - uy, tx, ty, shorts, 5)
+            hx, hy = cx + ux * 5.0, cy + uy * 5.0 - 1.0
+            c.line(cx + ux * 2.0 - uy * 2.0, cy + uy * 2.0 + ux * 2.0, hx + ux * 5.0 - uy * 2.0, hy + uy * 5.0 + ux * 2.0, shirt, 2)
+            c.line(cx + ux * 2.0 + uy * 2.0, cy + uy * 2.0 - ux * 2.0, hx + ux * 5.0 + uy * 2.0, hy + uy * 5.0 - ux * 2.0, shirt, 2)
+            _head(c, hx, hy, hair, abs(dx) > 0.38, dy < -0.38, sgn)
+            c.finish()
+            for q in (-2.0, 2.0):
+                gx, gy = hx + ux * 5.5 - uy * q, hy + uy * 5.5 + ux * q
+                c.rect(gx - 0.5, gy - 0.5, gx + 0.5, gy + 0.5, WHITE)
+            return c
+        fx, fy = cx + ux * 8.0, cy + uy * 8.0
+        c.line(cx, cy, cx + ux * 4.0 - uy * 3.0, cy + uy * 4.0 + ux * 3.0, TAN, 2)
+        c.line(cx, cy, fx, fy, SKIN, 2)
+        c.line(cx + ux * 4.0, cy + uy * 4.0, fx, fy, sock, 2)
+        c.rect(fx - 0.5, fy - 0.5, fx + 1.0, fy + 1.0, K)
+        c.line(tx, ty, cx, cy, shirt, 5)
+        c.line(cx - ux, cy - uy, cx + ux, cy + uy, shorts, 5)
+        c.line(tx, ty, tx - uy * 4.0 - ux * 2.0, ty + ux * 4.0 - uy * 2.0 - 1.0, sleeve, 2)
+        _head(c, tx - ux * 3.0, ty - uy * 3.0 - 2.0, hair, abs(dx) > 0.38, dy < -0.38, sgn)
         return c.finish()
     side = abs(dx) > 0.38
     back = dy < -0.38
-    sgn = 1 if dx >= 0 else -1
-    step = (0, 1, -1)[frame]
-    # Ноги.
+    s = (0, 1, 0, -1, 0)[frame]
+    bob = 1 if frame in (2, 4) else 0
+    hip = 18 - bob
+    eyes = []
     if side:
-        c.rect(7 + step * sgn, 12, 7 + step * sgn, 14, SKIN)
-        c.rect(8 - step * sgn, 12, 8 - step * sgn, 14, SKIN)
-        c.set(7 + step * sgn + sgn, 15, K)
-        c.set(8 - step * sgn + sgn, 15, K)
+        # Профиль: дальние рука и нога темнее и рисуются первыми; шаг вперёд и назад по ходу.
+        far, near = (TAN, SKIN)
+        for limb, k in ((far, -s), (near, s)):
+            hand = (11.5 - sgn * 4.0 * k, 15.0 - bob - abs(k))
+            c.line(11.5, 11.0 - bob, hand[0], hand[1], sleeve if limb == near or keeper else TAN, 2)
+            if keeper:
+                c.rect(hand[0] - 0.5, hand[1], hand[0] + 0.5, hand[1] + 1.0, WHITE)
+            if limb == far:
+                continue
+        for limb, k in ((far, -s), (near, s)):
+            if frame in (2, 4) and (limb == near) == (frame == 2):
+                foot = (11.5 + sgn * 1.0, 19.0)
+                knee = (11.5 + sgn * 2.5, 18.0)
+            else:
+                foot = (11.5 + sgn * 4.0 * k, 21.0 - (2.0 if k < 0 else 0.0))
+                knee = ((11.5 + foot[0]) / 2.0 + sgn * 1.0, (hip + foot[1]) / 2.0)
+            c.line(11.5, hip, knee[0], knee[1], limb, 2)
+            c.line(knee[0], knee[1], foot[0], foot[1], sock, 2)
+            c.rect(min(foot[0], foot[0] + sgn * 2.0) - 0.5, foot[1], max(foot[0], foot[0] + sgn * 2.0), foot[1] + 1.0, K)
+        c.rect(9, 10 - bob, 14, 15 - bob, shirt)
+        if shirt2 is not None:
+            for yy in (11, 13, 15):
+                c.rect(9, yy - bob, 14, yy - bob, shirt2)
+        c.rect(9, 16 - bob, 14, 17 - bob, shorts)
+        # Ближняя рука поверх футболки.
+        hand = (11.5 - sgn * 4.0 * s, 15.0 - bob - abs(s))
+        c.line(11.5, 11.0 - bob, hand[0], hand[1], sleeve, 2)
+        if keeper:
+            c.rect(hand[0] - 0.5, hand[1], hand[0] + 0.5, hand[1] + 1.0, WHITE)
+        _head(c, 11.5 + sgn * 0.5, 6 - bob, hair, True, back, sgn)
+        if not back:
+            eyes.append((12 + sgn * 2, 6 - bob))
     else:
-        c.rect(6, 12, 6, 14 - (1 if step > 0 else 0), SKIN)
-        c.rect(9, 12, 9, 14 - (1 if step < 0 else 0), SKIN)
-        c.set(6, 15 - (1 if step > 0 else 0), K)
-        c.set(9, 15 - (1 if step < 0 else 0), K)
-    # Трусы, футболка (тельняшка полосами через строку), руки.
-    c.rect(5 if not side else 6, 10, 10 if not side else 9, 11, shorts)
-    c.rect(5 if not side else 6, 6, 10 if not side else 9, 9, shirt)
-    if shirt2 is not None:
-        for yy in (7, 9):
-            c.rect(5 if not side else 6, yy, 10 if not side else 9, yy, shirt2)
-    if side:
-        c.set(7 - step * sgn, 9, SKIN)
-    else:
-        c.rect(4, 7 + (1 if step > 0 else 0), 4, 8 + (1 if step > 0 else 0), SKIN)
-        c.rect(11, 7 + (1 if step < 0 else 0), 11, 8 + (1 if step < 0 else 0), SKIN)
-    # Голова.
-    c.rect(6, 2, 9, 5, SKIN)
-    if back:
-        c.rect(6, 2, 9, 5, hair)
-    elif side:
-        c.rect(6, 2, 9, 3, hair)
-        c.rect(6 if sgn > 0 else 9, 2, 6 if sgn > 0 else 9, 5, hair)
-        c.set(8 + (1 if sgn > 0 else -2), 4, K)
-    else:
-        c.rect(6, 2, 9, 2, hair)
-        c.set(7, 4, K)
-        c.set(8, 4, K)
-    return c.finish()
+        # Анфас и со спины: ноги по очереди поднимаются, руки машут в противофазе.
+        for x, k in ((10.0, s), (14.0, -s)):
+            lift = 3.0 if k > 0 else 0.0
+            foot_y = 21.0 - lift
+            c.rect(x - 0.5, hip, x + 0.5, foot_y - 2.0, SKIN)
+            c.rect(x - 0.5, foot_y - 2.0, x + 0.5, foot_y, sock)
+            c.rect(x - 0.5, foot_y, x + 0.5, foot_y + 1.0, K)
+        c.rect(8, 10 - bob, 15, 15 - bob, shirt)
+        if shirt2 is not None:
+            for yy in (11, 13, 15):
+                c.rect(8, yy - bob, 15, yy - bob, shirt2)
+        c.rect(8, 16 - bob, 15, 17 - bob, shorts)
+        for x, k, out in ((6.5, -s, -1), (16.5, s, 1)):
+            up = 2.0 if k > 0 else 0.0
+            hand = (x + out * (1.0 if k > 0 else 0.0), 15.0 - bob - up)
+            c.line(x, 11.0 - bob, hand[0], hand[1], sleeve, 2)
+            if keeper:
+                c.rect(hand[0] - 0.5, hand[1], hand[0] + 0.5, hand[1] + 1.0, WHITE)
+        _head(c, 11.5, 6 - bob, hair, False, back, sgn)
+        if not back:
+            eyes = [(10, 6 - bob), (13, 6 - bob)]
+    c.finish()
+    for e in eyes:
+        c.set(e[0], e[1], K)
+    return c
 
 
-def kit_strip(shirt, shorts, hair=BARK, shirt2=None):
+def kit_strip(shirt, shorts, hair=BARK, shirt2=None, keeper=False):
     frames = []
     for d in range(8):
-        for fr in range(3):
-            frames.append(player(d, fr, shirt, shorts, hair, shirt2=shirt2))
+        for fr in range(RUN):
+            frames.append(player(d, fr, shirt, shorts, hair, shirt2=shirt2, keeper=keeper))
     for d in range(8):
-        frames.append(player(d, 0, shirt, shorts, hair, "slide", shirt2))
+        frames.append(player(d, 0, shirt, shorts, hair, "slide", shirt2, keeper))
     for d in range(8):
-        frames.append(player(d, 0, shirt, shorts, hair, "down", shirt2))
+        frames.append(player(d, 0, shirt, shorts, hair, "down", shirt2, keeper))
     return strip(frames)
 
 
@@ -141,8 +217,8 @@ def sprites():
         "soccer_rival_0": kit_strip(RED, BARK, K),
         "soccer_rival_1": kit_strip(GOLD, NAVY, BARK),
         "soccer_rival_2": kit_strip(K, GREY, RED),
-        "soccer_keeper_hero": kit_strip(PINE, K),
-        "soccer_keeper_rival": kit_strip(GREY, K, K),
+        "soccer_keeper_hero": kit_strip(LEAF, K, BARK, PINE, keeper=True),
+        "soccer_keeper_rival": kit_strip(GREY, K, K, AQUA, keeper=True),
         "soccer_ball": strip([ball(i) for i in range(2)]),
         "soccer_grass": grass(),
     }

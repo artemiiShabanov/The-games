@@ -1,7 +1,7 @@
 extends Demo
 ## Демка спорт × 16/32-bit «футбол один на одного» (#101, решение 2026-11-12,
-## `docs/specs/demos_catalog.md`), графика по Sensible Soccer: вид сверху, крошечные стоящие
-## игроки в восьми направлениях, мяч с высотой и тенью, камера за мячом. Два на два с
+## `docs/specs/demos_catalog.md`), графика по Sensible Soccer: вид сверху, стоящие игроки 24×24
+## в восьми направлениях (с плейтеста 2026-11-15 крупнее, бег в четыре кадра), мяч с высотой и тенью, камера за мячом. Два на два с
 ## вратарями-ботами (плейтест 2026-11-12): в атаке играешь за того, у кого мяч, в защите за
 ## последнего; над ним жёлтая метка. Стрелки бег (с мячом медленнее), A держать: зарядка удара,
 ## отпустить: удар, короткое нажатие пас (сразу после удара стрелка поперёк подкручивает мяч),
@@ -17,7 +17,11 @@ extends Demo
 
 const ZOOM := 3
 const MARGIN := 48.0
-const FRAME := 16.0
+const FRAME := 24.0
+## Кадров на направление в ленте игрока (стойка и четыре кадра бега), дальше подкаты и лежащие.
+const RUN_FRAMES := 5
+## Сетка ворот уходит за линию на столько пикселей; мяч после гола докатывается в неё.
+const NET_DEPTH := 18.0
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "ball"]
 const KITS: Array[String] = ["soccer_rival_0", "soccer_rival_1", "soccer_rival_2"]
 ## Песок (или трава, реголит) за линиями до аута.
@@ -47,6 +51,9 @@ var _time := 0.0
 var _acc := 0.0
 var _slide_pressed := false
 var _goal_t := 9.0
+## Мяч в сетке после гола: откуда и куда он докатывается, пока матч стоит.
+var _net_from := Vector3.ZERO
+var _net_to := Vector2.ZERO
 var _theme := "pirates"
 var _music: AudioStreamPlayer
 var _sfx := {}
@@ -81,17 +88,23 @@ func _setup_audio() -> void:
 	bug_music = _music
 	if not embedded:
 		_music.play()
-	_sfx["kick"] = Sfx.player(Sfx.thud(0.08, 0.4))
-	_sfx["bounce"] = Sfx.player(Sfx.thud(0.04, 0.15))
-	_sfx["tackle"] = Sfx.player(Sfx.blip(180.0, 0.12, 0.3, 20.0))
-	_sfx["save"] = Sfx.player(Sfx.blip(440.0, 0.12, 0.3, 18.0))
-	_sfx["goal"] = Sfx.player(Sfx.beep(988.0, 0.5, 0.35, 1318.0))
-	_sfx["out"] = Sfx.player(Sfx.beep(1568.0, 0.15, 0.2))
+	# Свои звуки футбола (плейтест 2026-11-15, #132): свисток, удар по мячу, сетка, трибуны.
+	_sfx["kick"] = Sfx.player(Sfx.ball_kick(1.0))
+	_sfx["bounce"] = Sfx.player(Sfx.ball_kick(0.0, 0.22))
+	_sfx["tackle"] = Sfx.player(Sfx.scrape())
+	_sfx["save"] = Sfx.player(Sfx.glove())
+	_sfx["net"] = Sfx.player(Sfx.net())
+	_sfx["goal"] = Sfx.player(Sfx.whistle(0.7))
+	_sfx["cheer"] = Sfx.player(Sfx.cheer())
+	_sfx["out"] = Sfx.player(Sfx.whistle(0.22, 0.24))
+	_sfx["start"] = Sfx.player(Sfx.whistle(0.4))
 	_sfx["space"] = Sfx.player(Sfx.beep(440.0, 0.6, 0.3, 1760.0))
-	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.45, 5.0))
+	_sfx["finish"] = Sfx.player(Sfx.whistles())
 	for p in _sfx.values():
 		(p as AudioStreamPlayer).volume_db = tuning.sfx_db if not embedded else -80.0
 		add_child(p)
+	if not embedded:
+		_play("start")
 
 
 func _placeholder_slots() -> Array[String]:
@@ -104,8 +117,7 @@ func _play(name: String) -> void:
 
 func _on_end(goal: bool) -> void:
 	_music.stop()
-	if goal:
-		_play("finish")
+	_play("finish")
 	if AutoTest.enabled and not embedded:
 		AutoTest.note("sport bit16: %s %d:%d за %.1f с, ударов %d" % ["победа" if goal else "поражение",
 				sim.score[0], sim.score[1], elapsed, sim.kicks])
@@ -163,12 +175,24 @@ func _on_event(ev: Array) -> void:
 		&"kick", &"bounce", &"save", &"out", &"space":
 			_play(String(ev[0]))
 		&"tackle":
+			_play("save")
+		&"slide":
 			_play("tackle")
-		&"switch":
-			_play("bounce")
 		&"goal":
 			_goal_t = 0.0
-			_play("goal")
+			# Мяч докатывается в сетку: по ходу полёта, но не дальше её задней стенки и боков.
+			var side := -1.0 if sim.ball.x < tuning.pitch_w * 0.5 else 1.0
+			var hg := sim.half_goal(SoccerSim.HERO if side < 0.0 else SoccerSim.RIVAL)
+			var flight := Vector2(sim.ball_vel.x, sim.ball_vel.y)
+			var slope := flight.y / maxf(absf(flight.x), 1.0)
+			_net_from = sim.ball
+			_net_to = Vector2((0.0 if side < 0.0 else tuning.pitch_w) + side * (NET_DEPTH - 5.0),
+					clampf(sim.ball.y + slope * (NET_DEPTH - 5.0), tuning.pitch_h * 0.5 - hg + 5.0, tuning.pitch_h * 0.5 + hg - 5.0))
+			_play("net")
+			# Свисток чуть позже сетки; трибуны радуются только голу героя.
+			get_tree().create_timer(0.25).timeout.connect(func() -> void: _play("goal"))
+			if ev[1] == SoccerSim.HERO:
+				_play("cheer")
 			if AutoTest.enabled and not embedded:
 				AutoTest.note("sport bit16: гол %s на %.1f с, счёт %d:%d" % ["героя" if ev[1] == SoccerSim.HERO else "соперника",
 						elapsed, sim.score[0], sim.score[1]])
@@ -193,17 +217,24 @@ func _to_screen(p: Vector2) -> Vector2:
 
 func _draw_world(canvas: CanvasItem) -> void:
 	_draw_pitch(canvas)
-	_draw_goal(canvas, 0.0, -1.0, SoccerSim.HERO)
-	_draw_goal(canvas, tuning.pitch_w, 1.0, SoccerSim.RIVAL)
 	# Игроки по y: кто ниже, тот ближе.
 	var order := [0, 1, 2, 3, 4, 5]
 	order.sort_custom(func(a: int, b: int) -> bool: return sim.players[a].pos.y < sim.players[b].pos.y)
 	var shadow := Color(0.0, 0.0, 0.0, 0.3)
-	canvas.draw_rect(Rect2(_to_screen(Vector2(sim.ball.x, sim.ball.y)) - Vector2(3.0, 1.0), Vector2(6.0, 3.0)), shadow)
+	# После гола матч стоит, а мяч докатывается в сетку и опускается.
+	var ball := sim.ball
+	if sim.pause > 0.0 or (sim.ended and _goal_t < 3.0):
+		var k := 1.0 - pow(1.0 - clampf(_goal_t / 0.35, 0.0, 1.0), 2.0)
+		ball = Vector3(lerpf(_net_from.x, _net_to.x, k), lerpf(_net_from.y, _net_to.y, k), _net_from.z * (1.0 - k))
+	canvas.draw_rect(Rect2(_to_screen(Vector2(ball.x, ball.y)) - Vector2(3.0, 1.0), Vector2(6.0, 3.0)), shadow)
+	for i in order:
+		var foot := _to_screen(sim.players[i].pos)
+		canvas.draw_rect(Rect2(foot - Vector2(5.0, 1.0), Vector2(10.0, 3.0)), shadow)
+		canvas.draw_rect(Rect2(foot - Vector2(3.0, 2.0), Vector2(6.0, 5.0)), shadow)
 	for i in order:
 		_draw_player(canvas, i)
-	var lift := sim.ball.z
-	var bp := _to_screen(Vector2(sim.ball.x, sim.ball.y - lift))
+	var lift := ball.z
+	var bp := _to_screen(Vector2(ball.x, ball.y - lift))
 	var bt: Texture2D = tex["soccer_ball"]
 	if is_pink("ball"):
 		canvas.draw_rect(Rect2(bp - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Color(1.0, 0.4, 0.8))
@@ -211,6 +242,9 @@ func _draw_world(canvas: CanvasItem) -> void:
 		var size := 8.0 + clampf(lift / 30.0, 0.0, 4.0)
 		var frame := int(sim.time * 10.0) % 2 if Vector2(sim.ball_vel.x, sim.ball_vel.y).length() > 5.0 else 0
 		canvas.draw_texture_rect_region(bt, Rect2(bp - Vector2(size, size) * 0.5, Vector2(size, size)), Rect2(frame * 8.0, 0.0, 8.0, 8.0))
+	# Ворота поверх мяча (плейтест 2026-11-15): влетевший мяч виден за сеткой.
+	_draw_goal(canvas, 0.0, -1.0, SoccerSim.HERO)
+	_draw_goal(canvas, tuning.pitch_w, 1.0, SoccerSim.RIVAL)
 
 
 ## Поле по сеттингу: аут тайлами (у пиратов море с барашками), поле с запасом за линиями
@@ -267,15 +301,17 @@ func _draw_pitch(canvas: CanvasItem) -> void:
 	canvas.draw_rect(Rect2(tl, br - tl), white, false, 2.0)
 	var mx := _to_screen(Vector2(w * 0.5, 0.0)).x
 	canvas.draw_rect(Rect2(mx - 1.0, tl.y, 2.0, br.y - tl.y), white)
-	canvas.draw_arc(_to_screen(Vector2(w * 0.5, h * 0.5)), 62.0, 0.0, TAU, 40, white, 2.0)
+	canvas.draw_arc(_to_screen(Vector2(w * 0.5, h * 0.5)), roundf(h * 0.11), 0.0, TAU, 40, white, 2.0)
 	canvas.draw_rect(Rect2(_to_screen(Vector2(w * 0.5, h * 0.5)) - Vector2(2.0, 2.0), Vector2(4.0, 4.0)), white)
 	for side in [0.0, 1.0]:
 		var x0 := 0.0 if side == 0.0 else w - tuning.box_w
 		var box := Rect2(_to_screen(Vector2(x0, (h - tuning.box_h) * 0.5)), Vector2(tuning.box_w, tuning.box_h))
 		canvas.draw_rect(box, white, false, 2.0)
-		var small := Rect2(_to_screen(Vector2(0.0 if side == 0.0 else w - 50.0, h * 0.5 - 70.0)), Vector2(50.0, 140.0))
+		var sw := roundf(tuning.box_w / 3.0)
+		var sh := roundf(tuning.box_h * 0.47)
+		var small := Rect2(_to_screen(Vector2(0.0 if side == 0.0 else w - sw, (h - sh) * 0.5)), Vector2(sw, sh))
 		canvas.draw_rect(small, white, false, 2.0)
-		var spot := _to_screen(Vector2(100.0 if side == 0.0 else w - 100.0, h * 0.5))
+		var spot := _to_screen(Vector2(tuning.box_w * 0.67 if side == 0.0 else w - tuning.box_w * 0.67, h * 0.5))
 		canvas.draw_rect(Rect2(spot - Vector2(2.0, 2.0), Vector2(4.0, 4.0)), white)
 
 
@@ -283,7 +319,7 @@ func _draw_pitch(canvas: CanvasItem) -> void:
 func _draw_goal(canvas: CanvasItem, x: float, out: float, team: int) -> void:
 	var hg := sim.half_goal(team)
 	var mid := tuning.pitch_h * 0.5
-	var depth := 18.0
+	var depth := NET_DEPTH
 	var a := _to_screen(Vector2(x, mid - hg))
 	var net := Rect2(Vector2(a.x if out > 0.0 else a.x - depth, a.y), Vector2(depth, hg * 2.0))
 	canvas.draw_rect(net, Color(1.0, 1.0, 1.0, 0.25))
@@ -310,13 +346,14 @@ func _draw_player(canvas: CanvasItem, i: int) -> void:
 	else:
 		t = tex["soccer_hero"] if p.team == SoccerSim.HERO else tex["rival"]
 	var d := posmod(int(round(atan2(p.facing.y, p.facing.x) / (PI / 4.0))), 8)
-	var frame := d * 3
+	var frame := d * RUN_FRAMES
 	if p.down > 0.0:
-		frame = 32 + d
+		frame = 8 * RUN_FRAMES + 8 + d
 	elif p.slide > 0.0 or p.dive > 0.0:
-		frame = 24 + (d if p.slide > 0.0 else (2 if p.dive_dir.y > 0.0 else 6))
+		frame = 8 * RUN_FRAMES + (d if p.slide > 0.0 else (2 if p.dive_dir.y > 0.0 else 6))
 	elif p.vel.length() > 5.0:
-		frame = d * 3 + 1 + int(_time * 10.0) % 2
+		# Четыре кадра бега; у каждого игрока свой сдвиг, чтобы не шагали в ногу.
+		frame = d * RUN_FRAMES + 1 + int(_time * 11.0 + i * 1.7) % 4
 	var at := _to_screen(p.pos) - Vector2(FRAME * 0.5, FRAME - 2.0)
 	if p.team == SoccerSim.RIVAL and not p.keeper and is_pink("rival"):
 		canvas.draw_rect(Rect2(at, Vector2(FRAME, FRAME)), Color(1.0, 0.4, 0.8))

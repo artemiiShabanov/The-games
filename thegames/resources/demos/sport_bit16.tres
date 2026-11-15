@@ -4,12 +4,12 @@
 
 [resource]
 script = ExtResource("1_tuning")
-pitch_w = 960.0
-pitch_h = 560.0
+pitch_w = 816.0
+pitch_h = 476.0
 goal_w = 104.0
 goal_h = 26.0
-box_w = 150.0
-box_h = 300.0
+box_w = 128.0
+box_h = 256.0
 goals_to_win = 3
 max_seconds = 300.0
 run_speed = 120.0

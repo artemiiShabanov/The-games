@@ -331,6 +331,147 @@ static func rattle(volume := 0.4) -> AudioStreamWAV:
 	return _wav(out)
 
 
+# --- Футбол (плейтест 2026-11-15, #132): свои звуки демки, не из мини-игр ----------------------
+
+## Свисток судьи: два близких тона дают биение, горошина дрожит трелью, сверху немного шума.
+static func whistle(seconds := 0.35, volume := 0.3) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 51
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var env := minf(1.0, tm * 90.0) * minf(1.0, (seconds - tm) * 30.0)
+		var trill := 0.72 + 0.28 * sin(TAU * 27.0 * tm)
+		var tone := sin(TAU * 2140.0 * tm) * 0.6 + sin(TAU * 2260.0 * tm) * 0.4
+		out[i] = (tone * trill + rng.randf_range(-0.12, 0.12)) * env * volume
+	return _wav(out)
+
+
+## Несколько свистков подряд: финальный свисток матча.
+static func whistles(count := 3, seconds := 0.3, gap := 0.12, last := 0.7, volume := 0.3) -> AudioStreamWAV:
+	var data := PackedByteArray()
+	for k in count:
+		data.append_array(whistle(last if k == count - 1 else seconds, volume).data)
+		if k < count - 1:
+			var pause := PackedByteArray()
+			pause.resize(int(gap * MIX_RATE) * 2)
+			data.append_array(pause)
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = MIX_RATE
+	wav.stereo = false
+	wav.data = data
+	return wav
+
+
+## Удар по мячу: глухой хлопок кожи, тон быстро съезжает вниз, в начале короткий щелчок. `hard`
+## 0..1: слабый отскок или сильный удар.
+static func ball_kick(hard := 1.0, volume := 0.5) -> AudioStreamWAV:
+	var seconds := lerpf(0.07, 0.14, hard)
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 53
+	var phase := 0.0
+	var last := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var u := tm / seconds
+		phase += TAU * lerpf(lerpf(240.0, 190.0, hard), 70.0, sqrt(u)) / MIX_RATE
+		last = lerpf(last, rng.randf_range(-1.0, 1.0), 0.25)
+		var click := last * exp(-260.0 * tm) * 0.9
+		out[i] = (sin(phase) * exp(-22.0 * tm) + click) * minf(1.0, tm * 1500.0) * minf(1.0, (seconds - tm) * 200.0) * volume
+	return _wav(out)
+
+
+## Мяч в сетке: мягкий шорох верёвок, который быстро глохнет, и глухой толчок.
+static func net(volume := 0.4) -> AudioStreamWAV:
+	var seconds := 0.38
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 57
+	var low := 0.0
+	var band := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var u := tm / seconds
+		var k := 2.0 * sin(PI * lerpf(2400.0, 700.0, sqrt(u)) / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 0.8 * band
+		band += k * high
+		low += k * band
+		var rope := band * exp(-9.0 * tm) * (0.7 + 0.3 * sin(TAU * 38.0 * tm))
+		var thump := sin(TAU * 95.0 * tm) * exp(-30.0 * tm) * 0.8
+		out[i] = (rope * 0.7 + thump) * minf(1.0, tm * 300.0) * minf(1.0, (seconds - tm) * 40.0) * volume
+	return _wav(out)
+
+
+## Трибуны после гола: гул голосов нарастает и медленно спадает.
+static func cheer(seconds := 1.6, volume := 0.35) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 59
+	var low := [0.0, 0.0]
+	var band := [0.0, 0.0]
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var u := tm / seconds
+		var v := 0.0
+		for j in 2:
+			var f := (700.0 if j == 0 else 1500.0) * (1.0 + 0.08 * sin(TAU * (0.9 + j) * tm))
+			var k := 2.0 * sin(PI * f / MIX_RATE)
+			var high := rng.randf_range(-1.0, 1.0) - float(low[j]) - 0.5 * float(band[j])
+			band[j] = float(band[j]) + k * high
+			low[j] = float(low[j]) + k * float(band[j])
+			v += float(band[j]) * (0.6 if j == 0 else 0.35)
+		var env := minf(1.0, tm * 5.0) * pow(1.0 - u, 1.5)
+		out[i] = v * env * (0.8 + 0.2 * sin(TAU * 6.0 * tm)) * volume * 0.5
+	return _wav(out)
+
+
+## Вратарь поймал или отбил: шлепок перчаток.
+static func glove(volume := 0.45) -> AudioStreamWAV:
+	var seconds := 0.1
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 61
+	var last := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		last = lerpf(last, rng.randf_range(-1.0, 1.0), 0.4)
+		out[i] = (last * exp(-70.0 * tm) + sin(TAU * 140.0 * tm) * exp(-40.0 * tm) * 0.6) * minf(1.0, tm * 1200.0) \
+				* minf(1.0, (seconds - tm) * 150.0) * volume
+	return _wav(out)
+
+
+## Подкат: короткий шорох по траве или песку.
+static func scrape(volume := 0.3) -> AudioStreamWAV:
+	var seconds := 0.24
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 67
+	var low := 0.0
+	var band := 0.0
+	for i in n:
+		var u := float(i) / n
+		var k := 2.0 * sin(PI * lerpf(3000.0, 1200.0, u) / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 1.2 * band
+		band += k * high
+		low += k * band
+		out[i] = band * sin(PI * pow(u, 0.5)) * (1.0 - u) * volume
+	return _wav(out)
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
