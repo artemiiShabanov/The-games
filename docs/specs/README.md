@@ -9,7 +9,8 @@
 Статусы: `Draft` → `Building` → `Shipped` → `Synced YYYY-MM-DD` (после сверки с кодом).
 
 Системы: `constructor.md`, `minigames.md` (+ `minigames_catalog.md`), `demos.md` (демки и
-каталог багов, + `demos_catalog.md` с описаниями пар и набором ассетов сеттинга), `success.md`
+каталог багов, + `demos_catalog.md` с описаниями пар и набором ассетов сеттинга, + `settings.md`
+со слотами сеттинга по технологиям и ярусами), `success.md`
 (+ `success_model.md` с весами и модельным забегом), `economy.md` (+ `economy_model.md`, цены
 и два забега, считаются `tools/model_run.py`), `studio.md`, `meta.md`, `run.md`.
 Инструменты: `debug.md` (дебаг-меню, реестр ручек, тестовые сцены в `debug/scenes/`).
