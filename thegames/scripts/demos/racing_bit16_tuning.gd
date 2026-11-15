@@ -49,6 +49,12 @@ const PATH := "res://resources/demos/racing_bit16.tres"
 @export var backdrop_shift := 0.004
 @export var music_db := -12.0
 @export var sfx_db := -6.0
+## Звук езды (плейтест 2026-11-15, #132), громкости относительно `sfx_db`: ветер на полной
+## скорости и шины в крутом повороте. Ветер слышен с доли скорости `wind_from`, шины с `tyre_from`.
+@export var wind_db := -8.0
+@export var wind_from := 0.25
+@export var tyre_db := -12.0
+@export var tyre_from := 0.5
 
 
 static func load_default() -> RacingBit16Tuning:

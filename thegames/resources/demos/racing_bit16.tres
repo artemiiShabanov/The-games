@@ -34,3 +34,7 @@ band_len = 3
 backdrop_shift = 0.004
 music_db = -12.0
 sfx_db = -6.0
+wind_db = -8.0
+wind_from = 0.25
+tyre_db = -12.0
+tyre_from = 0.5

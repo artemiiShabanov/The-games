@@ -284,6 +284,67 @@ static func swish(volume := 0.2, seconds := 0.2) -> AudioStreamWAV:
 	return _wav(out)
 
 
+## Петля ветра на скорости (плейтест 2026-11-15, #132): глухой шум, который медленно дышит.
+## Зациклена без шва: хвост перетекает в начало. Громкость и высоту ведёт демка
+## (`volume_db`, `pitch_scale`).
+static func wind_loop(seconds := 2.0, volume := 1.5) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var fade := int(0.25 * MIX_RATE)
+	var raw := PackedFloat32Array()
+	raw.resize(n + fade)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 41
+	var low := 0.0
+	var band := 0.0
+	for i in n + fade:
+		var u := float(i) / n
+		# Резонанс гуляет ровно два раза за петлю: на стыке совпадает.
+		var k := 2.0 * sin(PI * (520.0 + 160.0 * sin(TAU * 2.0 * u)) / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 1.4 * band
+		band += k * high
+		low += k * band
+		raw[i] = (band * 0.7 + low * 0.5) * volume
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in n:
+		var f := float(i) / fade
+		out[i] = raw[i] if i >= fade else raw[i] * f + raw[n + i] * (1.0 - f)
+	return _loop(out)
+
+
+## Петля поскрипывания шин в повороте: узкая полоса шума около 1,6 кГц с дрожью, без тона
+## сирены. Зациклена без шва; громкость ведёт демка.
+static func squeal_loop(seconds := 0.8, volume := 1.4) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var fade := int(0.1 * MIX_RATE)
+	var raw := PackedFloat32Array()
+	raw.resize(n + fade)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 43
+	var low := 0.0
+	var band := 0.0
+	for i in n + fade:
+		var u := float(i) / n
+		var k := 2.0 * sin(PI * (1600.0 + 90.0 * sin(TAU * 5.0 * u)) / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 0.12 * band
+		band += k * high
+		low += k * band
+		raw[i] = band * 0.12 * (0.75 + 0.25 * sin(TAU * 11.0 * u)) * volume
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in n:
+		var f := float(i) / fade
+		out[i] = raw[i] if i >= fade else raw[i] * f + raw[n + i] * (1.0 - f)
+	return _loop(out)
+
+
+static func _loop(samples: PackedFloat32Array) -> AudioStreamWAV:
+	var wav := _wav(samples)
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_end = samples.size()
+	return wav
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
