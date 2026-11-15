@@ -353,7 +353,9 @@ func _press(dir: Vector2) -> void:
 	if target < 0:
 		return
 	var f := foes[target]
-	heavy = shielded(f) and not special
+	# Сильный удар доступен по любому врагу (плейтест 2026-11-15, #132): кнопку держат до конца
+	# подлёта. Щит по-прежнему сбивает только он.
+	heavy = not special
 	blow = (chain % Blow.size()) as Blow
 	var to := f.pos - pos
 	var stand: float = t.contact[blow]
@@ -435,7 +437,7 @@ func _hit() -> void:
 			events.append([&"bounce", target])
 		return
 	landed += 1
-	f.hp -= power()
+	f.hp -= power() * (t.heavy_damage if heavy else 1)
 	f.hit_for = 0.0
 	f.pos = (f.pos + to.normalized() * t.knock * knock_mult).limit_length(t.arena + 0.4)
 	_gain_combo()
@@ -555,7 +557,8 @@ func bot(mode: AutoTest.BotMode, dt: float) -> void:
 		return
 	if hero == Hero.DASH or hero == Hero.HEAVY:
 		# Сильный удар: кнопка зажата до конца замаха.
-		bot_a = heavy
+		# Бот заряжает удар только по щитоносцу: остальных быстрее бить серией.
+		bot_a = heavy and target >= 0 and shielded(foes[target])
 		return
 	var free := hero == Hero.READY or hero == Hero.AFTER
 	if not free:

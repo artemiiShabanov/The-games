@@ -15,6 +15,7 @@ damage = 1
 strong_combo = 5
 heavy_hold = 0.32
 heavy_swing = 0.2
+heavy_damage = 2
 shield_stun = 3.2
 bounce = 0.45
 counter_window = 0.6

@@ -20,6 +20,8 @@ const PATH := "res://resources/demos/fighting_threed.tres"
 ## Сильный удар: сколько держать кнопку, замах после подлёта, на сколько оглушает щитоносца.
 @export var heavy_hold := 0.32
 @export var heavy_swing := 0.2
+## Во сколько раз сильный удар бьёт больнее обычного (врага без щита он ещё и роняет).
+@export var heavy_damage := 2
 @export var shield_stun := 3.2
 ## Отскок от щита оставляет героя открытым.
 @export var bounce := 0.45
