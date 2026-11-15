@@ -18,6 +18,18 @@ const PATH := "res://resources/demos/platformer_bit16_gen.tres"
 ## Отдых между ловушками.
 @export var rest_min := 70.0
 @export var rest_max := 140.0
+## Челлендж к концу уровня (плейтест 2026-11-15, #132). Отдых ровно сокращается до доли
+## `rest_last_k` от начального. С доли пути `chain_from` ловушки начинают идти связками по две
+## без отдыха и места возврата между ними; шанс связки растёт от нуля до `chain_chance_last`.
+@export var rest_last_k := 0.45
+@export var chain_from := 0.3
+@export var chain_chance_last := 0.65
+## Рушащиеся мостки над водой: досок по 16 пикселей от и до; с доли пути `bridge_hole_from` в
+## мостках дыра в `bridge_hole_planks` досок.
+@export var bridge_planks_min := 8
+@export var bridge_planks_max := 12
+@export var bridge_hole_from := 0.5
+@export var bridge_hole_planks := 2
 ## Холм: высота подъёма. Поверхности ровные, склоны двух наклонов, как плитки 16-битных
 ## платформеров: пологий 1 к 2 и крутой 1 к 1 (доля крутых `steep_chance`).
 @export var hill_rise_min := 24.0
@@ -56,6 +68,7 @@ const PATH := "res://resources/demos/platformer_bit16_gen.tres"
 @export var weight_parrot := 1.5
 @export var weight_hill_crab := 1.0
 @export var weight_slope_arch := 1.0
+@export var weight_bridge := 1.5
 ## Монеты: шанс над ловушкой и на отдыхе.
 @export var coin_trap_chance := 0.85
 @export var coin_rest_chance := 0.3

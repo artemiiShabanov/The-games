@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1_tuning")
 lives = 3
+plank_hold = 0.5
+plank_restore = 3.0
 gravity = 980.0
 jump_speed = 340.0
 coyote = 0.08

@@ -6,12 +6,16 @@ extends RefCounted
 ## широкая яма с лианами, арка из корней (пройти только в слайде), краб на ровном, попугай на
 ## высоте головы, краб на холме, спуск в арку. Первая ловушка всегда яма: без неё бот LOSE не
 ## проиграет. Одна и та же ловушка не идёт два раза подряд. `validate` проверяет раскладку.
+## Челлендж (плейтест 2026-11-15, #132): рушащиеся мостки над водой; к концу уровня отдых
+## короче, а ловушки идут связками по две без отдыха (арка сразу за ямой, попугай перед ямой).
 
-enum Trap { HILL, GAP, VINES, ARCH, CRAB, PARROT, HILL_CRAB, SLOPE_ARCH }
+enum Trap { HILL, GAP, VINES, ARCH, CRAB, PARROT, HILL_CRAB, SLOPE_ARCH, BRIDGE }
 enum Decor { GRASS, TUFT, BUSH, FERN, ROCK, FLOWERS, MUSH }
 
 ## Отступ места возврата от начала отдыха.
 const CHECKPOINT_IN := 24.0
+## Короче отдыха не бывает: место возврата должно стоять в стороне от пути врага за ним.
+const REST_FLOOR := 58.0
 
 
 static func generate(seed_: int, t: PlatformerBit16GenTuning = null) -> TrailLevel:
@@ -42,8 +46,10 @@ func _build() -> void:
 	_lv.checkpoints.append(_lv.start_x)
 	_flat(_t.start_flat)
 	var weights: Array[float] = [_t.weight_hill, _t.weight_gap, _t.weight_vines, _t.weight_arch, _t.weight_crab,
-			_t.weight_parrot, _t.weight_hill_crab, _t.weight_slope_arch]
+			_t.weight_parrot, _t.weight_hill_crab, _t.weight_slope_arch, _t.weight_bridge]
 	var last := -1
+	# Эта ловушка вторая в связке: перед ней не было отдыха.
+	var chained := false
 	while _x < _t.width - _t.end_flat - 360.0:
 		var trap := Trap.GAP if last == -1 else _pick(weights, last)
 		var k := _x / _t.width
@@ -55,7 +61,8 @@ func _build() -> void:
 			Trap.VINES:
 				_vines(k)
 			Trap.ARCH:
-				_flat(36.0)
+				if not chained:
+					_flat(36.0)
 				_arch()
 			Trap.CRAB:
 				_crab(k)
@@ -65,10 +72,18 @@ func _build() -> void:
 				_hill(k, true)
 			Trap.SLOPE_ARCH:
 				_slope_arch(k)
+			Trap.BRIDGE:
+				_bridge(k)
 		last = trap
-		# Отдых: место возврата в его начале.
+		# Связка: следующая ловушка сразу, без отдыха и места возврата; три подряд не бывает.
+		var chain_k := clampf((k - _t.chain_from) / maxf(1.0 - _t.chain_from, 0.01), 0.0, 1.0)
+		if not chained and _rng.randf() < chain_k * _t.chain_chance_last and _x < _t.width - _t.end_flat - 360.0:
+			chained = true
+			continue
+		chained = false
+		# Отдых: место возврата в его начале. К концу уровня он короче.
 		_lv.checkpoints.append(_x + CHECKPOINT_IN)
-		var rest := _rng.randf_range(_t.rest_min, _t.rest_max)
+		var rest := maxf(_rng.randf_range(_t.rest_min, _t.rest_max) * lerpf(1.0, _t.rest_last_k, k), REST_FLOOR)
 		if _rng.randf() < _t.coin_rest_chance:
 			_coin(Vector2(_x + rest * 0.5, _y - 30.0))
 		_flat(rest)
@@ -149,6 +164,30 @@ func _gap(k: float) -> void:
 	if _rng.randf() < _t.coin_trap_chance:
 		_coin(Vector2(x0 + w * 0.5, minf(y0, _y) - 46.0))
 	_flat(20.0)
+
+
+## Рушащиеся мостки: яма на ровном уровне, поверх неё доски; во второй половине уровня в
+## мостках дыра не у самых краёв.
+func _bridge(k: float) -> void:
+	_flat(20.0, false)
+	var n := _rng.randi_range(_t.bridge_planks_min, _t.bridge_planks_max)
+	var b := TrailLevel.Bridge.new()
+	b.from = _x
+	b.to = _x + n * TrailLevel.PLANK_W
+	b.y = _y
+	if k >= _t.bridge_hole_from:
+		var at := _rng.randi_range(3, n - 3 - _t.bridge_hole_planks)
+		for i in _t.bridge_hole_planks:
+			b.holes.append(at + i)
+	_lv.bridges.append(b)
+	_lv.gaps.append(b.from)
+	_lv.gaps.append(b.to)
+	_x = b.to
+	_lv.points.append(Vector2(_x, _y))
+	_no_decor.append_array([b.from - 10.0, b.to + 10.0])
+	if _rng.randf() < _t.coin_trap_chance:
+		_coin(Vector2((b.from + b.to) * 0.5, _y - 34.0))
+	_flat(20.0, false)
 
 
 ## Широкая яма с одной или двумя лианами; низ лианы над краем на `vine_reach`.
@@ -298,6 +337,12 @@ static func validate(lv: TrailLevel, t: PlatformerBit16GenTuning) -> String:
 		for f in lv.foes:
 			if c > f.from - 30.0 and c < f.to + 30.0:
 				return "место возврата %.0f на пути врага" % c
+	for b in lv.bridges:
+		if not lv.in_gap((b.from + b.to) * 0.5) or absf(lv.height_at(b.from - 1.0) - b.y) > 0.5 \
+				or absf(lv.height_at(b.to + 1.0) - b.y) > 0.5:
+			return "мостки у x %.0f не лежат на краях ямы" % b.from
+		if b.holes.has(0) or b.holes.has(int((b.to - b.from) / TrailLevel.PLANK_W) - 1):
+			return "мостки у x %.0f с дырой у края" % b.from
 	for v in lv.vines:
 		if not lv.in_gap(v.anchor.x):
 			return "лиана %.0f не над ямой" % v.anchor.x

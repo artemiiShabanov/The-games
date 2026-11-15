@@ -113,6 +113,8 @@ func _setup_audio() -> void:
 	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.12, 0.3, 18.0))
 	_sfx["land"] = Sfx.player(Sfx.pat())
 	_sfx["slide"] = Sfx.player(Sfx.hiss(0.25, 0.14))
+	_sfx["plank"] = Sfx.player(Sfx.blip(210.0, 0.05, 0.16, 46.0))
+	_sfx["plank_fall"] = Sfx.player(Sfx.pat(0.1, 0.22))
 	_sfx["grab"] = Sfx.player(Sfx.blip(330.0, 0.08, 0.25, 30.0))
 	_sfx["release"] = Sfx.player(Sfx.blip(660.0, 0.1, 0.25, 22.0))
 	_sfx["fall"] = Sfx.player(Sfx.bulp(0.3))
@@ -231,6 +233,8 @@ func _on_event(ev: Array) -> void:
 			_play(String(ev[0]))
 			if ev[0] == &"slide":
 				fx.add("dust", sim.pos + Vector2(-sim.facing * 8.0, -4.0), sim.facing > 0)
+		&"plank", &"plank_fall":
+			_play(String(ev[0]))
 		&"coin":
 			_play("coin")
 			fx.add("spark", sim.pos + Vector2(0.0, -16.0))
@@ -278,6 +282,9 @@ func _draw_world(canvas: CanvasItem) -> void:
 	_draw_water(canvas, lo, hi)
 	_draw_decor(canvas, lo, hi, false)
 	_draw_ground(canvas, lo, hi)
+	for b in level.bridges.size():
+		if level.bridges[b].to > lo and level.bridges[b].from < hi:
+			_draw_bridge(canvas, b)
 	for a in level.arches:
 		if a.to > lo and a.from < hi:
 			_draw_arch(canvas, a)
@@ -390,6 +397,38 @@ func _draw_ground(canvas: CanvasItem, lo: float, hi: float) -> void:
 			canvas.draw_rect(Rect2(sx, h + DARK_TO, 1.0, bottom - h - DARK_TO), DARK)
 		canvas.draw_texture_rect_region(edge, Rect2(sx, roundf(h) - 4.0, 1.0, edge.get_height()),
 				Rect2(fposmod(wx, edge.get_width()), 0.0, 1.0, edge.get_height()))
+
+
+## Мостки: колья на берегах и доски. Доска, на которую встали, дрожит и просела; упавшая летит
+## вниз до воды; вернувшаяся просто стоит на месте.
+func _draw_bridge(canvas: CanvasItem, index: int) -> void:
+	var b := level.bridges[index]
+	var wood := bit16.ink(Bit16Screen.WOOD)
+	var bark := bit16.ink(Bit16Screen.BARK)
+	var ink := bit16.ink(Bit16Screen.K)
+	for ex: float in [b.from - 5.0, b.to + 1.0]:
+		canvas.draw_rect(Rect2(_sx(ex) - 1.0, b.y - 9.0, 6.0, 12.0), ink)
+		canvas.draw_rect(Rect2(_sx(ex), b.y - 8.0, 4.0, 10.0), bark)
+		canvas.draw_rect(Rect2(_sx(ex), b.y - 8.0, 2.0, 10.0), wood)
+	var n := int((b.to - b.from) / TrailLevel.PLANK_W)
+	for k in n:
+		if b.holes.has(k):
+			continue
+		var id := index * 256 + k
+		var p := Vector2(_sx(b.from + k * TrailLevel.PLANK_W), b.y)
+		if sim.plank_t.has(id):
+			var age := sim.time - sim.plank_t[id]
+			if age < tuning.plank_hold:
+				p += Vector2(roundf(sin(sim.time * 70.0 + k)), 1.0)
+			else:
+				var fall := age - tuning.plank_hold
+				p.y += roundf(fall * fall * 450.0)
+				if p.y > level.water_y:
+					continue
+		canvas.draw_rect(Rect2(p.x, p.y - 1.0, TrailLevel.PLANK_W, 7.0), ink)
+		canvas.draw_rect(Rect2(p.x + 1.0, p.y, TrailLevel.PLANK_W - 2.0, 5.0), bark)
+		canvas.draw_rect(Rect2(p.x + 1.0, p.y, TrailLevel.PLANK_W - 2.0, 3.0), wood)
+		canvas.draw_rect(Rect2(p.x + 2.0, p.y, TrailLevel.PLANK_W - 5.0, 1.0), bit16.ink(Bit16Screen.GOLD))
 
 
 ## Высота у края куска земли: на самом краю ямы берётся точка чуть внутри.

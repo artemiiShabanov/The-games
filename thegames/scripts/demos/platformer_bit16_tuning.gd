@@ -46,6 +46,10 @@ const PATH := "res://resources/demos/platformer_bit16.tres"
 @export var hurt_up := 200.0
 @export var invulnerable_seconds := 1.4
 @export var drown_seconds := 0.7
+## Мостки: доска держит столько секунд после того, как на неё встали, потом падает; через
+## `plank_restore` секунд после падения возвращается (и сразу после потери жизни).
+@export var plank_hold := 0.5
+@export var plank_restore := 3.0
 ## Бот WIN: решение раз в столько секунд, горизонт прогона вариантов и добор до приземления.
 @export var bot_every := 0.1
 @export var bot_horizon := 1.1

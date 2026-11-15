@@ -9,7 +9,8 @@ extends RefCounted
 ## ещё ниже, по склону вниз разгоняется, на малой скорости переходит в присед; под аркой из
 ## корней встать нельзя; лиана хватается в прыжке, стрелка раскачивает, A
 ## отпускает с прибавкой вверх. Краб и попугай убить нельзя: касание стоит жизни и отбрасывает,
-## потом неуязвимость. Вода в яме стоит жизни, герой продолжает с последнего места возврата.
+## потом неуязвимость. Мостки над водой: доска падает через `plank_hold` секунд после того, как
+## на неё встали, стоять на них нельзя. Вода в яме стоит жизни, герой продолжает с последнего места возврата.
 ## Баги приходят числами: `jump_mult` прыжок выше во столько раз, `enemy_mult` скорость врагов,
 ## `coins_high` монеты подняты выше любого прыжка, `sneeze` враг падает от касания.
 
@@ -57,8 +58,11 @@ var won := false
 var max_x := 0.0
 var foe_dead: Dictionary[int, float] = {}
 var coin_taken := PackedByteArray()
+## Доски мостков, на которые встали: номер доски (`TrailLevel.plank_at`) и время, когда встали.
+var plank_t: Dictionary[int, float] = {}
 ## События шага: `[имя, …]`. `jump`, `land`, `slide`, `grab`, `release`, `fall`, `hurt`
-## (причина), `respawn`, `coin`, `foe_down` (индекс), `win`, `lose`. Демка читает и чистит.
+## (причина), `respawn`, `coin`, `foe_down` (индекс), `plank` и `plank_fall` (номер доски),
+## `win`, `lose`. Демка читает и чистит.
 var events: Array[Array] = []
 ## Ввод бота на этом шаге (`bot`).
 var bot_jump := false
@@ -125,6 +129,7 @@ func copy() -> TrailSim:
 	s.won = won
 	s.max_x = max_x
 	s.foe_dead = foe_dead.duplicate()
+	s.plank_t = plank_t.duplicate()
 	s._coyote = _coyote
 	s._buffer = _buffer
 	s._regrab = _regrab
@@ -173,6 +178,39 @@ func coin_at(i: int) -> Vector2:
 	return level.coins[i] - Vector2(0.0, COIN_LIFT if coins_high else 0.0)
 
 
+## Земля под точкой x с мостками: доска держит, пока не упала; иначе как `TrailLevel.height_at`.
+func ground_at(x: float) -> float:
+	var h := level.height_at(x)
+	if h != INF:
+		return h
+	var id := level.plank_at(x)
+	if id < 0 or plank_gone(id):
+		return INF
+	return level.bridges[id >> 8].y
+
+
+## Упала ли доска.
+func plank_gone(id: int) -> bool:
+	return plank_t.has(id) and time - plank_t[id] >= tuning.plank_hold
+
+
+## Доски: под стоящим героем начинает отсчёт, по истечении падает, позже возвращается.
+func _planks() -> void:
+	if level.bridges.is_empty():
+		return
+	for id: int in plank_t.keys():
+		var age := time - plank_t[id]
+		if age >= tuning.plank_hold and age - DT < tuning.plank_hold:
+			_emit([&"plank_fall", id])
+		if age >= tuning.plank_hold + tuning.plank_restore:
+			plank_t.erase(id)
+	if state == State.GROUND or low():
+		var id := level.plank_at(pos.x)
+		if id >= 0 and not plank_t.has(id):
+			plank_t[id] = time
+			_emit([&"plank", id])
+
+
 ## Шаг мира в 1/60 секунды: `axis` стрелка −1..1, `jump` нажат ли прыжок на этом шаге, `slide`
 ## зажата ли B.
 func step(axis: float, jump: bool, slide: bool) -> void:
@@ -183,6 +221,7 @@ func step(axis: float, jump: bool, slide: bool) -> void:
 	invuln = maxf(invuln - DT, 0.0)
 	_regrab_t = maxf(_regrab_t - DT, 0.0)
 	_buffer = tuning.jump_buffer if jump else maxf(_buffer - DT, 0.0)
+	_planks()
 	match state:
 		State.GROUND, State.SLIDE, State.CROUCH:
 			_ground(axis, slide)
@@ -287,7 +326,7 @@ func _move_ground() -> void:
 	if not low() and _arch_wall(nx, pos.y):
 		vel.x = 0.0
 		return
-	var h := level.height_at(nx)
+	var h := ground_at(nx)
 	if h == INF:
 		pos.x = nx
 		vel.y = 0.0
@@ -348,12 +387,12 @@ func _move_air() -> void:
 	if _arch_wall(nx, ny):
 		nx = pos.x
 		vel.x = 0.0
-	var h := level.height_at(nx)
+	var h := ground_at(nx)
 	# Бок обрыва: ступни уже ниже края земли в новой точке.
 	if h != INF and pos.y > h + STEP_UP:
 		nx = pos.x
 		vel.x = 0.0
-		h = level.height_at(nx)
+		h = ground_at(nx)
 	if vel.y >= 0.0 and h != INF and ny >= h:
 		pos = Vector2(nx, h)
 		vel.y = 0.0
@@ -413,7 +452,7 @@ func _swing(axis: float) -> void:
 		_emit([&"release"])
 		return
 	# Раскачался над землёй: встал на неё.
-	var h := level.height_at(pos.x)
+	var h := ground_at(pos.x)
 	if h != INF and pos.y >= h:
 		pos.y = h
 		vel = Vector2.ZERO
@@ -477,6 +516,7 @@ func _respawn() -> void:
 		if c <= max_x + 1.0:
 			cp = c
 	pos = Vector2(cp, level.height_at(cp))
+	plank_t.clear()
 	vel = Vector2.ZERO
 	facing = 1
 	invuln = tuning.invulnerable_seconds

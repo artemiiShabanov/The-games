@@ -28,7 +28,18 @@ class Arch:
 	var gap := 18.0
 
 
+## Мостки над ямой от `from` до `to` на высоте `y`: доски по `PLANK_W`, каждая падает вскоре
+## после того, как на неё встали (`TrailSim`). `holes` это доски, которых нет с самого начала.
+class Bridge:
+	var from := 0.0
+	var to := 0.0
+	var y := 0.0
+	var holes := PackedInt32Array()
+
+
 enum FoeKind { CRAB, PARROT }
+
+const PLANK_W := 16.0
 
 ## Ломаная поверхности земли по x; в ямах `gaps` земли нет.
 var points := PackedVector2Array()
@@ -41,6 +52,7 @@ var flag_x := 0.0
 var vines: Array[Vine] = []
 var foes: Array[Foe] = []
 var arches: Array[Arch] = []
+var bridges: Array[Bridge] = []
 var coins := PackedVector2Array()
 ## Места возврата после потери жизни, по возрастанию x.
 var checkpoints := PackedFloat32Array()
@@ -54,6 +66,16 @@ func in_gap(x: float) -> bool:
 		if x > gaps[i] and x < gaps[i + 1]:
 			return true
 	return false
+
+
+## Доска мостков под точкой x: номер мостков * 256 + номер доски; −1, если доски нет.
+func plank_at(x: float) -> int:
+	for i in bridges.size():
+		var b := bridges[i]
+		if x >= b.from and x < b.to:
+			var k := int((x - b.from) / PLANK_W)
+			return -1 if b.holes.has(k) else i * 256 + k
+	return -1
 
 
 ## Высота земли в точке x; в яме и за краями INF.
@@ -107,7 +129,8 @@ static func foe_pos(f: Foe, t: float, mult := 1.0) -> Vector2:
 
 ## Отпечаток уровня для проверки детерминизма.
 func signature() -> String:
-	var s := "%d:%d:%d:%d:%d:%d" % [points.size(), gaps.size(), vines.size(), foes.size(), arches.size(), coins.size()]
+	var s := "%d:%d:%d:%d:%d:%d:%d" % [points.size(), gaps.size(), vines.size(), foes.size(), arches.size(), coins.size(),
+			bridges.size()]
 	for p in points:
 		s += ",%d" % int(p.y)
 	for f in foes:
