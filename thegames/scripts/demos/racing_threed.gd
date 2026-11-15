@@ -85,7 +85,7 @@ func _setup_audio() -> void:
 		_music.play()
 	# Мотор: короткая петля из двух гармоник, высота идёт за оборотами.
 	var samples := PackedFloat32Array()
-	var period := Sfx.MIX_RATE / 90
+	var period := int(Sfx.MIX_RATE / tuning.engine_hz)
 	for i in period * 8:
 		var k := float(i) / period
 		samples.append(0.45 * (fposmod(k, 1.0) * 2.0 - 1.0) + 0.3 * sin(TAU * k * 0.5) + 0.12 * sin(TAU * k * 3.0))

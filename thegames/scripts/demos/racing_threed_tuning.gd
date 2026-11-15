@@ -32,9 +32,9 @@ const PATH := "res://resources/demos/racing_threed.tres"
 @export var grip_fade := 0.004
 ## Помощь игроку: задняя ось держит чуть лучше передней, машину доворачивает к повороту руля
 ## (1/с), боковое скольжение гаснет (1/с).
-@export var rear_bias := 1.1
-@export var stability := 1.7
-@export var slide_damp := 0.8
+@export var rear_bias := 1.085
+@export var stability := 1.45
+@export var slide_damp := 0.68
 ## Перенос веса: доля веса на ось на 1 м/с² продольного ускорения; как быстро он следует за
 ## ускорением (1/с).
 @export var weight_shift := 0.022
@@ -45,8 +45,8 @@ const PATH := "res://resources/demos/racing_threed.tres"
 @export var steer_rate := 3.2
 ## Покрытия: сцепление и добавка к качению. Плотная дорога, рыхлый песок, мокрый настил,
 ## обочина.
-@export var surface_grip: Array[float] = [1.0, 0.62, 0.5, 0.74]
-@export var surface_drag: Array[float] = [0.0, 0.9, 0.0, 0.8]
+@export var surface_grip: Array[float] = [1.0, 0.53, 0.425, 0.63]
+@export var surface_drag: Array[float] = [0.0, 1.04, 0.0, 0.92]
 ## Обочина шире дороги на столько; за ней борт: удар оставляет долю скорости.
 @export var verge := 3.5
 @export var wall_keep := 0.55
@@ -55,6 +55,12 @@ const PATH := "res://resources/demos/racing_threed.tres"
 @export var bump_keep := 0.85
 ## Соперники: доля предела бокового ускорения на повороте и тяги; тормозят с таким замедлением.
 @export var rival_skills: Array[float] = [0.85, 0.91, 0.97]
+## Резинка (плейтест 2026-11-15, #132): соперник, отставший от игрока на `band_range` метров и
+## больше, едет во столько раз быстрее (`band_behind`), ушедший вперёд на столько же медленнее
+## (`band_ahead`); между ними плавно.
+@export var band_range := 60.0
+@export var band_behind := 1.15
+@export var band_ahead := 0.92
 @export var rival_lateral := 7.4
 @export var rival_brake := 7.5
 @export var grace_seconds := 8.0
@@ -76,7 +82,9 @@ const PATH := "res://resources/demos/racing_threed.tres"
 @export var hit_stop := 0.08
 @export var music_db := -12.0
 @export var sfx_db := -6.0
-@export var engine_db := -14.0
+## Мотор: громкость и основной тон петли (Гц на холостых оборотах до сдвига высоты).
+@export var engine_db := -34.0
+@export var engine_hz := 55.0
 
 
 static func load_default() -> RacingThreedTuning:

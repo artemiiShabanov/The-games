@@ -93,8 +93,8 @@ step "threed probe first bugs" sh tools/autotest.sh --scene=lowpoly_test --tech=
 step "demo platformer threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --tech=threed --frames=7000
 step "demo platformer threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --tech=threed --bugs --frames=9000
 step "feed platformer threed" sh tools/autotest.sh --scene=feed_test --tech=threed --frames=400
-step "demo racing threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --frames=9000
-step "demo racing threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --bugs --frames=11000
+step "demo racing threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --frames=10500
+step "demo racing threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=racing --tech=threed --bugs --frames=12500
 step "feed racing threed" sh tools/autotest.sh --scene=feed_test --genre=racing --tech=threed --frames=400
 step "demo shooter threed" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --frames=9000
 step "demo shooter threed bugs" env TIMEOUT=600 sh tools/autotest.sh --scene=demo_test --genre=shooter --tech=threed --bugs --frames=11000

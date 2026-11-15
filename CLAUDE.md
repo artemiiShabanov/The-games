@@ -94,7 +94,7 @@
   «продвинутые» «крюк-кошка» (#121): `--scene=demo_test --tech=threed --frames=7000` (кадр в
   движении `--no-checks --fixed-fps --frames=760`), уровень по сиду и боты без окна текстом
   `debug/tools/dump_hook.gd -- <seed> [count]`. Гонки × «продвинутые» «спринт» (#122):
-  `--scene=demo_test --genre=racing --tech=threed --frames=9000` (`TIMEOUT=560`, сто сидов идут
+  `--scene=demo_test --genre=racing --tech=threed --frames=10500` (`TIMEOUT=580`, сто сидов идут
   около двух минут), трасса по сиду и заезд ботов без окна текстом
   `debug/tools/dump_sprint.gd -- <seed> [count]`. Шутер × «продвинутые» «оборона аванпоста»
   (#123): `--scene=demo_test --genre=shooter --tech=threed --frames=9000` (`TIMEOUT=560`), план

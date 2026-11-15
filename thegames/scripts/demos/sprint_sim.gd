@@ -216,8 +216,13 @@ func speed_plan(s: float, v: float, lateral: float, braking: float) -> float:
 
 ## Соперник: по оси трассы со своей полосой, разгоняется по тем же передачам, тормозит заранее.
 func _step_rival(car: Car, dt: float) -> void:
-	var want := minf(speed_plan(car.s, car.speed, tuning.rival_lateral * car.skill * rival_mult, tuning.rival_brake),
-			tuning.gear_speeds[tuning.gear_speeds.size() - 1])
+	# Резинка: отставший от игрока соперник едет быстрее, ушедший вперёд медленнее.
+	var lead := (car.s - player().s) / maxf(tuning.band_range, 1.0)
+	var band := lerpf(1.0, tuning.band_ahead, clampf(lead, 0.0, 1.0)) if lead >= 0.0 else lerpf(1.0, tuning.band_behind, clampf(-lead, 0.0, 1.0))
+	if car.finished >= 0.0 or player().finished >= 0.0:
+		band = 1.0
+	var want := minf(speed_plan(car.s, car.speed, tuning.rival_lateral * car.skill * rival_mult * band * band, tuning.rival_brake),
+			tuning.gear_speeds[tuning.gear_speeds.size() - 1] * band)
 	if _sneezed.get(car, 0.0) > 0.0:
 		# От чиха: встал и стоит.
 		_sneezed[car] = float(_sneezed[car]) - dt
@@ -227,7 +232,7 @@ func _step_rival(car: Car, dt: float) -> void:
 	var mu := grip_at(car.s, car.d)
 	var drag := tuning.rolling + tuning.air * car.speed * car.speed + tuning.surface_drag[track.surface(car.s)] + G * track.slope(car.s)
 	if car.speed < want:
-		car.speed = minf(car.speed + (minf(pull_at(car.speed) * car.skill, mu * tuning.grip * 0.5) - drag) * dt, want)
+		car.speed = minf(car.speed + (minf(pull_at(car.speed) * car.skill * band, mu * tuning.grip * 0.5) - drag) * dt, want)
 	else:
 		car.speed = maxf(car.speed - tuning.rival_brake * mu * dt, want)
 	car.speed = maxf(car.speed, 0.0)
