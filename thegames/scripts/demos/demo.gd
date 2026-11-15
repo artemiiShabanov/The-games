@@ -624,6 +624,20 @@ func spawn_model(slot: String, name: String, parent: Node3D = null) -> LowpolyMo
 	return m
 
 
+## Дерево уровня «продвинутых» (#148): у пиратов процедурная пальма `ThreedScreen.add_palm`
+## (листья качает шейдер), у остальных сеттингов меш слота `palm` как есть, масштаб под ту же
+## высоту `height`.
+func spawn_palm(at: Vector3, yaw: float, height: float, rng: RandomNumberGenerator) -> Node3D:
+	var def := lowpoly_set.model("palm", true)
+	if lowpoly_set.procedural_palm:
+		return (lowpoly as ThreedScreen).add_palm(def.texture, at, yaw, height, rng)
+	var tree := spawn_model("prop", "palm")
+	tree.position = at
+	tree.rotation.y = yaw
+	tree.scale = Vector3.ONE * height / maxf(def.bounds().size.y, 0.01)
+	return tree
+
+
 ## Основание мира (#147): то, что лежит вокруг уровня до горизонта, у пиратов море. Середина
 ## `at` (её высота это уровень основания), сторона `size` метров. Вид задаёт окружение сеттинга:
 ## жидкость, пустота (тогда `null`) или твердь. Ручка дебаг-меню и `--base=liquid|void|solid`

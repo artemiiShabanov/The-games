@@ -333,7 +333,7 @@ func _draw_backdrop(canvas: CanvasItem) -> void:
 	var t: Texture2D = tex["brawl_street"]
 	var top := view.y - 416.0
 	if top > 0.0:
-		canvas.draw_rect(Rect2(-8.0, -8.0, view.x + 16.0, top + 8.0), Color("#5e4a3c"))
+		canvas.draw_rect(Rect2(-8.0, -8.0, view.x + 16.0, top + 8.0), bit16_set.tone(&"street_top"))
 	if t == null:
 		canvas.draw_rect(Rect2(Vector2.ZERO, view), Color("#33363f"))
 		return

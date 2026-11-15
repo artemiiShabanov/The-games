@@ -58,7 +58,6 @@ const PUFF_LIFE := 0.35
 const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const HUD_DIM := Color(0.086, 0.078, 0.071, 0.55)
-const SEA := Color("#2F6FB5")
 ## Направления взгляда по часовой от «вправо» (экран, y вниз); кадр героя `_draw_hero`.
 const DIRS: Array[Vector2] = [Vector2(1, 0), Vector2(0.70710678, 0.70710678), Vector2(0, 1),
 	Vector2(-0.70710678, 0.70710678), Vector2(-1, 0), Vector2(-0.70710678, -0.70710678),
@@ -182,7 +181,7 @@ func _on_start() -> void:
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screen.add_child(stage)
 	var under := ColorRect.new()
-	under.color = SEA
+	under.color = scene_set.tone(&"sea")
 	under.size = stage.size
 	under.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage.add_child(under)

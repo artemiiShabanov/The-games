@@ -1256,13 +1256,12 @@ SETS = {
 def extra_sets():
     """Наборы других сеттингов из своих модулей (#136): `space_meshes.SET` для космоса. Модули
     берут помощников отсюда, поэтому подключаются при запуске, а не при импорте."""
-    import importlib
+    import setting_sets
     out = {}
-    for setting, name in (("space", "space_meshes"),):
-        try:
-            out[setting] = importlib.import_module(name).SET
-        except ImportError:
-            pass
+    for setting in setting_sets.IDS:
+        found = setting_sets.mesh_set(setting)
+        if found:
+            out[setting] = found
     return out
 
 

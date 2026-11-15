@@ -266,7 +266,6 @@ func _build_rails() -> void:
 
 ## Пальмы, камни, бочки и ящики на пляже за бортиком.
 func _build_decor(rng: RandomNumberGenerator) -> void:
-	var palm := lowpoly_set.model("palm", true).texture
 	var s := rng.randf_range(0.0, 8.0)
 	var side := 1.0
 	while s < track.length + 60.0:
@@ -275,7 +274,7 @@ func _build_decor(rng: RandomNumberGenerator) -> void:
 			var at := track.world(s, side * (track.half(s) + tuning.verge + 0.7 + off))
 			at.y = lerpf(track.height(s) + CURB, water_y - 1.2, off / BEACH) - 0.15
 			if rng.randf() < 0.55 and not is_pink("prop"):
-				(lowpoly as ThreedScreen).add_palm(palm, at, rng.randf_range(-PI, PI), rng.randf_range(4.2, 6.0), rng)
+				spawn_palm(at, rng.randf_range(-PI, PI), rng.randf_range(4.2, 6.0), rng)
 			else:
 				var names := ["rock", "rock", "barrel", "crate", "chest"]
 				var prop := spawn_model("prop", names[rng.randi_range(0, names.size() - 1)])

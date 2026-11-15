@@ -526,12 +526,12 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	# Панель как у Doom, но в латуни и дереве: доска с фаской, три отсека в рамках (здоровье с
 	# полоской, лицо, побито и ключ), подписи пиксельным шрифтом.
 	var bar := Rect2(0.0, bit16.view.y - STATUS_H, bit16.view.x, STATUS_H)
-	canvas.draw_rect(bar, Color("#4a2c1a"))
+	canvas.draw_rect(bar, bit16_set.tone(&"panel"))
 	for x in range(0, int(bar.size.x), 24):
-		canvas.draw_rect(Rect2(x, bar.position.y + 2.0, 1.0, bar.size.y - 2.0), Color("#2e1a10"))
-		canvas.draw_rect(Rect2(x + 1.0, bar.position.y + 2.0, 1.0, bar.size.y - 2.0), Color("#6a4428"))
+		canvas.draw_rect(Rect2(x, bar.position.y + 2.0, 1.0, bar.size.y - 2.0), bit16_set.tone(&"panel_dark"))
+		canvas.draw_rect(Rect2(x + 1.0, bar.position.y + 2.0, 1.0, bar.size.y - 2.0), bit16_set.tone(&"panel_light"))
 	canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x, 1.0)), Fx16.INK)
-	canvas.draw_rect(Rect2(bar.position + Vector2(0.0, 1.0), Vector2(bar.size.x, 1.0)), Fx16.BRASS[2])
+	canvas.draw_rect(Rect2(bar.position + Vector2(0.0, 1.0), Vector2(bar.size.x, 1.0)), bit16_set.tone(&"panel_trim"))
 	var low := sim.health <= 30
 	var blink := low and fmod(_time, 0.5) < 0.25
 	var hr := Rect2(8.0, bar.position.y + 5.0, 150.0, STATUS_H - 9.0)
@@ -560,7 +560,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	PixelFont16.draw(canvas, kr.position + Vector2(8.0, 13.0), "%02d" % sim.kills, Color.WHITE, Color("#b8c0d0"), Fx16.INK, 2.0)
 	var key_box := Rect2(kr.end.x - 40.0, kr.position.y + 3.0, 34.0, kr.size.y - 6.0)
 	canvas.draw_rect(key_box, Fx16.INK)
-	canvas.draw_rect(key_box.grow(-1.0), Color("#4a3a18") if sim.has_key else Color("#2a1c30"))
+	canvas.draw_rect(key_box.grow(-1.0), bit16_set.tone(&"key_on") if sim.has_key else bit16_set.tone(&"key_off"))
 	if sim.has_key:
 		bit16.sprite(canvas, tex["key"], 0, key_box.get_center() + Vector2(0.0, 14.0))
 	else:

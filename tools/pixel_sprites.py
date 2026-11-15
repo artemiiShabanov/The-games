@@ -1421,14 +1421,16 @@ def outlined(set_name, name, rows, dark="K"):
 def sets():
     """Наборы: имя папки сеттинга → (палитра, спрайты)."""
     # Космос (#136): платформер в `pixel_sets_extra`, остальные демки в модулях `space8_*`.
-    import space8
-    space = dict(pixel_sets_extra.SPACE)
-    space.update(space8.sprites())
-    return {
-        "pirates": (PALETTE, SPRITES),
-        "space": (pixel_sets_extra.SPACE_PALETTE, space),
-        "castles": (pixel_sets_extra.CASTLES_PALETTE, pixel_sets_extra.CASTLES),
-    }
+    import setting_sets
+    out = {"pirates": (PALETTE, SPRITES)}
+    for setting in setting_sets.IDS:
+        base8 = setting_sets.module(setting + "8")
+        own = dict(getattr(pixel_sets_extra, setting.upper(), {}))
+        if base8:
+            own.update(base8.sprites())
+        if own:
+            out[setting] = (base8.PALETTE if base8 else getattr(pixel_sets_extra, setting.upper() + "_PALETTE"), own)
+    return out
 
 
 def render(rows, scale=1, palette=None):

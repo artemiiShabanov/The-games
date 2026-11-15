@@ -1537,14 +1537,11 @@ SETS = {"pirates": [pirate_sailor, pirate_captain, pirate_skeleton]}
 def extra_sets():
     """Модели и текстуры «продвинутых» других сеттингов из своих модулей (#136): у космоса
     `space_rig.RIGS` и `space_rig.PROPS`."""
-    import importlib
-    for setting, name in (("space", "space_rig"),):
-        try:
-            module = importlib.import_module(name)
-        except ImportError:
-            continue
-        SETS[setting] = module.RIGS
-        PROPS[setting] = module.PROPS
+    import setting_sets
+    for setting in setting_sets.IDS:
+        found = setting_sets.rig_set(setting)
+        if found:
+            SETS[setting], PROPS[setting] = found
 
 
 def main():

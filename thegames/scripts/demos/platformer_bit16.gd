@@ -26,7 +26,6 @@ const BACKDROP_TOPS: Array[float] = [0.0, 0.0, 128.0]
 ## Грунт под поверхностью темнеет: с такой глубины начинается переход и на такой кончается.
 const DARK_FROM := 18.0
 const DARK_TO := 64.0
-const DARK := Color(0.07, 0.04, 0.07)
 ## Листва над кадром едет быстрее мира: она ближе к зрителю.
 const CANOPY_FACTOR := 1.15
 const PLACEHOLDER_SLOTS: Array[String] = ["crab", "parrot", "coin", "flag", "bush"]
@@ -47,6 +46,8 @@ var tex := {}
 ## спрайт отражается при развороте, иначе фигура прыгает вбок.
 var pivots := {}
 ## Переход грунта в темноту: столбец градиента от прозрачного к тёмному.
+## Самая тёмная глубина грунта и ямы (`SettingDef.tone` `pit_dark`).
+var _dark := Color.BLACK
 var _depth: GradientTexture2D
 var _show_boxes := false
 var cam_x := 0.0
@@ -86,9 +87,10 @@ func _on_start() -> void:
 		pivots[name] = _body_center(tex[name])
 	cam_x = _cam_target()
 	_show_boxes = Debug.hitboxes or (AutoTest.enabled and AutoTest.parse_args(OS.get_cmdline_user_args()).has("hitboxes"))
+	_dark = bit16_set.tone(&"pit_dark")
 	var grad := Gradient.new()
-	grad.set_color(0, Color(DARK, 0.0))
-	grad.set_color(1, DARK)
+	grad.set_color(0, Color(_dark, 0.0))
+	grad.set_color(1, _dark)
 	_depth = GradientTexture2D.new()
 	_depth.gradient = grad
 	fx = Fx16.create(bit16_set)
@@ -323,10 +325,10 @@ func _draw_water(canvas: CanvasItem, lo: float, hi: float) -> void:
 		if soil != null:
 			canvas.draw_texture_rect_region(soil, wall, Rect2(Vector2(a, top) + Vector2(4096.0, 0.0), wall.size), Color(0.55, 0.5, 0.55))
 		canvas.draw_texture_rect(_pit_grad, wall, false)
-		canvas.draw_rect(Rect2(x, top, w, y - top), Color(DARK, 0.35))
+		canvas.draw_rect(Rect2(x, top, w, y - top), Color(_dark, 0.35))
 		# Вода: полосы глубины, у кромки светлая рябь, бегущие блики и отражение стенок.
 		var deep: Array[Color] = [bit16.ink(Bit16Screen.SEA), bit16.ink(Bit16Screen.NAVY), bit16.ink(Bit16Screen.NAVY).darkened(0.35),
-				DARK]
+				_dark]
 		var bottom := bit16.view.y - oy
 		var band := 0
 		var yy := y
@@ -394,7 +396,7 @@ func _draw_ground(canvas: CanvasItem, lo: float, hi: float) -> void:
 		h = roundf(h)
 		canvas.draw_texture_rect(_depth, Rect2(sx, h + DARK_FROM, 1.0, DARK_TO - DARK_FROM), false)
 		if h + DARK_TO < bottom:
-			canvas.draw_rect(Rect2(sx, h + DARK_TO, 1.0, bottom - h - DARK_TO), DARK)
+			canvas.draw_rect(Rect2(sx, h + DARK_TO, 1.0, bottom - h - DARK_TO), _dark)
 		canvas.draw_texture_rect_region(edge, Rect2(sx, roundf(h) - 4.0, 1.0, edge.get_height()),
 				Rect2(fposmod(wx, edge.get_width()), 0.0, 1.0, edge.get_height()))
 
@@ -459,7 +461,7 @@ func _draw_arch(canvas: CanvasItem, a: TrailLevel.Arch) -> void:
 	var ceil := ground - a.gap
 	var x0 := _sx(a.from)
 	var x1 := _sx(a.to)
-	canvas.draw_rect(Rect2(x0, ceil, x1 - x0, a.gap + 2.0), DARK)
+	canvas.draw_rect(Rect2(x0, ceil, x1 - x0, a.gap + 2.0), _dark)
 	var pts := PackedVector2Array([Vector2(x0, -2.0), Vector2(x1, -2.0), Vector2(x1, ceil), Vector2(x0, ceil)])
 	var uvs := PackedVector2Array()
 	for p in pts:

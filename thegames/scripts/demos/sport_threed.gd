@@ -236,11 +236,10 @@ func _build_world() -> void:
 		beam.rotation.y = course.yaw(b.s)
 		beam.rotation.z = atan2(course.height(b.s, b.x + b.half) - course.height(b.s, b.x - b.half), b.half * 2.0)
 	# Препятствия: камни и пальмы.
-	var palm := lowpoly_set.model("palm", true).texture
 	for r in course.rocks:
 		var at := course.world(r.s, r.x, -0.12)
 		if r.tall and not is_pink("prop"):
-			screen.add_palm(palm, at, rng.randf_range(-PI, PI), rng.randf_range(4.4, 5.6), rng)
+			spawn_palm(at, rng.randf_range(-PI, PI), rng.randf_range(4.4, 5.6), rng)
 		else:
 			var rock := spawn_model("prop", "rock")
 			rock.position = at
@@ -253,7 +252,7 @@ func _build_world() -> void:
 		var off := course.half_width + rng.randf_range(3.5, 13.0)
 		var at := _ground(at_s, flank * off) - Vector3(0.0, 0.15, 0.0)
 		if rng.randf() < 0.6 and not is_pink("prop"):
-			screen.add_palm(palm, at, rng.randf_range(-PI, PI), rng.randf_range(4.2, 6.2), rng)
+			spawn_palm(at, rng.randf_range(-PI, PI), rng.randf_range(4.2, 6.2), rng)
 		else:
 			var names := ["rock", "rock", "barrel", "crate", "chest"]
 			var prop := spawn_model("prop", names[rng.randi_range(0, names.size() - 1)])

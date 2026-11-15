@@ -143,7 +143,6 @@ func _glow(color: Color, alpha := 1.0) -> StandardMaterial3D:
 func _build_world() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(record.seed if record != null else 1, ":outpost-look"))
-	var screen := lowpoly as ThreedScreen
 	# Остров: песчаный круг с неровным краем, пляж уходит в воду.
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -190,7 +189,6 @@ func _build_world() -> void:
 	lawn.surface_set_material(0, lowpoly.tex_material(lowpoly_texture("grass")))
 	_add(lawn, Vector3.ZERO)
 	# Пальмы и камни по острову; на путях врагов их нет.
-	var palm := lowpoly_set.model("palm", true).texture
 	for i in 26:
 		var a := rng.randf_range(0.0, TAU)
 		var clear := true
@@ -202,7 +200,7 @@ func _build_world() -> void:
 		if not clear and at.length() < 46.0:
 			continue
 		if rng.randf() < 0.6 and not is_pink("prop"):
-			screen.add_palm(palm, at, rng.randf_range(-PI, PI), rng.randf_range(4.4, 6.4), rng)
+			spawn_palm(at, rng.randf_range(-PI, PI), rng.randf_range(4.4, 6.4), rng)
 		else:
 			var rock := spawn_model("prop", "rock")
 			rock.position = at

@@ -41,7 +41,6 @@ const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const HUD_DIM := Color(0.086, 0.078, 0.071, 0.45)
 const METER_FILL := Color("#F2C85A")
-const SEA := Color("#2F6FB5")
 const SPLASH_LIFE := 0.6
 ## Борт под палубой ти и грина, px; ниже песок.
 const HULL_DEPTH := 24
@@ -906,7 +905,7 @@ func _draw_sea() -> void:
 	if not hole.has_water():
 		return
 	var y := course.sea_y - 2.0
-	world.draw_rect(Rect2(hole.water_from, y + 3.0, hole.water_to - hole.water_from, WORLD_H - y), SEA)
+	world.draw_rect(Rect2(hole.water_from, y + 3.0, hole.water_to - hole.water_from, WORLD_H - y), scene_set.tone(&"sea"))
 	var shift := int(play_time * 8.0) % TILE
 	var x := hole.water_from - shift
 	while x < hole.water_to:

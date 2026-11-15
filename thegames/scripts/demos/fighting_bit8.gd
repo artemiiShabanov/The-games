@@ -41,7 +41,6 @@ const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 const HUD_DIM := Color(0.086, 0.078, 0.071, 0.45)
 const BAR_FILL := Color("#F2C85A")
-const WOOD := Color("#A85A2A")
 const SPARK_LIFE := 0.22
 ## Рамка хитбокса, прошедшего сквозь (`ghost_hits`): цвет отладочной рамки и жизнь, с.
 const GHOST_INK := Color("#5CFF6A")
@@ -544,16 +543,23 @@ func _draw_backdrop() -> void:
 		var y := horizon + 3 + i * 6
 		var bx := fmod(i * 53.0 + 11.0, view.x - 24.0)
 		backdrop.draw_rect(Rect2(bx, y, 8 + (i % 3) * 6, 1), scene_set.horizon_light)
-	_draw_mast()
-	# Фальшборт за бойцами: доски с планширем и стойками.
+	var wood := scene_set.tone(&"wood")
 	var wall := ground_y - 14.0
-	backdrop.draw_rect(Rect2(0, wall, view.x, 14.0), WOOD)
-	backdrop.draw_rect(Rect2(0, wall, view.x, 2.0), HUD_SHADOW)
-	backdrop.draw_rect(Rect2(0, wall + 7.0, view.x, 1.0), HUD_SHADOW)
-	var post := fmod(center_x, 32.0) - 32.0
-	while post < view.x:
-		backdrop.draw_rect(Rect2(post, wall, 2.0, 14.0), HUD_SHADOW)
-		post += 32.0
+	if scene_set.ship_decor:
+		_draw_mast(wood)
+		# Фальшборт за бойцами: доски с планширем и стойками.
+		backdrop.draw_rect(Rect2(0, wall, view.x, 14.0), wood)
+		backdrop.draw_rect(Rect2(0, wall, view.x, 2.0), HUD_SHADOW)
+		backdrop.draw_rect(Rect2(0, wall + 7.0, view.x, 1.0), HUD_SHADOW)
+		var post := fmod(center_x, 32.0) - 32.0
+		while post < view.x:
+			backdrop.draw_rect(Rect2(post, wall, 2.0, 14.0), HUD_SHADOW)
+			post += 32.0
+	else:
+		_draw_ridge()
+		# Задник без корабля: низкий вал из цветов сеттинга вместо фальшборта.
+		backdrop.draw_rect(Rect2(0, wall, view.x, 14.0), scene_set.silhouette_dark)
+		backdrop.draw_rect(Rect2(0, wall, view.x, 2.0), scene_set.silhouette)
 	# Палуба: верхний тайл палубы, ниже борт.
 	var tx := 0.0
 	while tx < view.x:
@@ -568,12 +574,12 @@ func _draw_backdrop() -> void:
 		var ex := roundf(center_x + side * tuning.arena_width / 2.0)
 		var px := ex - 3.0 if side < 0.0 else ex - 1.0
 		backdrop.draw_rect(Rect2(px - 1.0, ground_y - 41.0, 6.0, 41.0), HUD_SHADOW)
-		backdrop.draw_rect(Rect2(px, ground_y - 40.0, 4.0, 40.0), WOOD)
-		backdrop.draw_rect(Rect2(px, ground_y - 40.0, 4.0, 2.0), BAR_FILL)
+		backdrop.draw_rect(Rect2(px, ground_y - 40.0, 4.0, 40.0), wood)
+		backdrop.draw_rect(Rect2(px, ground_y - 40.0, 4.0, 2.0), scene_set.tone(&"post_cap"))
 
 
 ## Мачта со смещением из плана, рей со свёрнутым парусом, ванты к фальшборту.
-func _draw_mast() -> void:
+func _draw_mast(wood: Color) -> void:
 	var mx := roundf(center_x + plan.mast_x)
 	var yard := 30.0
 	var wall := ground_y - 14.0
@@ -583,17 +589,35 @@ func _draw_mast() -> void:
 		for k in 3:
 			backdrop.draw_line(head + Vector2(side * k * 4.0, k * 10.0), foot + Vector2(side * k * 10.0, 0.0), HUD_SHADOW, 1.0)
 	backdrop.draw_rect(Rect2(mx - 4.0, 0.0, 8.0, wall), HUD_SHADOW)
-	backdrop.draw_rect(Rect2(mx - 3.0, 0.0, 6.0, wall), WOOD)
+	backdrop.draw_rect(Rect2(mx - 3.0, 0.0, 6.0, wall), wood)
 	backdrop.draw_rect(Rect2(mx - 1.0, 0.0, 1.0, wall), BAR_FILL)
 	backdrop.draw_rect(Rect2(mx - 52.0, yard - 1.0, 104.0, 5.0), HUD_SHADOW)
-	backdrop.draw_rect(Rect2(mx - 51.0, yard, 102.0, 3.0), WOOD)
+	backdrop.draw_rect(Rect2(mx - 51.0, yard, 102.0, 3.0), wood)
 	# Свёрнутый парус под реем: белые складки с тенью.
 	backdrop.draw_rect(Rect2(mx - 46.0, yard + 4.0, 92.0, 6.0), HUD_SHADOW)
 	for i in 23:
 		backdrop.draw_rect(Rect2(mx - 45.0 + i * 4.0, yard + 4.0, 3.0, 5.0), HUD_INK)
 	# Воронье гнездо.
 	backdrop.draw_rect(Rect2(mx - 9.0, 9.0, 18.0, 7.0), HUD_SHADOW)
-	backdrop.draw_rect(Rect2(mx - 8.0, 10.0, 16.0, 5.0), WOOD)
+	backdrop.draw_rect(Rect2(mx - 8.0, 10.0, 16.0, 5.0), wood)
+
+
+## Второй ряд силуэтов за горизонтом вместо мачты: выше и темнее первого, из тех же двух тонов
+## сеттинга (сеттинги без корабля, `SettingDef.ship_decor`).
+func _draw_ridge() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(record.seed, ":ridge"))
+	var horizon := roundf(ground_y - 44.0)
+	var x := -12.0
+	while x < view.x:
+		var w := rng.randf_range(40.0, 96.0)
+		var h := rng.randf_range(18.0, 34.0)
+		for i in 3:
+			var k := float(i) / 3.0
+			var sw := w * (1.0 - k * 0.5)
+			backdrop.draw_rect(Rect2(roundf(x + (w - sw) / 2.0), roundf(horizon - h * (i + 1) / 3.0), roundf(sw), ceilf(h / 3.0) + 1),
+					scene_set.silhouette if i % 2 == 0 else scene_set.silhouette_dark)
+		x += w + rng.randf_range(10.0, 50.0)
 
 
 ## HUD в координатах экрана: полосы здоровья с лицами по краям (герой слева, капитан справа),

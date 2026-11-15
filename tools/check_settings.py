@@ -97,6 +97,8 @@ def missing(setting, known):
     text = known[setting][2]
     palettes = [label for key, label in PALETTES.items()
                 if not re.search(r"^%s = .*Color\(" % key, text, re.M)]
+    if not re.search(r"^tones = Dictionary", text, re.M):
+        palettes.append("тона рисунка из кода")
     if not re.search(r"^words = Dictionary", text, re.M):
         palettes.append("слова подписей")
     palettes += [label for key, label in ENVS.items() if not re.search(r"^%s = SubResource" % key, text, re.M)]

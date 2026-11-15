@@ -72,6 +72,19 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 
 const WORD_KEYS: Array[StringName] = [&"hero", &"team", &"enemies", &"boss", &"brute"]
 
+## Рисунок демок, который лежит в коде, а не в ассетах (#148). Корабельные детали: мачта с
+## парусами и деревянный фальшборт файтинга 8-bit. Процедурная пальма «продвинутых»
+## (`ThreedScreen.add_palm`); без флага на её месте стоит меш слота `palm` сеттинга. Включено
+## только у пиратов, остальные сеттинги получают нейтральный рисунок.
+@export var ship_decor := false
+@export var procedural_palm := false
+## Цвета рисунка демок по ролям (ключи в `tone`); нет своего: пиратский, и это подмена. Роли:
+## `wood` дерево, канаты и стойки, `post_cap` навершие стойки, `sea` толща под жидкостью (8-bit),
+## `pit_dark` самая тёмная глубина ямы (тропа 16/32), `panel`, `panel_dark`, `panel_light`, `panel_trim`
+## панель HUD шутера 16/32, `key_on`, `key_off` отсек ключа, `hero_ink`, `hero_stripe`,
+## `rival_ink_0..2` форма на табло футбола 16/32, `street_top` небо над улицей битемапа.
+@export var tones: Dictionary[StringName, Color] = {}
+
 static var _cache: Dictionary[int, SettingDef] = {}
 ## Что сеттинг взял у пиратов с последнего `borrowed_reset` (#135): ключ «формат/имя».
 static var _borrowed: Dictionary[String, bool] = {}
@@ -119,6 +132,16 @@ func word(key: StringName) -> String:
 	if base != self:
 		_borrow("words", String(key))
 	return base.words.get(key, String(key).to_upper())
+
+
+## Цвет рисунка демки по роли; без своего пиратский.
+func tone(key: StringName) -> Color:
+	if tones.has(key):
+		return tones[key]
+	var base := of(Game.Setting.PIRATES)
+	if base != self:
+		_borrow("tone", String(key))
+	return base.tones.get(key, Color.MAGENTA)
 
 
 ## Текст с подстановкой слов сеттинга: «БЕССМЕРТНЫЙ {boss}».

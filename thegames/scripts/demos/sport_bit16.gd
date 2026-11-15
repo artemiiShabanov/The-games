@@ -33,8 +33,6 @@ const EDGE := {"pirates": [Color(0.42, 0.3, 0.16, 0.45), Color("#f4fbff")],
 		"castles": [Color(0.0, 0.0, 0.0, 0.3), Color("#a8a2ac")],
 		"space": [Color(0.0, 0.0, 0.0, 0.35), Color("#7fd8ff")]}
 ## Цвета формы соперника для табло (как ленты `soccer_rival_*`) и HUD в духе битемапа.
-const RIVAL_INK: Array[Color] = [Color("#d9432f"), Color("#f2c85a"), Color("#2a2630")]
-const HERO_INK := Color("#f4efe6")
 const BRASS: Array[Color] = [Color("#3a240c"), Color("#8a5a1c"), Color("#d8a440"), Color("#fff0a0")]
 const INK := Color("#1a1218")
 const MELODY := [0, 4, 7, 4, 9, 7, 4, 2, 0, 4, 7, 12, 11, 7, 9, null,
@@ -388,8 +386,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var flash := _goal_t < 1.2 and fmod(_goal_t, 0.3) < 0.15
 	var box := Rect2(cx - 92.0, 6.0, 184.0, 26.0)
 	_frame_box(canvas, box, flash)
-	var rival_ink: Color = RIVAL_INK[plan.rival_kit % RIVAL_INK.size()]
-	_chip(canvas, Vector2(box.position.x + 8.0, 13.0), HERO_INK, Color("#2f6fb5"))
+	var rival_ink := bit16_set.tone(StringName("rival_ink_%d" % (plan.rival_kit % 3)))
+	_chip(canvas, Vector2(box.position.x + 8.0, 13.0), bit16_set.tone(&"hero_ink"), bit16_set.tone(&"hero_stripe"))
 	_chip(canvas, Vector2(box.end.x - 20.0, 13.0), rival_ink, rival_ink.darkened(0.35))
 	PixelFont16.draw(canvas, Vector2(box.position.x + 26.0, 15.0), bit16_set.word(&"team"), Color.WHITE, Color("#b8c8e0"), INK, 1.0)
 	PixelFont16.draw(canvas, Vector2(box.end.x - 26.0 - PixelFont16.width("ГОСТИ"), 15.0), "ГОСТИ", Color.WHITE,

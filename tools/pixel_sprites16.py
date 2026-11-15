@@ -535,23 +535,29 @@ def sets():
     for key in list(sprites):
         if key not in own and wants_reshade(key, sprites[key]):
             sprites[key], own[key] = reshade(sprites[key])
-    return {"pirates": (PIRATES, sprites, own), "space": space_set()}
+    out = {"pirates": (PIRATES, sprites, own)}
+    import setting_sets
+    for setting in setting_sets.IDS:
+        found = setting_set(setting)
+        if found:
+            out[setting] = found
+    return out
 
 
-def space_set():
-    """Набор «Космоса» (#136): основа в `space16.py`, ленты демок в `space_*16.py`, палитра и
-    материалы свои. Сборка повторяет пиратскую: слои со своей палитрой идут как есть, силуэты в
-    палитре сеттинга получают светотень рампами."""
-    import importlib
-    import space16
-    sprites = space16.sprites()
+def setting_set(setting):
+    """Набор сеттинга из модулей (#136, #137): основа в `<id>16.py`, ленты демок в
+    `<id>_*16.py`, палитра и материалы свои. Сборка повторяет пиратскую: слои со своей палитрой
+    идут как есть, силуэты в палитре сеттинга получают светотень рампами."""
+    import setting_sets
+    base16 = setting_sets.module(setting + "16")
+    if base16 is None:
+        return None
+    sprites = dict(base16.extras()) if hasattr(base16, "extras") else {}
+    sprites.update(base16.sprites())
     own = {}
 
     def module(name):
-        try:
-            return importlib.import_module(name)
-        except ImportError:
-            return None
+        return setting_sets.module("%s_%s16" % (setting, name))
 
     def take(items, palette=None):
         for key, value in items.items():
@@ -562,33 +568,33 @@ def space_set():
                 if palette is not None:
                     own[key] = palette
 
-    trail = module("space_trail16")
+    trail = module("trail")
     if trail:
         take(trail.sprites())
-        take(trail.backdrop(), trail.SPACE_BG)
-        take(trail.foreground(), trail.SPACE_FG)
-    road = module("space_road16")
+        take(trail.backdrop(), setting_sets.const(trail, "_BG"))
+        take(trail.foreground(), setting_sets.const(trail, "_FG"))
+    road = module("road")
     if road:
         take(road.sprites())
-        take(road.horizon(), road.SPACE_SKY)
+        take(road.horizon(), setting_sets.const(road, "_SKY"))
         take(road.road_palette(), road.ROAD_COLORS)
-    hold = module("space_hold16")
+    hold = module("hold")
     if hold:
         take(hold.sprites())
-    soccer = module("space_soccer16")
+    soccer = module("soccer")
     if soccer:
         take(soccer.sprites())
         take(soccer.fields())
-    brawl = module("space_brawl16")
+    brawl = module("brawl")
     if brawl:
         take(brawl.sprites_own())
-    fx = module("space_fx16")
+    fx = module("fx")
     if fx:
         take(fx.sprites_own())
     for key in list(sprites):
         if key not in own and wants_reshade(key, sprites[key]):
-            sprites[key], own[key] = reshade(sprites[key], space16.PALETTE, space16.GROUPS)
-    return (space16.PALETTE, sprites, own)
+            sprites[key], own[key] = reshade(sprites[key], base16.PALETTE, base16.GROUPS)
+    return (base16.PALETTE, sprites, own)
 
 
 # --- Светотень как в битемапе (плейтест 2026-11-12) -----------------------------------------------

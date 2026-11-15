@@ -221,7 +221,7 @@ func _build_world() -> void:
 		_build_islet(it, rng, water)
 	for p in level.props:
 		if p.name == "palm" and not is_pink("prop"):
-			(lowpoly as ThreedScreen).add_palm(lowpoly_set.model("palm", true).texture, p.pos, p.yaw, p.height * rng.randf_range(0.9, 1.15), rng)
+			spawn_palm(p.pos, p.yaw, p.height * rng.randf_range(0.9, 1.15), rng)
 			continue
 		var tower := p.name == "lighthouse"
 		var prop := spawn_model("finish" if tower else "prop", p.name)
