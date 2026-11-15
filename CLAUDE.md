@@ -70,7 +70,7 @@
   текстом `debug/tools/dump_hold.gd -- <seed> [count] [wild,sneeze,pass,endless,walls]`. Футбол ×
   16/32-bit (#101): `--scene=demo_test --genre=sport --tech=bit16 --frames=7000`, план по сиду и
   боты без окна текстом `debug/tools/dump_soccer.gd -- <seed> [count] [wild,narrow,sneeze,space]`.
-  Битемап × 16/32-bit (#102): `--scene=demo_test --genre=fighting --tech=bit16 --frames=7500`, волны
+  Битемап × 16/32-bit (#102): `--scene=demo_test --genre=fighting --tech=bit16 --frames=10000`, волны
   по сиду и боты без окна текстом `debug/tools/dump_brawl.gd -- <seed> [count] [wild,immortal,sneeze,ghost]`. Основа low poly
   (#108): лист мешей и палитры `--scene=lowpoly_test --frames=200`, пробные демки `--probe=behind`
   (камера за спиной) и `--probe=first` (от первого лица) `[--bugs|--bug=<id>] [--setting=N]

@@ -73,6 +73,7 @@ var _banner := ""
 var _banner_t := 0.0
 var _music: AudioStreamPlayer
 var _sfx := {}
+var _step_t := 0.0
 
 
 func _on_start() -> void:
@@ -100,21 +101,26 @@ func _setup_audio() -> void:
 	bug_music = _music
 	if not embedded:
 		_music.play()
-	_sfx["swing"] = Sfx.player(Sfx.hiss(0.08, 0.12))
-	_sfx["hit"] = Sfx.player(Sfx.thud(0.08, 0.45))
-	_sfx["heavy"] = Sfx.player(Sfx.thud(0.22, 0.6))
-	_sfx["windup"] = Sfx.player(Sfx.blip(180.0, 0.18, 0.2, 40.0))
-	_sfx["down"] = Sfx.player(Sfx.thud(0.2, 0.5))
-	_sfx["kill"] = Sfx.player(Sfx.beep(220.0, 0.35, 0.3, 110.0))
-	_sfx["hurt"] = Sfx.player(Sfx.blip(150.0, 0.2, 0.4, 10.0))
-	_sfx["grab"] = Sfx.player(Sfx.blip(260.0, 0.06, 0.25, 30.0))
-	_sfx["throw"] = Sfx.player(Sfx.hiss(0.3, 0.2))
+	# Свои звуки ударов (плейтест 2026-11-15, #132): взмах, шлепок по телу, тяжёлый удар, падение.
+	_sfx["swing"] = Sfx.player(Sfx.whoosh(0.1, 0.16))
+	_sfx["swing_heavy"] = Sfx.player(Sfx.whoosh(0.2, 0.24, 500.0, 1500.0))
+	_sfx["hit"] = Sfx.player(Sfx.punch(0.0))
+	_sfx["heavy"] = Sfx.player(Sfx.punch(1.0, 0.7))
+	_sfx["windup"] = Sfx.player(Sfx.whoosh(0.3, 0.12, 300.0, 700.0))
+	_sfx["down"] = Sfx.player(Sfx.body_fall())
+	_sfx["kill"] = Sfx.player(Sfx.body_fall(0.6))
+	_sfx["hurt"] = Sfx.player(Sfx.punch(0.5, 0.6))
+	_sfx["grab"] = Sfx.player(Sfx.pat(0.08, 0.35))
+	_sfx["throw"] = Sfx.player(Sfx.whoosh(0.3, 0.26, 400.0, 1300.0))
+	_sfx["step"] = Sfx.player(Sfx.pat(0.07, 0.3))
 	_sfx["go"] = Sfx.player(Sfx.beep(660.0, 0.3, 0.3, 990.0))
 	_sfx["boss"] = Sfx.player(Sfx.beep(110.0, 0.6, 0.35, 90.0))
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.45, 5.0))
 	for p in _sfx.values():
 		(p as AudioStreamPlayer).volume_db = tuning.sfx_db if not embedded else -80.0
 		add_child(p)
+	if not embedded:
+		(_sfx["step"] as AudioStreamPlayer).volume_db = tuning.sfx_db + tuning.step_db
 
 
 func _placeholder_slots() -> Array[String]:
@@ -161,6 +167,16 @@ func _on_tick(delta: float) -> void:
 
 func _step(dt: float) -> void:
 	_time += dt
+	# Очень тихие шаги героя, пока он идёт.
+	if sim.hero.state == BrawlSim.State.WALK and sim.hitstop <= 0.0 and not sim.ended:
+		_step_t -= dt
+		if _step_t <= 0.0:
+			_step_t = tuning.step_seconds
+			var sp: AudioStreamPlayer = _sfx["step"]
+			sp.pitch_scale = 0.9 if sp.pitch_scale > 1.0 else 1.08
+			sp.play()
+	else:
+		_step_t = 0.1
 	_throw_t += dt
 	_knee_t += dt
 	_target_t = maxf(_target_t - dt, 0.0)
@@ -248,8 +264,8 @@ func _on_event(ev: Array) -> void:
 			_banner = "БОЦМАН"
 			_banner_t = 2.2
 		&"swing":
-			_play("swing")
 			var f := _fighter_of(int(ev[1]))
+			_play("swing_heavy" if ev.size() > 2 and ev[2] == &"heavy" else "swing")
 			if f != null:
 				var heavy: bool = ev.size() > 2 and ev[2] == &"heavy"
 				_add_fx("whoosh", f.pos.x + f.facing * (34.0 if heavy else 26.0), _floor_y() + f.pos.y - f.z - 66.0, f.facing < 0.0)

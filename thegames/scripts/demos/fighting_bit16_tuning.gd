@@ -79,6 +79,10 @@ const PATH := "res://resources/demos/fighting_bit16.tres"
 @export var max_seconds := 240.0
 @export var music_db := -12.0
 @export var sfx_db := -6.0
+## Шаги героя (плейтест 2026-11-15, #132): очень тихие, раз в `step_seconds` на ходу;
+## громкость относительно `sfx_db`.
+@export var step_seconds := 0.3
+@export var step_db := -14.0
 
 
 static func load_default() -> FightingBit16Tuning:

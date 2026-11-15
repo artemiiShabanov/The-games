@@ -472,6 +472,73 @@ static func scrape(volume := 0.3) -> AudioStreamWAV:
 	return _wav(out)
 
 
+# --- Битемап (плейтест 2026-11-15, #132): свои звуки ударов -------------------------------------
+
+## Удар кулаком или ногой по телу: резкий шлепок (шум с быстрым спадом) и глухой толчок, тон
+## которого падает. `hard` 0..1: джеб или тяжёлый удар (ниже, дольше, с хрустом в начале).
+static func punch(hard := 0.0, volume := 0.55) -> AudioStreamWAV:
+	var seconds := lerpf(0.11, 0.24, hard)
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 71 + int(hard * 10.0)
+	var phase := 0.0
+	var smack := 0.0
+	var body := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var u := tm / seconds
+		var white := rng.randf_range(-1.0, 1.0)
+		smack = lerpf(smack, white, lerpf(0.55, 0.35, hard))
+		body = lerpf(body, white, 0.06)
+		phase += TAU * lerpf(lerpf(190.0, 130.0, hard), lerpf(80.0, 45.0, hard), sqrt(u)) / MIX_RATE
+		var v := smack * exp(-lerpf(95.0, 55.0, hard) * tm) * 0.9
+		v += sin(phase) * exp(-lerpf(34.0, 16.0, hard) * tm) * lerpf(0.8, 1.1, hard)
+		v += body * exp(-lerpf(40.0, 18.0, hard) * tm) * 1.6 * hard
+		out[i] = clampf(v * minf(1.0, tm * 2500.0) * minf(1.0, (seconds - tm) * 120.0) * volume, -1.0, 1.0)
+	return _wav(out)
+
+
+## Взмах: короткий «вжух» мимо уха, выше и короче для руки, ниже и длиннее для тяжёлого удара.
+static func whoosh(seconds := 0.12, volume := 0.22, from := 900.0, to := 2400.0) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 73
+	var low := 0.0
+	var band := 0.0
+	for i in n:
+		var u := float(i) / n
+		var k := 2.0 * sin(PI * lerpf(from, to, sin(PI * u)) / MIX_RATE)
+		var high := rng.randf_range(-1.0, 1.0) - low - 0.7 * band
+		band += k * high
+		low += k * band
+		out[i] = band * pow(sin(PI * u), 1.5) * volume
+	return _wav(out)
+
+
+## Тело упало на доски: тяжёлый глухой удар и короткий дребезг.
+static func body_fall(volume := 0.5) -> AudioStreamWAV:
+	var seconds := 0.3
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 79
+	var last := 0.0
+	var phase := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		phase += TAU * lerpf(110.0, 48.0, sqrt(tm / seconds)) / MIX_RATE
+		last = lerpf(last, rng.randf_range(-1.0, 1.0), 0.1)
+		var second := sin(TAU * 70.0 * (tm - 0.09)) * exp(-30.0 * (tm - 0.09)) * 0.5 if tm > 0.09 else 0.0
+		out[i] = (sin(phase) * exp(-15.0 * tm) + last * exp(-28.0 * tm) * 1.4 + second) * minf(1.0, tm * 1500.0) \
+				* minf(1.0, (seconds - tm) * 60.0) * volume
+	return _wav(out)
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
