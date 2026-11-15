@@ -85,12 +85,13 @@ def _head(c, x, y, face=1):
     f = face
     c.rect(x - 1, y + 4, x + 1, y + 6, SKIN)
     c.ellipse(x + 0.5 * f, y + 0.5, 4.2, 4.7, SKIN)
-    # Волосы: невысокая шапка на макушке и затылке, лоб и висок открыты.
-    c.ellipse(x - 0.8 * f, y - 2.2, 4.8, 2.7, DARK)
+    # Волосы: низкая шапка на макушке и затылке, лоб открыт, чёткий светлый пробор.
+    c.ellipse(x - 0.8 * f, y - 3.4, 4.6, 1.9, DARK)
     a, b = sorted((x - 5 * f, x - 3 * f))
-    c.rect(a, y - 2, b, y + 0, DARK)
-    c.set(x + 3 * f, y - 3, DARK)
-    # Пробор: светлая линия на темени.
+    c.rect(a, y - 3, b, y + 0, DARK)
+    c.set(x + 3 * f, y - 4, DARK)
+    c.set(x + 4 * f, y - 3, SKIN)
+    c.set(x + 1 * f, y - 5, METAL)
     c.set(x + 1 * f, y - 4, METAL)
     c.set(x + 2 * f, y - 4, METAL)
     c.set(x + 1 * f, y - 3, SKIN)
@@ -345,20 +346,31 @@ def clerk_hang(i):
 # Клон из отдела согласований: серый костюм с белым клином рубашки и тёмным галстуком, папка под
 # мышкой, голова гладкая, без лица, только две линзы очков бликуют. Шаг и рост повторяют пришельца.
 
-def _blank_head(c, x, y, face=-1):
-    """Безликая голова: гладкий овал кожи, аккуратная причёска, две линзы-блика без глаз, ни носа,
-    ни рта. Центр (x, y), шея до y+6."""
+def _blank_head(c, x, y, face=-1, front=False):
+    """Голова клона: открытое лицо, гладко зачёсанные тёмные волосы с блеском, прищуренные
+    глаза под бровями, крупные тёмные усы под носом. Центр (x, y), шея до y+6. `front` это лицом
+    к камере."""
     f = face
     c.rect(x - 1, y + 4, x + 1, y + 6, SKIN)
     c.ellipse(x, y + 0.5, 4.3, 4.7, SKIN)
-    c.ellipse(x - 0.5 * f, y - 2.4, 4.4, 2.3, DARK)
+    c.ellipse(x - 0.5 * f, y - 2.8, 4.5, 2.2, DARK)
     c.rect(x - 2, y - 4, x + 1, y - 4, METAL)
-    for lx in (x + 3 * f, x + 2 * f, x - 1 * f, x - 2 * f):
-        c.set(lx, y, WHITE)
-        c.set(lx, y + 1, SKY)
-    a, b = sorted((x - 3 * f, x + 4 * f))
-    c.rect(a, y - 1, b, y - 1, K)
-    c.set(x + 0 * f, y, K)
+    if front:
+        for lx in (x - 3, x - 2, x + 1, x + 2):
+            c.set(lx, y - 1, K)
+        for lx in (x - 2, x + 2):
+            c.set(lx, y, K)
+        c.set(x, y + 1, TAN)
+        c.rect(x - 3, y + 2, x + 3, y + 3, DARK)
+        c.set(x - 4, y + 3, DARK)
+        c.set(x + 4, y + 3, DARK)
+    else:
+        for lx in (x + 1 * f, x + 2 * f, x + 3 * f):
+            c.set(lx, y - 1, K)
+        c.set(x + 2 * f, y, K)
+        c.set(x + 4 * f, y + 1, SKIN)
+        a, b = sorted((x - 1 * f, x + 5 * f))
+        c.rect(a, y + 2, b, y + 3, DARK)
 
 
 def _suit_legs(c, hx, hy, specs):
@@ -375,7 +387,7 @@ def clone_side(phase):
     c = Canvas()
     s = math.sin(phase)
     bob = int(round(abs(s) * 1.2))
-    for sign, col in ((-1, DARK), (1, METAL)):
+    for sign, col in ((-1, DARK), (1, DARK)):
         a = s * sign
         lift = max(0.0, math.cos(phase) * sign) * 2.5
         foot = (16 - 5 * a, 29 - lift)
@@ -384,20 +396,21 @@ def clone_side(phase):
         c.line(knee[0], knee[1], foot[0], foot[1], col, 3)
         c.rect(foot[0] - 3, foot[1] - 1, foot[0] + 1, foot[1], DARK)
         c.rect(foot[0] - 3, foot[1] + 1, foot[0] + 1, foot[1] + 1, NAVY)
-    # Пиджак, клин рубашки спереди, тёмный галстук, нижний край и пуговица.
-    c.rect(12, 12 - bob, 19, 23 - bob, METAL)
-    c.rect(18, 12 - bob, 19, 23 - bob, DARK)
+    # Пиджак чёрный: серый блик по краю, лацкан, клин рубашки, тёмный галстук.
+    c.rect(12, 12 - bob, 19, 23 - bob, DARK)
+    c.rect(12, 12 - bob, 12, 23 - bob, METAL)
+    c.rect(12, 23 - bob, 19, 23 - bob, METAL)
+    c.rect(16, 15 - bob, 16, 22 - bob, METAL)
     c.poly([(12, 12 - bob), (15, 12 - bob), (13, 17 - bob), (12, 15 - bob)], WHITE)
-    c.rect(13, 13 - bob, 14, 19 - bob, DARK)
-    c.rect(12, 23 - bob, 19, 23 - bob, DARK)
-    c.set(15, 20 - bob, DARK)
+    c.rect(13, 13 - bob, 14, 19 - bob, NAVY)
+    c.set(15, 20 - bob, METAL)
     # Задняя рука вдоль тела, ближняя прижимает папку.
     c.line(17, 14 - bob, 18 + 2 * s, 21 - bob, DARK, 2)
     c.rect(8, 15 - bob, 14, 21 - bob, GOLD)
     c.rect(8, 15 - bob, 14, 15 - bob, BRASS)
     c.rect(9, 17 - bob, 12, 17 - bob, WHITE)
     c.rect(9, 19 - bob, 11, 19 - bob, BRASS)
-    c.line(15, 14 - bob, 12, 19 - bob, METAL, 3)
+    c.line(15, 14 - bob, 12, 19 - bob, DARK, 3)
     c.set(11, 20 - bob, SKIN)
     c.set(11, 19 - bob, SKIN)
     _blank_head(c, 15, 6 - bob, -1)
@@ -412,25 +425,28 @@ def clone_front(phase):
     for sign in (-1, 1):
         lift = max(0.0, s * sign) * 3.0
         x = 16 + sign * 3
-        c.line(x, 22 - bob, x, 28 - lift, METAL if sign > 0 else DARK, 3)
+        c.line(x, 22 - bob, x, 28 - lift, DARK, 3)
         c.rect(x - 2, 28 - lift, x + 1, 28 - lift, DARK)
         c.rect(x - 2, 29 - lift, x + 2, 29 - lift, NAVY)
-    c.rect(11, 12 - bob, 20, 23 - bob, METAL)
-    c.rect(19, 12 - bob, 20, 23 - bob, DARK)
-    c.poly([(14, 12 - bob), (17, 12 - bob), (15.5, 19 - bob)], WHITE)
-    c.rect(15, 14 - bob, 16, 20 - bob, DARK)
-    c.rect(11, 23 - bob, 20, 23 - bob, DARK)
-    c.rect(16, 21 - bob, 16, 21 - bob, DARK)
+    c.rect(11, 12 - bob, 20, 23 - bob, DARK)
+    c.rect(11, 12 - bob, 11, 23 - bob, METAL)
+    c.rect(20, 12 - bob, 20, 23 - bob, METAL)
+    c.rect(11, 23 - bob, 20, 23 - bob, METAL)
+    c.rect(15, 20 - bob, 15, 23 - bob, METAL)
+    c.poly([(13.5, 12 - bob), (17.5, 12 - bob), (15.5, 19 - bob)], WHITE)
+    c.line(13, 12 - bob, 15, 17 - bob, METAL, 1)
+    c.line(18, 12 - bob, 16, 17 - bob, METAL, 1)
+    c.rect(15, 14 - bob, 16, 20 - bob, NAVY)
     # Папка под левой рукой (справа на кадре) и опущенная правая.
     c.rect(21, 15 - bob, 25, 24 - bob, GOLD)
     c.rect(21, 15 - bob, 25, 15 - bob, BRASS)
     c.rect(22, 18 - bob, 24, 18 - bob, WHITE)
     c.rect(22, 21 - bob, 23, 21 - bob, BRASS)
-    c.line(19, 14 - bob, 21, 20 - bob, METAL, 3)
+    c.line(19, 14 - bob, 21, 20 - bob, DARK, 3)
     c.set(21, 21 - bob, SKIN)
     c.line(11, 14 - bob, 9, 20 - bob + s * 2, DARK, 2)
     c.set(9, 21 - bob + s * 2, SKIN)
-    _blank_head(c, 15.5, 6 - bob, 1)
+    _blank_head(c, 15.5, 6 - bob, 1, front=True)
     return c.finish()
 
 

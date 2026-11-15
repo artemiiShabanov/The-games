@@ -86,33 +86,33 @@ def _mirror(c):
 # за спиной каменная дубина.
 
 def _head(c, x, y, face=1):
-    """Голова лицом вправо при `face` 1: лохматые волосы с космами назад и зубцами сверху, кость
-    поперёк макушки с набалдашниками по обе стороны, тяжёлая бровь, нос, щетина. Центр (x, y),
-    нижний край y+5."""
+    """Голова лицом вправо при `face` 1: круглая, около десяти пикселей, лохматая шапка волос с
+    четырьмя прядями назад, кость короткая поперёк макушки, открытое лицо с бровью, глазом и
+    носом. Центр (x, y), нижний край y+5."""
     f = face
-    c.ellipse(x - 2 * f, y - 0.5, 4.8, 4.6, DARK)
-    # Космы за затылком, неровный низ.
-    c.poly([(x - 5 * f, y - 1), (x - 7 * f, y + 4), (x - 5.5 * f, y + 3.5), (x - 4.5 * f, y + 6),
-            (x - 3 * f, y + 4), (x - 2 * f, y + 5), (x - 1.5 * f, y)], DARK)
-    # Зубцы волос по макушке.
-    for dx, h in ((-5, 1), (-3, 2), (-1, 2), (1, 2), (3, 1)):
-        c.rect(x + dx * f, y - 5 - h, x + dx * f, y - 4, DARK)
-    # Лицо справа, на лоб свисает неровная чёлка в два ряда.
-    c.ellipse(x + 2.4 * f, y + 1.8, 3.9, 3.7, SKIN)
-    for dx in range(-1, 6):
-        c.rect(x + dx * f, y - 4, x + dx * f, y - 3 + (1 if dx % 2 else 0), DARK)
-    c.rect(x + 3 * f, y - 0, x + 6 * f, y - 0, TAN)
-    c.rect(x + 7 * f, y + 1, x + 7 * f, y + 3, SKIN)
-    c.rect(x + 1 * f, y + 4, x + 4 * f, y + 4, TAN)
-    c.set(x + 4 * f, y + 3, K)
-    # Кость поперёк: шафт по макушке, набалдашники сзади и спереди.
-    a, b = sorted((x - 6 * f, x + 4 * f))
+    c.ellipse(x + 1.2 * f, y + 1.5, 3.9, 3.8, SKIN)
+    c.ellipse(x - 2.6 * f, y - 1.8, 3.4, 3.0, DARK)
+    c.rect(x - 4 * f, y - 1, x - 2 * f, y + 3, DARK)
+    # Пряди торчат назад и вверх.
+    for x0, y0, x1, y1 in ((-4, -2, -8, -4), (-4, 0, -8, 1), (-4, 2, -7, 5), (-2, -4, -4, -6)):
+        c.line(x + x0 * f, y + y0, x + x1 * f, y + y1, DARK, 1)
+    # Неровная чёлка над лбом.
+    for dx in range(-1, 3):
+        c.set(x + dx * f, y - 2, DARK)
+    c.set(x + 0 * f, y - 1, DARK)
+    c.rect(x + 2 * f, y, x + 4 * f, y, TAN)
+    c.set(x + 5 * f, y + 2, SKIN)
+    c.set(x + 5 * f, y + 3, SKIN)
+    c.rect(x + 1 * f, y + 4, x + 3 * f, y + 4, TAN)
+    c.set(x + 3 * f, y + 3, TAN)
+    # Кость поперёк макушки: шафт и по набалдашнику с краёв.
+    a, b = sorted((x - 4 * f, x + 3 * f))
     c.rect(a, y - 5, b, y - 5, WHITE)
     c.rect(a, y - 4, b, y - 4, GREY)
-    for ex in (x - 7 * f, x + 5 * f):
-        c.ellipse(ex, y - 6, 1.2, 1.2, WHITE)
-        c.ellipse(ex, y - 3.5, 1.2, 1.2, WHITE)
-    c.set(x + 4 * f, y + 1, K)
+    for ex in (x - 5 * f, x + 4 * f):
+        c.ellipse(ex, y - 5.5, 1.1, 1.1, WHITE)
+        c.ellipse(ex, y - 3.5, 1.1, 1.1, WHITE)
+    c.set(x + 3 * f, y + 1, K)
 
 
 def _club(c, x, y0, y1):
@@ -134,11 +134,10 @@ def _body(c, x0, y0, x1, y1, skirt=2):
         n = teeth[i % len(teeth)]
         for k in range(n):
             c.set(x, hem + k, VIOLET if k < n - 1 else PLUM)
-    for dx, dy in ((1, 4), (4, 7), (1, 9), (6, 10), (3, 12), (7, 13), (0, 13)):
+    for dx, dy in ((1, 7), (5, 11)):
         px, py = x0 + dx, y0 + dy
         if c.get(px, py) == VIOLET:
-            c.rect(px, py, px + 1, py, DARK)
-            c.set(px, py + 1, DARK)
+            c.rect(px, py, px + 2, py + 1, DARK)
     c.set(x1 - 1, y0 + 2, TAN)
     c.set(x1, y0 + 3, TAN)
 
@@ -200,25 +199,23 @@ def caveman_back(phase):
         n = (0, 2, 1, 3, 1, 2)[i % 6]
         for k in range(n):
             c.set(x, hem + k, VIOLET if k < n - 1 else PLUM)
-    for dx, dy in ((1, 2), (4, 4), (2, 7), (7, 8), (5, 10), (9, 10), (0, 11)):
+    for dx, dy in ((1, 5), (6, 8), (3, 11)):
         px, py = 10 + dx, 13 - bob + dy
         if c.get(px, py) == VIOLET:
-            c.rect(px, py, px + 1, py, DARK)
-            c.set(px, py + 1, DARK)
-    # Шея и уши, потом волосы на всю голову.
+            c.rect(px, py, px + 2, py + 1, DARK)
+    # Шея и уши, потом круглая лохматая шапка.
     c.rect(14, 11 - bob, 17, 13 - bob, TAN)
-    c.set(9, 9 - bob, SKIN)
-    c.set(22, 9 - bob, SKIN)
-    c.ellipse(15.5, 7.5 - bob, 6.0, 5.4, DARK)
-    for dx, h in ((-5, 1), (-3, 2), (-1, 2), (1, 2), (3, 2), (5, 1)):
-        c.rect(15 + dx, 1 - bob - h + 2, 15 + dx, 3 - bob, DARK)
-    c.poly([(10, 10 - bob), (12, 14 - bob), (14, 12 - bob), (16, 14 - bob), (18, 12 - bob),
-            (20, 14 - bob), (22, 10 - bob)], DARK)
-    c.rect(8, 5 - bob, 23, 5 - bob, WHITE)
-    c.rect(8, 6 - bob, 23, 6 - bob, GREY)
-    for ex in (7, 24):
-        c.ellipse(ex, 3.5 - bob, 1.2, 1.2, WHITE)
-        c.ellipse(ex, 7.5 - bob, 1.2, 1.2, WHITE)
+    c.set(10, 9 - bob, SKIN)
+    c.set(21, 9 - bob, SKIN)
+    c.ellipse(15.5, 8 - bob, 4.6, 4.4, DARK)
+    for x0, y0, x1, y1 in ((10, 6, 7, 4), (10, 9, 7, 10), (21, 6, 24, 4), (21, 9, 24, 10), (14, 3, 13, 1), (18, 3, 19, 1)):
+        c.line(x0, y0 - bob, x1, y1 - bob, DARK, 1)
+    c.poly([(11, 11 - bob), (13, 14 - bob), (15, 12 - bob), (17, 14 - bob), (20, 11 - bob)], DARK)
+    c.rect(9, 4 - bob, 22, 4 - bob, WHITE)
+    c.rect(10, 5 - bob, 21, 5 - bob, GREY)
+    for ex in (8.5, 22.5):
+        c.ellipse(ex, 3 - bob, 1.1, 1.1, WHITE)
+        c.ellipse(ex, 5.5 - bob, 1.1, 1.1, WHITE)
     return c.finish()
 
 
@@ -269,8 +266,8 @@ def _lean(c, sx, sy, hx, hy, w):
         c.line(x + dy * w / 2, y - dx * w / 2, x - dy * w / 2, y + dx * w / 2, col, 2)
         if k < int(n) - 1:
             c.line(x + dy * (w / 2 - 1), y - dx * (w / 2 - 1), x - dy * (w / 2 - 1), y + dx * (w / 2 - 1), VIOLET, 2)
-            if k % 3 == 1:
-                c.set(x, y, DARK)
+            if k == 2:
+                c.rect(x, y, x + 1, y, DARK)
 
 
 def caveman_slide(i):
@@ -350,45 +347,47 @@ def raptor_side(phase):
     s = math.sin(phase)
     bob = int(round(abs(s) * 1.2))
     wag = int(round(math.sin(phase + 1.0) * 1.5))
-    # Хвост: толстое основание и длинный кончик.
-    c.line(10, 17 - bob, 5, 18 - bob + wag, SEA, 5)
-    c.line(5, 18 - bob + wag, 1, 20 + wag, SEA, 3)
+    # Хвост: основание потоньше и длинный кончик.
+    c.line(10, 17 - bob, 5, 18 - bob + wag, SEA, 4)
+    c.line(5, 18 - bob + wag, 1, 20 + wag, SEA, 2)
     for sign, col in ((-1, NAVY), (1, SEA)):
         a = s * sign
         lift = max(0.0, math.cos(phase) * sign) * 2.5
         foot = (14 + 5 * a, 28 - lift)
         hip = (14, 20 - bob)
         knee = ((hip[0] + foot[0]) / 2 + 3, (hip[1] + foot[1]) / 2 - 1)
-        c.line(hip[0], hip[1], knee[0], knee[1], col, 4)
+        c.line(hip[0], hip[1], knee[0], knee[1], col, 3)
         c.line(knee[0], knee[1], foot[0], foot[1], col, 2)
         c.rect(foot[0] - 1, foot[1], foot[0] + 3, foot[1] + 1, col)
-    # Туловище, грудь, шея, голова с узкой мордой и нижней челюстью.
-    c.ellipse(14, 16 - bob, 8, 5, SEA)
-    c.ellipse(15, 19 - bob, 6, 2.2, GOLD)
-    for x in (8, 11, 14, 17):
-        c.line(x, 11.5 - bob, x + 1, 14 - bob, NAVY, 1)
-    c.ellipse(19, 14 - bob, 4, 4.5, SEA)
-    c.line(20, 12 - bob, 24, 8 - bob, SEA, 4)
-    c.ellipse(25.5, 8 - bob, 3.4, 2.8, SEA)
-    c.poly([(25, 6 - bob), (30, 7 - bob), (30, 9.5 - bob), (25, 10 - bob)], SEA)
-    c.poly([(25, 10.5 - bob), (30, 10.5 - bob), (29, 12.5 - bob), (25, 12.5 - bob)], GOLD)
-    for x, y in ((22, 12), (21, 14), (20, 16)):
+    # Стройное туловище, длинная шея, маленькая узкая голова.
+    c.ellipse(13, 17 - bob, 7, 3.8, SEA)
+    c.ellipse(14, 19 - bob, 5, 1.8, GOLD)
+    for x in (8, 11, 14):
+        c.line(x, 13.5 - bob, x + 1, 15.5 - bob, NAVY, 1)
+    c.ellipse(18, 15 - bob, 3, 3.2, SEA)
+    c.line(19, 13 - bob, 25, 6 - bob, SEA, 3)
+    c.ellipse(26, 4.5 - bob, 2.6, 2, SEA)
+    c.poly([(26, 3.5 - bob), (31, 4.5 - bob), (31, 6.5 - bob), (26, 7 - bob)], SEA)
+    c.poly([(26, 7.5 - bob), (30, 7.5 - bob), (29, 9 - bob), (26, 9 - bob)], GOLD)
+    for x, y in ((22, 9), (21, 11), (20, 13)):
         c.set(x, y - bob, GOLD)
-    # Короткая лапка спереди.
-    c.line(19, 17 - bob, 23, 19 - bob, SEA, 2)
+    # Короткая лапка с тремя пальцами вперёд.
+    c.line(18, 17 - bob, 22, 19 - bob, SEA, 2)
     c.finish()
     _mirror(c)
-    for x, y, col in ((26, 6.5 - bob, GOLD), (27, 6.5 - bob, K), (29, 7 - bob, K),
-                      (25, 10 - bob, K), (26, 10 - bob, WHITE), (27, 10 - bob, K), (28, 10 - bob, WHITE),
-                      (29, 10 - bob, K), (30, 10 - bob, WHITE),
-                      (24, 19 - bob, WHITE), (23, 20 - bob, WHITE)):
+    for x, y, col in ((26, 4 - bob, GOLD), (27, 4 - bob, K), (30, 4.5 - bob, K),
+                      (27, 7 - bob, WHITE), (28, 7 - bob, K), (29, 7 - bob, WHITE), (30, 7 - bob, K),
+                      (23, 18 - bob, WHITE), (24, 18 - bob, WHITE), (23, 19 - bob, WHITE),
+                      (23, 20 - bob, WHITE)):
         c.set(31 - x, y, col)
     for sign in (-1, 1):
         a = s * sign
         lift = max(0.0, math.cos(phase) * sign) * 2.5
         fx, fy = 14 + 5 * a, 28 - lift
         c.set(31 - (fx + 4), fy + 1, WHITE)
-        c.set(31 - (fx + 1), fy - 1, WHITE)
+        # Большой серповидный коготь: крюк вверх и вперёд над ступнёй.
+        for dx, dy in ((2, -1), (3, -2), (4, -3), (5, -3)):
+            c.set(31 - (fx + dx), fy + dy, WHITE)
     return c
 
 
@@ -406,30 +405,33 @@ def raptor_front(phase):
         c.ellipse(x, 23 - bob, 3, 4, col)
         c.line(x, 25 - bob, x, 28 - lift, col, 2)
         c.rect(x - 2, 28 - lift, x + 2, 29 - lift, col)
-    c.ellipse(16, 18 - bob, 7, 7, SEA)
-    c.ellipse(16, 19 - bob, 4, 6, GOLD)
+    c.ellipse(16, 19 - bob, 5.5, 6.5, SEA)
+    c.ellipse(16, 20 - bob, 3, 5.5, GOLD)
     for y in (17, 20, 23):
-        c.rect(13, y - bob, 19, y - bob, BRASS)
-    c.line(10, 16 - bob, 8, 21 - bob, SEA, 2)
-    c.line(22, 16 - bob, 24, 21 - bob, SEA, 2)
-    c.ellipse(16, 9 - bob, 5.5, 4.5, SEA)
-    c.ellipse(16, 12 - bob, 3.6, 2.8, SEA)
-    c.ellipse(16, 14 - bob, 3, 1.4, GOLD)
-    c.line(16, 5 - bob, 16, 10 - bob, AQUA, 1)
-    c.rect(11, 5 - bob, 13, 5 - bob, NAVY)
-    c.rect(18, 5 - bob, 20, 5 - bob, NAVY)
+        c.rect(14, y - bob, 18, y - bob, BRASS)
+    c.line(11, 17 - bob, 9, 21 - bob, SEA, 2)
+    c.line(21, 17 - bob, 23, 21 - bob, SEA, 2)
+    c.ellipse(16, 13 - bob, 2.8, 3, SEA)
+    c.ellipse(16, 8 - bob, 3.8, 3.6, SEA)
+    c.ellipse(16, 11 - bob, 2.4, 2.4, SEA)
+    c.ellipse(16, 12.5 - bob, 2.2, 1.2, GOLD)
+    c.line(16, 5 - bob, 16, 9 - bob, AQUA, 1)
+    c.rect(13, 5 - bob, 14, 5 - bob, NAVY)
+    c.rect(17, 5 - bob, 18, 5 - bob, NAVY)
     c.finish()
-    for x, y, col in ((11, 7, GOLD), (12, 7, K), (19, 7, K), (20, 7, GOLD),
-                      (14, 11, K), (17, 11, K),
-                      (13, 12.5, K), (14, 12.5, WHITE), (15, 12.5, K), (16, 12.5, WHITE),
-                      (17, 12.5, K), (18, 12.5, WHITE), (19, 12.5, K),
-                      (8, 22, WHITE), (7, 21, WHITE), (24, 22, WHITE), (25, 21, WHITE)):
+    for x, y, col in ((13, 7, GOLD), (14, 7, K), (17, 7, K), (18, 7, GOLD),
+                      (15, 10, K), (17, 10, K),
+                      (14, 12, K), (15, 12, WHITE), (16, 12, K), (17, 12, WHITE), (18, 12, K),
+                      (8, 22, WHITE), (9, 22, WHITE), (10, 22, WHITE),
+                      (22, 22, WHITE), (23, 22, WHITE), (24, 22, WHITE)):
         c.set(x, y - bob, col)
     for sign in (-1, 1):
         lift = max(0.0, s * sign) * 3.0
         x = 16 + sign * 4
         for dx in (-2, 0, 2):
             c.set(x + dx, 30 - lift, WHITE)
+        c.set(x + sign * 3, 28 - lift, WHITE)
+        c.set(x + sign * 3, 27 - lift, WHITE)
     return c
 
 

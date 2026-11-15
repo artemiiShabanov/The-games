@@ -83,8 +83,8 @@ def _head(c, x, y, face=1):
     """Капюшон лицом вправо при `face` 1: круглый, тёмно-синий; полоска глаз (кожа, два тёмных
     глаза) во всю переднюю половину, ниже маска и красный шарф на шее. Центр (x, y)."""
     c.ellipse(x - 0.5 * face, y + 0.5, 4.6, 4.6, NAVY)
-    a, b = sorted((x, x + 4 * face))
-    c.rect(a, y - 1, b, y + 1, SKIN)
+    a, b = sorted((x - face, x + 4 * face))
+    c.rect(a, y - 1, b, y + 1, SKY)
     for dx in (1, 3):
         c.set(x + dx * face, y, K)
     # Узелок капюшона на затылке.
@@ -92,39 +92,35 @@ def _head(c, x, y, face=1):
     c.set(x - 5 * face, y + 1, NAVY)
     a, b = sorted((x - 3 * face, x + 3 * face))
     c.rect(a, y + 4, b, y + 5, RED)
-    c.set(x - 4 * face, y + 5, RED)
+    c.rect(x - 5 * face, y + 4, x - 4 * face, y + 5, RED)
 
 
-def _scarf(c, x, y, face=1, ph=0.0, slope=0.25, n=15):
-    """Два конца шарфа от шеи назад по ветру: нижний короче и темнее. Волна идёт по длине, чем
-    дальше от узла, тем размашистее. `slope` это снос вниз на пиксель (минус вверх)."""
-    for k0, kn, col, dy in ((0, n - 3, PLUM, 2.0), (0, n, RED, 0.0)):
+def _scarf(c, x, y, face=1, ph=0.0, slope=0.3, n=8):
+    """Узел у шеи и два конца шарфа назад по ветру длиной `n` и `n - 2` пикселей, нижний темнее;
+    волна по длине. `slope` это снос вниз на пиксель."""
+    for kn, col, dy in ((n - 2, PLUM, 3.0), (n, RED, 0.0)):
         for k in range(kn):
-            amp = 1.4 * min(1.0, k / 4.0)
-            px = x - (3 + k) * face
-            py = y + 4.6 + dy + k * slope + math.sin(k * 0.65 - ph) * amp
+            amp = 1.0 * min(1.0, k / 4.0)
+            px = x - (5 + k) * face
+            py = y + 4.6 + dy + k * slope + math.sin(k * 0.7 - ph) * amp
             c.set(px, py, col)
-            if k < kn - 3:
+            if col == RED and k < n - 2:
                 c.set(px, py + 1, col)
 
 
 def _sword(c, x, y):
-    """Короткий меч за спиной наискось: рукоять над плечом (центр цубы в (x, y), рукоять
-    вверх-влево), ножны чёрного лака вниз-вправо под телом."""
-    c.line(x + 1, y + 1, x + 7, y + 11, DARK, 2)
-    c.line(x - 1, y - 1, x - 3, y - 5, TAN, 2)
-    c.set(x - 2, y - 3, DARK)
-    c.set(x - 3, y - 5, GOLD)
-    c.rect(x - 1, y, x + 1, y + 1, GOLD)
+    """Меч за спиной одной прямой диагональю: короткая рукоять над дальним плечом с золотой
+    цубой точкой, тёмные ножны вниз-вправо за телом (шарфа не касаются)."""
+    c.line(x - 1, y - 3, x + 5, y + 4, DARK, 2)
+    c.line(x - 3, y - 5, x - 4, y - 7, TAN, 2)
+    c.set(x - 2, y - 4, GOLD)
 
 
 def _body(c, x0, y0, x1, y1):
-    """Тонкий корпус: синий костюм, чёрная перевязь наискось от плеча, красный пояс с узлом
-    сзади."""
-    c.rect(x0 + 1, y0, x1 - 1, y1, SEA)
-    c.line(x0 + 1, y0 + 1, x1 - 1, y1 - 3, DARK, 1)
-    c.rect(x0 + 1, y1 - 2, x1 - 1, y1 - 1, RED)
-    c.rect(x0 - 1, y1 - 2, x0, y1, RED)
+    """Тонкий корпус: сплошной тёмно-синий костюм с одним светлым бликом и тонкий красный пояс."""
+    c.rect(x0 + 1, y0, x1 - 1, y1, NAVY)
+    c.rect(x1 - 3, y0 + 1, x1 - 3, y1 - 4, SEA)
+    c.rect(x0 + 1, y1 - 1, x1 - 1, y1 - 1, RED)
 
 
 def _boot(c, x, y, w=4):
@@ -142,7 +138,7 @@ def _leg(c, hx, hy, kx, ky, fx, fy, cloth):
 
 
 def _arm(c, x0, y0, x1, y1, col):
-    """Рука: рукав, белая обмотка у запястья, кулак цвета кожи. Ближняя SEA, дальняя NAVY."""
+    """Рука: рукав, белая обмотка у запястья, кулак цвета кожи. Ближняя NAVY, дальняя DARK."""
     c.line(x0, y0, x1, y1, col, 2)
     c.ellipse(x0 + (x1 - x0) * 0.8, y0 + (y1 - y0) * 0.8, 1.0, 1.0, WHITE)
     c.ellipse(x1, y1, 1.2, 1.2, SKIN)
@@ -154,17 +150,17 @@ def ninja_side(phase, jump=False):
     bob = 0 if jump else int(round(abs(math.sin(phase)) * 1.4))
     hip_y = 21 - bob
     swing = 0.9 if jump else math.sin(phase)
-    _arm(c, 15, 15 - bob, 15 + 5 * swing, 20 - bob - (3 if jump else 0), NAVY)
-    for sign, cloth in ((-1, NAVY), (1, SEA)):
+    _arm(c, 15, 15 - bob, 15 + 5 * swing, 20 - bob - (3 if jump else 0), DARK)
+    for sign, cloth in ((-1, DARK), (1, NAVY)):
         a = swing * sign
         lift = max(0.0, math.cos(phase) * sign) * 3.0 if not jump else (4 if sign > 0 else 1)
         foot = (15 + 6 * a, 29 - lift)
         knee = ((15 + foot[0]) / 2 + 2, (hip_y + foot[1]) / 2)
         _leg(c, 15 + sign, hip_y, knee[0], knee[1], foot[0], foot[1], cloth)
     _sword(c, 9, 9 - bob)
-    _scarf(c, 16, 7 - bob, 1, phase, -0.15 if jump else 0.25)
+    _scarf(c, 16, 7 - bob, 1, phase, 0.1 if jump else 0.3)
     _body(c, 11, 13 - bob, 19, hip_y)
-    _arm(c, 16, 15 - bob, 16 - 5 * swing, 20 - bob - (4 if jump else 0), SEA)
+    _arm(c, 16, 15 - bob, 16 - 5 * swing, 20 - bob - (4 if jump else 0), NAVY)
     _head(c, 16, 7 - bob)
     return c.finish()
 
@@ -178,25 +174,25 @@ def ninja_back(phase):
     for sign in (-1, 1):
         lift = max(0.0, s * sign) * 4.0
         x = 16 + sign * 3
-        c.rect(x - 1, 21 - bob, x + 1, 28 - lift, SEA if sign > 0 else NAVY)
+        c.rect(x - 1, 21 - bob, x + 1, 28 - lift, NAVY if sign > 0 else DARK)
         c.rect(x - 1, 25 - bob + int(lift * 0.3), x + 1, 28 - lift, WHITE)
         _boot(c, x - 1, 28 - lift)
-        _arm(c, 16 + sign * 6, 15 - bob, 16 + sign * 7, 20 - bob + s * sign * 2, SEA if sign > 0 else NAVY)
-    c.rect(12, 13 - bob, 19, 21 - bob, SEA)
-    c.rect(12, 19 - bob, 19, 20 - bob, RED)
-    # Меч на спине: ножны наискось от левого бедра к правому плечу, рукоять над плечом.
+        _arm(c, 16 + sign * 6, 15 - bob, 16 + sign * 7, 20 - bob + s * sign * 2, NAVY if sign > 0 else DARK)
+    c.rect(12, 13 - bob, 19, 21 - bob, NAVY)
+    c.rect(13, 14 - bob, 13, 18 - bob, SEA)
+    c.rect(12, 20 - bob, 19, 20 - bob, RED)
+    # Меч наискось поверх: ножны от левого бедра к правому плечу, рукоять над плечом.
     c.line(13, 20 - bob, 20, 11 - bob, DARK, 2)
-    c.rect(19, 10 - bob, 21, 11 - bob, GOLD)
-    c.line(21, 9 - bob, 23, 5 - bob, TAN, 2)
-    c.set(23, 5 - bob, GOLD)
-    # Концы шарфа по спине, качаются.
-    for dx, ln, col in ((-1, 10, RED), (2, 7, PLUM)):
-        for k in range(ln):
-            x = 16 + dx + int(round(math.sin(k * 0.6 - phase) * 1.2 * min(1.0, k / 3.0)))
-            c.rect(x, 12 - bob + k, x + 2, 12 - bob + k, col)
+    c.line(14, 19 - bob, 20, 11 - bob, METAL, 1)
+    c.line(21, 9 - bob, 22, 7 - bob, TAN, 2)
+    c.set(21, 10 - bob, GOLD)
+    # Один конец шарфа свисает вниз по спине.
+    for k in range(8):
+        x = 15 + int(round(math.sin(k * 0.7 - phase) * min(1.0, k / 3.0)))
+        c.rect(x, 12 - bob + k, x + 1, 12 - bob + k, RED)
     # Круглый капюшон, затылочный узел.
     c.ellipse(15.5, 7.5 - bob, 4.8, 4.8, NAVY)
-    c.rect(15, 3 - bob, 16, 4 - bob, SEA)
+    c.rect(14, 3 - bob, 16, 3 - bob, SEA)
     c.rect(12, 11 - bob, 19, 12 - bob, RED)
     c.rect(18, 8 - bob, 20, 9 - bob, NAVY)
     return c.finish()
@@ -208,15 +204,15 @@ def ninja_leap(i):
     crouch = (3, 0, -1, 2)[i]
     legs = ((2, 2), (5, -4), (3, -1), (4, 3))[i]
     hip_y = 21 + crouch
-    _arm(c, 15, 15 + crouch, 12 - i % 2, 11 + crouch if i in (1, 2) else 20 + crouch, NAVY)
-    for sign, cloth in ((-1, NAVY), (1, SEA)):
+    _arm(c, 15, 15 + crouch, 12 - i % 2, 11 + crouch if i in (1, 2) else 20 + crouch, DARK)
+    for sign, cloth in ((-1, DARK), (1, NAVY)):
         foot = (15 + sign * legs[0] + (2 if i == 1 else 0), 29 if i in (0, 3) else 27 - (2 if i == 2 else 0))
         knee = ((15 + foot[0]) / 2 + 2 + legs[1] * 0.3, (hip_y + foot[1]) / 2 + (2 if i == 2 else 0))
         _leg(c, 15 + sign, hip_y, knee[0], knee[1], foot[0], foot[1], cloth)
     _sword(c, 9, 9 + crouch)
-    _scarf(c, 16, 7 + crouch, 1, i * 1.6, (0.5, -0.3, -0.15, 0.3)[i])
+    _scarf(c, 16, 7 + crouch, 1, i * 1.6, (0.5, 0.1, 0.1, 0.3)[i])
     _body(c, 11, 13 + crouch, 19, hip_y)
-    _arm(c, 16, 15 + crouch, 20 + i % 2, 10 + crouch if i in (1, 2) else 20 + crouch, SEA)
+    _arm(c, 16, 15 + crouch, 20 + i % 2, 10 + crouch if i in (1, 2) else 20 + crouch, NAVY)
     _head(c, 16, 7 + crouch)
     return c.finish()
 
@@ -225,16 +221,16 @@ def ninja_idle(i):
     """Стойка: два кадра, ниндзя дышит, концы шарфа чуть колышутся."""
     c = Canvas()
     up = i
-    for sign, cloth in ((-1, NAVY), (1, SEA)):
+    for sign, cloth in ((-1, DARK), (1, NAVY)):
         x = 15 + sign * 2
         c.rect(x - 1, 21, x + 1, 28, cloth)
         c.rect(x - 1, 24, x + 1, 28, WHITE)
         _boot(c, x, 29)
-    _arm(c, 14, 15 - up, 13, 21 - up, NAVY)
+    _arm(c, 14, 15 - up, 13, 21 - up, DARK)
     _sword(c, 9, 9 - up)
-    _scarf(c, 16, 7 - up, 1, i * 2.2, 0.45, 13)
+    _scarf(c, 16, 7 - up, 1, i * 2.2, 0.4, 8)
     _body(c, 11, 13 - up, 19, 21)
-    _arm(c, 17, 15 - up, 18, 21 - up, SEA)
+    _arm(c, 17, 15 - up, 18, 21 - up, NAVY)
     _head(c, 16, 7 - up)
     return c.finish()
 
@@ -246,7 +242,7 @@ def _lean(c, sx, sy, hx, hy, w):
     dx, dy = (hx - sx) / n, (hy - sy) / n
     for k in range(int(n) + 1):
         x, y = sx + dx * k, sy + dy * k
-        col = RED if k >= int(n) - 1 else SEA
+        col = RED if k == int(n) else NAVY
         c.line(x + dy * w / 2, y - dx * w / 2, x - dy * w / 2, y + dx * w / 2, col, 2)
 
 
@@ -255,17 +251,17 @@ def ninja_slide(i):
     рука сзади на земле, шарф стелется назад. Макушка капюшона на 16-й строке. Два кадра: колено
     и пыль."""
     c = Canvas()
-    c.line(19, 27, 24, 23 - i, NAVY, 3)
-    c.line(24, 23 - i, 27, 27, NAVY, 3)
+    c.line(19, 27, 24, 23 - i, DARK, 3)
+    c.line(24, 23 - i, 27, 27, DARK, 3)
     c.line(24.5, 24, 27, 27, WHITE, 3)
     _boot(c, 27, 27)
-    c.line(13, 24, 19, 23, NAVY, 2)
-    _scarf(c, 10, 21, 1, i * 2.0, -0.2, 8)
+    c.line(13, 24, 19, 23, DARK, 2)
+    _scarf(c, 10, 21, 1, i * 2.0, 0.1, 8)
     _lean(c, 12, 24, 19, 27, 5)
-    c.line(19, 28, 28, 28, SEA, 3)
+    c.line(19, 28, 28, 28, NAVY, 3)
     c.line(22, 28, 27, 28, WHITE, 3)
     c.rect(28, 27, 30, 29, DARK)
-    _arm(c, 11, 25, 6, 29, SEA)
+    _arm(c, 11, 25, 6, 29, NAVY)
     _head(c, 10, 21)
     c.finish()
     for k, (x, y) in enumerate(((2, 30), (4, 31), (1, 28), (3, 29))):
@@ -278,8 +274,8 @@ def ninja_crouch(i):
     """Присед: та же фигура, сложенная вниз, корпус прямо, колени вперёд. Два кадра шага."""
     c = Canvas()
     step = (-1, 1)[i]
-    c.line(15, 24, 19, 26, NAVY, 2)
-    for sign, cloth in ((-1, NAVY), (1, SEA)):
+    c.line(15, 24, 19, 26, DARK, 2)
+    for sign, cloth in ((-1, DARK), (1, NAVY)):
         hip = (14, 27)
         knee = (20 - sign + step * sign, 26)
         foot = (17 - sign * 2 + step * sign * 2, 29)
@@ -288,9 +284,9 @@ def ninja_crouch(i):
         c.line(knee[0] + (foot[0] - knee[0]) * 0.3, knee[1] + 1, foot[0], foot[1] - 1, WHITE, 2)
         _boot(c, foot[0], foot[1])
     _sword(c, 9, 18)
-    _scarf(c, 16, 19, 1, i * 2.0, 0.35, 9)
+    _scarf(c, 16, 19, 1, i * 2.0, 0.35, 8)
     _body(c, 11, 22, 18, 26)
-    _arm(c, 14, 24, 19, 26, SEA)
+    _arm(c, 14, 24, 19, 26, NAVY)
     _head(c, 16, 19)
     return c.finish()
 
@@ -299,14 +295,14 @@ def ninja_hang(i):
     """На тросе: руки вверх к точке хвата (центр сверху), ноги свисают и качаются, шарф вьётся."""
     c = Canvas()
     sw = (-1, 1)[i]
-    c.line(14, 13, 15, 1, NAVY, 3)
-    c.line(18, 13, 17, 1, SEA, 2)
+    c.line(14, 13, 15, 1, DARK, 3)
+    c.line(18, 13, 17, 1, NAVY, 2)
     c.ellipse(15, 1, 1.2, 1.2, SKIN)
     c.ellipse(17, 1, 1.2, 1.2, SKIN)
     _sword(c, 9, 13)
-    _scarf(c, 16, 8, 1, i * 2.5, 0.6, 9)
+    _scarf(c, 16, 8, 1, i * 2.5, 0.5, 8)
     _body(c, 11, 13, 20, 21)
-    for sign, cloth in ((-1, NAVY), (1, SEA)):
+    for sign, cloth in ((-1, DARK), (1, NAVY)):
         foot = (15.5 + sign * 2 + sw * 2, 29)
         c.line(15.5 + sign * 2, 21, foot[0], foot[1], cloth, 3)
         c.line(15.5 + sign * 2 + sw, 25, foot[0], foot[1] - 1, WHITE, 3)
