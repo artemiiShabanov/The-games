@@ -317,6 +317,20 @@ static func _loop(samples: PackedFloat32Array) -> AudioStreamWAV:
 	return wav
 
 
+## Стук костей идущего скелета (плейтест 2026-11-15, #132): три сухих щелчка разной высоты.
+static func rattle(volume := 0.4) -> AudioStreamWAV:
+	var n := int(0.16 * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var clicks := [[0.0, 950.0], [0.045, 1240.0], [0.085, 820.0]]
+	for c: Array in clicks:
+		var start := int(float(c[0]) * MIX_RATE)
+		for i in mini(int(0.06 * MIX_RATE), n - start):
+			var lt := float(i) / MIX_RATE
+			out[start + i] += sin(TAU * float(c[1]) * lt) * exp(-90.0 * lt) * minf(1.0, lt * 900.0) * volume
+	return _wav(out)
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()

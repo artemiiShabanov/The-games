@@ -485,16 +485,20 @@ func _check_holds() -> void:
 		var why := HoldMapGen.validate(m, t)
 		_expect(why == "", "карта сида %d: %s" % [s, why])
 		var win := HoldSim.simulate(m, dt, AutoTest.BotMode.WIN)
-		_expect(win.won, "карта сида %d: бот WIN не вышел, здоровье %d за %.0f с" % [s, win.health, win.time])
-		seconds.append(win.time)
-		health += win.health
+		# После плейтеста 2026-11-15 врагов на 20 % больше, и бот изредка гибнет: демка про
+		# зрелище, под бота её не подгоняем, поэтому допуск пять сидов из ста.
+		if win.won:
+			seconds.append(win.time)
+			health += win.health
 		var lose := HoldSim.simulate(m, dt, AutoTest.BotMode.LOSE)
 		_expect(lose.ended and not lose.won, "карта сида %d: бот LOSE вышел" % s)
 	_expect(HoldMapGen.generate(7, t).signature() == HoldMapGen.generate(7, t).signature(), "карта сида 7 не повторяется")
 	_expect(HoldMapGen.generate(7, t).signature() != HoldMapGen.generate(8, t).signature(), "карты сидов 7 и 8 одинаковые")
 	seconds.sort()
-	AutoTest.note("shooter bit16: 100 сидов прошли проверку; бот WIN без окна: медиана %.1f с, от %.1f до %.1f, здоровье на выходе в среднем %d" % [
-			seconds[50], seconds[0], seconds[99], health / 100])
+	var n := seconds.size()
+	_expect(n >= 95, "трюм: бот WIN вышел только на %d сидах из 100" % n)
+	AutoTest.note("shooter bit16: 100 сидов прошли проверку; бот WIN без окна вышел на %d: медиана %.1f с, от %.1f до %.1f, здоровье на выходе в среднем %d" % [
+			n, seconds[n / 2], seconds[0], seconds[n - 1], health / maxi(n, 1)])
 
 
 ## Файтинг × low poly «один на один сбоку в объёме» (#116): сто сидов дают план соперника,

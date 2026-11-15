@@ -93,6 +93,11 @@ var _foe_fire_t: Dictionary[int, float] = {}
 var _slash_t: Dictionary[int, float] = {}
 var _music: AudioStreamPlayer
 var _sfx := {}
+## Шаги героя и стук костей ближайшего идущего скелета: громкость ставится на каждый звук.
+var _step_sfx: AudioStreamPlayer
+var _rattle_sfx: AudioStreamPlayer
+var _step_at := 0.0
+var _rattle_t := 0.0
 
 
 func _on_start() -> void:
@@ -164,6 +169,10 @@ func _setup_audio() -> void:
 	for p in _sfx.values():
 		(p as AudioStreamPlayer).volume_db = tuning.sfx_db if not embedded else -80.0
 		add_child(p)
+	_step_sfx = Sfx.player(Sfx.pat(0.09, 0.3), tuning.sfx_db + tuning.step_db)
+	_rattle_sfx = Sfx.player(Sfx.rattle())
+	add_child(_step_sfx)
+	add_child(_rattle_sfx)
 
 
 func _placeholder_slots() -> Array[String]:
@@ -233,10 +242,37 @@ func _step(dt: float) -> void:
 		for ev in sim.events:
 			_on_event(ev)
 		sim.events.clear()
+	_walk_sounds(dt)
 	var d := sim.dir()
 	_floor_mat.set_shader_parameter("pos", sim.pos)
 	_floor_mat.set_shader_parameter("dir", d)
 	_floor_mat.set_shader_parameter("plane", Vector2(-d.y, d.x))
+
+
+## Шаги героя по пройденному пути (левый и правый чуть разной высоты) и стук костей: ближайший
+## идущий к герою скелет слышен тем громче и чаще, чем он ближе.
+func _walk_sounds(dt: float) -> void:
+	if embedded or sim.ended:
+		return
+	if sim.moving and sim.walked - _step_at >= tuning.step_every:
+		_step_at = sim.walked
+		_step_sfx.pitch_scale = 0.92 if int(sim.walked / tuning.step_every) % 2 == 0 else 1.06
+		_step_sfx.play()
+	elif not sim.moving:
+		_step_at = sim.walked - tuning.step_every * 0.5
+	var near := INF
+	for f in sim.foes:
+		if f.alive and f.active and f.walking:
+			near = minf(near, f.pos.distance_to(sim.pos))
+	_rattle_t -= dt
+	if near >= tuning.foe_hear:
+		return
+	var k := 1.0 - near / tuning.foe_hear
+	if _rattle_t <= 0.0:
+		_rattle_t = lerpf(tuning.foe_step_far, tuning.foe_step_near, k)
+		_rattle_sfx.volume_db = tuning.sfx_db + tuning.foe_step_db + linear_to_db(maxf(k * k, 0.001))
+		_rattle_sfx.pitch_scale = randf_range(0.92, 1.08)
+		_rattle_sfx.play()
 
 
 func _on_event(ev: Array) -> void:

@@ -18,6 +18,8 @@ const PATH := "res://resources/demos/shooter_bit16_gen.tres"
 @export var foes_min := 1
 @export var foes_max := 3
 @export var medkit_every := 2
+## Аптечка сверх этого в любом зале с таким шансом (плейтест 2026-11-15: аптечек на 20 % больше).
+@export var medkit_bonus_chance := 0.2
 ## Колонны в залах не меньше этого по обеим сторонам.
 @export var pillar_room := 8
 

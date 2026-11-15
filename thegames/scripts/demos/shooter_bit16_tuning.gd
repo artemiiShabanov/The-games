@@ -44,6 +44,17 @@ const PATH := "res://resources/demos/shooter_bit16.tres"
 @export var max_seconds := 180.0
 @export var music_db := -12.0
 @export var sfx_db := -6.0
+## Шаги героя (плейтест 2026-11-15, #132): звук раз в `step_every` клеток пути, громкость
+## относительно `sfx_db`.
+@export var step_every := 0.9
+@export var step_db := -6.0
+## Стук костей: слышен ближайший идущий скелет не дальше `foe_hear` клеток. Чем он ближе, тем
+## громче (у самого героя `foe_step_db` относительно `sfx_db`) и чаще: от `foe_step_far` до
+## `foe_step_near` секунд между стуками.
+@export var foe_hear := 8.0
+@export var foe_step_db := 0.0
+@export var foe_step_far := 0.6
+@export var foe_step_near := 0.22
 
 
 static func load_default() -> ShooterBit16Tuning:

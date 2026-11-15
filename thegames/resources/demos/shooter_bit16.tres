@@ -6,6 +6,12 @@
 script = ExtResource("1_tuning")
 health = 100
 move_speed = 3.2
+step_every = 0.9
+step_db = -6.0
+foe_hear = 8.0
+foe_step_db = 0.0
+foe_step_far = 0.6
+foe_step_near = 0.22
 strafe_speed = 2.8
 turn_speed = 2.6
 radius = 0.25

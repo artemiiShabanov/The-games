@@ -198,7 +198,7 @@ static func _place(m: HoldMap, rng: RandomNumberGenerator, t: ShooterBit16GenTun
 			m.foes.append(_free_spot(m, rng, r))
 			m.foe_kinds.append(HoldMap.Foe.MUSKET if musket else HoldMap.Foe.CUTLASS)
 			musket = not musket
-		if i % t.medkit_every == 0:
+		if i % t.medkit_every == 0 or rng.randf() < t.medkit_bonus_chance:
 			m.medkits.append(_free_spot(m, rng, r))
 	# Ориентир зала: свой предмет у стены, у каждого зала другой.
 	var kinds := range(HoldMap.Decor.size())
