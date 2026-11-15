@@ -50,10 +50,8 @@ var _acc := 0.0
 var _nitro_pressed := false
 var _music: AudioStreamPlayer
 var _sfx := {}
-## Петли езды: ветер по скорости и шины в повороте; громкость ведёт `_loops_tick` каждый кадр.
-var _wind: AudioStreamPlayer
+## Петля шин в повороте; громкость ведёт `_loops_tick` каждый кадр.
 var _tyre: AudioStreamPlayer
-var _wind_gain := 0.0
 var _tyre_gain := 0.0
 ## Руль на последнем шаге, −1..1.
 var _steer_in := 0.0
@@ -136,12 +134,9 @@ func _setup_audio() -> void:
 		_music.play()
 	# Нитро: мягкий нарастающий «шух», без тона (плейтест 2026-11-15).
 	_sfx["nitro"] = Sfx.player(Sfx.swish(0.3, 0.7))
-	_wind = Sfx.player(Sfx.wind_loop(), -80.0)
 	_tyre = Sfx.player(Sfx.squeal_loop(), -80.0)
-	add_child(_wind)
 	add_child(_tyre)
 	if not embedded:
-		_wind.play()
 		_tyre.play()
 		get_tree().process_frame.connect(_loops_tick)
 	_sfx["bump"] = Sfx.player(Sfx.thud(0.1, 0.35))
@@ -158,18 +153,14 @@ func _setup_audio() -> void:
 		add_child(p)
 
 
-## Петли езды идут всё время, слышно их только в заезде: на паузе, отсчёте и итоге они молчат.
-## Ветер громче и выше со скоростью (с нитро ещё выше), шины слышны, когда руль держат на скорости.
+## Петля шин идёт всё время, слышно её только в заезде, когда руль держат на скорости; на паузе,
+## отсчёте и итоге она молчит.
 func _loops_tick() -> void:
 	var live := running and not paused and _phase == 2 and not sim.ended
 	var pct := sim.speed / tuning.max_speed if live else 0.0
-	var wind := clampf((pct - tuning.wind_from) / (1.0 - tuning.wind_from), 0.0, 1.3)
 	var tyre := absf(_steer_in) * clampf((pct - tuning.tyre_from) / (1.0 - tuning.tyre_from), 0.0, 1.0) if live else 0.0
 	var k := minf(get_process_delta_time() * 8.0, 1.0)
-	_wind_gain = lerpf(_wind_gain, wind, k)
 	_tyre_gain = lerpf(_tyre_gain, tyre, k)
-	_wind.volume_db = tuning.sfx_db + tuning.wind_db + linear_to_db(maxf(_wind_gain * _wind_gain, 0.0001))
-	_wind.pitch_scale = lerpf(0.7, 1.35, clampf(pct / 1.3, 0.0, 1.0))
 	_tyre.volume_db = tuning.sfx_db + tuning.tyre_db + linear_to_db(maxf(_tyre_gain, 0.0001))
 	_tyre.pitch_scale = lerpf(0.9, 1.1, clampf(pct, 0.0, 1.0))
 
