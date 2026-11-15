@@ -571,6 +571,44 @@ static func body_fall(volume := 0.5) -> AudioStreamWAV:
 	return _wav(out)
 
 
+# --- Тир (плейтест 2026-11-15, #132): попадание в противника --------------------------------------
+
+## Пуля вошла в цель, «бдж»: щелчок в самом начале, перегруженная пила с падающим тоном (она и
+## жужжит) и мокрый шлепок шумом, полоса которого съезжает вниз. `hard` 0..1: ранение или
+## добивание (ниже, дольше, с глухим толчком под конец).
+static func splat(hard := 0.0, volume := 0.5) -> AudioStreamWAV:
+	var seconds := lerpf(0.14, 0.26, hard)
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 83 + int(hard * 10.0)
+	var phase := 0.0
+	var sub := 0.0
+	var low := 0.0
+	var band := 0.0
+	for i in n:
+		var tm := float(i) / MIX_RATE
+		var u := tm / seconds
+		var white := rng.randf_range(-1.0, 1.0)
+		# Жужжащая основа: пила, перегруженная до почти прямоугольника, тон падает.
+		phase = fmod(phase + lerpf(lerpf(260.0, 190.0, hard), lerpf(90.0, 55.0, hard), sqrt(u)) / MIX_RATE, 1.0)
+		var buzz := tanh((phase * 2.0 - 1.0) * 6.0) * exp(-lerpf(26.0, 15.0, hard) * tm)
+		# Мокрый шлепок: шум через полосовой фильтр, полоса съезжает с 2600 до 500 Гц.
+		var k := 2.0 * sin(PI * lerpf(2600.0, 500.0, sqrt(u)) / MIX_RATE)
+		var high := white - low - 0.5 * band
+		band += k * high
+		low += k * band
+		var wet := band * exp(-lerpf(34.0, 20.0, hard) * tm) * 0.9
+		# Щелчок входа и толчок снизу.
+		var crack := white * exp(-420.0 * tm) * 0.9
+		sub += TAU * lerpf(120.0, 46.0, sqrt(u)) / MIX_RATE
+		var thump := sin(sub) * exp(-lerpf(30.0, 14.0, hard) * tm) * lerpf(0.5, 1.0, hard)
+		var v := tanh((buzz * 0.75 + wet + crack + thump) * 1.6)
+		out[i] = v * minf(1.0, tm * 3000.0) * minf(1.0, (seconds - tm) * 120.0) * volume
+	return _wav(out)
+
+
 ## Отсчёты -1..1 в моно 16 бит.
 static func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
