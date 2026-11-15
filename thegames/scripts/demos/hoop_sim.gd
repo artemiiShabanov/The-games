@@ -159,7 +159,8 @@ static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: f
 			and b.pos.y >= (t.board_y0 * s - t.hoop_sink) - radius * 0.5 and b.pos.y <= (t.board_y1 * s - t.hoop_sink) + radius * 0.5:
 		b.pos.z = board_z - radius
 		b.vel.z = -b.vel.z * minf(t.bounce_board * bounce, 1.2)
-		b.touched = true
+		# Касание после того, как мяч уже прошёл кольцо, чистоту броска не портит.
+		b.touched = b.touched or not b.scored
 		b.hit = &"board"
 	# Обруч: ближайшая точка окружности.
 	var flat := Vector3(b.pos.x - rim.x, 0.0, b.pos.z - rim.z)
@@ -173,7 +174,7 @@ static func step_ball(b: Ball, shot: HoopPlan.Shot, t: SportLowpolyTuning, dt: f
 			var into := b.vel.dot(n)
 			if into < 0.0:
 				b.vel -= n * into * (1.0 + minf(t.bounce_rim * bounce, 1.2))
-				b.touched = true
+				b.touched = b.touched or not b.scored
 				b.hit = &"rim"
 	# В кольцо: середина мяча прошла плоскость обруча сверху вниз внутри него.
 	if not b.scored and prev.y > rim.y and b.pos.y <= rim.y and Vector2(b.pos.x - rim.x, b.pos.z - rim.z).length() < rim_r:
@@ -253,9 +254,12 @@ func meter_of(seconds: float) -> float:
 
 
 ## Шаг мира: прицел (радианы вправо от линии на кольцо), зажата ли кнопка броска.
-func step(dt: float, yaw_: float, hold: bool, pitch_ := 0.0) -> void:
+func step(dt: float, yaw_: float, hold: bool, pitch_ := INF) -> void:
 	if ended:
 		return
+	# Без прицела по высоте (боты без окна) бросок идёт с точным подъёмом.
+	if pitch_ == INF:
+		pitch_ = tuning.aim_above
 	if phase == Phase.COUNTDOWN:
 		countdown -= dt
 		if countdown <= 0.0:
@@ -279,7 +283,8 @@ func step(dt: float, yaw_: float, hold: bool, pitch_ := 0.0) -> void:
 			charge += dt
 			power = meter_of(charge)
 			if not hold:
-				ball = make_ball(shot(), tuning, yaw, speed_of(shot(), tuning, power) * reach_scale(), pitch)
+				# Точный бросок требует смотреть выше кольца на `aim_above`.
+				ball = make_ball(shot(), tuning, yaw, speed_of(shot(), tuning, power) * reach_scale(), pitch - tuning.aim_above)
 				phase = Phase.FLIGHT
 				throws += 1
 				_gusted = false

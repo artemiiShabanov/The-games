@@ -47,6 +47,7 @@ static func _build(seed_: int, attempt: int, t: SportLowpolyGenTuning, rules: Sp
 		shot.meter = lerpf(t.meter_near, t.meter_far, k)
 		# Зелёная зона стоит на шкале по расстоянию: вблизи бросать слабее, издали сильнее.
 		shot.zone = lerpf(t.zone_at_near, t.zone_at_far, k)
+		shot.start_yaw = deg_to_rad(rng.randf_range(t.start_yaw_min, t.start_yaw_max)) * (1.0 if rng.randf() < 0.5 else -1.0)
 		if windy:
 			shot.wind = rng.randi_range(1, t.wind_max) * (1 if rng.randf() < 0.5 else -1)
 		if moving:
@@ -74,10 +75,20 @@ static func _calibrate(shot: HoopPlan.Shot, t: SportLowpolyGenTuning, rules: Spo
 	var step := ideal * 0.001
 	shot.v_lo = ideal
 	shot.v_hi = ideal
-	if not HoopSim.trial(calm, rules, 0.0, ideal, 0.0)[1]:
-		shot.v_lo = 0.0
-		shot.v_hi = 0.0
+	# Пологий бросок с расчётной скоростью может цеплять передний край обруча: чистую скорость
+	# ищем рядом, сначала посильнее, потом послабее. Скорость броска нулевой не остаётся никогда.
+	var start := 0.0
+	for k in 80:
+		var probe := ideal * (1.0 + 0.001 * (k if k < 60 else 60 - k))
+		if HoopSim.trial(calm, rules, 0.0, probe, 0.0)[1]:
+			start = probe
+			break
+	if start == 0.0:
+		shot.flight = HoopSim.trial(calm, rules, 0.0, ideal, 0.0)[2]
 		return
+	ideal = start
+	shot.v_lo = ideal
+	shot.v_hi = ideal
 	while shot.v_lo > ideal * 0.9 and HoopSim.trial(calm, rules, 0.0, shot.v_lo - step, 0.0)[1]:
 		shot.v_lo -= step
 	while shot.v_hi < ideal * 1.1 and HoopSim.trial(calm, rules, 0.0, shot.v_hi + step, 0.0)[1]:
@@ -108,6 +119,10 @@ static func validate(plan: HoopPlan, t: SportLowpolyGenTuning = null, rules: Spo
 			var shift := HoopSim.hoop_shift(s, at + s.flight)
 			var yaw := HoopSim.yaw_for(s, rules, shift)
 			for edge: float in [-0.9, 0.0, 0.9]:
+				# По ездящему кольцу проверяется только середина зоны: у краёв пологий мяч может
+				# задеть обруч, который едет ему навстречу.
+				if s.move_amp > 0.0 and edge != 0.0:
+					continue
 				var scale := HoopSim.reach_of(s, rules, shift)
 				var result := HoopSim.trial(s, rules, yaw, HoopSim.speed_of(s, rules, s.zone + edge * s.zone_half) * scale, at)
 				if not result[0]:

@@ -10,9 +10,10 @@ const PATH := "res://resources/demos/sport_lowpoly.tres"
 @export var goal := 20
 @export var countdown := 1.5
 ## Во сколько раз модель кольца на мачте крупнее исходной; размеры ниже в метрах модели.
-@export var hoop_scale := 1.3
+## Плейтест 2026-11-15 (#132): кольцо вдвое крупнее (было 1,3), высота обруча прежняя.
+@export var hoop_scale := 2.6
 ## На сколько мачта вкопана в песок: кольцо ниже, смотреть на него не так круто вверх.
-@export var hoop_sink := 1.0
+@export var hoop_sink := 4.965
 @export var rim_y := 3.05
 @export var rim_z := -0.42
 @export var rim_r := 0.2175
@@ -23,8 +24,8 @@ const PATH := "res://resources/demos/sport_lowpoly.tres"
 @export var board_y1 := 3.875
 ## Мяч: радиус, упругость отскока от обруча и от щита, тяжесть.
 @export var ball_r := 0.12
-@export var bounce_rim := 0.5
-@export var bounce_board := 0.55
+@export var bounce_rim := 0.22
+@export var bounce_board := 0.25
 ## Отскок от земли и как быстро мяч на ней останавливается.
 @export var bounce_ground := 0.45
 @export var ground_drag := 2.5
@@ -36,6 +37,16 @@ const PATH := "res://resources/demos/sport_lowpoly.tres"
 ## Прицел: скорость стрелками (рад/с) и предел в стороны.
 @export var aim_speed := 0.4
 @export var aim_limit := 0.42
+## На сколько радиан выше кольца надо смотреть, чтобы бросок с точной силой вошёл (плейтест
+## 2026-11-15, #132): с прицелом прямо в кольцо мяч летит ниже и не долетает.
+@export var aim_above := 0.14
+## Камера провожает мяч в полёте (плейтест 2026-11-15, #132): задирается, когда мяч выше этой
+## доли половины кадра, не больше чем на `follow_max` радиан, с такой скоростью (1/с); после
+## броска возвращается со скоростью `follow_back`.
+@export var follow_margin := 0.55
+@export var follow_max := 0.7
+@export var follow_speed := 14.0
+@export var follow_back := 5.0
 ## Ветер: ускорение одной стрелки (м/с²).
 @export var wind_unit := 0.35
 ## Какую долю «чистого» диапазона скорости занимает зелёная зона шкалы.

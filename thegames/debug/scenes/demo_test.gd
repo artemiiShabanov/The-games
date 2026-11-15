@@ -1495,7 +1495,10 @@ func _check_hoops() -> void:
 	for s in plan.shots:
 		if absi(s.wind) >= 2:
 			var mid := HoopSim.speed_of(s, rules, s.zone)
-			_expect(not HoopSim.trial(s, rules, 0.0, mid, 0.0)[1], "ветер в %d стрелки не увёл мяч" % s.wind)
+			# Кольцо вдвое крупнее (плейтест 2026-11-15): слабый ветер мяч мимо уже не уводит,
+			# проверяется сам снос в сторону ветра.
+			var side: float = HoopSim.trial(s, rules, 0.0, mid, 0.0)[3]
+			_expect(side * signf(s.wind) > 0.1, "ветер в %d стрелки не увёл мяч: снос %.2f м" % [s.wind, side])
 			_expect(HoopSim.trial(s, rules, HoopSim.yaw_for(s, rules, 0.0), mid, 0.0)[1], "поправка на ветер не помогла")
 			break
 	var moving := plan.shots[plan.shots.size() - 1]

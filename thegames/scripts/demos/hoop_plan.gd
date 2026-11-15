@@ -28,6 +28,8 @@ class Shot:
 	var zone := 0.5
 	var zone_half := 0.08
 	var meter := 1.4
+	## Куда игрок смотрит, встав на точку: радианы вправо от линии на кольцо.
+	var start_yaw := 0.0
 
 
 var shots: Array[Shot] = []

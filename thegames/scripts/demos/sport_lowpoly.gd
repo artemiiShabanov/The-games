@@ -38,6 +38,8 @@ var ball_shadow: MeshInstance3D
 var flag: LowpolyModel
 
 var _time := 0.0
+## На сколько радиан камера задрана вслед за мячом.
+var _follow := 0.0
 var _popup := ""
 var _popup_left := 0.0
 var _popup_good := false
@@ -77,6 +79,7 @@ func _on_start() -> void:
 	_build_world()
 	_build_puffs()
 	_setup_audio()
+	aim = Vector2(sim.shot().start_yaw, 0.0)
 	_sync(0.0)
 
 
@@ -215,8 +218,9 @@ func _step(dt: float) -> void:
 		var hold := false
 		if bot_driven():
 			sim.bot(active_bot_mode(), h)
-			aim = Vector2(sim.bot_yaw, 0.0)
-			hold = sim.bot_hold
+			# Бот доворачивает к кольцу с той же скоростью, что стрелки игрока.
+			aim = Vector2(move_toward(aim.x, sim.bot_yaw, tuning.aim_speed * h), move_toward(aim.y, tuning.aim_above, tuning.aim_speed * h))
+			hold = sim.bot_hold and (sim.phase != HoopSim.Phase.AIM or (absf(aim.x - sim.bot_yaw) < 0.002 and absf(aim.y - tuning.aim_above) < 0.002))
 		else:
 			# Прицел стрелками (с багом управления из прошлого), мышью и правым стиком.
 			var axis := bug_axis(GameInput.axis())
@@ -262,7 +266,8 @@ func _on_event(ev: Array) -> void:
 			_popup_good = false
 			_popup_left = tuning.result_seconds
 		&"next":
-			aim = Vector2.ZERO
+			# На новую точку игрок встаёт повёрнутым мимо кольца.
+			aim = Vector2(sim.shot().start_yaw, 0.0)
 		&"finish":
 			end_demo(true)
 		&"fail":
@@ -301,7 +306,14 @@ func _look() -> Vector2:
 func _sync(dt: float) -> void:
 	var look := _look()
 	_shake = maxf(_shake - dt * 4.0, 0.0)
-	var basis := Basis.from_euler(Vector3(look.y, look.x, 0.0))
+	# Камера провожает мяч: задирается ровно настолько, чтобы он не ушёл за верх кадра.
+	var want := 0.0
+	if sim.ball != null and sim.phase == HoopSim.Phase.FLIGHT:
+		var local := Basis.from_euler(Vector3(look.y, look.x, 0.0)).inverse() * (sim.ball.pos - sim.eye())
+		var top := deg_to_rad(lowpoly.camera.fov) / 2.0 * tuning.follow_margin
+		want = clampf(atan2(local.y, maxf(-local.z, 0.05)) - top, 0.0, tuning.follow_max)
+	_follow = lerpf(_follow, want, minf((tuning.follow_speed if want > _follow else tuning.follow_back) * dt, 1.0))
+	var basis := Basis.from_euler(Vector3(look.y + _follow, look.x, 0.0))
 	lowpoly.camera.basis = basis
 	lowpoly.camera.position = sim.eye()
 	hoop.position = Vector3(sim.shift(), -tuning.hoop_sink, 0.0)
