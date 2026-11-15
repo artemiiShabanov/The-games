@@ -391,7 +391,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var rival_ink: Color = RIVAL_INK[plan.rival_kit % RIVAL_INK.size()]
 	_chip(canvas, Vector2(box.position.x + 8.0, 13.0), HERO_INK, Color("#2f6fb5"))
 	_chip(canvas, Vector2(box.end.x - 20.0, 13.0), rival_ink, rival_ink.darkened(0.35))
-	PixelFont16.draw(canvas, Vector2(box.position.x + 26.0, 15.0), "МАТРОСЫ", Color.WHITE, Color("#b8c8e0"), INK, 1.0)
+	PixelFont16.draw(canvas, Vector2(box.position.x + 26.0, 15.0), bit16_set.word(&"team"), Color.WHITE, Color("#b8c8e0"), INK, 1.0)
 	PixelFont16.draw(canvas, Vector2(box.end.x - 26.0 - PixelFont16.width("ГОСТИ"), 15.0), "ГОСТИ", Color.WHITE,
 			Color("#b8c8e0"), INK, 1.0)
 	var score := "%d:%d" % [sim.score[0], sim.score[1]]

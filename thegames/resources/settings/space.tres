@@ -51,6 +51,13 @@ horizon = Color(0.1020, 0.0824, 0.1882, 1)
 horizon_light = Color(0.3529, 0.3059, 0.6039, 1)
 silhouette = Color(0.1647, 0.1373, 0.3137, 1)
 silhouette_dark = Color(0.1176, 0.1020, 0.2392, 1)
+words = Dictionary[StringName, String]({
+&"hero": "ПИЛОТ",
+&"team": "ЗЕМЛЯНЕ",
+&"enemies": "ПРИШЕЛЬЦЫ",
+&"boss": "КОМАНДИР",
+&"brute": "ГРОМИЛА"
+})
 vector_colors = Array[Color]([Color(0.0157, 0.0314, 0.0235, 1), Color(0.4863, 1.0000, 0.6196, 1), Color(0.9569, 0.9686, 1.0000, 1), Color(1.0000, 0.5412, 0.2392, 1)])
 meshes_lowpoly = "res://assets/settings/space/lowpoly/"
 lowpoly_colors = Array[Color]([Color(0.7000, 0.7300, 0.8000, 1), Color(0.2700, 0.2900, 0.7200, 1), Color(0.4500, 0.4900, 0.5700, 1), Color(0.9300, 0.9500, 0.9600, 1), Color(0.9500, 0.7800, 0.6000, 1), Color(0.9400, 0.4200, 0.2300, 1), Color(0.9600, 0.8300, 0.3700, 1), Color(0.0900, 0.0900, 0.2000, 1)])

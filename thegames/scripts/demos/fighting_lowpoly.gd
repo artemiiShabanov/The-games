@@ -488,7 +488,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 			canvas.draw_rect(Rect2(x, bar.position.y, w, bar.size.y), layer[1])
 		var w_now := roundf(bar.size.x * now)
 		canvas.draw_rect(Rect2(bar.position.x if i == 0 else bar.end.x - w_now, bar.position.y, w_now, 3.0), Color(white, 0.45))
-		var name := "МАТРОС" if i == 0 else "КАПИТАН"
+		var name := lowpoly_set.word(&"hero") if i == 0 else lowpoly_set.word(&"boss")
 		PixelFont16.draw(canvas, Vector2(bar.position.x if i == 0 else bar.end.x - PixelFont16.width(name, 1.0), 4.0), name, white, white, dark, 1.0)
 	# Сильный удар: красный знак над соперником, пока он замахивается.
 	if sim.rival.state == SparSim.State.WINDUP and sim.rival.move == SparPlan.Move.HEAVY:

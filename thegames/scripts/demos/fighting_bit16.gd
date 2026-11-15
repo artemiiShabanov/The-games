@@ -261,7 +261,7 @@ func _on_event(ev: Array) -> void:
 			_play(String(ev[0]))
 		&"boss":
 			_play("boss")
-			_banner = "БОЦМАН"
+			_banner = bit16_set.word(&"brute")
 			_banner_t = 2.2
 		&"swing":
 			var f := _fighter_of(int(ev[1]))
@@ -491,7 +491,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 				_target_lag = maxf(_target_lag, float(f.hp) / f.max_hp) if show == null else _target_lag
 			show = f
 	var low := sim.hero.hp < sim.hero.max_hp * 0.3 and fmod(_time, 0.5) < 0.25
-	_plate(canvas, Vector2(10.0, 8.0), "brawl_face_hero", "МАТРОС", float(sim.hero.hp) / sim.hero.max_hp, _hero_lag,
+	_plate(canvas, Vector2(10.0, 8.0), "brawl_face_hero", bit16_set.word(&"hero"), float(sim.hero.hp) / sim.hero.max_hp, _hero_lag,
 			GOLD_RAMP, low, sim.hero.flash > 0.0)
 	PixelFont16.draw(canvas, Vector2(216.0, 32.0), "×%d" % sim.lives, Color.WHITE, GOLD_RAMP[2], INK, 2.0)
 	if show != null:

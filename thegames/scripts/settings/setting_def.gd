@@ -64,6 +64,14 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 ## пикселях спрайта от его центра.
 @export var vector_shapes: Dictionary[StringName, Array] = {}
 
+## Слова сеттинга заглавными для подписей HUD демок и штампов багов (#148): `hero` герой, `team`
+## его команда, `enemies` рядовые враги во множественном, `boss` главный враг, `brute` здоровяк
+## битемапа. Все мужского рода или множественного числа, как помечено: штампы согласуют с ними
+## прилагательное.
+@export var words: Dictionary[StringName, String] = {}
+
+const WORD_KEYS: Array[StringName] = [&"hero", &"team", &"enemies", &"boss", &"brute"]
+
 static var _cache: Dictionary[int, SettingDef] = {}
 ## Что сеттинг взял у пиратов с последнего `borrowed_reset` (#135): ключ «формат/имя».
 static var _borrowed: Dictionary[String, bool] = {}
@@ -101,6 +109,28 @@ func _borrow(format: String, name: String) -> void:
 func _borrow_path(path: String, format: String, name: String) -> void:
 	if path.begins_with(PIRATES_DIR) and ResourceLoader.exists(path):
 		_borrow(format, name)
+
+
+## Слово сеттинга по ключу; без своего пиратское, и это подмена.
+func word(key: StringName) -> String:
+	if words.has(key):
+		return words[key]
+	var base := of(Game.Setting.PIRATES)
+	if base != self:
+		_borrow("words", String(key))
+	return base.words.get(key, String(key).to_upper())
+
+
+## Текст с подстановкой слов сеттинга: «БЕССМЕРТНЫЙ {boss}».
+func fill(text: String) -> String:
+	if not text.contains("{"):
+		return text
+	var out := text
+	for key: StringName in WORD_KEYS:
+		var mark := "{%s}" % key
+		if out.contains(mark):
+			out = out.replace(mark, word(key))
+	return out
 
 
 ## Спрайт слота `name` из папки сеттинга, без него пиратский.
