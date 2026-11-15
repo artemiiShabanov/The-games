@@ -48,7 +48,7 @@ const PATH := "res://resources/demos/sport_lowpoly.tres"
 @export var follow_speed := 14.0
 @export var follow_back := 5.0
 ## Ветер: ускорение одной стрелки (м/с²).
-@export var wind_unit := 0.35
+@export var wind_unit := 1.4
 ## Какую долю «чистого» диапазона скорости занимает зелёная зона шкалы.
 @export var zone_fill := 0.85
 ## За краем зелёной зоны: доля скорости, что теряется или добавляется на всю длину шкалы.
