@@ -144,6 +144,8 @@
   сеттинге под автотестом пишет заметку «сеттинг …: подмен N» со списком взятого у пиратов,
   `--strict-setting` делает подмену провалом; все 25 демок: `sh tools/setting_matrix.sh <n>
   [tech]` (`STRICT=0` только сводка, около получаса).
+- Набор 8-bit космоса (#136): модули `tools/space8_*.py`, пишутся тем же `python3
+  tools/pixel_sprites.py`; лист `python3 tools/space8.py --preview out.png`.
 - Набор 16/32 другого сеттинга (#136): модули `tools/space16.py` и `tools/space_*16.py`, пишутся
   тем же `python3 tools/pixel_sprites16.py`; лист одного модуля `python3 tools/space_road16.py
   --preview out.png`; проверка `sh tools/setting_matrix.sh 1 bit16`.
