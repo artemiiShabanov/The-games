@@ -39,3 +39,4 @@ cam_look = 1.2
 hit_stop = 0.12
 music_db = -10.0
 sfx_db = -6.0
+boom_db = -14.0

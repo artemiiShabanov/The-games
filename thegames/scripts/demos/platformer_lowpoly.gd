@@ -94,17 +94,22 @@ func _setup_audio() -> void:
 	bug_music = _music
 	if not quiet:
 		_music.play()
-	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.1, 0.3, 10.0))
-	_sfx["land"] = Sfx.player(Sfx.thud(0.06, 0.2))
+	# Свои звуки (плейтест 2026-11-15, #132): мягкий «хоп» прыжка, глухое приземление, отскок от
+	# врага выше и короче прыжка.
+	_sfx["jump"] = Sfx.player(Sfx.hop())
+	_sfx["land"] = Sfx.player(Sfx.pat(0.12, 0.34))
 	_sfx["coin"] = Sfx.player(Sfx.blip(1318.0, 0.12, 0.35, 14.0))
 	_sfx["smash"] = Sfx.player(Sfx.thud(0.14, 0.45))
 	_sfx["hurt"] = Sfx.player(Sfx.thud(0.2, 0.55))
 	_sfx["boom"] = Sfx.player(Sfx.thud(0.3, 0.6))
-	_sfx["pop"] = Sfx.player(Sfx.blip(520.0, 0.1, 0.25, 26.0))
+	_sfx["pop"] = Sfx.player(Sfx.hop(330.0, 640.0, 0.1, 0.3))
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.4, 5.0))
 	for p in _sfx.values():
 		(p as AudioStreamPlayer).volume_db = tuning.sfx_db if not quiet else -80.0
 		add_child(p)
+	# Выстрел пушки в пять раз тише остального (плейтест 2026-11-15): он фон, а не событие.
+	if not quiet:
+		(_sfx["boom"] as AudioStreamPlayer).volume_db = tuning.sfx_db + tuning.boom_db
 
 
 func _play(name: String) -> void:
@@ -416,13 +421,14 @@ func _sync(dt: float) -> void:
 	hero.position = sim.pos
 	hero.rotation.y = sim.facing
 	hero.visible = sim.invuln <= 0.0 or _stop > 0.0 or int(_time * 16.0) % 2 == 0
+	# Колени и локти (плейтест 2026-11-15): бег, поза взлёта и падения, стойка.
 	if not sim.grounded:
-		hero.walk(PI / 2.0, 0.9)
+		hero.air(clampf(sim.vy / 4.0, -1.0, 1.0))
 	elif sim.moving:
 		_walk += dt * 13.0
-		hero.walk(_walk, 0.85)
+		hero.run(_walk)
 	else:
-		hero.walk(0.0, 0.0)
+		hero.stand()
 	var floor_y := level.ground_at(sim.pos, sim.time)
 	hero_shadow.visible = floor_y > -INF and sim.pos.y >= floor_y - 0.1
 	if hero_shadow.visible:

@@ -55,6 +55,8 @@ const PATH := "res://resources/demos/platformer_lowpoly.tres"
 @export var hit_stop := 0.12
 @export var music_db := -10.0
 @export var sfx_db := -6.0
+## Выстрел пушки относительно `sfx_db`: −14 дБ это в пять раз тише.
+@export var boom_db := -14.0
 
 
 static func load_default() -> PlatformerLowpolyTuning:

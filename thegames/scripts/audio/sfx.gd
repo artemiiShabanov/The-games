@@ -331,6 +331,25 @@ static func rattle(volume := 0.4) -> AudioStreamWAV:
 	return _wav(out)
 
 
+## Прыжок героя в демках (плейтест 2026-11-15, #132): мягкий «хоп», тон плавно едет от `from`
+## к `to` с округлой огибающей и каплей воздуха, без писка `blip`.
+static func hop(from := 240.0, to := 430.0, seconds := 0.13, volume := 0.32) -> AudioStreamWAV:
+	var n := int(seconds * MIX_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 83
+	var phase := 0.0
+	var air := 0.0
+	for i in n:
+		var u := float(i) / n
+		phase += TAU * lerpf(from, to, u * u * (3.0 - 2.0 * u)) / MIX_RATE
+		air = lerpf(air, rng.randf_range(-1.0, 1.0), 0.2)
+		var env := pow(sin(PI * pow(u, 0.6)), 1.5)
+		out[i] = (sin(phase) * 0.8 + sin(phase * 2.0) * 0.12 + air * 0.18) * env * volume
+	return _wav(out)
+
+
 # --- Футбол (плейтест 2026-11-15, #132): свои звуки демки, не из мини-игр ----------------------
 
 ## Свисток судьи: два близких тона дают биение, горошина дрожит трелью, сверху немного шума.
