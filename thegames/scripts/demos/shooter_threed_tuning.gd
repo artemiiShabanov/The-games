@@ -79,6 +79,9 @@ const PATH := "res://resources/demos/shooter_threed.tres"
 @export var bot_tight := 0.55
 @export var fov := 60.0
 @export var hit_stop := 0.05
+## Оттенок скелетов и метателя: тёмный холодный, чтобы читались на жёлтом песке.
+@export var foe_tint := Color(0.42, 0.47, 0.72)
+@export var thrower_tint := Color(0.38, 0.72, 0.4)
 @export var music_db := -11.0
 @export var sfx_db := -5.0
 

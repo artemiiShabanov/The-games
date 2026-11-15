@@ -292,8 +292,12 @@ func _spawn_foe(f: OutpostSim.Foe) -> void:
 	var model := spawn_model("enemy", "captain" if f.kind == OutpostPlan.Kind.BRUTE else "enemy", holder)
 	model.scale = Vector3.ONE * f.scale
 	var rig := model as RigModel
+	# Белые кости сливались с песком (плейтест 2026-11-15, #132): скелеты затемнены в холодный
+	# тон, метатель в зелёный.
 	if rig != null and f.kind == OutpostPlan.Kind.THROWER:
-		rig.material.set_shader_parameter("tint", Color(0.72, 1.0, 0.7))
+		rig.material.set_shader_parameter("tint", tuning.thrower_tint)
+	elif rig != null and f.kind != OutpostPlan.Kind.BRUTE:
+		rig.material.set_shader_parameter("tint", tuning.foe_tint)
 	if f.kind == OutpostPlan.Kind.SHIELD and not model.pink:
 		var wood := lowpoly.tex_material(lowpoly_texture("planks"), {"tint": Color(0.75, 0.55, 0.4)})
 		var shield := _cylinder(Vector3(0.0, 0.95, -0.45), 0.6, 0.07, wood, holder, 16)
