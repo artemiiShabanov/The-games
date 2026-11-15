@@ -55,6 +55,9 @@ SHADOW = {SEA: NAVY, AQUA: SEA, SKY: AQUA, WHITE: GREY, GREY: TAN, SKIN: TAN, TA
 class Canvas:
     """Картинка в индексах палитры; None это прозрачно."""
 
+    # Таблица теней: у набора другого сеттинга своя (подкласс в его модуле).
+    shadow = None
+
     def __init__(self, w=FRAME, h=FRAME):
         self.w = w
         self.h = h
@@ -111,16 +114,17 @@ class Canvas:
 
     def shade(self):
         """Тень: пиксель, у которого снизу или справа пусто, темнеет."""
+        table = self.shadow if self.shadow is not None else SHADOW
         src = [row[:] for row in self.px]
         for y in range(self.h):
             for x in range(self.w):
                 c = src[y][x]
-                if c is None or c not in SHADOW:
+                if c is None or c not in table:
                     continue
                 below = src[y + 1][x] if y + 1 < self.h else None
                 right = src[y][x + 1] if x + 1 < self.w else None
                 if below is None or right is None:
-                    self.px[y][x] = SHADOW[c]
+                    self.px[y][x] = table[c]
 
     def outline(self, c=K):
         """Обводка: пустой пиксель рядом с фигурой закрашивается."""
@@ -531,7 +535,18 @@ def sets():
     for key in list(sprites):
         if key not in own and wants_reshade(key, sprites[key]):
             sprites[key], own[key] = reshade(sprites[key])
-    return {"pirates": (PIRATES, sprites, own)}
+    return {"pirates": (PIRATES, sprites, own), "space": space_set()}
+
+
+def space_set():
+    """Набор «Космоса» (#136): рисунки в `space16.py`, палитра и материалы свои."""
+    import space16
+    sprites = space16.sprites()
+    own = {}
+    for key in list(sprites):
+        if wants_reshade(key, sprites[key]):
+            sprites[key], own[key] = reshade(sprites[key], space16.PALETTE, space16.GROUPS)
+    return (space16.PALETTE, sprites, own)
 
 
 # --- Светотень как в битемапе (плейтест 2026-11-12) -----------------------------------------------
@@ -587,9 +602,11 @@ def _tone(S, x, y):
     return 2
 
 
-def reshade(canvas, palette=None):
-    """Холст в индексах палитры сеттинга → холст в своей палитре с рампами (0 обводка)."""
+def reshade(canvas, palette=None, groups=None):
+    """Холст в индексах палитры сеттинга → холст в своей палитре с рампами (0 обводка). `groups`:
+    материалы другого сеттинга (индекс палитры → имя материала), без них пиратские."""
     palette = palette or PIRATES
+    groups = groups if groups is not None else GROUPS
     used = sorted({v for row in canvas.px for v in row if v is not None and v != K})
     colors = [palette[K]]
     base = {}
@@ -601,7 +618,7 @@ def reshade(canvas, palette=None):
         for x in range(canvas.w):
             v = canvas.px[y][x]
             if v is not None and v != K:
-                masks.setdefault(GROUPS.get(v, v), set()).add((x, y))
+                masks.setdefault(groups.get(v, v), set()).add((x, y))
     out = Canvas(canvas.w, canvas.h)
     for y in range(canvas.h):
         for x in range(canvas.w):
@@ -611,7 +628,7 @@ def reshade(canvas, palette=None):
             if v == K:
                 out.px[y][x] = 0
                 continue
-            out.px[y][x] = base[v] + _tone(masks[GROUPS.get(v, v)], x, y)
+            out.px[y][x] = base[v] + _tone(masks[groups.get(v, v)], x, y)
     return out, colors
 
 
