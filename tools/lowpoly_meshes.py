@@ -1253,8 +1253,26 @@ SETS = {
 }
 
 
+def extra_sets():
+    """Наборы других сеттингов из своих модулей (#136): `space_meshes.SET` для космоса. Модули
+    берут помощников отсюда, поэтому подключаются при запуске, а не при импорте."""
+    import importlib
+    out = {}
+    for setting, name in (("space", "space_meshes"),):
+        try:
+            out[setting] = importlib.import_module(name).SET
+        except ImportError:
+            pass
+    return out
+
+
 def main():
     global DENSE, TEX_SCALE, FOLDER
+    # Модули наборов импортируют `lowpoly_meshes`: это должен быть этот же модуль с его
+    # плотностью и папкой, а не вторая копия.
+    sys.modules.setdefault("lowpoly_meshes", sys.modules[__name__])
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    SETS.update(extra_sets())
     only_list = "--list" in sys.argv
     bad = False
     # Два набора из одних описаний: low poly и плотный для «продвинутых» (threed).

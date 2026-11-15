@@ -143,7 +143,12 @@
   семействам, `--check` для ci (сеттинги с `complete = true` в ресурсе). Любая демка на чужом
   сеттинге под автотестом пишет заметку «сеттинг …: подмен N» со списком взятого у пиратов,
   `--strict-setting` делает подмену провалом; все 25 демок: `sh tools/setting_matrix.sh <n>
-  [tech]` (`STRICT=0` только сводка, около получаса).
+  [tech]` (`STRICT=0` только сводка, около сорока минут; в ci для готовых сеттингов по
+  `SETTINGS_MATRIX=1`).
+- Набор low poly и «продвинутых» космоса (#136): модули `tools/space_mesh_*.py` и
+  `tools/space_rig_*.py`, пишутся тем же `python3 tools/lowpoly_meshes.py`. Лист модуля без Godot:
+  `python3 tools/space_mesh_big.py --preview out.png` (три вида и атлас, рендер
+  `tools/mesh_preview.py`); в игре `--scene=lowpoly_test --setting=1 [--tech=threed]`.
 - Набор 8-bit космоса (#136): модули `tools/space8_*.py`, пишутся тем же `python3
   tools/pixel_sprites.py`; лист `python3 tools/space8.py --preview out.png`.
 - Набор 16/32 другого сеттинга (#136): модули `tools/space16.py` и `tools/space_*16.py`, пишутся

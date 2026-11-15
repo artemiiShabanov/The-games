@@ -139,7 +139,9 @@ step "slot resume" sh tools/autotest.sh --slot=3 --resume --loop --releases=3 --
 step "menu" sh tools/autotest.sh --menu --frames=60
 step "loop refuse rescue" sh tools/autotest.sh --loop --broke-at=2 --refuse-events --releases=3 --time-scale=4 --frames=9000
 # Готовые сеттинги кроме пиратов (#135): все 25 демок без единой подмены на пиратский набор.
-for n in $(python3 tools/check_settings.py --complete); do
+# Это около сорока минут на сеттинг, поэтому только по просьбе: `SETTINGS_MATRIX=1 sh tools/ci.sh`.
+# Полноту по файлам шаг `settings check` выше проверяет всегда.
+for n in $([ "${SETTINGS_MATRIX:-0}" = "1" ] && python3 tools/check_settings.py --complete); do
   step "setting $n matrix" sh tools/setting_matrix.sh "$n"
 done
 [ $status -eq 0 ] && echo "ci: зелёный" || echo "ci: есть красные шаги"

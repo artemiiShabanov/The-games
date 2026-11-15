@@ -1534,7 +1534,23 @@ PROPS = {"pirates": {"tex_sand": paint_sand, "tex_planks": paint_planks, "tex_wa
 SETS = {"pirates": [pirate_sailor, pirate_captain, pirate_skeleton]}
 
 
+def extra_sets():
+    """Модели и текстуры «продвинутых» других сеттингов из своих модулей (#136): у космоса
+    `space_rig.RIGS` и `space_rig.PROPS`."""
+    import importlib
+    for setting, name in (("space", "space_rig"),):
+        try:
+            module = importlib.import_module(name)
+        except ImportError:
+            continue
+        SETS[setting] = module.RIGS
+        PROPS[setting] = module.PROPS
+
+
 def main():
+    sys.modules.setdefault("rig_models", sys.modules[__name__])
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    extra_sets()
     only_list = "--list" in sys.argv
     preview = sys.argv[sys.argv.index("--preview") + 1] if "--preview" in sys.argv else None
     for setting, makers in SETS.items():
