@@ -539,12 +539,54 @@ def sets():
 
 
 def space_set():
-    """Набор «Космоса» (#136): рисунки в `space16.py`, палитра и материалы свои."""
+    """Набор «Космоса» (#136): основа в `space16.py`, ленты демок в `space_*16.py`, палитра и
+    материалы свои. Сборка повторяет пиратскую: слои со своей палитрой идут как есть, силуэты в
+    палитре сеттинга получают светотень рампами."""
+    import importlib
     import space16
     sprites = space16.sprites()
     own = {}
+
+    def module(name):
+        try:
+            return importlib.import_module(name)
+        except ImportError:
+            return None
+
+    def take(items, palette=None):
+        for key, value in items.items():
+            if isinstance(value, tuple):
+                sprites[key], own[key] = value
+            else:
+                sprites[key] = value
+                if palette is not None:
+                    own[key] = palette
+
+    trail = module("space_trail16")
+    if trail:
+        take(trail.sprites())
+        take(trail.backdrop(), trail.SPACE_BG)
+        take(trail.foreground(), trail.SPACE_FG)
+    road = module("space_road16")
+    if road:
+        take(road.sprites())
+        take(road.horizon(), road.SPACE_SKY)
+        take(road.road_palette(), road.ROAD_COLORS)
+    hold = module("space_hold16")
+    if hold:
+        take(hold.sprites())
+    soccer = module("space_soccer16")
+    if soccer:
+        take(soccer.sprites())
+        take(soccer.fields())
+    brawl = module("space_brawl16")
+    if brawl:
+        take(brawl.sprites_own())
+    fx = module("space_fx16")
+    if fx:
+        take(fx.sprites_own())
     for key in list(sprites):
-        if wants_reshade(key, sprites[key]):
+        if key not in own and wants_reshade(key, sprites[key]):
             sprites[key], own[key] = reshade(sprites[key], space16.PALETTE, space16.GROUPS)
     return (space16.PALETTE, sprites, own)
 
