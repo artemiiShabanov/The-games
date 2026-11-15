@@ -24,7 +24,7 @@ static func create(tuning: SuccessTuning, rng: RandomNumberGenerator, determinis
 	for g in Game.Genre.size():
 		m.demand_genre.append(1.0 if deterministic else rng.randf_range(1.0 - tuning.demand_spread, 1.0 + tuning.demand_spread))
 		m.saturation_genre.append(0.0)
-	for s in Game.Setting.size():
+	for s in Game.SETTINGS_IN_RUN:
 		m.demand_setting.append(1.0 if deterministic else rng.randf_range(1.0 - tuning.demand_spread, 1.0 + tuning.demand_spread))
 		m.saturation_setting.append(0.0)
 	for t in Game.Tech.size():
@@ -43,9 +43,9 @@ func roll_release(tuning: SuccessTuning, rng: RandomNumberGenerator) -> void:
 	if g == trend_genre:
 		g = (g + 1) % Game.Genre.size()
 	trend_genre = g
-	var s := rng.randi_range(0, Game.Setting.size() - 1)
+	var s := rng.randi_range(0, Game.SETTINGS_IN_RUN - 1)
 	if s == trend_setting:
-		s = (s + 1) % Game.Setting.size()
+		s = (s + 1) % Game.SETTINGS_IN_RUN
 	trend_setting = s
 
 

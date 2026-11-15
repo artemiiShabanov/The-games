@@ -10,7 +10,7 @@ extends Resource
 const DIR := "res://resources/settings/"
 const PIRATES_DIR := "res://assets/settings/pirates/"
 const FALLBACK_SPRITES := "res://assets/settings/pirates/8bit/"
-const IDS: Array[String] = ["pirates", "space", "castles"]
+const IDS: Array[String] = ["pirates", "space", "castles", "zombies", "superheroes", "fantasy", "sweets", "ninja", "dinosaurs", "office"]
 const FALLBACK_SPRITES_16 := "res://assets/settings/pirates/16bit/"
 const FALLBACK_MESHES := "res://assets/settings/pirates/lowpoly/"
 ## Слоты сеттинга в векторе (#88) и 8-bit спрайт, с силуэта которого снимается контур

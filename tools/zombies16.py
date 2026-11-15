@@ -1,65 +1,70 @@
 #!/usr/bin/env python3
-"""Набор «Зомби» для 16/32-bit (основа, зеркало `space16.py` и `castles16.py`): ночной хоррор из
-кино категории Б, большая луна, зелёный туман, кладбище и пригород. Герой это выживший в красной
-куртке, синей бейсболке козырьком вперёд, джинсах и кроссовках, с жёлтым рюкзаком за спиной;
-враги это зомби-ходоки в лохмотьях. Те же ленты, размеры и число кадров, что у космоса, пиратов
-и замков (`castles16.sprites()`); позы героя и точка опоры ног повторяют образцы кадр в кадр, чтобы
-хитбоксы демок сходились: меняется рисунок, не геометрия.
+"""Набор «Зомби» для 16/32-bit, сравнительная версия основы (#137, состав в
+`docs/specs/settings.md`): ночное кладбище, выживший в красной куртке и синей бейсболке с
+рюкзаком, зомби-ходоки в лохмотьях. Те же ленты и кадры, что у пиратов и космоса
+(`pixel_sprites16.py`, `space16.py`): позы, габариты и опора ног героя повторяют космонавта,
+чтобы хитбоксы демок сходились, рисунок свой. Модуль ничего не пишет в проект, только лист.
 
-Слоты космоса и их зомби: космонавт это выживший, пришелец это зомби-ходок, кристалл это банка
-консервов, флаг экспедиции это зелёный флаг убежища с белым крестом, грузовая капсула это
-армейский ящик, метеорит это надгробие, настил станции это грязь с жухлой травой. Ленты, которых
-нет в `sprites()` (ворон вместо попугая-дрона, ползущая кисть вместо краба, ключ, аптечка,
-гвоздь вместо снаряда), лежат в `extras()` тех же размеров, что у образцов.
-
-Имена и порядок цветов те же, что у `space16.py` (по ним модули демок `zombies_*16.py` берут цвета
-по роли): K обводка, NAVY ночь, SEA тёмная болотная зелень, AQUA кожа зомби и ядовитый свет, SKY
-туман и блики, WHITE кость, луна и крест, GREY тень кости, SKIN кожа, TAN грязь, GOLD и BRASS жёлтое
-(рюкзак, окна, бурьян), METAL камень и лохмотья, DARK чёрное и силуэты, RED куртка и кровь, VIOLET
-и PLUM синий (кепка, джинсы).
-
-    python3 tools/zombies16.py --preview out.png   # лист набора в 4 раза крупнее
-    python3 tools/zombies16.py --preview out.png --scale=6 --keys=hero_run,hero_idle
+    python3 tools/zombies16.py --preview out.png [--scale=N] [--keys=a,b]
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pixel_sprites16 as base  # noqa: E402
 from pixel_sprites import png_bytes  # noqa: E402
 
-# Палитра «Зомби»: 16 цветов, индекс это та же роль, что у пиратов, космоса и замков.
+# Палитра «Зомби»: 16 цветов, индекс это та же роль, что у пиратов и космоса (ими рисуют HUD,
+# небо и мир демки: NAVY, SEA, AQUA, SKY идут полосами неба сверху вниз).
 K, NAVY, SEA, AQUA, SKY, WHITE, GREY, SKIN, TAN, GOLD, BRASS, METAL, DARK, RED, VIOLET, PLUM = range(16)
 PALETTE = [
-    (0x0E, 0x0C, 0x16),  # K      обводка
-    (0x18, 0x22, 0x3A),  # NAVY   ночь, тень тумана
-    (0x34, 0x62, 0x50),  # SEA    тёмная болотная зелень, армейский ящик
-    (0x86, 0xB8, 0x5E),  # AQUA   кожа зомби, ядовитый свет, флаг убежища
-    (0xBC, 0xDC, 0xC8),  # SKY    зелёный туман, блик луны
-    (0xEE, 0xEC, 0xDC),  # WHITE  кость, луна, крест
-    (0xA6, 0xA8, 0x9C),  # GREY   тень кости
-    (0xF0, 0xC0, 0x96),  # SKIN   кожа живых
-    (0x9A, 0x62, 0x3C),  # TAN    грязь, тень кожи
-    (0xE8, 0xC8, 0x50),  # GOLD   рюкзак, огонь в окнах
-    (0xA8, 0x78, 0x28),  # BRASS  тень жёлтого, сухая трава
-    (0x6E, 0x76, 0x78),  # METAL  камень, лохмотья
-    (0x2C, 0x2A, 0x36),  # DARK   силуэты, волосы, подошвы
-    (0xD8, 0x30, 0x2C),  # RED    куртка, кровь
-    (0x2E, 0x5E, 0xC0),  # VIOLET кепка, джинсы
-    (0x1C, 0x2E, 0x70),  # PLUM   тень синего, дальняя нога
+    (0x12, 0x10, 0x14),  # K      обводка
+    (0x18, 0x21, 0x42),  # NAVY   ночное небо, силуэты, тень джинсов
+    (0x2E, 0x4E, 0x92),  # SEA    джинсы, бейсболка, середина неба
+    (0x4B, 0x74, 0xAE),  # AQUA   блик синего, облака, низ неба
+    (0x93, 0xB2, 0xCE),  # SKY    лунная дымка у горизонта
+    (0xEE, 0xEB, 0xDD),  # WHITE  луна, кость, крест, кроссовки
+    (0xA6, 0xA8, 0xA0),  # GREY   камень, жесть, лохмотья
+    (0xF0, 0xC0, 0x94),  # SKIN   кожа
+    (0xC2, 0x86, 0x5C),  # TAN    тень кожи
+    (0xE8, 0xC2, 0x4A),  # GOLD   этикетка банки, свет в окне, сухая трава
+    (0xB0, 0x82, 0x2E),  # BRASS  тень золота, жухлая трава
+    (0x86, 0x62, 0x46),  # METAL  грязь, кожа рюкзака, дерево
+    (0x4A, 0x2D, 0x2B),  # DARK   тёмная грязь, волосы, тень красного
+    (0xD2, 0x3B, 0x2E),  # RED    куртка, кровь, крест аптечки
+    (0x7F, 0xA8, 0x62),  # VIOLET мёртвая кожа, флаг убежища, армейская краска
+    (0x3F, 0x63, 0x45),  # PLUM   тень зелёного
 ]
 SHADOW = {SEA: NAVY, AQUA: SEA, SKY: AQUA, WHITE: GREY, GREY: METAL, SKIN: TAN, TAN: DARK, GOLD: BRASS,
-          BRASS: DARK, METAL: DARK, RED: PLUM, VIOLET: PLUM}
-# Материалы для светотени рампами: зелень и зомби, кость и луна, кожа живых, грязь, жёлтое,
-# камень и лохмотья, чёрное, красное, синее.
-GROUPS = {NAVY: "night", SEA: "leaf", AQUA: "leaf", SKY: "bone", WHITE: "bone", GREY: "bone",
-          SKIN: "skin", TAN: "dirt", GOLD: "gold", BRASS: "gold", METAL: "stone", DARK: "iron", RED: "red",
-          VIOLET: "blue", PLUM: "blue"}
+          BRASS: DARK, METAL: DARK, RED: DARK, VIOLET: PLUM}
+# Материалы для светотени рампами: куртка, джинса, белое с камнем, кожа, золото, кожа рюкзака
+# с грязью, мёртвая плоть.
+GROUPS = {RED: "jacket", SEA: "denim", NAVY: "denim", AQUA: "denim", SKY: "denim", WHITE: "pale",
+          GREY: "pale", SKIN: "skin", TAN: "skin", GOLD: "gold", BRASS: "gold", METAL: "leather",
+          DARK: "leather", VIOLET: "rot", PLUM: "rot"}
 
 
 class Canvas(base.Canvas):
+    """Холст набора: своя таблица теней и метки, которые ставятся после тени и обводки (глаз,
+    пряжка, блик)."""
+
     shadow = SHADOW
+
+    def __init__(self, w=base.FRAME, h=base.FRAME):
+        super().__init__(w, h)
+        self.marks = []
+
+    def mark(self, x, y, c):
+        self.marks.append((x, y, c))
+
+    def finish(self):
+        self.shade()
+        self.outline()
+        for x, y, col in self.marks:
+            self.set(x, y, col)
+        return self
 
 
 def strip(frames):
@@ -71,698 +76,863 @@ def strip(frames):
     return out
 
 
+def _oval(c, cx, cy, rx, ry, ang, col):
+    """Эллипс с поворотом на `ang` радиан: наклонённая голова."""
+    ca, sa = math.cos(ang), math.sin(ang)
+    r = int(max(rx, ry)) + 2
+    for y in range(int(cy) - r, int(cy) + r + 1):
+        for x in range(int(cx) - r, int(cx) + r + 1):
+            dx, dy = x - cx, y - cy
+            u = dx * ca + dy * sa
+            v = -dx * sa + dy * ca
+            if (u / rx) ** 2 + (v / ry) ** 2 <= 1.0:
+                c.set(x, y, col)
+
+
 # --- Выживший ----------------------------------------------------------------------------------
-# Силуэт как у космонавта и рыцаря (те же позы и габариты), рисунок свой: синяя бейсболка с козырьком
-# вперёд, открытое лицо, красная куртка от плеч до пояса с белой молнией, синие джинсы, белые
-# кроссовки, жёлтый рюкзак с валиком спальника за спиной.
+# Силуэт: бейсболка с длинным козырьком вперёд, рюкзак со скаткой за спиной, узкие ноги в
+# джинсах, белые кроссовки. Узнаётся по козырьку и горбу рюкзака, цвет это красная куртка.
 
 def _head(c, x, y, face=1):
-    """Голова лицом вправо при `face` 1: лицо открыто, кепка козырьком вперёд, из-под неё сзади
-    тёмные волосы. Центр (x, y), нижний край шеи y+6."""
-    def at(dx):
-        return x + dx * face
-
-    # Шея и волосы на затылке, потом лицо.
-    c.rect(at(-1), y + 5, at(1), y + 6, SKIN)
-    c.ellipse(at(-1.5), y + 1.5, 3.2, 3.6, DARK)
-    c.ellipse(at(0.8), y + 1.8, 3.6, 3.7, SKIN)
-    # Кепка: купол, козырёк вперёд на пять пикселей, подбой козырька, эмблема.
-    c.ellipse(at(-0.5), y - 3.6, 4.8, 3.0, VIOLET)
-    a, b = sorted((at(2), at(7)))
-    c.rect(a, y - 2, b, y - 1, VIOLET)
-    a, b = sorted((at(4), at(7)))
-    c.rect(a, y - 1, b, y - 1, PLUM)
-    c.set(at(2), y - 4, WHITE)
-    c.set(at(-3), y - 2, PLUM)
-    # Лицо: глаз, нос, рот.
-    c.set(at(3), y + 1, K)
-    c.set(at(3), y + 2, K)
-    c.set(at(5), y + 2, TAN)
-    c.set(at(3), y + 4, TAN)
-    c.set(at(4), y + 4, TAN)
-
-
-def _pack(c, x, y0, y1):
-    """За спиной: жёлтый рюкзак, клапан, карман и валик спальника сверху."""
-    c.rect(x - 1, y0 + 2, x + 3, y1 + 2, GOLD)
-    c.rect(x, y0 + 1, x + 2, y0 + 1, GOLD)
-    c.rect(x - 1, y0 + 5, x + 3, y0 + 5, BRASS)
-    c.rect(x - 1, y1, x + 1, y1 + 2, BRASS)
-    c.rect(x - 1, y0 - 1, x + 3, y0, SEA)
-    c.set(x + 1, y0 - 1, GREY)
+    """Голова в бейсболке сбоку, центр (x, y), лицо в сторону `face`. Занимает строки y-5..y+4,
+    козырёк торчит вперёд на четыре пикселя."""
+    c.ellipse(x, y + 0.5, 4.3, 4.3, SKIN)
+    # Волосы на затылке из-под кепки.
+    for yy in range(y - 1, y + 3):
+        for d in range(3, 6):
+            if c.get(x - d * face, yy) == SKIN:
+                c.set(x - d * face, yy, DARK)
+    c.set(x - face, y + 1, TAN)
+    # Нос.
+    c.set(x + 5 * face, y + 2, SKIN)
+    # Купол кепки шире головы, спереди панель.
+    for row, (back, front) in zip(range(y - 5, y - 1), ((-2, 2), (-4, 4), (-5, 5), (-5, 5))):
+        for d in range(back, front + 1):
+            c.set(x + d * face, row, SEA)
+    # Козырёк: по нижней кромке купола, длинный и плоский.
+    for d in range(5, 10):
+        c.set(x + d * face, y - 2, SEA)
+    for d in range(4, 9):
+        c.set(x + d * face, y - 1, SEA)
+    c.mark(x + 3 * face, y - 4, WHITE)
+    c.mark(x + 2 * face, y - 4, WHITE)
+    c.mark(x + 2 * face, y + 1, K)
+    c.mark(x + 3 * face, y + 3, TAN)
 
 
-def _body(c, x0, y0, x1, y1, skirt=1):
-    """Куртка: красная от плеч до пояса, тёмная резинка по низу, белая молния у передней кромки,
-    лямка рюкзака на плече."""
-    c.rect(x0, y0, x1, y1 + skirt, RED)
-    c.rect(x0, y1 + skirt, x1, y1 + skirt, DARK)
-    for y in range(y0 + 1, y1 + skirt, 2):
-        c.set(x1 - 1, y, WHITE)
-    c.rect(x0 + 2, y0, x0 + 2, y1, BRASS)
-    c.rect(x0, y0, x1, y0, PLUM)
+def _head_back(c, y):
+    """Затылок: кепка с вырезом застёжки, волосы, уши. Центр по x между 15 и 16."""
+    c.ellipse(15.5, y + 0.5, 4.3, 4.3, SKIN)
+    for yy in range(y - 1, y + 3):
+        for x in range(10, 22):
+            if c.get(x, yy) == SKIN:
+                c.set(x, yy, DARK)
+    c.set(11, y + 1, SKIN)
+    c.set(20, y + 1, SKIN)
+    for row, (x0, x1) in zip(range(y - 5, y - 1), ((13, 18), (12, 19), (11, 20), (11, 20))):
+        c.rect(x0, row, x1, row, SEA)
+    c.mark(15, y - 2, DARK)
+    c.mark(16, y - 2, DARK)
+    c.mark(15, y - 3, NAVY)
+    c.mark(16, y - 3, NAVY)
 
 
-def _shoe(c, x, y, w=4):
-    """Кроссовок: белый верх, носок вперёд, тёмная подошва."""
-    c.rect(x - 1, y - 1, x + 1, y - 1, WHITE)
-    c.rect(x - 1, y, x + w - 1, y, WHITE)
-    c.rect(x - 1, y + 1, x + w, y + 1, DARK)
-    c.set(x + w - 2, y, GREY)
+def _pack(c, y0, h=7):
+    """Рюкзак за спиной: кожаный мешок с клапаном и пряжкой, сверху зелёная скатка."""
+    c.rect(7, y0 + 1, 10, y0 + h, METAL)
+    c.rect(6, y0 + 2, 6, y0 + h - 1, METAL)
+    c.rect(6, y0 + 3, 10, y0 + 3, DARK)
+    c.rect(6, y0 - 1, 10, y0, VIOLET)
+    c.mark(8, y0 + 5, GOLD)
+    c.mark(6, y0 - 1, PLUM)
 
 
-def _arm(c, x0, y0, x1, y1, col):
-    """Рука в красном рукаве с кистью. Ближняя (RED) узкая в два пикселя, дальняя (PLUM) в три."""
-    c.line(x0, y0, x1, y1, col, 2 if col == RED else 3)
-    c.ellipse(x1, y1, 1.4, 1.4, SKIN)
+def _torso(c, y0, y1, x1=19):
+    """Куртка от плеч `y0` до пояса `y1`: красная, белый ворот футболки, лямка рюкзака, джинсы
+    на поясе."""
+    c.rect(11, y0, x1, y1 - 1, RED)
+    c.rect(11, y1, x1, y1, SEA)
+    c.rect(15, y0, 18, y0, WHITE)
+    c.line(13, y0, 12, y0 + 5, DARK, 1)
+    # Резинка куртки по низу.
+    c.rect(11, y1 - 1, x1, y1 - 1, DARK)
 
 
-def hero_side(phase, jump=False):
+def _arm(c, x0, y0, x1, y1, near=True):
+    """Рукав куртки с кистью. Ближний рукав поверх куртки отбит тёмной кромкой снизу, дальний
+    целиком в тени."""
+    if near:
+        c.line(x0, y0 + 1, x1 - 1, y1 + 1, DARK, 3)
+        c.line(x0, y0, x1, y1, RED, 3)
+        c.ellipse(x1, y1, 1.4, 1.4, SKIN)
+    else:
+        c.line(x0, y0, x1, y1, DARK, 3)
+        c.ellipse(x1, y1, 1.4, 1.4, TAN)
+
+
+def _shoe(c, x, y, near=True):
+    """Кроссовок: белый, подошва уходит в тень, на ближнем красная полоска."""
+    c.rect(x - 1, y, x + 3, y + 1, WHITE if near else GREY)
+    if near:
+        c.mark(x + 1, y, RED)
+
+
+def survivor_side(phase, jump=False):
     """Выживший сбоку, лицом вправо: бег по фазе 0..2π или прыжок."""
     c = Canvas()
     bob = 0 if jump else int(round(abs(math.sin(phase)) * 1.4))
     hip_y = 21 - bob
     swing = 0.9 if jump else math.sin(phase)
-    _arm(c, 15, 15 - bob, 15 + 5 * swing, 20 - bob - (3 if jump else 0), PLUM)
-    for sign, cloth in ((-1, PLUM), (1, VIOLET)):
+    _arm(c, 15, 15 - bob, 15 + 5 * swing, 20 - bob - (3 if jump else 0), near=False)
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
         a = swing * sign
         lift = max(0.0, math.cos(phase) * sign) * 3.0 if not jump else (4 if sign > 0 else 1)
         foot = (15 + 6 * a, 29 - lift)
         knee = ((15 + foot[0]) / 2 + 2, (hip_y + foot[1]) / 2)
         c.line(15 + sign, hip_y, knee[0], knee[1], cloth, 4)
-        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 4)
-        _shoe(c, foot[0], foot[1])
-    _pack(c, 8, 13 - bob, 19 - bob)
-    _body(c, 11, 13 - bob, 19, hip_y)
-    _arm(c, 16, 15 - bob, 16 - 5 * swing, 20 - bob - (4 if jump else 0), RED)
-    _head(c, 16, 7 - bob)
+        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
+        _shoe(c, int(round(foot[0])), int(round(foot[1])), sign > 0)
+    _pack(c, 13 - bob)
+    _torso(c, 13 - bob, hip_y)
+    _arm(c, 16, 15 - bob, 16 - 5 * swing, 20 - bob - (4 if jump else 0))
+    _head(c, 16, 8 - bob)
     return c.finish()
 
 
-def hero_back(phase):
-    """Со спины: бежит вглубь экрана, рюкзак закрывает спину, кепка и затылок, ушей не видно."""
+def survivor_back(phase):
+    """Со спины: бежит вглубь экрана, виден рюкзак со скаткой и затылок кепки."""
     c = Canvas()
     s = math.sin(phase)
     bob = int(round(abs(s) * 1.4))
     for sign in (-1, 1):
-        lift = max(0.0, s * sign) * 4.0
+        lift = int(round(max(0.0, s * sign) * 4.0))
         x = 16 + sign * 3
-        c.rect(x - 2, 21 - bob, x + 1, 28 - lift, VIOLET if sign > 0 else PLUM)
-        _shoe(c, x - 1, 28 - lift, 3)
-        _arm(c, 16 + sign * 6, 15 - bob, 16 + sign * 7, 20 - bob + s * sign * 2, RED if sign > 0 else PLUM)
-    c.rect(11, 13 - bob, 20, 21 - bob, RED)
-    c.rect(11, 21 - bob, 20, 21 - bob, DARK)
-    # Рюкзак во всю спину: лямки по бокам, клапан, карман, валик сверху.
-    c.rect(12, 14 - bob, 19, 21 - bob, GOLD)
-    c.rect(12, 17 - bob, 19, 17 - bob, BRASS)
-    c.rect(14, 19 - bob, 17, 21 - bob, BRASS)
-    c.rect(12, 12 - bob, 19, 13 - bob, SEA)
-    # Голова со спины: волосы, уши, кепка с застёжкой.
-    c.rect(14, 11 - bob, 17, 12 - bob, SKIN)
-    c.ellipse(15.5, 8 - bob, 4.3, 3.8, DARK)
-    c.set(10, 8 - bob, SKIN)
-    c.set(21, 8 - bob, SKIN)
-    c.set(10, 9 - bob, SKIN)
-    c.set(21, 9 - bob, SKIN)
-    c.ellipse(15.5, 5 - bob, 5.2, 4.0, VIOLET)
-    c.rect(11, 8 - bob, 20, 8 - bob, PLUM)
-    c.set(15, 8 - bob, WHITE)
-    c.set(16, 8 - bob, WHITE)
-    c.set(15, 1 - bob, WHITE)
+        c.rect(x - 2, 21 - bob, x + 1, 28 - lift, SEA if sign > 0 else NAVY)
+        c.rect(x - 2, 28 - lift, x + 1, 29 - lift, WHITE)
+        c.mark(x - 1 if sign < 0 else x, 28 - lift, RED)
+        hand_y = 20 - bob + s * sign * 2
+        c.line(16 + sign * 6, 15 - bob, 16 + sign * 7, hand_y, RED, 3)
+        c.ellipse(16 + sign * 7, hand_y, 1.4, 1.4, SKIN)
+    c.rect(11, 13 - bob, 20, 20 - bob, RED)
+    c.rect(11, 20 - bob, 20, 20 - bob, DARK)
+    c.rect(11, 21 - bob, 20, 21 - bob, SEA)
+    # Рюкзак: мешок, клапан, карман с пряжкой, скатка сверху.
+    c.rect(12, 14 - bob, 19, 20 - bob, METAL)
+    c.rect(12, 16 - bob, 19, 16 - bob, DARK)
+    c.rect(14, 18 - bob, 17, 19 - bob, DARK)
+    c.rect(11, 12 - bob, 20, 13 - bob, VIOLET)
+    c.mark(15, 17 - bob, GOLD)
+    c.mark(16, 17 - bob, GOLD)
+    c.mark(13, 12 - bob, PLUM)
+    c.mark(18, 12 - bob, PLUM)
+    _head_back(c, 8 - bob)
     return c.finish()
 
 
-def hero_leap(i):
+def survivor_leap(i):
     """Прыжок через клетку, четыре кадра: присел, толчок, поджал ноги, приземление."""
     c = Canvas()
     crouch = (3, 0, -1, 2)[i]
     legs = ((2, 2), (5, -4), (3, -1), (4, 3))[i]
     hip_y = 21 + crouch
-    _arm(c, 15, 15 + crouch, 12 - i % 2, 11 + crouch if i in (1, 2) else 20 + crouch, PLUM)
-    for sign, cloth in ((-1, PLUM), (1, VIOLET)):
+    up = i in (1, 2)
+    _arm(c, 15, 15 + crouch, 21 if up else 12 - i % 2, (16 if up else 20) + crouch, near=False)
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
         foot = (15 + sign * legs[0] + (2 if i == 1 else 0), 29 if i in (0, 3) else 27 - (2 if i == 2 else 0))
         knee = ((15 + foot[0]) / 2 + 2 + legs[1] * 0.3, (hip_y + foot[1]) / 2 + (2 if i == 2 else 0))
         c.line(15 + sign, hip_y, knee[0], knee[1], cloth, 4)
-        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 4)
-        _shoe(c, foot[0], foot[1])
-    _pack(c, 8, 13 + crouch, 19 + crouch)
-    _body(c, 11, 13 + crouch, 19, hip_y)
-    _arm(c, 16, 15 + crouch, 20 + i % 2, 10 + crouch if i in (1, 2) else 20 + crouch, RED)
-    _head(c, 16, 7 + crouch)
+        c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
+        _shoe(c, foot[0], foot[1], sign > 0)
+    _pack(c, 13 + crouch)
+    _torso(c, 13 + crouch, hip_y)
+    _arm(c, 16, 15 + crouch, 23 if up else 20 + i % 2, (12 if up else 20) + crouch)
+    _head(c, 16, 8 + crouch)
     return c.finish()
 
 
-def hero_idle(i):
-    """Стойка: два кадра, выживший дышит."""
+def survivor_idle(i):
+    """Стойка: два кадра, выживший дышит, плечи и голова ходят на пиксель."""
     c = Canvas()
     up = i
-    for sign, cloth in ((-1, PLUM), (1, VIOLET)):
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
         x = 15 + sign * 2
         c.rect(x - 1, 21, x + 1, 28, cloth)
-        _shoe(c, x, 29)
-    _arm(c, 14, 15 - up, 13, 21 - up, PLUM)
-    _pack(c, 8, 13 - up, 19 - up)
-    _body(c, 11, 13 - up, 19, 21)
-    _arm(c, 17, 15 - up, 18, 21 - up, RED)
-    _head(c, 16, 7 - up)
+        _shoe(c, x, 29, sign > 0)
+    _arm(c, 14, 15 - up, 13, 21 - up, near=False)
+    _pack(c, 13 - up)
+    _torso(c, 13 - up, 21)
+    _arm(c, 17, 15 - up, 18, 21 - up)
+    _head(c, 16, 8 - up)
     return c.finish()
 
 
 def _lean(c, sx, sy, hx, hy, w):
-    """Корпус под наклоном: от плеч (sx, sy) к бёдрам (hx, hy), ширина w; красная куртка,
-    тёмная резинка у бёдер, молния белой точкой."""
+    """Куртка под наклоном: от плеч (sx, sy) к бёдрам (hx, hy), ширина w; у бёдер джинсы."""
     n = math.hypot(hx - sx, hy - sy)
     dx, dy = (hx - sx) / n, (hy - sy) / n
     for k in range(int(n) + 1):
         x, y = sx + dx * k, sy + dy * k
-        col = DARK if k >= int(n) - 1 else RED
+        col = SEA if k >= int(n) - 1 else RED
         c.line(x + dy * w / 2, y - dx * w / 2, x - dy * w / 2, y + dx * w / 2, col, 2)
-    c.set(sx + dx * 3 + dy * (w / 2 - 1), sy + dy * 3 - dx * (w / 2 - 1), WHITE)
 
 
-def hero_slide(i):
-    """Подкат на боку ногами вперёд: корпус откинут, ближняя нога вытянута, дальняя коленом вверх,
-    рука сзади на земле, рюкзак придавлен под спиной. Макушка кепки на 15-й строке. Два кадра:
-    колено и пыль."""
+def survivor_slide(i):
+    """Подкат ногами вперёд: корпус откинут на рюкзак, ближняя нога вытянута, дальняя коленом
+    вверх, рука упёрта в землю. Макушка кепки на 16-й строке. Два кадра: колено и пыль."""
     c = Canvas()
-    c.line(19, 27, 24, 23 - i, PLUM, 3)
-    c.line(24, 23 - i, 27, 27, PLUM, 3)
-    _shoe(c, 27, 27, 3)
-    c.line(13, 24, 19, 23, PLUM, 2)
-    c.rect(11, 27, 18, 29, GOLD)
-    c.rect(11, 27, 18, 27, SEA)
-    c.rect(14, 28, 16, 29, BRASS)
+    c.line(19, 27, 24, 23 - i, NAVY, 3)
+    c.line(24, 23 - i, 27, 27, NAVY, 3)
+    _shoe(c, 27, 27, near=False)
+    c.line(13, 24, 19, 23, DARK, 2)
+    c.rect(4, 26, 9, 29, METAL)
+    c.rect(5, 25, 8, 25, METAL)
+    c.rect(4, 27, 9, 27, DARK)
     _lean(c, 12, 24, 19, 27, 6)
-    c.line(19, 28, 28, 28, VIOLET, 4)
-    c.line(20, 27, 27, 27, VIOLET, 1)
+    c.line(19, 28, 28, 28, SEA, 4)
     c.rect(28, 26, 30, 29, WHITE)
-    c.rect(28, 29, 30, 29, DARK)
-    _arm(c, 11, 25, 6, 29, RED)
+    _arm(c, 12, 25, 15, 29)
     _head(c, 10, 21)
     c.finish()
-    for k, (x, y) in enumerate(((2, 30), (4, 31), (1, 28), (3, 29))):
+    for k, (x, y) in enumerate(((1, 30), (3, 31), (0, 28), (2, 26))):
         if (k + i) % 2 == 0:
-            c.set(x, y, TAN)
+            c.set(x, y, GREY)
     return c
 
 
-def hero_crouch(i):
+def survivor_crouch(i):
     """Присед: та же фигура, сложенная вниз, корпус прямо, колени вперёд. Два кадра шага."""
     c = Canvas()
     step = (-1, 1)[i]
-    c.line(15, 24, 19, 26, PLUM, 2)
-    for sign, cloth in ((-1, PLUM), (1, VIOLET)):
+    c.line(15, 24, 19, 26, DARK, 2)
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
         hip = (14, 27)
         knee = (20 - sign + step * sign, 26)
         foot = (17 - sign * 2 + step * sign * 2, 29)
         c.line(hip[0], hip[1], knee[0], knee[1], cloth, 4)
         c.line(knee[0], knee[1], foot[0], foot[1], cloth, 3)
-        _shoe(c, foot[0], foot[1])
-    _pack(c, 8, 22, 26)
-    _body(c, 11, 22, 18, 26, skirt=0)
-    _arm(c, 14, 24, 19, 26, RED)
-    _head(c, 16, 19)
+        _shoe(c, foot[0], foot[1], sign > 0)
+    _pack(c, 21, h=5)
+    c.rect(11, 22, 18, 26, RED)
+    c.line(13, 22, 12, 26, DARK, 1)
+    _arm(c, 14, 24, 19, 26)
+    _head(c, 16, 18)
     return c.finish()
 
 
-def hero_hang(i):
+def survivor_hang(i):
     """На тросе: руки вверх к точке хвата (центр сверху), ноги свисают и качаются."""
     c = Canvas()
     sw = (-1, 1)[i]
-    c.line(14, 13, 15, 1, PLUM, 3)
-    c.line(18, 13, 17, 1, RED, 2)
-    c.ellipse(15, 1, 1.2, 1.2, SKIN)
-    c.ellipse(17, 1, 1.2, 1.2, SKIN)
-    _pack(c, 8, 13, 19)
-    _body(c, 11, 13, 20, 21, skirt=0)
-    for sign, cloth in ((-1, PLUM), (1, VIOLET)):
+    c.line(14, 13, 15, 1, DARK, 3)
+    c.ellipse(15, 1, 1.2, 1.2, TAN)
+    _pack(c, 13)
+    _torso(c, 13, 21)
+    for sign, cloth in ((-1, NAVY), (1, SEA)):
         foot = (15.5 + sign * 2 + sw * 2, 29)
         c.line(15.5 + sign * 2, 21, foot[0], foot[1], cloth, 3)
-        _shoe(c, foot[0], foot[1], 3)
+        _shoe(c, int(foot[0]), 29, sign > 0)
     c.finish()
     hd = Canvas()
     _head(hd, 16, 8)
     hd.finish()
     for y in range(hd.h):
         for x in range(hd.w):
-            if hd.px[y][x] is not None and y >= 1:
+            if hd.px[y][x] is not None and y >= 2:
                 c.set(x, y, hd.px[y][x])
+    # Ближняя рука идёт к хвату поверх затылка, лицо и козырёк открыты.
+    arm = Canvas()
+    arm.line(13, 15, 16, 2, RED, 3)
+    arm.ellipse(16.5, 1.5, 1.3, 1.3, SKIN)
+    arm.finish()
+    c.paste(arm, 0, 0)
     return c
 
 
-# --- Зомби -------------------------------------------------------------------------------------
-# Ходок в лохмотьях: зелёно-серая кожа, голова набок, пустые глазницы с красной искрой, чёрный рот
-# с зубами, руки вытянуты вперёд, на рёбрах рваная рубашка, одна нога голая. Шаг и рост повторяют
-# пришельца и стражника.
-
-def _claws(c, x, y, face):
-    """Кисть с когтями: три пальца торчат вперёд (`face` -1 влево)."""
-    c.ellipse(x, y, 1.6, 1.6, AQUA)
-    for dy in (-2, 0, 2):
-        c.set(x + 2 * face, y + dy, AQUA)
-        c.set(x + 3 * face, y + dy + (1 if dy > 0 else 0), WHITE)
-
+# --- Зомби-ходок -------------------------------------------------------------------------------
+# Сутулый, обе руки вытянуты вперёд, голова завалена набок, рубаха и штаны в лохмотьях, босой.
+# Шаг и рост повторяют скелета пиратов и пришельца.
 
 def zombie_side(phase):
-    """Зомби сбоку, лицом влево (навстречу герою): шаркающий шаг по фазе, обе руки вытянуты."""
+    """Зомби сбоку, лицом влево (навстречу герою): шаркающий шаг по фазе."""
     c = Canvas()
     s = math.sin(phase)
     bob = int(round(abs(s) * 1.2))
-    # Дальняя рука повыше, ближняя пониже; кисти с когтями.
-    c.line(15, 14 - bob, 6, 13 - bob + s * 0.8, SEA, 2)
-    _claws(c, 5, 13 - bob + s * 0.8, -1)
-    # Ноги: дальняя в лохмотьях штанов, ближняя голая ниже колена; ступни волочатся.
-    for sign, col in ((-1, DARK), (1, AQUA)):
+    # Дальняя рука: вперёд и чуть вверх.
+    c.line(12, 14 - bob, 5, 13 - bob - s * 1.5, PLUM, 2)
+    c.rect(3, 13 - bob - s * 1.5, 4, 14 - bob - s * 1.5, PLUM)
+    for sign, cloth, skin in ((-1, DARK, PLUM), (1, METAL, VIOLET)):
         a = s * sign
-        lift = max(0.0, math.cos(phase) * sign) * 2.0
-        foot = (16 - 4 * a, 29 - lift)
-        knee = ((17 + foot[0]) / 2 - 1.5, (22 - bob + foot[1]) / 2)
-        c.line(17, 22 - bob, knee[0], knee[1], DARK, 3)
-        c.line(knee[0], knee[1], foot[0], foot[1], col, 2)
-        c.rect(foot[0] - 3, foot[1], foot[0] + 1, foot[1] + 1, col if sign > 0 else DARK)
-    # Торс наклонён вперёд: плечи левее бёдер. Рубашка из лохмотьев, ребра в прорехе.
-    c.poly([(11, 12 - bob), (17, 12 - bob), (20, 23 - bob), (14, 23 - bob)], METAL)
-    c.poly([(12, 16 - bob), (15, 16 - bob), (17, 21 - bob), (14, 21 - bob)], AQUA)
-    for y in (17, 19):
-        c.line(13 + (y - 16) * 0.5, y - bob, 15.5 + (y - 16) * 0.5, y - bob, WHITE, 1)
-    c.rect(14, 22 - bob, 20, 23 - bob, DARK)
-    # Лохмотья по подолу: клочья свисают неровно.
-    for x, ln in ((13, 2), (15, 3), (17, 1), (19, 2)):
-        c.line(x, 24 - bob, x - 1, 24 - bob + ln, METAL, 1)
-    # Голова набок: череп и скошенная челюсть, шея кривая, жидкие волосы.
-    c.poly([(14, 11 - bob), (16, 12 - bob), (15, 13 - bob), (13, 12 - bob)], AQUA)
-    c.ellipse(12.2, 7.2 - bob, 4.4, 4.0, AQUA)
-    c.ellipse(10.8, 10.4 - bob, 3.0, 2.4, AQUA)
-    c.set(15, 4 - bob, DARK)
-    c.set(16, 5 - bob, DARK)
-    c.set(15, 6 - bob, DARK)
-    c.set(13, 2 - bob, DARK)
-    c.set(16, 3 - bob, DARK)
-    # Ближняя рука поверх торса.
-    c.line(16, 15 - bob, 8, 16 - bob - s * 0.8, AQUA, 2)
-    c.rect(14, 14 - bob, 16, 16 - bob, METAL)
-    _claws(c, 7, 16 - bob - s * 0.8, -1)
-    c.finish()
-    # Лицо поверх обводки: пустые глазницы с красной искрой, рот с зубами.
-    c.set(8, 8 - bob, K)
-    c.set(8, 7 - bob, K)
-    c.set(11, 6 - bob, K)
-    c.set(11, 7 - bob, K)
-    c.set(8, 7 - bob, RED)
-    c.set(11, 6 - bob, RED)
-    c.rect(8, 11 - bob, 11, 11 - bob, K)
-    c.set(9, 11 - bob, WHITE)
-    c.set(11, 11 - bob, WHITE)
-    return c
+        lift = max(0.0, math.cos(phase) * sign) * 2.5
+        foot = (16 - 5 * a, 29 - lift)
+        knee = ((16 + foot[0]) / 2 - 1.5, (22 - bob + foot[1]) / 2)
+        mid = ((knee[0] + foot[0]) / 2, (knee[1] + foot[1]) / 2)
+        c.line(16, 22 - bob, knee[0], knee[1], cloth, 3)
+        c.line(knee[0], knee[1], mid[0], mid[1], cloth, 3)
+        c.line(mid[0], mid[1], foot[0], foot[1], skin, 2)
+        c.rect(foot[0] - 3, foot[1], foot[0], foot[1] + 1, skin)
+    # Корпус сутулый: плечи уходят вперёд на три пикселя.
+    for k in range(10):
+        off = int(round(-3.0 * (1 - k / 9.0)))
+        c.rect(13 + off, 12 - bob + k, 18 + off, 12 - bob + k, GREY)
+    # Рваный подол: клочья свисают на штаны.
+    for x in (13, 15, 16, 18):
+        c.set(x, 22 - bob, GREY)
+    c.set(15, 23 - bob, GREY)
+    # Шея и голова, заваленная вперёд и набок.
+    c.line(12, 10 - bob, 12, 12 - bob, VIOLET, 3)
+    _oval(c, 10.5, 6.5 - bob, 4.8, 4.2, 0.45, VIOLET)
+    # Клочья волос по макушке и затылку.
+    for x in range(10, 16):
+        for y in range(0, 9):
+            if c.get(x, y) == VIOLET:
+                c.set(x, y, DARK)
+                if x >= 13:
+                    c.set(x, y + 1, DARK)
+                break
+    # Ближняя рука: обрывок рукава и голое предплечье, кисть свисает.
+    hy = 16 - bob + s * 1.5
+    c.line(11, 15 - bob, 9, 15.5 - bob, GREY, 3)
+    c.line(9, 16 - bob, 4, hy, VIOLET, 2)
+    c.rect(2, hy, 3, hy + 2, VIOLET)
+    c.mark(8, 6 - bob, WHITE)
+    c.mark(9, 6 - bob, K)
+    c.mark(7, 9 - bob, K)
+    c.mark(8, 9 - bob, K)
+    c.mark(8, 10 - bob, RED)
+    c.mark(14, 16 - bob, RED)
+    c.mark(14, 17 - bob, RED)
+    c.mark(15, 17 - bob, RED)
+    c.mark(16, 20 - bob, PLUM)
+    return c.finish()
 
 
 def zombie_front(phase):
-    """Зомби лицом к камере: идёт на игрока вразвалку, руки тянутся вперёд (кисти крупно у груди)."""
+    """Зомби лицом к камере: идёт на игрока, руки тянутся вперёд, голова на плече."""
     c = Canvas()
     s = math.sin(phase)
     bob = int(round(abs(s) * 1.2))
     for sign in (-1, 1):
-        lift = max(0.0, s * sign) * 3.0
+        lift = int(round(max(0.0, s * sign) * 3.0))
         x = 16 + sign * 3
-        c.line(x, 22 - bob, x, 28 - lift, DARK if sign < 0 else AQUA, 3)
-        c.rect(x - 2, 28 - lift, x + 1, 29 - lift, DARK if sign < 0 else AQUA)
-    # Торс: рубашка в клочьях, левая сторона с рёбрами, правое плечо голое.
-    c.rect(12, 12 - bob, 19, 22 - bob, METAL)
-    c.rect(13, 15 - bob, 15, 20 - bob, AQUA)
-    for y in (16, 18):
-        c.rect(13, y - bob, 15, y - bob, WHITE)
-    c.rect(18, 12 - bob, 19, 14 - bob, AQUA)
-    c.rect(12, 22 - bob, 19, 22 - bob, DARK)
-    for x, ln in ((12, 2), (14, 3), (17, 2), (19, 1)):
-        c.line(x, 23 - bob, x, 23 - bob + ln, METAL, 1)
-    # Руки вперёд к зрителю: короткие предплечья, кисти крупные, пальцы растопырены.
-    c.line(12, 14 - bob, 7, 18 - bob + s, METAL, 3)
-    c.line(19, 14 - bob, 24, 17 - bob - s, AQUA, 3)
-    for hx, hy in ((6, 19 - bob + s), (25, 18 - bob - s)):
-        c.ellipse(hx, hy, 2.4, 2.4, AQUA)
-        for dx in (-2, 0, 2):
-            c.set(hx + dx, hy - 3, AQUA)
-    # Голова набок: череп съехал влево, шея кривая, челюсть отвисла.
-    c.rect(14, 11 - bob, 17, 12 - bob, AQUA)
-    c.ellipse(14.0, 7.0 - bob, 5.0, 4.6, AQUA)
-    c.ellipse(15.0, 11.0 - bob, 3.0, 2.2, AQUA)
-    c.set(18, 3 - bob, DARK)
-    c.set(17, 3 - bob, DARK)
-    c.set(12, 2 - bob, DARK)
+        c.line(x, 22 - bob, x, 25 - lift, METAL, 3)
+        c.line(x, 26 - lift, x, 28 - lift, VIOLET, 2)
+        c.rect(x - 2, 28 - lift, x + 1, 29 - lift, VIOLET)
+        c.set(x + sign, 26 - lift, METAL)
+    c.rect(12, 12 - bob, 19, 21 - bob, GREY)
+    # Рваный подол и дыра на боку.
+    for x in (12, 14, 15, 18, 19):
+        c.set(x, 22 - bob, GREY)
+    c.set(14, 23 - bob, GREY)
+    # Шея и голова набок: к правому плечу.
+    c.rect(14, 10 - bob, 17, 12 - bob, VIOLET)
+    _oval(c, 17.5, 6.5 - bob, 5.4, 4.8, 0.42, VIOLET)
+    for x in range(13, 23):
+        for y in range(0, 9):
+            if c.get(x, y) == VIOLET:
+                c.set(x, y, DARK)
+                if x % 3 == 0:
+                    c.set(x, y + 1, DARK)
+                break
+    # Руки к камере: левая поднята когтями вверх, правая тянется вперёд и вниз (голова
+    # лежит на правом плече, там руке тесно). Рукава рваные, предплечья голые.
+    ly = 12 - bob - s * 1.5
+    c.line(11.5, 13 - bob, 9, 16.5 - bob, GREY, 3)
+    c.line(9, 16.5 - bob, 8.5, ly + 2, VIOLET, 2)
+    c.ellipse(8.5, ly, 1.9, 1.9, VIOLET)
+    for d, up in ((-2, 3), (0, 4), (2, 3)):
+        c.rect(8.5 + d, ly - up, 8.5 + d, ly - 2, VIOLET)
+    ry = 19 - bob + s * 1.5
+    c.line(20, 14 - bob, 21.5, 15 - bob, GREY, 3)
+    c.line(21.5, 16 - bob, 21, ry, VIOLET, 3)
+    c.ellipse(21, ry + 1.5, 2.4, 2.2, VIOLET)
+    for d in (-2, 0, 2):
+        c.set(21 + d, ry + 4, VIOLET)
+    c.mark(21, int(round(ry + 2)), PLUM)
+    # Лицо по наклону головы: белый глаз, пустая глазница, кривой рот с кровью.
+    c.mark(15, 5 - bob, WHITE)
+    c.mark(16, 5 - bob, WHITE)
+    c.mark(15, 6 - bob, WHITE)
+    c.mark(16, 6 - bob, K)
+    c.mark(19, 7 - bob, K)
+    c.mark(20, 7 - bob, K)
+    c.mark(20, 8 - bob, K)
+    c.mark(15, 9 - bob, K)
+    c.mark(16, 10 - bob, K)
+    c.mark(17, 10 - bob, K)
+    c.mark(18, 10 - bob, WHITE)
+    c.mark(16, 11 - bob, RED)
+    c.mark(14, 15 - bob, RED)
+    c.mark(15, 15 - bob, RED)
+    c.mark(15, 16 - bob, RED)
+    c.mark(17, 19 - bob, PLUM)
+    c.mark(18, 19 - bob, PLUM)
+    return c.finish()
+
+
+# --- Летун и ползун ----------------------------------------------------------------------------
+
+def raven(i):
+    """Ворон летит вправо, четыре кадра взмаха (вверх, середина, вниз, середина): иссиня-чёрный,
+    толстый клюв, хвост клином, большое крыло с маховыми перьями зубцами, красный глаз. Тело по
+    центру кадра."""
+    c = Canvas()
+    # Хвост клином с вырезом.
+    c.poly([(9, 16), (1, 14), (3, 17), (0, 19), (3, 20), (9, 20)], NAVY)
+    c.ellipse(15, 18, 6.5, 3.5, NAVY)
+    c.ellipse(22, 15, 3.4, 3.2, NAVY)
+    c.set(21, 20, NAVY)
+    # Клюв толстый.
+    c.poly([(25, 13), (30, 15.5), (25, 17)], GREY)
+    # Крыло по кадрам: основание на спине, дальняя кромка зубцами маховых перьев.
+    wing = (
+        [(11, 16), (7, 6), (10, 8), (11, 3), (14, 7), (16, 2), (18, 7), (20, 4), (21, 10), (20, 16)],
+        [(12, 16), (5, 10), (8, 11), (8, 8), (12, 11), (13, 8), (16, 12), (20, 15)],
+        [(11, 19), (8, 27), (11, 26), (12, 30), (15, 26), (17, 30), (19, 25), (21, 27), (21, 21), (20, 19)],
+        [(12, 19), (6, 24), (9, 24), (9, 27), (13, 24), (14, 26), (16, 23), (20, 20)],
+    )[i]
+    c.poly(wing, NAVY)
     c.finish()
-    c.set(12, 7 - bob, K)
-    c.set(12, 6 - bob, K)
-    c.set(16, 5 - bob, K)
-    c.set(16, 6 - bob, K)
-    c.set(12, 7 - bob, RED)
-    c.set(16, 5 - bob, RED)
-    c.rect(13, 10 - bob, 16, 11 - bob, K)
-    c.set(14, 10 - bob, WHITE)
-    c.set(16, 10 - bob, WHITE)
+    # Отлив: стержни перьев от основания к зубцам, кромка крыла на теле.
+    root = (16, 16 if i < 2 else 19)
+    tips = ((1, 3, 5, 7), (1, 3, 5), (1, 3, 5, 7), (1, 3, 5))[i]
+    for k in tips:
+        tx, ty = wing[k]
+        c.line(root[0] + (tx - root[0]) * 0.25, root[1] + (ty - root[1]) * 0.25,
+               root[0] + (tx - root[0]) * 0.8, root[1] + (ty - root[1]) * 0.8, SEA, 1)
+    c.line(12, root[1], 19, root[1], SEA, 1)
+    c.set(23, 14, RED)
+    c.set(21, 13, AQUA)
+    c.set(26, 14, WHITE)
+    c.set(27, 15, WHITE)
     return c
+
+
+def hand(i):
+    """Ползущая кисть: отрубленная рука идёт на кончиках пальцев влево. Четыре кадра: четыре
+    пальца впереди переступают по очереди, большой упирается под ладонью, запястье с обрывком
+    рукава и костью волочится сзади."""
+    c = Canvas()
+    # Запястье волочится по земле, на конце срез.
+    c.line(20, 19, 27, 25, VIOLET, 6)
+    c.line(27, 21, 23, 27, GREY, 3)
+    c.ellipse(28.5, 26, 1.8, 2.6, RED)
+    # Большой палец под ладонью.
+    lift = 1 if i % 2 else 0
+    c.line(17, 21, 18, 25, PLUM, 3)
+    c.line(18, 25, 16 + lift, 29 - lift, PLUM, 2)
+    c.mark(16 + lift, 30 - lift, WHITE)
+    # Четыре пальца от дальнего к ближнему: костяшка высоко, кончик на земле.
+    fingers = (((13.5, 15), 14, VIOLET), ((11, 13.5), 10, VIOLET), ((8.5, 13.5), 6, VIOLET), ((6, 15), 2, VIOLET))
+    for k, (joint, tip_x, col) in enumerate(fingers):
+        step = (1, 0, -1, 0)[(i + k) % 4]
+        up = 2 if step == 1 else 0
+        jx, jy = joint[0] + step * 0.5, joint[1] - up * 0.5
+        tx, ty = tip_x + step, 29 - up
+        mx, my = (jx + tx) / 2 - 0.5, (jy + ty) / 2
+        c.line(14, 17, jx, jy, col, 3)
+        c.line(jx, jy, mx, my, col, 2)
+        c.line(mx, my, tx, ty, col, 2)
+        c.mark(tx, ty + 1, WHITE)
+        c.mark(int(round(mx)), int(round(my)), PLUM)
+        c.mark(int(round(mx)) + 1, int(round(my)), PLUM)
+    # Тыльная сторона ладони поверх оснований пальцев, жилы к костяшкам.
+    c.ellipse(16.5, 18, 5.2, 3.8, VIOLET)
+    for x, y in ((13, 17), (15, 16), (17, 16), (19, 17), (14, 19), (17, 19)):
+        c.mark(x, y, PLUM)
+    c.mark(28, 26, WHITE)
+    c.mark(29, 25, WHITE)
+    return c.finish()
 
 
 # --- Вещи --------------------------------------------------------------------------------------
 
 def coin(i):
-    """Банка консервов крутится: шесть кадров, красная этикетка с жёлтой каймой и белым пятном
-    уходит за край, крышка с золотым кольцом, блик по ребру."""
+    """Банка консервов крутится вокруг оси: шесть кадров, по этикетке едет красный помидор, с
+    другой стороны строчки состава."""
     c = Canvas()
-    cx = 15.5
-    a = math.pi * i / 3.0
-    c.rect(9, 9, 22, 24, METAL)
-    c.ellipse(cx, 9, 6.8, 2.2, GREY)
-    c.ellipse(cx, 24, 6.8, 2.2, METAL)
-    c.rect(9, 12, 22, 21, RED)
-    c.rect(9, 12, 22, 12, GOLD)
-    c.rect(9, 21, 22, 21, GOLD)
-    k = math.cos(a)
-    if k > 0.25:
-        lx = cx + 5.5 * math.sin(a)
-        c.rect(lx - 3 * k, 14, lx + 3 * k, 19, WHITE)
-        c.rect(lx - 2 * k, 15, lx + 2 * k, 15, RED)
-        c.rect(lx - 2 * k, 17, lx + 1 * k, 17, RED)
-    c.ellipse(cx, 9, 3.0, 1.0, METAL)
-    c.rect(cx - 1, 8, cx, 8, GOLD)
-    c.rect(10, 10, 10, 23, WHITE)
-    return c.finish()
+    a = 2.0 * math.pi * i / 6.0
+    c.rect(9, 8, 22, 25, GREY)
+    c.ellipse(15.5, 25, 6.5, 2.0, GREY)
+    c.rect(9, 12, 22, 22, GOLD)
+    for phase, kind in ((a, 0), (a + math.pi, 1)):
+        d = math.cos(phase)
+        if d <= 0.1:
+            continue
+        x = 15.5 + 6.0 * math.sin(phase)
+        w = 3.2 * d
+        if kind == 0:
+            c.ellipse(x, 17.3, max(w, 0.6), 3.0, RED)
+            c.set(x, 14, PLUM)
+        else:
+            for y in (14, 17, 20):
+                c.rect(max(9, x - w), y, min(22, x + w), y, DARK)
+    # Рёбра жести над и под этикеткой, блик вдоль бока.
+    c.rect(9, 10, 22, 10, WHITE)
+    c.rect(9, 24, 22, 24, WHITE)
+    c.rect(11, 12, 11, 22, WHITE)
+    # Крышка с кольцом.
+    c.ellipse(15.5, 7.5, 6.5, 2.4, WHITE)
+    c.ellipse(15.5, 7.5, 4.2, 1.2, GREY)
+    c.finish()
+    c.set(15, 7, DARK)
+    c.set(16, 7, DARK)
+    return c
 
 
 def flag(i):
-    """Флаг убежища на жёрдочке: зелёное полотнище с белым крестом идёт волной, на навершии
-    жёлтый огонёк."""
+    """Флаг убежища на древке: зелёное полотнище с белым крестом идёт волной."""
     c = Canvas()
     c.rect(5, 3, 6, 31, METAL)
-    c.ellipse(5.5, 2, 2, 2, GOLD)
-    top = []
-    bottom = []
-    for x in range(8, 29):
-        w = math.sin(x * 0.45 - i * math.pi / 3.0) * 1.6 * (x - 8) / 20.0
-        top.append((x, 5 + w))
-        bottom.append((x, 19 + w))
-    c.poly(top + bottom[::-1], AQUA)
+    c.ellipse(5.5, 2, 2, 2, GREY)
+
+    def wave(x):
+        return math.sin(x * 0.45 - i * math.pi / 3.0) * 1.6 * (x - 8) / 20.0
+
+    top = [(x, 5 + wave(x)) for x in range(8, 29)]
+    bottom = [(x, 19 + wave(x)) for x in range(8, 29)]
+    c.poly(top + bottom[::-1], VIOLET)
     c.shade()
     c.outline()
-    mid = math.sin(17 * 0.45 - i * math.pi / 3.0) * 0.9
-    # Белый крест посередине полотнища.
-    c.rect(16, 7 + mid, 17, 17 + mid, WHITE)
-    c.rect(12, 10 + mid, 21, 11 + mid, WHITE)
-    c.rect(11, 5, 11, 5, AQUA)
+    # Крест следует волне по столбцам.
+    for x in range(12, 25):
+        w = wave(x)
+        if 17 <= x <= 19:
+            for y in range(7, 18):
+                c.set(x, y + w, WHITE)
+        else:
+            for y in range(11, 14):
+                c.set(x, y + w, WHITE)
+    for x in range(12, 25):
+        w = wave(x)
+        c.set(x, (17 if 17 <= x <= 19 else 13) + w, GREY)
     return c
 
 
 def heart():
-    """Жизнь в HUD: красное сердце с белым бликом и тёмными стежками шва."""
+    """Жизнь в HUD."""
     c = Canvas()
     c.ellipse(11, 12, 5.5, 5.5, RED)
     c.ellipse(20, 12, 5.5, 5.5, RED)
     c.poly([(5, 14), (26, 14), (15.5, 26)], RED)
     c.rect(9, 9, 10, 10, WHITE)
-    c.finish()
-    for x, y in ((14, 8), (16, 10), (18, 12), (15, 12), (17, 14)):
-        c.set(x, y, PLUM if (x + y) % 2 == 0 else DARK)
-    return c
+    c.set(11, 9, WHITE)
+    return c.finish()
 
 
 def ground(inner=False):
-    """Грязь с камешками и костями; сверху жухлая трава, местами обожжённая до коричневого."""
+    """Кладбищенская грязь: комья, камешки, корешки; у кромки жухлая трава клочьями."""
     c = Canvas()
-    c.rect(0, 0, 31, 31, TAN)
-    # Тёмные пласты и крапины: узор повторяется по обеим осям, плитка стыкуется.
-    for y in range(32):
+    c.rect(0, 0, 31, 31, METAL)
+    rng = random.Random(7 if inner else 5)
+    # Тёмные комья и борозды, стыкуются по краям.
+    for _ in range(11):
+        x, y, w = rng.randint(0, 31), rng.randint(6, 30), rng.randint(2, 5)
+        for d in range(w):
+            c.set((x + d) % 32, y, DARK)
+        if rng.random() < 0.5:
+            c.set((x + 1) % 32, y + 1, DARK)
+    # Камешки со светлым верхом.
+    for _ in range(4):
+        x, y = rng.randint(1, 29), rng.randint(9, 28)
+        c.rect(x, y, x + 1, y, GREY)
+        c.rect(x, y + 1, x + 1, y + 1, DARK)
+    # Светлые крошки сухой глины.
+    for _ in range(8):
+        c.set(rng.randint(0, 31), rng.randint(7, 30), BRASS)
+    if inner:
+        # В глубине кость и корень.
+        c.rect(8, 14, 13, 14, WHITE)
+        c.set(7, 13, WHITE)
+        c.set(7, 15, WHITE)
+        c.set(14, 13, WHITE)
+        c.set(14, 15, WHITE)
+        c.line(22, 3, 25, 9, DARK, 1)
+        c.line(25, 9, 23, 13, DARK, 1)
+    else:
+        # Трава: плотный сухой слой и клочья разной длины, кое-где ещё зелёные стебли.
+        lengths = (3, 2, 4, 2, 3, 5, 2, 3, 2, 4, 3, 2, 6, 3, 2, 3)
         for x in range(32):
-            h = (x * 7 + y * 13 + (x * y) % 5) % 23
-            if h in (0, 1) or (y % 11 == 6 and (x + y) % 5 < 2):
-                c.set(x, y, DARK)
-            elif h == 2:
-                c.set(x, y, BRASS)
-    for x, y in ((6, 14), (22, 22), (13, 28)):
-        c.ellipse(x, y, 1.6, 1.2, METAL)
-        c.set(x - 1, y - 1, GREY)
-    # Кусочек кости в земле.
-    c.line(20, 12, 25, 14, WHITE, 1)
-    c.set(19, 12, WHITE)
-    c.set(19, 13, WHITE)
-    c.set(26, 14, WHITE)
-    c.set(26, 15, WHITE)
-    if not inner:
-        c.rect(0, 0, 31, 3, SEA)
-        # Подбой дёрна неровный, местами свисают корешки.
-        for x in range(32):
-            c.set(x, 4, SEA if (x * 5 + 3) % 7 < 4 else TAN)
-            if (x * 3) % 11 == 0:
-                c.set(x, 5, NAVY)
-        # Жухлая трава: торчащие клочки разной высоты, жёлтые и бурые.
-        for x in range(32):
-            h = (x * 5 + 2) % 4
-            col = BRASS if x % 3 else TAN
-            c.rect(x, 0, x, h - 1 if h else 0, col)
-            if x % 4 == 1:
-                c.set(x, 2, GOLD)
+            n = lengths[x % 16] if x < 16 else lengths[(x * 5 + 3) % 16]
+            c.rect(x, 0, x, n, BRASS)
+            c.set(x, n + 1, DARK)
+            if (x * 3) % 7 < 3:
+                c.set(x, 0, GOLD)
+            if x % 11 == 4:
+                c.rect(x, 0, x, n, PLUM)
+            if x % 13 == 8:
+                c.rect(x, 1, x, n, VIOLET)
+        c.rect(0, 1, 31, 1, BRASS)
     return c
 
 
 def rock():
-    """Надгробие: серая плита с полукруглым верхом, высеченным крестом, трещиной и мхом, у подножия
-    холмик свежей земли."""
+    """Надгробие: покосившаяся плита с высеченным крестом, трещина, мох у земли, холмик."""
     c = Canvas()
-    c.ellipse(15.5, 29, 13, 3, TAN)
-    c.rect(7, 12, 24, 29, METAL)
-    c.ellipse(15.5, 12, 8.8, 6.5, METAL)
-    c.rect(7, 12, 8, 29, GREY)
-    c.ellipse(13, 9.5, 4, 2.5, GREY)
-    # Высеченный крест.
-    c.rect(15, 11, 16, 21, DARK)
-    c.rect(12, 14, 19, 15, DARK)
-    # Трещина и мох.
-    c.line(17, 22, 15, 27, DARK, 1)
-    c.line(15, 27, 18, 29, DARK, 1)
-    c.rect(20, 17, 23, 18, SEA)
-    c.set(21, 19, SEA)
-    c.set(9, 28, SEA)
-    c.set(10, 28, SEA)
-    c.set(10, 27, AQUA)
-    c.set(22, 17, AQUA)
-    return c.finish()
+    c.ellipse(15.5, 28.5, 13, 2.4, METAL)
+    c.poly([(8, 28), (9, 11), (11, 7), (15, 4.5), (20, 5), (23.5, 8), (25, 12), (24, 28)], GREY)
+    c.finish()
+    # Светлая грань слева сверху, как у тёсаного камня.
+    for x, y in ((10, 11), (10, 12), (10, 13), (11, 9), (12, 8), (13, 7), (14, 6), (15, 6)):
+        if c.get(x, y) == GREY:
+            c.set(x, y, WHITE)
+    # Крест высечен в камне.
+    c.rect(16, 9, 17, 20, DARK)
+    c.rect(13, 12, 20, 13, DARK)
+    c.rect(12, 23, 21, 23, METAL)
+    # Трещина от края.
+    for x, y in ((23, 9), (22, 10), (22, 11), (21, 12), (22, 15), (21, 16)):
+        c.set(x, y, DARK)
+    # Мох и трава у основания.
+    for x, y in ((9, 26), (10, 26), (10, 25), (11, 27), (9, 27), (10, 27), (22, 27), (23, 26), (23, 27), (21, 27)):
+        c.set(x, y, VIOLET)
+    for x, y in ((8, 27), (11, 26), (22, 26)):
+        c.set(x, y, PLUM)
+    return c
 
 
 def chest():
-    """Армейский ящик: оливковый короб с белым крестом по трафарету, железные уголки, верёвочные
-    ручки по бокам и жёлтые защёлки."""
+    """Армейский ящик: зелёные доски, тёмные стяжки, защёлки, белая звезда по трафарету."""
     c = Canvas()
-    c.rect(4, 9, 27, 28, SEA)
-    c.rect(4, 9, 27, 9, AQUA)
-    c.rect(4, 16, 27, 16, NAVY)
-    c.rect(4, 17, 27, 17, GREY)
-    for x in (4, 27):
-        c.rect(x, 9, x, 28, METAL)
-    c.rect(4, 28, 27, 28, METAL)
-    # Ручки из верёвки по торцам.
-    c.rect(2, 13, 3, 14, TAN)
-    c.rect(28, 13, 29, 14, TAN)
-    # Белый крест и защёлки.
-    c.rect(15, 19, 16, 26, WHITE)
-    c.rect(12, 21, 19, 22, WHITE)
-    for x in (8, 23):
-        c.rect(x, 14, x + 1, 17, GOLD)
-        c.set(x, 14, BRASS)
-    for x, y in ((6, 11), (25, 11), (6, 26), (25, 26)):
-        c.set(x, y, GREY)
-    return c.finish()
+    c.rect(3, 13, 28, 28, VIOLET)
+    c.rect(2, 9, 29, 13, VIOLET)
+    c.finish()
+    # Щель под крышкой и швы досок.
+    c.rect(3, 14, 28, 14, PLUM)
+    c.rect(3, 19, 28, 19, PLUM)
+    c.rect(3, 24, 28, 24, PLUM)
+    # Стяжки и уголки.
+    for x in (6, 24):
+        c.rect(x, 9, x + 1, 28, DARK)
+    # Защёлки.
+    for x in (10, 20):
+        c.rect(x, 12, x + 1, 15, GOLD)
+        c.set(x, 16, BRASS)
+        c.set(x + 1, 16, BRASS)
+    # Звезда.
+    for x, y in ((15, 17), (16, 17), (15, 18), (16, 18), (12, 19), (13, 19), (14, 19), (15, 19), (16, 19), (17, 19),
+                 (18, 19), (19, 19), (13, 20), (14, 20), (15, 20), (16, 20), (17, 20), (18, 20), (14, 21), (15, 21),
+                 (16, 21), (17, 21), (14, 22), (17, 22), (13, 23), (18, 23)):
+        c.set(x, y, WHITE)
+    # Тёмная кромка крышки.
+    c.rect(2, 13, 2, 13, PLUM)
+    c.rect(29, 13, 29, 13, PLUM)
+    return c
+
+
+def key():
+    """Ключ от убежища: латунный, с красной биркой на кольце."""
+    c = Canvas()
+    c.ellipse(10, 13, 6, 6, GOLD)
+    c.ellipse(10, 13, 2.6, 2.6, None)
+    c.rect(15, 12, 28, 14, GOLD)
+    c.rect(23, 15, 24, 19, GOLD)
+    c.rect(27, 15, 28, 18, GOLD)
+    c.line(8, 18, 8, 21, GREY, 1)
+    c.poly([(5, 22), (11, 22), (11, 29), (5, 29)], RED)
+    c.finish()
+    c.rect(15, 12, 28, 12, WHITE)
+    c.set(7, 9, WHITE)
+    c.set(8, 24, K)
+    c.rect(7, 26, 9, 26, WHITE)
+    return c
+
+
+def medkit():
+    """Аптечка: белая сумка с красным крестом, тёмная ручка, застёжки."""
+    c = Canvas()
+    c.rect(4, 12, 27, 28, WHITE)
+    c.rect(12, 7, 19, 8, DARK)
+    c.rect(12, 9, 13, 11, DARK)
+    c.rect(18, 9, 19, 11, DARK)
+    c.finish()
+    c.rect(4, 12, 27, 13, GREY)
+    c.rect(13, 16, 18, 27, RED)
+    c.rect(9, 19, 22, 24, RED)
+    for x in (7, 24):
+        c.rect(x, 12, x, 14, GOLD)
+    return c
+
+
+def shot():
+    """Плевок зомби: ядовитый зелёный сгусток с блестящим пузырём, 16×16."""
+    c = Canvas(16, 16)
+    c.ellipse(8, 8, 6, 6, PLUM)
+    c.ellipse(8, 8, 4.2, 4.2, VIOLET)
+    c.ellipse(7, 7, 1.8, 1.8, WHITE)
+    c.set(10, 10, GOLD)
+    return c
 
 
 # --- Параллакс ---------------------------------------------------------------------------------
-# Три слоя дали: у par_sky небо во весь кадр, у двух других над холмами и оградой пусто. Высоты
-# периодические (256 делится на период синусов), предметы не заходят за край ленты, ленты стыкуются.
-# Низ слоя сплошной.
-
-def _hash(x, y):
-    return (x * 73856093 ^ y * 19349663) % 1000
-
-
-def _house(c, x, base, w, h, roof, col, lit):
-    """Дом пригорода силуэтом: коробка, двускатная крыша, труба, пара окон с жёлтым светом."""
-    c.rect(x, base - h, x + w, base, col)
-    c.poly([(x - 1, base - h), (x + w + 1, base - h), (x + w / 2.0, base - h - roof)], col)
-    c.rect(x + w - 3, base - h - roof, x + w - 2, base - h - 1, col)
-    for k, (wx, wy) in enumerate(lit):
-        c.rect(x + wx, base - h + wy, x + wx + 1, base - h + wy + 1, GOLD if k % 2 == 0 else BRASS)
-
-
-def _dead_tree(c, x, base, h, col):
-    """Мёртвое дерево: кривой ствол и голые ветви вилкой."""
-    lean = (x * 7) % 5 - 2
-    c.line(x, base, x + lean, base - h, col, 2)
-    top = (x + lean, base - h)
-    for k, (dx, dy, ln) in enumerate(((-5, -5, 1.0), (5, -7, 1.0), (-3, -9, 0.8), (4, -3, 0.7))):
-        sy = base - h * (0.45 + 0.17 * k)
-        sx = x + lean * (0.45 + 0.17 * k)
-        c.line(sx, sy, sx + dx * ln, sy + dy * ln, col, 1)
-        if k < 2:
-            c.line(sx + dx * ln, sy + dy * ln, sx + dx * ln * 1.5, sy + dy * ln * 0.6 - 2, col, 1)
-    c.line(top[0], top[1], top[0] + (1 if lean >= 0 else -1) * 2, top[1] - 3, col, 1)
-
 
 def par_sky():
-    """Дальний слой: ночное небо с большой луной в дымке тумана, звёзды и силуэт пригорода на
-    горизонте с редкими жёлтыми окнами, лента 256×48, стыкуется по краям."""
+    """Дальний слой: луна в дымке, рваные облака и звёзды, лента 256×48, стыкуется по краям."""
     c = Canvas(256, 48)
-    for y in range(48):
-        for x in range(256):
-            if y < 14:
-                col = NAVY
-            elif y < 20:
-                col = SEA if (x + y) % 2 == 0 and y > 16 else NAVY
-            elif y < 30:
-                col = SEA
-            else:
-                col = SEA if (x + y) % 2 == 0 or y < 37 else AQUA
-            c.set(x, y, col)
-    # Звёзды россыпью по верхней части.
-    for x in range(256):
-        for y in range(0, 22):
-            h = _hash(x, y)
-            if h < 4:
-                c.set(x, y, WHITE if h < 2 else SKY)
-    # Луна: широкое гало в шахматку, диск, кратеры, холодный блик слева, тень справа внизу.
-    mx, my = 66, 17
-    for y in range(my - 20, my + 21):
-        for x in range(mx - 22, mx + 23):
-            r = math.hypot(x - mx, y - my)
-            if 11.5 < r < 17 and (x + y) % 2 == 0 and 0 <= y < 40:
-                c.set(x, y, SEA)
-            elif 17 <= r < 20 and (x % 2 == 0 and y % 2 == 0) and 0 <= y < 40:
-                c.set(x, y, SEA)
-    c.ellipse(mx, my, 11, 11, WHITE)
-    c.ellipse(mx + 3, my + 3, 8, 8, GREY)
-    c.ellipse(mx - 1, my - 1, 9.5, 9.5, WHITE)
-    for cx, cy, r in ((mx - 3, my - 4, 2.2), (mx + 4, my + 2, 1.8), (mx - 5, my + 4, 1.4), (mx + 2, my - 6, 1.2)):
-        c.ellipse(cx, cy, r, r, GREY)
-    c.rect(mx - 9, my - 4, mx - 9, my - 1, SKY)
-    # Дымка поперёк луны.
-    for cx, cy, rx in ((mx - 4, my + 8, 16), (mx + 9, my + 12, 14)):
-        c.ellipse(cx, cy, rx, 1.5, SEA)
-    # Пригород: низкие дома с крышами, голые деревья, чёрная полоса земли. Окна почти тёмные.
-    base = 46
-    houses = ((10, 14, 11, 7, ((3, 3), (9, 3))), (34, 11, 14, 6, ((2, 4),)), (58, 16, 9, 8, ((3, 2), (10, 2))),
-              (88, 12, 12, 7, ((4, 3),)), (110, 14, 10, 7, ()), (146, 18, 12, 7, ((4, 3), (11, 3))),
-              (174, 11, 15, 8, ((3, 4),)), (196, 15, 10, 6, ((2, 2), (9, 2))), (222, 13, 12, 7, ((5, 3),)))
-    for hx, hw, hh, roof, lit in houses:
-        _house(c, hx, base, hw, hh, roof, DARK, lit)
-    for tx, th in ((26, 12), (84, 13), (132, 14), (168, 11), (214, 12), (244, 13)):
-        _dead_tree(c, tx, base, th, DARK)
-    c.rect(0, 44, 255, 47, DARK)
+    rng = random.Random(31)
+    mx, my, r = 196, 19, 11
+    for _ in range(44):
+        x, y = rng.randint(0, 255), rng.randint(0, 47)
+        if math.hypot(x - mx, y - my) > r + 5:
+            c.set(x, y, WHITE if rng.random() < 0.5 else SKY)
+    for x, y in ((24, 9), (118, 6), (150, 33), (62, 40)):
+        c.rect(x - 1, y, x + 1, y, SKY)
+        c.rect(x, y - 1, x, y + 1, SKY)
+        c.set(x, y, WHITE)
+    # Ореол: кольцо через пиксель.
+    for y in range(my - r - 4, my + r + 5):
+        for x in range(mx - r - 4, mx + r + 5):
+            d = math.hypot(x - mx, y - my)
+            if r + 1.2 < d < r + 3.4 and (x + y) % 2 == 0:
+                c.set(x, y, AQUA)
+    c.ellipse(mx, my, r, r, WHITE)
+    # Объём: дальний от света край в дымке, кратеры.
+    for y in range(my - r, my + r + 1):
+        for x in range(mx - r, mx + r + 1):
+            if c.get(x, y) == WHITE and math.hypot(x - (mx - 4), y - (my - 4)) > r + 2.5:
+                c.set(x, y, SKY)
+    c.ellipse(mx - 4, my - 3, 2.4, 2.0, SKY)
+    c.ellipse(mx + 3, my + 1, 1.6, 1.4, SKY)
+    c.ellipse(mx - 2, my + 5, 1.8, 1.2, SKY)
+    c.set(mx + 5, my - 5, SKY)
+    c.set(mx - 5, my - 3, GREY)
+    c.set(mx + 3, my + 2, GREY)
+    # Облака: длинные рваные полосы, одна режет луну понизу.
+    for cx, cy, w in ((40, 14, 30), (104, 36, 24), (186, 27, 27), (236, 42, 18)):
+        for k in (0, 256, -256):
+            c.ellipse(cx + k + 5, cy + 2, w * 0.75, 1.6, SEA)
+            c.ellipse(cx + k, cy, w, 2.0, AQUA)
+            c.ellipse(cx + k - 9, cy - 2, w * 0.4, 1.3, AQUA)
+            c.ellipse(cx + k + 12, cy - 1, w * 0.3, 1.2, SKY)
     return c
+
+
+def _tree(c, x, y, h, lean, seed):
+    """Мёртвое дерево силуэтом: ствол и три яруса голых ветвей."""
+    rng = random.Random(seed)
+
+    def branch(x0, y0, ang, length, depth):
+        x1 = x0 + math.cos(ang) * length
+        y1 = y0 - math.sin(ang) * length
+        c.line(x0, y0, x1, y1, NAVY, 2 if depth == 0 else 1)
+        if depth == 0:
+            c.line(x0 + 1, y0, x1 + 1, y1 + length * 0.4, NAVY, 1)
+        if depth < 3:
+            for d in (-0.65, 0.55):
+                branch(x1, y1, ang + d + rng.uniform(-0.2, 0.2), length * 0.62, depth + 1)
+
+    branch(x, y, math.pi / 2 + lean, h, 0)
 
 
 def par_far():
-    """Средний слой: тёмные холмы, на самом высоком кладбищенская часовня с шпилем, мёртвые деревья
-    на склонах и туман у подножия, лента 256×48, низ сплошной."""
+    """Средний слой: дальняя гряда и тёмный холм с часовней, мёртвыми деревьями и крестами,
+    лента 256×48, низ сплошной."""
     c = Canvas(256, 48)
-    gx = 168
+    t = 2.0 * math.pi / 256.0
 
-    def height(x):
-        h = 12 + 7 * max(0.0, math.sin(x * math.pi / 64.0)) ** 2 + 3 * math.sin(x * math.pi / 16.0 + 1.0)
-        h += 9 * max(0.0, math.sin((x - 40) * math.pi / 128.0)) ** 4
-        t = min(1.0, max(0.0, (abs(x - gx) - 11) / 16.0))
-        t = t * t * (3 - 2 * t)
-        return height_plateau * (1 - t) + h * t
+    def back(x):
+        return 15 + 5 * math.sin(x * t * 2 + 1.0) + 2.5 * math.sin(x * t * 7 + 0.5)
 
-    height_plateau = 12 + 7 * max(0.0, math.sin(gx * math.pi / 64.0)) ** 2 + 3 * math.sin(gx * math.pi / 16.0 + 1.0) \
-        + 9 * max(0.0, math.sin((gx - 40) * math.pi / 128.0)) ** 4
+    def hill(x):
+        return 7 + 3 * math.sin(x * t * 3 + 2.0) + 1.5 * math.sin(x * t * 9) + 17 * math.exp(-((x - 128) / 36.0) ** 2)
+
+    def top(x):
+        return 47 - int(hill(x))
+
     for x in range(256):
-        top = 47 - int(max(height(x), 3))
-        c.rect(x, top, x, 47, SEA)
-        c.rect(x, top, x, top, METAL)
-        c.rect(x, top + 9, x, 47, NAVY)
-        if (x * 5 + top) % 13 == 0:
-            c.set(x, top + 3 + x % 4, NAVY)
-    # Часовня: нефа с двускатной крышей, шпиль с крестом, арка двери, два окна с жёлтым светом.
-    base = 47 - int(height_plateau) + 1
-    c.rect(gx - 9, base - 9, gx + 2, base, DARK)
-    c.poly([(gx - 10, base - 9), (gx + 3, base - 9), (gx - 3.5, base - 15)], DARK)
-    c.rect(gx + 3, base - 18, gx + 8, base, DARK)
-    c.poly([(gx + 2, base - 18), (gx + 9, base - 18), (gx + 5.5, base - 28)], DARK)
-    c.rect(gx + 5, base - 34, gx + 6, base - 27, DARK)
-    c.rect(gx + 3, base - 32, gx + 8, base - 31, DARK)
-    c.rect(gx - 7, base - 6, gx - 6, base - 4, GOLD)
-    c.rect(gx - 2, base - 6, gx - 1, base - 4, GOLD)
-    c.rect(gx + 5, base - 14, gx + 6, base - 12, GOLD)
-    c.rect(gx + 4, base - 5, gx + 7, base, K)
-    c.ellipse(gx + 5.5, base - 5, 1.8, 1.8, K)
-    # Мёртвые деревья на склонах, ближние выше.
-    for px, h in ((18, 17), (44, 14), (74, 18), (104, 13), (128, 16), (206, 17), (232, 14), (248, 16)):
-        _dead_tree(c, px, 47 - int(height(px)) + 3, h, DARK)
-    # Туман у подножия.
-    for cx, cy, r in ((40, 43, 14), (112, 44, 16), (176, 42, 12), (234, 44, 14)):
-        for k in (0, 256, -256):
-            c.ellipse(cx + k, cy, r, 1.6, AQUA if (cx // 8) % 2 else SEA)
+        c.rect(x, 47 - int(back(x)), x, 47, SEA)
+    # Деревья и кресты стоят на холме, поэтому рисуются до него: корни уходят в землю.
+    for x, h, lean, seed in ((30, 7, 0.15, 3), (72, 9, -0.2, 5), (97, 8, 0.25, 8), (163, 9, -0.15, 13), (206, 8, 0.2, 21)):
+        _tree(c, x, top(x) + 2, h, lean, seed)
+    for x in (50, 84, 150, 178, 228):
+        c.rect(x, top(x) - 4, x, top(x), NAVY)
+        c.rect(x - 1, top(x) - 3, x + 1, top(x) - 3, NAVY)
+    # Часовня на вершине: башня со шпилем и крестом, неф с двускатной крышей.
+    gy = top(128)
+    c.rect(123, gy - 7, 137, gy + 1, NAVY)
+    c.poly([(121, gy - 7), (130, gy - 13), (139, gy - 7)], NAVY)
+    c.rect(118, gy - 15, 123, gy + 1, NAVY)
+    c.poly([(117, gy - 15), (120.5, gy - 22), (124, gy - 15)], NAVY)
+    c.rect(120, gy - 25, 121, gy - 22, NAVY)
+    c.rect(119, gy - 24, 122, gy - 24, NAVY)
+    for x in range(256):
+        c.rect(x, top(x), x, 47, NAVY)
+        c.set(x, top(x), PLUM)
+    # Лунный свет по левым скатам, окна: одно горит.
+    c.line(122, gy - 8, 129, gy - 13, SEA, 1)
+    c.line(118, gy - 16, 120, gy - 21, SEA, 1)
+    c.rect(118, gy - 14, 118, gy - 1, SEA)
+    c.rect(120, gy - 12, 121, gy - 10, GOLD)
+    c.set(120, gy - 13, GOLD)
+    c.set(121, gy - 13, BRASS)
+    c.rect(127, gy - 4, 128, gy - 2, BRASS)
+    c.rect(133, gy - 4, 134, gy - 2, GOLD)
+    c.rect(120, gy - 3, 121, gy, K)
     return c
 
 
-def _cross(c, x, base, h, col, hi=METAL):
-    """Крест на могиле: столб и перекладина, блик слева."""
-    c.rect(x, base - h, x + 1, base, col)
-    c.rect(x - 3, base - h + 3, x + 4, base - h + 4, col)
-    c.rect(x, base - h, x, base - 1, hi)
-
-
-def _stone(c, x, base, w, h, col, hi):
-    """Надгробие со скруглённым верхом и крестиком."""
-    c.rect(x, base - h, x + w, base, col)
-    c.ellipse(x + w / 2.0, base - h, w / 2.0 + 0.5, 3, col)
-    c.rect(x, base - h, x, base, hi)
-    c.set(x + w // 2, base - h + 2, DARK)
-
-
 def par_mid():
-    """Ближний слой: бугристая земля кладбища, кресты, надгробия, кованая ограда с пиками и сухой
-    бурьян, лента 256×32."""
+    """Ближний слой: кладбищенское поле с кованой оградой, плитами и крестами, понизу туман,
+    лента 256×32."""
     c = Canvas(256, 32)
+    t = 2.0 * math.pi / 256.0
 
-    def crest(x):
-        return int(round(14 + 2 * math.sin(x * math.pi / 32.0) + 1.5 * math.sin(x * math.pi / 8.0)))
+    def top(x):
+        return int(round(12 + 2 * math.sin(x * t * 4) + math.sin(x * t * 11 + 1.0)))
 
+    # Ограда: секции прутьев с пиками, одна секция завалена.
+    for x0 in (4, 68, 132, 196):
+        broken = x0 == 132
+        for k in range(12):
+            x = x0 + k * 4
+            if broken and k in (5, 6):
+                continue
+            tip = 2 + (1 if k % 3 else 0) + (k if broken and k > 6 else 0) // 3
+            c.rect(x, tip, x, top(x), NAVY)
+            c.set(x, tip - 1, SEA)
+        for y in (5, 9):
+            if broken:
+                c.rect(x0, y, x0 + 16, y, NAVY)
+                c.line(x0 + 28, y + 1, x0 + 44, y + 3, NAVY, 1)
+            else:
+                c.rect(x0, y, x0 + 44, y, NAVY)
+        c.rect(x0 - 1, 1, x0, top(x0), NAVY)
+        c.rect(x0 + 44, 1, x0 + 45, top(x0 + 44), NAVY)
     for x in range(256):
-        top = crest(x)
-        c.rect(x, top, x, 31, DARK)
-        c.rect(x, top, x, top, METAL)
-        c.rect(x, top + 7, x, 31, K)
-        if (x * 7 + top * 3) % 19 == 0:
-            c.set(x, top + 3 + x % 3, NAVY)
-    # Кресты и надгробия, кое-где накренились.
-    for px, kind in ((12, 0), (40, 1), (88, 0), (122, 1), (170, 0), (214, 1), (244, 0)):
-        by = crest(px) + 1
+        y = top(x)
+        c.rect(x, y, x, 31, PLUM)
+        c.set(x, y, VIOLET)
+        if x % 9 == 2 or x % 23 == 7:
+            c.rect(x, y - 2, x, y, VIOLET)
+        if x % 9 == 3:
+            c.set(x, y - 1, VIOLET)
+    # Плиты и кресты в поле.
+    for x, kind in ((22, 0), (56, 1), (90, 0), (118, 2), (160, 1), (186, 0), (224, 2), (246, 1)):
+        y = top(x) + 9
         if kind == 0:
-            _cross(c, px, by, 11 + px % 3, DARK)
+            c.rect(x, y - 7, x + 5, y, GREY)
+            c.rect(x + 1, y - 8, x + 4, y - 8, GREY)
+            c.rect(x + 5, y - 6, x + 5, y, METAL)
+            c.rect(x + 2, y - 5, x + 3, y - 5, DARK)
+            c.rect(x + 2, y - 3, x + 3, y - 3, DARK)
+        elif kind == 1:
+            c.rect(x + 2, y - 9, x + 3, y, GREY)
+            c.rect(x, y - 7, x + 5, y - 6, GREY)
+            c.rect(x + 3, y - 5, x + 3, y, METAL)
         else:
-            _stone(c, px, by, 6, 8 + px % 3, DARK, METAL)
-    # Кованая ограда: два пролёта, столбы с шарами, пики.
-    for x0, x1 in ((50, 80), (176, 208)):
-        top = crest(x0)
-        c.rect(x0, top - 7, x1, top - 6, DARK)
-        c.rect(x0, top - 3, x1, top - 3, DARK)
-        for x in range(x0, x1 + 1, 3):
-            by = crest(x) + 1
-            c.rect(x, top - 8, x, by, DARK)
-            c.set(x, top - 9, METAL)
-        for x in (x0, x1):
-            c.rect(x - 1, top - 12, x + 1, crest(x) + 1, DARK)
-            c.ellipse(x, top - 13, 1.5, 1.5, DARK)
-    # Сухой бурьян: жёлтые и бурые стебли вразброс.
-    for px in (24, 66, 100, 132, 150, 186, 230):
-        by = crest(px) + 1
-        for k, dx in enumerate((-3, -1, 1, 3)):
-            c.line(px, by, px + dx, by - 6 - (k * 3) % 4, BRASS if k % 2 else TAN, 1)
-        c.set(px - 3, by - 6, GOLD)
-        c.set(px + 3, by - 9, GOLD)
+            c.poly([(x, y), (x + 1, y - 5), (x + 6, y - 6), (x + 7, y)], GREY)
+            c.rect(x + 6, y - 4, x + 7, y, METAL)
+    # Туман стелется по низу и уходит в синеву под горизонтом.
+    for y in range(24, 32):
+        for x in range(256):
+            wisp = math.sin(x * t * 3 + y * 0.6) + math.sin(x * t * 7 - y)
+            if y >= 30 or (y >= 27 and (x + y) % 2 == 0) or (wisp > 1.1 and (x + y) % 2 == 0):
+                c.set(x, y, SEA)
     return c
 
 
 def sprites():
     """Ленты основы набора в палитре `PALETTE`: герой платформера, зомби, вещи, земля, три слоя
-    дали. Ключи, размеры и число кадров те же, что у `castles16.sprites()`. Ленты демок лежат в
-    модулях `zombies_*16.py`."""
+    дали."""
     return {
         "enemy_walk": strip([zombie_side(p) for p in base.phases()]),
         "enemy_front": strip([zombie_front(p) for p in base.phases()]),
@@ -776,128 +946,26 @@ def sprites():
         "par_sky": par_sky(),
         "par_far": par_far(),
         "par_mid": par_mid(),
-        "hero_run": strip([hero_side(p) for p in base.phases()]),
-        "hero_jump": hero_side(0.0, jump=True),
-        "hero_leap": strip([hero_leap(i) for i in range(4)]),
-        "hero_idle": strip([hero_idle(i) for i in range(2)]),
-        "hero_back": strip([hero_back(p) for p in base.phases()]),
-        "hero_slide": strip([hero_slide(i) for i in range(2)]),
-        "hero_hang": strip([hero_hang(i) for i in range(2)]),
-        "hero_crouch": strip([hero_crouch(i) for i in range(2)]),
+        "hero_run": strip([survivor_side(p) for p in base.phases()]),
+        "hero_jump": survivor_side(0.0, jump=True),
+        "hero_leap": strip([survivor_leap(i) for i in range(4)]),
+        "hero_idle": strip([survivor_idle(i) for i in range(2)]),
+        "hero_back": strip([survivor_back(p) for p in base.phases()]),
+        "hero_slide": strip([survivor_slide(i) for i in range(2)]),
+        "hero_hang": strip([survivor_hang(i) for i in range(2)]),
+        "hero_crouch": strip([survivor_crouch(i) for i in range(2)]),
     }
 
 
-# --- Остальные слоты (ленты демок «тропа» и «до выхода» их берут) ------------------------------
-
-def raven(i):
-    """Ворон (слот попугая) летит вправо: четыре кадра взмаха (вверх, середина, вниз, середина),
-    тело по центру кадра. Без красной обводки опасности: её кладёт модуль демки."""
-    c = Canvas()
-    wing = (-9, -3, 6, -3)[i]
-    # Дальнее крыло темнее и чуть смещено, ближнее поверх; края перьев зубчатые.
-    for dx, col in ((-3, NAVY), (0, METAL)):
-        pts = [(13 + dx, 17), (19 + dx, 17)]
-        xs = list(range(24, 6, -2))
-        for k, x in enumerate(xs):
-            edge = abs(x - 15.5 - dx) / 9.0
-            tip = k % 2 == 0
-            pts.append((x + dx, 17 + wing * (1.5 if tip else 0.9) * edge))
-        c.poly(pts, col)
-        c.line(14 + dx, 17, 7 + dx, 17 + wing * 1.3, DARK, 1)
-    # Хвост клином, тело, грудь с отливом, голова с клювом.
-    c.poly([(12, 17), (4, 17), (3, 21), (12, 20)], DARK)
-    c.ellipse(15.5, 18.5, 5.5, 3.6, DARK)
-    c.ellipse(17, 19.5, 3, 1.8, METAL)
-    c.ellipse(21.5, 15.5, 3.0, 2.8, DARK)
-    c.poly([(23, 14), (28, 15.5), (23, 17.5)], GOLD)
-    c.finish()
-    c.set(22, 14, RED)
-    c.set(23, 14, RED)
-    return c
-
-
-def crawler(i):
-    """Ползущая кисть (слот краба) идёт вправо: ладонь вниз сплошным бугром, сзади запястье с
-    обрывком рукава и торчащей костью, спереди четыре коротких пальца шагают попарно, большой палец
-    сбоку. Четыре кадра. Кожа зелёно-серая, ногти костяные."""
-    c = Canvas()
-    bob = (0, 1, 1, 0)[i]
-    # Большой палец сбоку, ближе к зрителю, и четыре пальца: ходят парами, ногти костяные.
-    c.line(12, 23 + bob, 15, 28, AQUA, 3)
-    c.rect(15, 28, 16, 29, WHITE)
-    for k in (0, 2, 1, 3):
-        up = 3 if (k % 2 == 0) == (i < 2) else 0
-        bx, by = 19 + k // 2 * 0 + (k % 2) * 0, 21 + k + bob - (k // 2)
-        kx, ky = bx + 4 + (k % 2), by + 2 - up // 2
-        tx, ty = kx + 3, 29 - up - (1 - k % 2)
-        c.line(bx, by, kx, ky, AQUA, 3)
-        c.line(kx, ky, tx, ty, AQUA, 2)
-        c.rect(tx, ty, tx + 1, ty, WHITE)
-        c.set(tx + 1, ty - 1, WHITE)
-    # Ладонь: сплошной округлый бугор на пальцах.
-    c.ellipse(13, 19 + bob, 7.5, 4.8, AQUA)
-    c.rect(7, 22 + bob, 19, 23 + bob, AQUA)
-    for x in (17, 19, 21):
-        c.set(x, 17 + bob, SKY)
-    # Запястье уходит назад и вверх, рваный рукав, кость торчит, капля крови.
-    c.line(8, 21 + bob, 4, 19 + bob, AQUA, 4)
-    c.poly([(2, 15 + bob), (6, 16 + bob), (7, 23 + bob), (3, 22 + bob), (1, 19 + bob)], METAL)
-    c.set(4, 24 + bob, METAL)
-    c.line(2, 15 + bob, 0, 11 + bob, WHITE, 2)
-    c.set(2, 14 + bob, RED)
-    c.set(4, 19 + bob, DARK)
-    return c.finish()
-
-
-def key():
-    """Ключ от убежища: жёлтый, с красной биркой на кольце."""
-    c = Canvas(32, 32)
-    c.ellipse(10, 16, 7, 7, GOLD)
-    c.ellipse(10, 16, 3, 3, None)
-    c.rect(16, 14, 29, 17, GOLD)
-    c.rect(24, 18, 25, 22, GOLD)
-    c.rect(28, 18, 29, 21, GOLD)
-    c.rect(16, 14, 29, 14, WHITE)
-    c.rect(3, 22, 7, 27, RED)
-    c.set(5, 24, WHITE)
-    return c.finish()
-
-
-def medkit():
-    """Аптечка: белая коробка с красным крестом, ручка сверху, серые уголки."""
-    c = Canvas(32, 32)
-    c.rect(5, 10, 26, 27, WHITE)
-    c.rect(12, 6, 19, 8, METAL)
-    c.rect(11, 8, 12, 10, METAL)
-    c.rect(19, 8, 20, 10, METAL)
-    c.rect(5, 26, 26, 27, GREY)
-    c.rect(5, 10, 26, 10, SKY)
-    c.rect(14, 13, 17, 24, RED)
-    c.rect(10, 17, 21, 20, RED)
-    c.set(5, 10, GREY)
-    c.set(26, 10, GREY)
-    return c.finish()
-
-
-def nail():
-    """Гвоздь летит вправо: плоская шляпка сзади, стальное тело, острое жало. 16×16."""
-    c = Canvas(16, 16)
-    c.rect(1, 5, 2, 10, METAL)
-    c.line(3, 7, 11, 7, METAL, 1)
-    c.line(3, 8, 11, 8, GREY, 1)
-    c.poly([(11, 6), (15, 8), (11, 9)], WHITE)
-    c.rect(3, 7, 10, 7, WHITE)
-    return c.finish()
-
-
 def extras():
-    """Слоты зомби вне `sprites()`: ленты и вещи тех же размеров, что у космоса, пиратов и замков."""
+    """Слоты тропы и шутера, которые у пиратов лежат в модулях демок: летун (ворон), ползун
+    (кисть руки), ключ, аптечка, снаряд врага."""
     return {
         "parrot_fly": strip([raven(i) for i in range(4)]),
-        "crab_walk": strip([crawler(i) for i in range(4)]),
+        "crab_walk": strip([hand(i) for i in range(4)]),
         "key": key(),
         "medkit": medkit(),
-        "shot": nail(),
+        "shot": shot(),
     }
 
 
@@ -905,21 +973,21 @@ def shaded(items):
     """Ленты в палитре `PALETTE` → {ключ: (холст, палитра)} как в игре: силуэты получают
     светотень рампами (`pixel_sprites16.reshade`), сплошные плитки остаются в палитре сеттинга."""
     out = {}
-    for key, canvas in items.items():
-        if base.wants_reshade(key, canvas):
-            out[key] = base.reshade(canvas, PALETTE, GROUPS)
+    for key_, canvas in items.items():
+        if base.wants_reshade(key_, canvas):
+            out[key_] = base.reshade(canvas, PALETTE, GROUPS)
         else:
-            out[key] = (canvas, PALETTE)
+            out[key_] = (canvas, PALETTE)
     return out
 
 
-def save_sheet(path, items, scale=3, pad=6, back=(0x1B, 0x1A, 0x33, 255), max_w=640):
+def save_sheet(path, items, scale=3, pad=6, back=(0x34, 0x3A, 0x52, 255), max_w=640):
     """Лист для просмотра: `items` это {ключ: (холст, палитра)}, лента на строку; ленты шире
     `max_w` режутся на строки по `max_w`."""
     width = (min(max(c.w for c, _ in items.values()), max_w) + 2 * pad) * scale
     blank = list(back) * width
     rows = [blank[:] for _ in range(pad * scale)]
-    for key, (canvas, palette) in items.items():
+    for _, (canvas, palette) in items.items():
         for x0 in range(0, canvas.w, max_w):
             part = Canvas(min(max_w, canvas.w - x0), canvas.h)
             for y in range(canvas.h):
@@ -933,24 +1001,22 @@ def save_sheet(path, items, scale=3, pad=6, back=(0x1B, 0x1A, 0x33, 255), max_w=
     print("лист: %s" % path)
 
 
-def preview(path, scale=4, keys=None, back=(0x6E, 0x9C, 0xC0, 255)):
-    """Лист набора: лента на строку после светотени, затем `extras()`. Фон голубой, как небо
-    за кадром игры: на тёмном не видно, держит ли обводка. `keys` оставляет часть лент."""
-    items = shaded(sprites())
-    items.update(shaded(extras()))
+def preview(path, scale=4, keys=None):
+    """Лист набора: лента на строку, как в игре, после светотени. `keys`: только эти ленты."""
+    items = dict(sprites())
+    items.update(extras())
     if keys:
-        items = {k: v for k, v in items.items() if k in keys}
-    save_sheet(path, items, scale=scale, back=back, max_w=256)
+        items = {k: items[k] for k in keys}
+    save_sheet(path, shaded(items), scale=scale)
 
 
 if __name__ == "__main__":
     if "--preview" in sys.argv:
-        args = sys.argv
-        scale = 4
-        keys = None
-        for a in args:
-            if a.startswith("--scale="):
-                scale = int(a.split("=", 1)[1])
-            if a.startswith("--keys="):
-                keys = a.split("=", 1)[1].split(",")
-        preview(args[args.index("--preview") + 1], scale, keys)
+        scale_ = 4
+        keys_ = None
+        for arg in sys.argv[1:]:
+            if arg.startswith("--scale="):
+                scale_ = int(arg.split("=", 1)[1])
+            if arg.startswith("--keys="):
+                keys_ = [k for k in arg.split("=", 1)[1].split(",") if k]
+        preview(sys.argv[sys.argv.index("--preview") + 1], scale_, keys_)
