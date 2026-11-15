@@ -42,6 +42,7 @@ static func _plan(rng: RandomNumberGenerator) -> Array[Dictionary]:
 		{"kind": R, "rings": 1 if rng.randf() < 0.6 else 2, "to": "land"},
 		{"kind": C, "to": "land"},
 		{"kind": R, "rings": 2, "to": "land"},
+		{"kind": R, "rings": 1, "pump": true, "to": "land"},
 		{"kind": J, "to": "stone"},
 		{"kind": J, "to": "stone"},
 	]
@@ -53,6 +54,7 @@ static func _plan(rng: RandomNumberGenerator) -> Array[Dictionary]:
 		{"kind": C, "to": "land"},
 		{"kind": R, "rings": 3, "high": true, "to": "late"},
 		{"kind": R, "rings": 2, "high": true, "moving": true, "to": "land"},
+		{"kind": R, "rings": 2, "pump": true, "to": "land"},
 		{"kind": J, "to": "land"},
 		{"kind": R, "rings": 3, "high": true, "moving": true, "to": "last"},
 	])
@@ -120,12 +122,15 @@ static func _build(seed_: int, attempt: int, t: PlatformerThreedGenTuning) -> Ho
 				span = rng.randf_range(t.climb_gap_min, t.climb_gap_max)
 				rise = rng.randf_range(t.climb_rise_min, t.climb_rise_max)
 			HookLevel.Kind.RINGS:
-				span = rng.randf_range(t.ring_lead_min, t.ring_lead_max)
+				var pump: bool = item.get("pump", false)
+				span = rng.randf_range(t.pump_lead_min, t.pump_lead_max) if pump else rng.randf_range(t.ring_lead_min, t.ring_lead_max)
 				for k in int(item["rings"]):
 					marks.append(span)
 					if k < int(item["rings"]) - 1:
 						span += rng.randf_range(t.ring_step_min, t.ring_step_max)
-				span += rng.randf_range(t.ring_out_min, t.ring_out_max)
+				# С раскачкой до острова в два-три раза дальше: одним махом не долететь.
+				span += rng.randf_range(t.pump_out_min, t.pump_out_max) if pump else rng.randf_range(t.ring_out_min, t.ring_out_max)
+				gap.pump = pump
 				rise = rng.randf_range(-t.ring_rise, t.ring_rise) if item.get("high", false) else rng.randf_range(-0.4, 0.4)
 				# Высоко забравшись, путь идёт вниз.
 				if from.pos.y > t.height_max - 2.5:
@@ -229,7 +234,7 @@ static func validate(level: HookLevel, t: PlatformerThreedGenTuning = null, rule
 			return "пропасть %d: вид и кольца не сходятся" % g
 		# Соседние кольца цепочки достаются одной верёвкой с запасом.
 		for k in range(1, ids.size()):
-			if level.rings[ids[k - 1]].pos.distance_to(level.rings[ids[k]].pos) > rules.rope_max * 1.3:
+			if level.rings[ids[k - 1]].pos.distance_to(level.rings[ids[k]].pos) > rules.rope_max * 1.6:
 				return "кольца %d и %d слишком далеко" % [ids[k - 1], ids[k]]
 		if level.gaps[g].kind == HookLevel.Kind.CLIMB:
 			var rise := level.gaps[g].b.y - level.gaps[g].a.y
@@ -257,6 +262,8 @@ static func validate(level: HookLevel, t: PlatformerThreedGenTuning = null, rule
 		return "нет цепочки из трёх колец"
 	if level.moving() < 1:
 		return "нет движущихся колец"
+	if level.pumps() < 2:
+		return "мало пропастей с раскачкой"
 	if level.small() < 2:
 		return "нет секции камней"
 	if level.props.size() < 6:

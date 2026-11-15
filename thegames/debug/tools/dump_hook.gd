@@ -19,6 +19,7 @@ func _init() -> void:
 		var lives := [0, 0, 0, 0]
 		var seconds: Array[float] = []
 		var rings := 0
+		var back := 0
 		for sd in range(seed_, seed_ + count):
 			var level := HookLevelGen.generate(sd, t, rules)
 			var why := HookLevelGen.validate(level, t, rules)
@@ -28,6 +29,7 @@ func _init() -> void:
 			done += 1 if win.finished else 0
 			lost += 1 if lose.ended and not lose.finished else 0
 			rings += level.rings.size()
+			back += win.swings_back
 			if win.finished:
 				lives[win.lives] += 1
 				seconds.append(win.time)
@@ -36,8 +38,8 @@ func _init() -> void:
 						"дошёл" if win.finished else "НЕ ДОШЁЛ", win.time, win.lives, win.islet, level.gaps.size(), "ПРОВАЛ" if lose.finished else "ок"])
 		seconds.sort()
 		var n := seconds.size()
-		print("сидов %d: генератор отказал на %d; WIN дошёл %d, осталось жизней [0,1,2,3] %s, колец в среднем %.1f; LOSE не дошёл %d; время: медиана %.1f с, от %.1f до %.1f" % [
-				count, bad, done, lives, float(rings) / count, lost, seconds[n / 2] if n > 0 else 0.0, seconds[0] if n > 0 else 0.0,
+		print("сидов %d: генератор отказал на %d; WIN дошёл %d, осталось жизней [0,1,2,3] %s, колец в среднем %.1f, раскачек назад %.1f; LOSE не дошёл %d; время: медиана %.1f с, от %.1f до %.1f" % [
+				count, bad, done, lives, float(rings) / count, float(back) / count, lost, seconds[n / 2] if n > 0 else 0.0, seconds[0] if n > 0 else 0.0,
 				seconds[n - 1] if n > 0 else 0.0])
 		quit(0)
 		return

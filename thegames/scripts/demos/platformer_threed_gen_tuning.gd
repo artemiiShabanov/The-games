@@ -13,12 +13,12 @@ const PATH := "res://resources/demos/platformer_threed_gen.tres"
 @export var land_late := 3.6
 @export var wobble := 0.09
 ## Простой прыжок: ширина пропасти от края до края и перепад высоты.
-@export var jump_min := 3.9
-@export var jump_max := 4.8
+@export var jump_min := 4.6
+@export var jump_max := 5.4
 @export var jump_drop := 0.8
 ## Между камнями пропасть короче.
-@export var stone_gap_min := 3.0
-@export var stone_gap_max := 3.9
+@export var stone_gap_min := 3.8
+@export var stone_gap_max := 4.7
 ## Уступ: до стены и на сколько она выше.
 @export var climb_gap_min := 1.2
 @export var climb_gap_max := 1.9
@@ -28,10 +28,17 @@ const PATH := "res://resources/demos/platformer_threed_gen.tres"
 ## высота кольца над линией между краями.
 @export var ring_lead_min := 4.4
 @export var ring_lead_max := 5.4
-@export var ring_step_min := 8.6
-@export var ring_step_max := 10.4
-@export var ring_out_min := 6.0
-@export var ring_out_max := 7.6
+@export var ring_step_min := 10.5
+@export var ring_step_max := 13.0
+@export var ring_out_min := 7.5
+@export var ring_out_max := 9.5
+## Пропасть с раскачкой (плейтест 2026-11-15, #132): одного маха не хватает, надо качнуться
+## назад и вперёд. От края до кольца (дальше обычного, чтобы маятник не бился об остров) и от
+## кольца до острова.
+@export var pump_lead_min := 6.6
+@export var pump_lead_max := 7.6
+@export var pump_out_min := 15.0
+@export var pump_out_max := 19.0
 @export var ring_height_min := 5.6
 @export var ring_height_max := 6.8
 ## Перепад высоты островов на пропасти с кольцами и разброс высоты колец в цепочке.

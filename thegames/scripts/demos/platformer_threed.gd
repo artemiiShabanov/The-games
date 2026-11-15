@@ -88,11 +88,15 @@ func _setup_audio() -> void:
 	if not quiet:
 		_music.play()
 	_sfx["go"] = Sfx.player(Sfx.blip(880.0, 0.3, 0.4, 6.0))
-	_sfx["jump"] = Sfx.player(Sfx.blip(520.0, 0.12, 0.3, 10.0))
+	# Свои звуки (плейтест 2026-11-15, #132): прыжок мягким толчком, а не щелчком меню; посадка
+	# шлепком, с большой высоты тяжёлым ударом.
+	_sfx["jump"] = Sfx.player(Sfx.hop(170.0, 300.0, 0.12, 0.4))
 	_sfx["hook"] = Sfx.player(Sfx.blip(1180.0, 0.07, 0.35, 26.0))
 	_sfx["release"] = Sfx.player(Sfx.hiss(0.16, 0.14))
 	_sfx["grab"] = Sfx.player(Sfx.thud(0.06, 0.3))
-	_sfx["land"] = Sfx.player(Sfx.thud(0.1, 0.4))
+	_sfx["land"] = Sfx.player(Sfx.pat(0.12, 0.34))
+	_sfx["land_hard"] = Sfx.player(Sfx.body_fall(0.5))
+	_sfx["snap"] = Sfx.player(Sfx.thud(0.1, 0.4))
 	_sfx["splash"] = Sfx.player(Sfx.thud(0.3, 0.6))
 	_sfx["finish"] = Sfx.player(Sfx.blip(880.0, 0.5, 0.4, 5.0))
 	for p in _sfx.values():
@@ -393,13 +397,15 @@ func _on_event(ev: Array) -> void:
 			_hang = (ring_nodes[int(ev[1])].position - sim.pos).normalized()
 			_hang_vel = Vector3.ZERO
 		&"snap":
-			_play("land")
+			_play("snap")
 			ring_nodes[int(ev[1])].visible = false
 		&"release":
 			_play("release")
 		&"grab":
 			_play("grab")
-		&"land", &"climb":
+		&"thump":
+			_play("land_hard" if float(ev[1]) >= tuning.hard_landing else "land")
+		&"climb":
 			_play("land")
 		&"splash":
 			_play("splash")

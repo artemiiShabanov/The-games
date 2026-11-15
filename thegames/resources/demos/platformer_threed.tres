@@ -35,5 +35,6 @@ cam_auto_delay = 1.2
 cam_auto = 1.6
 cam_follow = 9.0
 hit_stop = 0.1
+hard_landing = 13.0
 music_db = -10.0
 sfx_db = -6.0

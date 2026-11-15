@@ -58,7 +58,7 @@ var jumps := 0
 var falls := 0
 var water := -5.0
 ## События шага для звука и эффектов: `[имя, …]`. `go`, `jump`, `hook(кольцо)`, `release`,
-## `grab`, `climb`, `land(остров)`, `splash`, `respawn`, `finish`, `dead`, `timeout`.
+## `grab`, `climb`, `land(остров)`, `thump(скорость падения)`, `splash`, `respawn`, `finish`, `dead`, `timeout`.
 var events: Array[Array] = []
 ## Что бот хочет на этом шаге (`bot`).
 var bot_move := Vector2.ZERO
@@ -72,6 +72,9 @@ var swing_mult := 1.0
 var ring_hold := 0.0
 var snapped: Array[int] = []
 var hang_time := 0.0
+## Сколько раз герой качнулся назад на верёвке (смена хода вдоль пропасти).
+var swings_back := 0
+var _swing_sign := 0.0
 
 var _armed := true
 var _coyote := 0.0
@@ -353,6 +356,7 @@ func _try_hook(move: Vector2) -> void:
 		vel = tangent
 	mode = Mode.SWING
 	hang_time = 0.0
+	_swing_sign = 0.0
 	_armed = false
 	hooks += 1
 	events.append([&"hook", i])
@@ -377,6 +381,12 @@ func _swing(dt: float, move: Vector2, hook: bool) -> void:
 			vel -= n * radial
 	var flat := Vector2(vel.x, vel.z)
 	_turn(dt, flat.normalized() * minf(flat.length() / 2.0, 1.0))
+	# Счёт раскачек: герой пошёл назад вдоль пропасти.
+	var along_v := flat.dot(level.gaps[level.rings[ring].gap].dir)
+	if absf(along_v) > 1.0:
+		if along_v < 0.0 and _swing_sign > 0.0:
+			swings_back += 1
+		_swing_sign = signf(along_v)
 	_push_out(maxf(before, pos.y))
 	if _wall >= 0 and _grab(_wall):
 		last_ring = -1
@@ -409,6 +419,9 @@ func _swing(dt: float, move: Vector2, hook: bool) -> void:
 
 
 func _land(i: int) -> void:
+	# Удар о землю: скорость падения для звука.
+	if mode == Mode.AIR or mode == Mode.SWING:
+		events.append([&"thump", -vel.y])
 	mode = Mode.GROUND
 	ring = -1
 	vel.y = 0.0
@@ -536,7 +549,8 @@ func bot(mode_: AutoTest.BotMode) -> void:
 				bot_hook = false
 		Mode.SWING:
 			bot_hook = true
-			bot_move = dir
+			# Раскачка: толкает туда, куда уже летит; с места вперёд.
+			bot_move = -dir if Vector2(vel.x, vel.z).dot(dir) < -1.0 else dir
 			var p := ring_pos(ring)
 			var past := (here - Vector2(p.x, p.z)).dot(dir)
 			if past > 0.5 and vel.y > 0.0:

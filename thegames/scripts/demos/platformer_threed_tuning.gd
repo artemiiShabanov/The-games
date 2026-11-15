@@ -52,6 +52,8 @@ const PATH := "res://resources/demos/platformer_threed.tres"
 @export var cam_auto := 1.6
 @export var cam_follow := 9.0
 @export var hit_stop := 0.1
+## С какой скорости падения (м/с) посадка звучит тяжёлым ударом.
+@export var hard_landing := 13.0
 @export var music_db := -10.0
 @export var sfx_db := -6.0
 

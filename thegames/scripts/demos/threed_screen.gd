@@ -277,7 +277,9 @@ func add_palm(tex: Texture2D, at: Vector3, yaw: float, height: float, rng: Rando
 				var r := lerpf(0.21, 0.11, k) * (1.18 if corner.x == 0 else 1.0)
 				quad.append([spine[corner.x] + Vector3(cos(a), 0.0, sin(a)) * r, Vector3(cos(a), 0.15, sin(a)).normalized(),
 						Vector2(0.02 + 0.46 * corner.y / sides, height * k / 2.2)])
-			for id: int in [0, 1, 2, 0, 2, 3]:
+			# Лицевая сторона у Godot по часовой, если смотреть снаружи ствола (плейтест 2026-11-15:
+			# ствол был вывернут наизнанку).
+			for id: int in [0, 2, 1, 0, 3, 2]:
 				tool.set_normal(quad[id][1])
 				tool.set_uv(quad[id][2])
 				tool.set_uv2(Vector2.ZERO)

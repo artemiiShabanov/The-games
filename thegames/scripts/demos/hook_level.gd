@@ -56,6 +56,8 @@ class Gap:
 	var a := Vector3.ZERO
 	var b := Vector3.ZERO
 	var dir := Vector2(0.0, -1.0)
+	## Пропасть с раскачкой: одним махом до острова не долететь.
+	var pump := false
 
 	func length() -> float:
 		return Vector2(b.x - a.x, b.z - a.z).length()
@@ -78,6 +80,14 @@ func islet_at(x: float, z: float, pad := 0.0) -> int:
 		if islets[i].holds(x, z, pad):
 			return i
 	return -1
+
+
+## Сколько пропастей с раскачкой.
+func pumps() -> int:
+	var n := 0
+	for g in gaps:
+		n += 1 if g.pump else 0
+	return n
 
 
 func water_y(drop: float) -> float:
