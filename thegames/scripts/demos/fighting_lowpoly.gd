@@ -120,8 +120,7 @@ func _play(name: String) -> void:
 func _build_world() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(record.seed if record != null else 1, ":spar-look"))
-	lowpoly.add_plane(Vector3(0.0, -1.4, 0.0), Vector2(520.0, 520.0), lowpoly_texture("water"), 6.0,
-			{"uv_scroll": Vector2(0.02, 0.035), "affine": 0.0})
+	spawn_base(Vector3(0.0, -1.4, 0.0), 520.0)
 	# Палуба и борт позади бойцов.
 	lowpoly.add_box(Vector3(0.0, -0.7, -0.6), Vector3(tuning.arena_half * 2.0 + 3.0, 1.4, 8.4), lowpoly_texture("planks"), 2.0)
 	lowpoly.add_box(Vector3(0.0, 0.45, -4.6), Vector3(tuning.arena_half * 2.0 + 3.0, 0.9, 0.25), lowpoly_texture("planks"), 1.5)

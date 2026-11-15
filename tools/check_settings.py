@@ -22,6 +22,8 @@ FORMAT_NAMES = {"8bit": "8-bit", "16bit": "16/32", "lowpoly": "low poly", "three
 # Палитры и цвета в ресурсе сеттинга: без своих берутся пиратские.
 PALETTES = {"sky_bands": "небо 8-bit", "vector_colors": "луч вектора", "bit16_colors": "палитра 16/32",
             "lowpoly_colors": "цвета HUD low poly"}
+# Окружение 3D (#147): свои блоки света, неба и основания мира.
+ENVS = {"env_lowpoly": "окружение low poly", "env_threed": "окружение продвинутых"}
 # Семейства из спеки: первое подошедшее правило. Что не подошло, уходит в «прочее».
 FAMILIES = {
     "8bit": [
@@ -95,6 +97,7 @@ def missing(setting, known):
     text = known[setting][2]
     palettes = [label for key, label in PALETTES.items()
                 if not re.search(r"^%s = .*Color\(" % key, text, re.M)]
+    palettes += [label for key, label in ENVS.items() if not re.search(r"^%s = SubResource" % key, text, re.M)]
     return out, palettes
 
 
@@ -115,7 +118,7 @@ def main():
                 continue
             tree, palettes = missing(s, known)
             if count(tree) or palettes:
-                print("FAIL %s помечен готовым, но не хватает %d файлов и %d палитр"
+                print("FAIL %s помечен готовым, но не хватает %d файлов, %d палитр и окружений"
                       % (s, count(tree), len(palettes)))
                 status = 1
         ready = [s for s in known if known[s][1]]
@@ -124,7 +127,7 @@ def main():
     names = [a for a in args if not a.startswith("--")]
     if not names:
         total = {fmt: len(files("pirates", fmt)) for fmt in FORMATS}
-        print("%-10s %s  палитры" % ("сеттинг", "  ".join("%-12s" % FORMAT_NAMES[f] for f in FORMATS)))
+        print("%-10s %s  палитры и окружение" % ("сеттинг", "  ".join("%-12s" % FORMAT_NAMES[f] for f in FORMATS)))
         for s in known:
             tree, palettes = missing(s, known)
             cells = []
@@ -144,7 +147,7 @@ def main():
                 print("  %-12s %-20s %3d  %s" % (FORMAT_NAMES[fmt], family, len(lack), " ".join(
                     sorted({os.path.splitext(f)[0] for f in lack}))))
         if palettes:
-            print("  палитры: нет своих: %s" % ", ".join(palettes))
+            print("  палитры и окружение: нет своих: %s" % ", ".join(palettes))
     return 0
 
 

@@ -204,7 +204,7 @@ func _build_world() -> void:
 	_commit(beach, "sand")
 	_commit(cliff, "cliff")
 	var center := (track.points[0] + track.points[track.count() - 1]) / 2.0
-	(lowpoly as ThreedScreen).add_water(Vector3(center.x, water_y, center.y), 1500.0)
+	spawn_base(Vector3(center.x, water_y, center.y), 1500.0)
 	_build_rails()
 	_build_decor(rng)
 	# Камни на плечах сужений.

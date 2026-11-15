@@ -113,8 +113,7 @@ func _play(name: String) -> void:
 func _build_world() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(record.seed if record != null else 1, ":hoop-look"))
-	lowpoly.add_plane(Vector3(0.0, -0.5, 0.0), Vector2(520.0, 520.0), lowpoly_texture("water"), 6.0,
-			{"uv_scroll": Vector2(0.02, 0.035), "affine": 0.0})
+	spawn_base(Vector3(0.0, -0.5, 0.0), 520.0)
 	lowpoly.add_plane(Vector3(0.0, 0.0, -3.0), Vector2(76.0, 76.0), lowpoly_texture("sand"), 3.0)
 	# Настил площадки под кольцом и точками.
 	lowpoly.add_plane(Vector3(0.0, 0.04, -4.2), Vector2(15.0, 11.0), lowpoly_texture("planks"), 2.0)

@@ -166,7 +166,7 @@ func _build_world() -> void:
 	var ground := tool.commit()
 	ground.surface_set_material(0, lowpoly.tex_material(lowpoly_texture("sand")))
 	_add(ground, Vector3.ZERO)
-	screen.add_water(Vector3(0.0, -0.7, 0.0), 1300.0)
+	spawn_base(Vector3(0.0, -0.7, 0.0), 1300.0)
 	# Трава пятнами с неровным краем.
 	var grass := SurfaceTool.new()
 	grass.begin(Mesh.PRIMITIVE_TRIANGLES)

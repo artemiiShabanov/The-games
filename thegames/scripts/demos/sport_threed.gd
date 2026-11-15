@@ -187,7 +187,7 @@ func _build_world() -> void:
 	_add(ground, Vector3.ZERO)
 	# Внизу пляж и море.
 	var low := course.height(course.length + 70.0)
-	screen.add_water(Vector3(course.sway(course.length), low + 0.6, -course.length - 360.0), 1500.0)
+	spawn_base(Vector3(course.sway(course.length), low + 0.6, -course.length - 360.0), 1500.0)
 	var wood := lowpoly.tex_material(lowpoly_texture("planks"), {"uv_scale": Vector2(1.0, 2.0)})
 	# Ворота: слева красный флаг, справа синий.
 	for g in course.gates:

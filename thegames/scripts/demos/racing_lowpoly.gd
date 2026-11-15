@@ -236,8 +236,7 @@ func _build_world() -> void:
 	var center := Vector2.ZERO
 	for p in track.points:
 		center += p / n
-	lowpoly.add_plane(Vector3(center.x, water_y, center.y), Vector2(520.0, 520.0), lowpoly_texture("water"), 6.0,
-			{"uv_scroll": Vector2(0.02, 0.035), "affine": 0.0})
+	spawn_base(Vector3(center.x, water_y, center.y), 520.0)
 	# Маяк на островке внутри кольца.
 	var islet := LowpolyTerrain.make(Vector3(center.x - 4.0, 0.0, center.y - 4.0), 1.0, 8, 8)
 	for iz in 9:

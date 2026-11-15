@@ -53,6 +53,10 @@ const VECTOR_INKS: Dictionary[StringName, int] = {
 @export var meshes_lowpoly := "res://assets/settings/pirates/lowpoly/"
 @export var lowpoly_colors: Array[Color] = []
 @export var lowpoly_sky := Color(0.61, 0.8, 0.91)
+## Окружение в 3D (#147): свет, небо, туман и основание мира, отдельно для low poly и для
+## «продвинутых». Нет своего: берётся пиратское.
+@export var env_lowpoly: SettingEnv
+@export var env_threed: SettingEnv
 ## Вектор (#88): фон `[0]` и чернила луча: 1 мир, 2 акцент, 3 опасность. На экран один-два
 ## цвета луча, третий только у врагов.
 @export var vector_colors: Array[Color] = []
@@ -169,8 +173,20 @@ func colors_lowpoly() -> Array[Color]:
 	return SettingDef.of(Game.Setting.PIRATES).lowpoly_colors
 
 
+## Окружение сеттинга для технологии, без своего пиратское.
+func env(threed := false) -> SettingEnv:
+	var e := env_threed if threed else env_lowpoly
+	if e != null:
+		return e
+	_borrow("threed" if threed else "lowpoly", "окружение")
+	var pirates := SettingDef.of(Game.Setting.PIRATES)
+	e = pirates.env_threed if threed else pirates.env_lowpoly
+	return e if e != null else SettingEnv.new()
+
+
+## Цвет неба и тумана: свой, если у сеттинга свои цвета HUD или своё окружение.
 func sky_lowpoly() -> Color:
-	if lowpoly_colors.size() >= LowpolyScreen.ROLES or setting == Game.Setting.PIRATES:
+	if lowpoly_colors.size() >= LowpolyScreen.ROLES or env_lowpoly != null or setting == Game.Setting.PIRATES:
 		return lowpoly_sky
 	return SettingDef.of(Game.Setting.PIRATES).lowpoly_sky
 

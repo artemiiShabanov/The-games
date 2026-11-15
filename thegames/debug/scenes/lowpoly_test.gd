@@ -133,10 +133,10 @@ func _build_sheet() -> void:
 func _make_sheet(area: Vector2, threed: bool, names: Array, columns: int, pink_last: bool) -> LowpolyScreen:
 	var sheet: LowpolyScreen
 	if threed:
-		sheet = ThreedScreen.make_threed(area, false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), Debug.lowpoly_scale)
+		sheet = ThreedScreen.make_threed(area, false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), Debug.lowpoly_scale, _setting.env(true))
 	else:
 		sheet = LowpolyScreen.make(area, false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), _setting.texture_lowpoly("sky"),
-				Debug.lowpoly_scale)
+				Debug.lowpoly_scale, _setting.env(false))
 	add_child(sheet)
 	_sheets.append(sheet)
 	var rows := ceili(float(names.size()) / columns)
@@ -173,7 +173,7 @@ func _make_sheet(area: Vector2, threed: bool, names: Array, columns: int, pink_l
 ## ногой.
 func _build_rig() -> void:
 	_setting = SettingDef.of(Game.Setting.PIRATES)
-	var screen := ThreedScreen.make_threed(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly())
+	var screen := ThreedScreen.make_threed(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), 0, _setting.env(true))
 	add_child(screen)
 	_sheets.append(screen)
 	screen.add_plane(Vector3.ZERO, Vector2(14.0, 10.0), _setting.texture_lowpoly("planks", true), 2.0)
@@ -206,7 +206,7 @@ func _build_rig() -> void:
 ## Модели на скелете в ряд (#119): матрос, капитан, скелет; идут и медленно поворачиваются.
 func _build_rig_lineup() -> void:
 	_setting = SettingDef.of(Game.Setting.PIRATES)
-	var screen := ThreedScreen.make_threed(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly())
+	var screen := ThreedScreen.make_threed(Vector2(Style.SCREEN), false, _setting.colors_lowpoly(), _setting.sky_lowpoly(), 0, _setting.env(true))
 	add_child(screen)
 	_sheets.append(screen)
 	screen.add_plane(Vector3.ZERO, Vector2(14.0, 10.0), _setting.texture_lowpoly("planks", true), 2.0)
@@ -694,7 +694,7 @@ func _check_threed_screen() -> void:
 	_expect(not screen.clipping and screen.camera.near < 0.2, "камера не вернулась из стены")
 	screen.set_clip(0.0, 0.0, 0.0)
 	# Встроенный режим: дорогие эффекты выключены.
-	var small := ThreedScreen.make_threed(Vector2(480, 240), true, _setting.colors_lowpoly(), _setting.sky_lowpoly())
+	var small := ThreedScreen.make_threed(Vector2(480, 240), true, _setting.colors_lowpoly(), _setting.sky_lowpoly(), 0, _setting.env(true))
 	_expect(not small.environment.ssao_enabled and small.viewport.msaa_3d == Viewport.MSAA_DISABLED, "во встроенном режиме дорогие эффекты включены")
 	small.free()
 	# Прогрев шейдеров: экран за краем окна живёт несколько кадров и уходит.

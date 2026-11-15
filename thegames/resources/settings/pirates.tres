@@ -1,6 +1,43 @@
 [gd_resource type="Resource" script_class="SettingDef" format=3]
 
 [ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+[ext_resource type="Script" path="res://scripts/settings/setting_env.gd" id="2_env"]
+
+[sub_resource type="Resource" id="env_lp"]
+script = ExtResource("2_env")
+sun_pitch = -52.0
+sun_yaw = 38.0
+sun_energy = 0.75
+ambient_energy = 0.5
+fog_begin = 30.0
+fog_end = 90.0
+base = 0
+base_texture = "water"
+base_tile = 6.0
+base_scroll = Vector2(0.02, 0.035)
+
+[sub_resource type="Resource" id="env_td"]
+script = ExtResource("2_env")
+sun_pitch = -38.0
+sun_yaw = 58.0
+sun_energy = 1.75
+sun_color = Color(1, 0.94, 0.82, 1)
+ambient_energy = 0.42
+sky_top = 0.5
+sky_horizon = 1.12
+fog_density = 0.0022
+fog_aerial = 0.6
+glow_intensity = 0.4
+glow_bloom = 0.06
+glow_threshold = 0.95
+saturation = 1.02
+contrast = 1.05
+exposure = 0.9
+base = 0
+water_deep = Color(0.02, 0.15, 0.23, 1)
+water_shallow = Color(0.13, 0.5, 0.53, 1)
+water_clarity = 7.0
+water_waves = 1.0
 
 [resource]
 script = ExtResource("1_set")
@@ -20,3 +57,5 @@ vector_colors = Array[Color]([Color(0.0235, 0.0353, 0.0510, 1), Color(0.4039, 0.
 meshes_lowpoly = "res://assets/settings/pirates/lowpoly/"
 lowpoly_colors = Array[Color]([Color(0.8902, 0.7882, 0.5451, 1), Color(0.1843, 0.4353, 0.7098, 1), Color(0.5412, 0.3529, 0.1961, 1), Color(0.9451, 0.9255, 0.8745, 1), Color(0.9373, 0.7608, 0.6039, 1), Color(0.8235, 0.2706, 0.2314, 1), Color(0.9490, 0.7137, 0.1961, 1), Color(0.2314, 0.2275, 0.2902, 1)])
 lowpoly_sky = Color(0.7059, 0.8627, 0.9255, 1)
+env_lowpoly = SubResource("env_lp")
+env_threed = SubResource("env_td")

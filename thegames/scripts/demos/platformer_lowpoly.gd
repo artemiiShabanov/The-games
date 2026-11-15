@@ -159,8 +159,7 @@ func _build_world() -> void:
 	var blocked := _build_cannons(sand, rock)
 	_build_decor(rng, sand, grass, rock, blocked)
 	var mid := (level.start + level.finish_piece().far()) / 2.0
-	lowpoly.add_plane(Vector3(mid.x, water_y, mid.z), Vector2(520.0, 520.0), lowpoly_texture("water"), 6.0,
-			{"uv_scroll": Vector2(0.02, 0.035), "affine": 0.0})
+	spawn_base(Vector3(mid.x, water_y, mid.z), 520.0)
 	for i in level.rafts.size():
 		var raft := level.rafts[i]
 		var holder := Node3D.new()

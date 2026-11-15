@@ -45,8 +45,10 @@ var _clip_time := 0.0
 
 ## Экран в области `area`: цвета HUD `palette_`, цвет неба сеттинга `sky_`; `scale` 0 берёт
 ## размер HUD из `LowpolyTuning`.
-static func make_threed(area: Vector2, embedded_: bool, palette_: Array[Color], sky_: Color, scale := 0) -> ThreedScreen:
+static func make_threed(area: Vector2, embedded_: bool, palette_: Array[Color], sky_: Color, scale := 0,
+		env_: SettingEnv = null) -> ThreedScreen:
 	var s := ThreedScreen.new()
+	s.env = env_ if env_ != null else SettingDef.of(Game.Setting.PIRATES).env(true)
 	s.look = ThreedTuning.load_default()
 	s._setup(area, embedded_, palette_, sky_, null, scale)
 	return s
@@ -54,6 +56,10 @@ static func make_threed(area: Vector2, embedded_: bool, palette_: Array[Color], 
 
 func _render_shrink(_shrink: int) -> int:
 	return 1
+
+
+func _star_dome() -> bool:
+	return false
 
 
 ## Прогрев (#130): материалы «продвинутых» собираются при первом показе, и кадр на секунду
@@ -67,7 +73,7 @@ static func prewarm(host: Node) -> void:
 		return
 	warmed = true
 	var set := SettingDef.of(Game.Setting.PIRATES)
-	var screen := ThreedScreen.make_threed(Vector2(192, 96), false, set.colors_lowpoly(), set.sky_lowpoly())
+	var screen := ThreedScreen.make_threed(Vector2(192, 96), false, set.colors_lowpoly(), set.sky_lowpoly(), 0, set.env(true))
 	screen.position = Vector2(-400, -400)
 	host.add_child(screen)
 	screen.add_plane(Vector3.ZERO, Vector2(6, 6), set.texture_lowpoly("sand", true), 3.0)
@@ -95,41 +101,53 @@ func _build_scene(_sky_texture: Texture2D) -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	if look.msaa and not embedded:
 		viewport.msaa_3d = Viewport.MSAA_2X
-	# Небо градиентом от цвета сеттинга.
+	# Небо градиентом: свои цвета окружения или от цвета неба сеттинга.
 	var sky_material := ProceduralSkyMaterial.new()
-	var top := sky.darkened(1.0 - look.sky_top)
+	var top := sky.darkened(1.0 - env.sky_top)
 	top.s = minf(top.s * 2.6, 0.75)
+	var horizon := sky.lightened(env.sky_horizon - 1.0)
+	var bottom := sky.darkened(0.35)
+	if env.sky_colors.size() >= 3:
+		top = env.sky_colors[0]
+		horizon = env.sky_colors[1]
+		bottom = env.sky_colors[2]
 	sky_material.sky_top_color = top
-	sky_material.sky_horizon_color = sky.lightened(look.sky_horizon - 1.0)
-	sky_material.ground_horizon_color = sky.lightened(look.sky_horizon - 1.0)
-	sky_material.ground_bottom_color = sky.darkened(0.35)
+	sky_material.sky_horizon_color = horizon
+	sky_material.ground_horizon_color = horizon
+	sky_material.ground_bottom_color = bottom
 	sky_material.sun_angle_max = 12.0
+	if env.stars > 0:
+		sky_material.sky_cover = ImageTexture.create_from_image(env.star_image(Vector2i(2048, 1024)))
 	var sky_resource := Sky.new()
 	sky_resource.sky_material = sky_material
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky_resource
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = look.ambient_energy
+	if not env.ambient_sky:
+		# Тёмное небо света не даёт: заполняющий свет своим цветом, иначе героев не видно.
+		environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		environment.ambient_light_color = env.ambient_color
+	environment.ambient_light_energy = env.ambient_energy
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.tonemap_exposure = look.exposure
+	environment.tonemap_exposure = env.exposure
 	environment.fog_enabled = true
 	environment.fog_light_color = sky
-	environment.fog_density = look.fog_density
-	environment.fog_aerial_perspective = look.fog_aerial
+	environment.fog_density = env.fog_density
+	environment.fog_aerial_perspective = env.fog_aerial
 	environment.fog_sky_affect = 0.0
 	environment.glow_enabled = true
-	environment.glow_intensity = look.glow_intensity
-	environment.glow_bloom = look.glow_bloom
-	environment.glow_hdr_threshold = look.glow_threshold
+	environment.glow_intensity = env.glow_intensity
+	environment.glow_bloom = env.glow_bloom
+	environment.glow_hdr_threshold = env.glow_threshold
 	environment.adjustment_enabled = true
-	environment.adjustment_saturation = look.saturation
-	environment.adjustment_contrast = look.contrast
+	environment.adjustment_saturation = env.saturation
+	environment.adjustment_contrast = env.contrast
 	environment.ssao_enabled = look.ssao and not embedded
 	# Солнце с мягкими тенями.
 	sun_light = DirectionalLight3D.new()
-	sun_light.rotation = Vector3(deg_to_rad(look.sun_pitch), deg_to_rad(look.sun_yaw), 0.0)
-	sun_light.light_energy = look.sun_energy
-	sun_light.light_color = look.sun_color
+	sun_light.rotation = Vector3(deg_to_rad(env.sun_pitch), deg_to_rad(env.sun_yaw), 0.0)
+	sun_light.light_energy = env.sun_energy
+	sun_light.light_color = env.sun_color
 	sun_light.shadow_enabled = true
 	sun_light.shadow_blur = look.shadow_blur
 	sun_light.shadow_bias = 0.04
@@ -213,12 +231,26 @@ func add_water(at: Vector3, size: float) -> MeshInstance3D:
 	foam.noise = spots
 	m.set_shader_parameter("ripple", ripple)
 	m.set_shader_parameter("foam_noise", foam)
-	m.set_shader_parameter("deep_color", look.water_deep)
-	m.set_shader_parameter("shallow_color", look.water_shallow)
-	m.set_shader_parameter("clarity", look.water_clarity)
-	m.set_shader_parameter("wave_height", look.water_waves)
+	m.set_shader_parameter("deep_color", env.water_deep)
+	m.set_shader_parameter("shallow_color", env.water_shallow)
+	m.set_shader_parameter("clarity", env.water_clarity)
+	m.set_shader_parameter("wave_height", env.water_waves)
 	m.set_shader_parameter("hue_shift", hue_shift)
 	plane.material = m
+	var node := MeshInstance3D.new()
+	node.mesh = plane
+	node.position = at
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(node)
+	return node
+
+
+## Твердь до горизонта (основание мира без воды, #147): плоскость `size` метров с серединой `at`
+## и текстурой по координатам мира, без заметного повтора плитки.
+func add_solid(at: Vector3, size: float, tex: Texture2D) -> MeshInstance3D:
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(size, size)
+	plane.material = ground_material(tex)
 	var node := MeshInstance3D.new()
 	node.mesh = plane
 	node.position = at

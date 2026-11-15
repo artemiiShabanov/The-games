@@ -131,7 +131,7 @@ func _build_world() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(record.seed if record != null else 1, ":fray-look"))
 	var screen := lowpoly as ThreedScreen
-	screen.add_water(Vector3(0.0, -3.2, 0.0), 1200.0)
+	spawn_base(Vector3(0.0, -3.2, 0.0), 1200.0)
 	# Палуба: настил шире круга драки, борта, мачта с парусом, реквизит по краям.
 	var planks := lowpoly_texture("planks")
 	var deck := lowpoly.add_box(Vector3(0.0, -0.25, 0.0), Vector3(19.0, 0.5, 30.0), planks, 5.0)

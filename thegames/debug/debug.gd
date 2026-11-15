@@ -81,6 +81,8 @@ var lowpoly_compare := false
 var lowpoly_rig := false
 ## Увеличение экрана low poly (0 из `LowpolyTuning`).
 var lowpoly_scale := 0
+## Основание мира 3D-демок (#147): 0 как в окружении сеттинга, 1 жидкость, 2 пустота, 3 твердь.
+var env_base := 0
 ## Демки рисуют поверх хитбоксы героя и врагов (#98, тропа 16/32); под автотестом `--hitboxes`.
 var hitboxes := false
 var demo_bugs: Array[StringName] = []
@@ -407,6 +409,9 @@ func _register_builtin() -> void:
 	add_action(SECTION_DEMOS, "Low poly и продвинутые рядом", func() -> void:
 		lowpoly_compare = true
 		run_test_scene("lowpoly_test"))
+	var bases: Array[String] = ["как в сеттинге", "жидкость", "пустота", "твердь"]
+	add_choice(SECTION_DEMOS, "3D: основание мира", bases, func() -> String: return bases[env_base],
+			func(v: String) -> void: env_base = maxi(bases.find(v), 0))
 	add_number(SECTION_DEMOS, "Low poly: увеличение экрана (0 из ресурса)", func() -> int: return lowpoly_scale,
 			func(v: float) -> void: lowpoly_scale = int(v), 0, 4, 1, true)
 	add_action(SECTION_TOOLS, "Скриншот в debug/playtest (F9)", func() -> void:

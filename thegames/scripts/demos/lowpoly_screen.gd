@@ -65,6 +65,8 @@ var viewport: SubViewport
 var world: Node3D
 var camera: Camera3D
 var environment: Environment
+## Окружение сеттинга (#147): свет, туман, небо, основание мира.
+var env: SettingEnv
 var sky_dome: MeshInstance3D
 var hud: Node2D
 var draw_hud := Callable()
@@ -95,8 +97,9 @@ var _shadow_mesh: ArrayMesh
 ## (без неё ровный цвет); `scale` 0 берёт увеличение из `LowpolyTuning`. Во встроенном режиме
 ## увеличение на ступень меньше.
 static func make(area: Vector2, embedded: bool, palette_: Array[Color], sky_: Color, sky_texture: Texture2D = null,
-		scale := 0) -> LowpolyScreen:
+		scale := 0, env_: SettingEnv = null) -> LowpolyScreen:
 	var s := LowpolyScreen.new()
+	s.env = env_ if env_ != null else SettingDef.of(Game.Setting.PIRATES).env(false)
 	s._setup(area, embedded, palette_, sky_, sky_texture, scale)
 	return s
 
@@ -174,8 +177,19 @@ func _build_scene(sky_texture: Texture2D) -> void:
 	_pink_material = ShaderMaterial.new()
 	_pink_material.shader = pink_shader
 	_flash_material = _new_material(null, {"flash": 1.0, "lit": 0.0, "fog_amount": 0.0})
+	if env.stars > 0 and _star_dome():
+		# Звёздный купол вместо панорамы: фон от зенита к горизонту и точки.
+		var back: Array[Color] = [sky.darkened(0.5), sky]
+		if env.sky_colors.size() >= 2:
+			back = [env.sky_colors[0], env.sky_colors[1]]
+		sky_texture = ImageTexture.create_from_image(env.star_image(Vector2i(256, 96), back))
 	if sky_texture != null:
 		_build_sky(sky_texture)
+
+
+## Звёзды куполом с картинкой; у «продвинутых» они лежат на настоящем небе.
+func _star_dome() -> bool:
+	return true
 
 
 func _process(_delta: float) -> void:
@@ -204,13 +218,13 @@ func _new_material(tex: Texture2D, extra := {}) -> ShaderMaterial:
 		m.set_shader_parameter("tex", tex)
 	m.set_shader_parameter("snap", view / 2.0 / maxf(tuning.vertex_snap, 0.25))
 	m.set_shader_parameter("affine", tuning.affine)
-	var to_sun := Basis.from_euler(Vector3(deg_to_rad(tuning.sun_pitch), deg_to_rad(tuning.sun_yaw), 0.0)).z
+	var to_sun := Basis.from_euler(Vector3(deg_to_rad(env.sun_pitch), deg_to_rad(env.sun_yaw), 0.0)).z
 	m.set_shader_parameter("light_dir", to_sun)
-	m.set_shader_parameter("sun", Vector3.ONE * tuning.sun_energy)
-	m.set_shader_parameter("ambient", Vector3.ONE * tuning.ambient_energy)
+	m.set_shader_parameter("sun", Vector3(env.sun_color.r, env.sun_color.g, env.sun_color.b) * env.sun_energy)
+	m.set_shader_parameter("ambient", Vector3(env.ambient_color.r, env.ambient_color.g, env.ambient_color.b) * env.ambient_energy)
 	m.set_shader_parameter("fog_color", sky)
-	m.set_shader_parameter("fog_begin", tuning.fog_begin)
-	m.set_shader_parameter("fog_end", tuning.fog_end)
+	m.set_shader_parameter("fog_begin", env.fog_begin)
+	m.set_shader_parameter("fog_end", env.fog_end)
 	m.set_shader_parameter("hue_shift", hue_shift)
 	_apply_holes(m)
 	for key: String in extra:

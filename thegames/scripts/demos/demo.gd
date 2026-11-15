@@ -592,10 +592,11 @@ func lowpoly_screen(draw_hud: Callable) -> LowpolyScreen:
 	threed = record != null and record.tech == Game.Tech.THREED
 	var area := embed_size if embedded else CardFrame.inner_size()
 	if threed:
-		lowpoly = ThreedScreen.make_threed(area, embedded, lowpoly_set.colors_lowpoly(), lowpoly_set.sky_lowpoly(), Debug.lowpoly_scale)
+		lowpoly = ThreedScreen.make_threed(area, embedded, lowpoly_set.colors_lowpoly(), lowpoly_set.sky_lowpoly(), Debug.lowpoly_scale,
+				lowpoly_set.env(true))
 	else:
 		lowpoly = LowpolyScreen.make(area, embedded, lowpoly_set.colors_lowpoly(), lowpoly_set.sky_lowpoly(),
-				lowpoly_set.texture_lowpoly("sky"), Debug.lowpoly_scale)
+				lowpoly_set.texture_lowpoly("sky"), Debug.lowpoly_scale, lowpoly_set.env(false))
 	lowpoly.draw_hud = draw_hud
 	if has_bug(&"alien_palette"):
 		lowpoly.set_alien(bug_param(&"alien_palette", &"hue_shift", 0.45))
@@ -621,6 +622,34 @@ func spawn_model(slot: String, name: String, parent: Node3D = null) -> LowpolyMo
 		m = lowpoly.pink_model(def) if is_pink(slot) else lowpoly.model(def)
 	(parent if parent != null else lowpoly.world).add_child(m)
 	return m
+
+
+## Основание мира (#147): то, что лежит вокруг уровня до горизонта, у пиратов море. Середина
+## `at` (её высота это уровень основания), сторона `size` метров. Вид задаёт окружение сеттинга:
+## жидкость, пустота (тогда `null`) или твердь. Ручка дебаг-меню и `--base=liquid|void|solid`
+## под автотестом подменяют вид.
+func spawn_base(at: Vector3, size: float) -> MeshInstance3D:
+	var env := lowpoly.env
+	var kind := env.base
+	if Debug.env_base > 0:
+		kind = (Debug.env_base - 1) as SettingEnv.Base
+	if AutoTest.enabled:
+		var arg := str(AutoTest.parse_args(OS.get_cmdline_user_args()).get("base", ""))
+		if ["liquid", "void", "solid"].has(arg):
+			kind = ["liquid", "void", "solid"].find(arg) as SettingEnv.Base
+	if kind == SettingEnv.Base.VOID:
+		return null
+	if kind == SettingEnv.Base.LIQUID and threed:
+		return (lowpoly as ThreedScreen).add_water(at, size)
+	# Твердь у сеттинга с жидкостью (подмена ручкой) берёт песок, у остальных свою текстуру.
+	var solid_name := env.base_texture if env.base == SettingEnv.Base.SOLID else "sand"
+	if kind == SettingEnv.Base.SOLID and threed:
+		return (lowpoly as ThreedScreen).add_solid(at, size, lowpoly_texture(solid_name))
+	if kind == SettingEnv.Base.SOLID:
+		return lowpoly.add_plane(at, Vector2(size, size), lowpoly_texture(solid_name), env.base_tile, {"affine": 0.0})
+	var liquid_name := env.base_texture if env.base == SettingEnv.Base.LIQUID else "water"
+	return lowpoly.add_plane(at, Vector2(size, size), lowpoly_texture(liquid_name), env.base_tile,
+			{"uv_scroll": env.base_scroll, "affine": 0.0})
 
 
 ## Текстура уровня сеттинга записи для демки low poly: `sand`, `planks`, `water`, `rock`, `sail`.

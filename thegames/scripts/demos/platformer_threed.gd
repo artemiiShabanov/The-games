@@ -216,7 +216,7 @@ func _build_world() -> void:
 	rng.seed = hash(str(record.seed if record != null else 1, ":hook-look"))
 	var water := sim.water
 	var mid := (level.islets[0].pos + level.islets[level.islets.size() - 1].pos) / 2.0
-	(lowpoly as ThreedScreen).add_water(Vector3(mid.x, water, mid.z), 900.0)
+	spawn_base(Vector3(mid.x, water, mid.z), 900.0)
 	for it in level.islets:
 		_build_islet(it, rng, water)
 	for p in level.props:

@@ -144,8 +144,7 @@ func _build_world() -> void:
 			land.set_h(ix, iz, level.height(lo.x + ix * cell, lo.y + iz * cell))
 	land.build(lowpoly, lowpoly_texture("sand"), 3.0)
 	var mid := (lo + hi) / 2.0
-	lowpoly.add_plane(Vector3(mid.x, 0.0, mid.y), Vector2(520.0, 520.0), lowpoly_texture("water"), 6.0,
-			{"uv_scroll": Vector2(0.02, 0.035), "affine": 0.0})
+	spawn_base(Vector3(mid.x, 0.0, mid.y), 520.0)
 	# Укрытия и бочки с порохом.
 	for c in level.covers:
 		var name := "crate" if c.shape == RailLevel.Shape.CRATE else "barrel"
