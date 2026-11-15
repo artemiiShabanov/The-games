@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_t")
-laps = 2
+laps = 3
 countdown = 2.0
 top_speed = 22.0
 accel = 11.0
@@ -35,11 +35,14 @@ sink_back = 6.0
 ramp_speed = 0.62
 ramp_height = 1.9
 ramp_back = 30.0
-rival_skills = Array[float]([0.95, 1.01, 1.06])
+rival_skills = Array[float]([0.98, 1.04, 1.09])
+band_range = 70.0
+band_ahead = 0.9
+band_behind = 1.12
 rival_accel = 10.0
 rival_lateral = 16.0
 grace_seconds = 8.0
-max_seconds = 150.0
+max_seconds = 230.0
 bot_lateral = 11.0
 bot_drift_curve = 0.026
 bot_look = 5.0
@@ -58,3 +61,4 @@ smoke_color = Color(0.92, 0.89, 0.8, 1)
 smoke_hot = Color(1, 0.62, 0.25, 1)
 music_db = -10.0
 sfx_db = -6.0
+charge_db = -16.0

@@ -83,7 +83,7 @@
   `--scene=lowpoly_test --rig --frames=120` (`--rig=compare` рядом с прежней из кусков). Платформер ×
   low poly «тропа вглубь экрана» (#112): `--scene=demo_test --tech=lowpoly --frames=7000`, коса по
   сиду и боты без окна текстом `debug/tools/dump_spit.gd -- <seed> [count] [wild,sneeze,coins]`. Гонки × low poly «кольцо с дрифтом» (#113):
-  `--scene=demo_test --genre=racing --tech=lowpoly --frames=12000` (`TIMEOUT=500`), трасса по сиду и
+  `--scene=demo_test --genre=racing --tech=lowpoly --frames=17000` (`TIMEOUT=560`), трасса по сиду и
   заезд ботов без окна текстом `debug/tools/dump_ring.gd -- <seed> [count]`. Шутер × low poly «рельсовый тир» (#114):
   `--scene=demo_test --genre=shooter --tech=lowpoly --frames=6000`, маршрут по сиду и бой
   ботов без окна текстом `debug/tools/dump_rail.gd -- <seed> [count]`. Спорт × low poly «броски в кольцо» (#115):

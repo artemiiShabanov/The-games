@@ -57,6 +57,9 @@ var _map_scale := 1.0
 var _map_size := Vector2.ZERO
 var _music: AudioStreamPlayer
 var _sfx := {}
+var _charge_sfx: AudioStreamPlayer
+var _charge_gain := 0.0
+var _charge_ready := false
 
 
 func _placeholder_slots() -> Array[String]:
@@ -101,6 +104,14 @@ func _setup_audio() -> void:
 		_music.play()
 	_sfx["go"] = Sfx.player(Sfx.blip(880.0, 0.3, 0.4, 6.0))
 	_sfx["drift"] = Sfx.player(Sfx.hiss(0.25, 0.14))
+	# Гул заряда в заносе (плейтест 2026-11-15): тихая петля, тон растёт с зарядом; готовый заряд
+	# отмечает короткий мягкий щелчок.
+	_sfx["ready"] = Sfx.player(Sfx.blip(740.0, 0.06, 0.18, 40.0))
+	_charge_sfx = Sfx.player(Sfx.hum_loop(), -80.0)
+	add_child(_charge_sfx)
+	if not embedded:
+		_charge_sfx.play()
+		get_tree().process_frame.connect(_charge_tick)
 	_sfx["boost"] = Sfx.player(Sfx.blip(660.0, 0.25, 0.4, 5.0))
 	_sfx["wind"] = Sfx.player(Sfx.blip(990.0, 0.2, 0.3, 8.0))
 	_sfx["bump"] = Sfx.player(Sfx.thud(0.12, 0.45))
@@ -111,6 +122,20 @@ func _setup_audio() -> void:
 	for p in _sfx.values():
 		(p as AudioStreamPlayer).volume_db = tuning.sfx_db if not quiet else -80.0
 		add_child(p)
+
+
+## Гул заряда: слышен, пока игрок в заносе и заезд идёт; высота от доли заряда.
+func _charge_tick() -> void:
+	var me := sim.player()
+	var live := running and not paused and not sim.ended and me.drifting
+	var k := clampf(me.charge / tuning.charge_full, 0.0, 1.0)
+	_charge_gain = lerpf(_charge_gain, (0.35 + 0.65 * k) if live else 0.0, minf(get_process_delta_time() * 10.0, 1.0))
+	_charge_sfx.volume_db = tuning.sfx_db + tuning.charge_db + linear_to_db(maxf(_charge_gain, 0.0001))
+	_charge_sfx.pitch_scale = lerpf(0.8, 1.7, k)
+	var ready := live and me.charge >= tuning.charge_min
+	if ready and not _charge_ready:
+		_play("ready")
+	_charge_ready = ready
 
 
 func _play(name: String) -> void:
@@ -274,7 +299,7 @@ func _build_ramp() -> void:
 	var ramp := _mesh()
 	var half := track.half_width
 	var from := track.ramp_s - track.ramp_run
-	var lift := Vector3(0.0, 1.1, 0.0)
+	var lift := Vector3(0.0, track.ramp_lift, 0.0)
 	var a := track.world(from, -half, 0.03)
 	var b := track.world(from, half, 0.03)
 	var c := track.world(track.ramp_s, half) + lift
@@ -475,6 +500,7 @@ func _sync(dt: float) -> void:
 		var at := Vector3(car.pos.x, track.height(car.s) + sim.air_height(car), car.pos.y)
 		node.position = at
 		node.rotation.y = car.yaw
+		node.rotation.x = lerp_angle(node.rotation.x, sim.ramp_pitch(car), clampf(14.0 * dt, 0.0, 1.0))
 		node.visible = car.sunk <= 0.0
 		car_shadows[i].visible = node.visible
 		car_shadows[i].position = Vector3(car.pos.x, track.height(car.s) + 0.05, car.pos.y)

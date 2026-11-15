@@ -350,6 +350,19 @@ static func hop(from := 240.0, to := 430.0, seconds := 0.13, volume := 0.32) -> 
 	return _wav(out)
 
 
+## Тихий гул-петля (заряд ускорения в заносе, #132): мягкий тон с обертоном и медленным
+## дрожанием. Целое число периодов, шва нет; высоту ведёт демка через `pitch_scale`.
+static func hum_loop(freq := 200.0, volume := 0.4) -> AudioStreamWAV:
+	var n := int(roundf(MIX_RATE / freq) * 40.0)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in n:
+		var u := float(i) / n
+		var ph := TAU * 40.0 * u
+		out[i] = (sin(ph) * 0.7 + sin(ph * 2.0) * 0.2 + sin(ph * 3.0) * 0.08) * (0.8 + 0.2 * sin(TAU * 2.0 * u)) * volume
+	return _loop(out)
+
+
 # --- Футбол (плейтест 2026-11-15, #132): свои звуки демки, не из мини-игр ----------------------
 
 ## Свисток судьи: два близких тона дают биение, горошина дрожит трелью, сверху немного шума.

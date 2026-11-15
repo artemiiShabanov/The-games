@@ -51,6 +51,12 @@ const PATH := "res://resources/demos/racing_lowpoly.tres"
 @export var ramp_back := 30.0
 ## Соперники: доли предела скорости, разгон и поперечное ускорение в поворотах.
 @export var rival_skills: Array[float] = [0.95, 1.01, 1.06]
+## Резинка (плейтест 2026-11-15, #132): предел скорости соперника зависит от разрыва с игроком.
+## Отстал на `band_range` метров и больше: множитель `band_behind`; ушёл вперёд на столько же:
+## `band_ahead`; между ними ровный переход, рядом с игроком множитель 1.
+@export var band_range := 70.0
+@export var band_ahead := 0.9
+@export var band_behind := 1.12
 @export var rival_accel := 10.0
 @export var rival_lateral := 16.0
 ## Гонка кончается через столько секунд после финиша последнего соперника, если игрок не доехал.
@@ -80,6 +86,8 @@ const PATH := "res://resources/demos/racing_lowpoly.tres"
 @export var smoke_hot := Color(1.0, 0.62, 0.25)
 @export var music_db := -10.0
 @export var sfx_db := -6.0
+## Гул заряда в заносе относительно `sfx_db`: ненавязчивый, тон растёт с зарядом.
+@export var charge_db := -16.0
 
 
 static func load_default() -> RacingLowpolyTuning:

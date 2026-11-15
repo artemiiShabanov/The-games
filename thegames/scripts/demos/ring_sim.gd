@@ -147,12 +147,28 @@ func place() -> int:
 	return ahead + 1
 
 
-## Высота шлюпки над трассой в полёте с трамплина.
+## Высота шлюпки над трассой: на настиле трамплина она поднимается вместе с ним (плейтест
+## 2026-11-15: раньше ехала по земле сквозь настил), в полёте дуга начинается с высоты края.
+## Соперники едут по оси трассы без своего полёта: над промоиной им рисуется та же дуга.
 func air_height(car: Car) -> float:
-	if car.air <= 0.0:
-		return 0.0
-	var k := 1.0 - car.air / car.air_total
-	return tuning.ramp_height * 4.0 * k * (1.0 - k)
+	if car.air > 0.0:
+		var k := 1.0 - car.air / car.air_total
+		return tuning.ramp_height * 4.0 * k * (1.0 - k) + track.ramp_lift * (1.0 - k)
+	var to_edge := track.delta(car.s, track.ramp_s)
+	if to_edge >= 0.0 and to_edge <= track.ramp_run:
+		return track.ramp_lift * (1.0 - to_edge / track.ramp_run)
+	if car.rival and to_edge < 0.0 and to_edge >= -track.ramp_gap:
+		var k := -to_edge / track.ramp_gap
+		return tuning.ramp_height * 4.0 * k * (1.0 - k) + track.ramp_lift * (1.0 - k)
+	return 0.0
+
+
+## Наклон носа вверх на настиле трамплина, радианы.
+func ramp_pitch(car: Car) -> float:
+	var to_edge := track.delta(car.s, track.ramp_s)
+	if car.air <= 0.0 and to_edge >= 0.0 and to_edge <= track.ramp_run:
+		return atan2(track.ramp_lift, track.ramp_run)
+	return 0.0
 
 
 ## Шаг мира: руль −1..1 (плюс вправо), газ −1..1 (минус тормоз), держат ли дрифт.
@@ -188,7 +204,10 @@ func step(dt: float, steer: float, gas: float, drift: bool) -> void:
 
 ## Соперник: по оси трассы со своей полосой, тормозит перед поворотом по своей силе.
 func _step_rival(car: Car, dt: float) -> void:
-	var top := tuning.top_speed * car.skill * rival_mult
+	# Резинка: отставший от игрока едет быстрее, ушедший вперёд медленнее.
+	var gap := clampf((player().total - car.total) / maxf(tuning.band_range, 1.0), -1.0, 1.0)
+	var band := lerpf(1.0, tuning.band_behind, gap) if gap > 0.0 else lerpf(1.0, tuning.band_ahead, -gap)
+	var top := tuning.top_speed * car.skill * rival_mult * band
 	if car.sneezed > 0.0:
 		# От чиха: встал и стоит.
 		car.sneezed -= dt

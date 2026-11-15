@@ -39,6 +39,8 @@ var winds: Array[Wind] = []
 var ramp_s := 0.0
 var ramp_gap := 8.0
 var ramp_run := 6.0
+## Высота края трамплина над трассой: по настилу шлюпка поднимается, с края взлетает.
+var ramp_lift := 1.1
 
 
 func count() -> int:
