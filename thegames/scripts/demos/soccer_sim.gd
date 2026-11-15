@@ -86,6 +86,9 @@ var _rng := RandomNumberGenerator.new()
 var _steal_cd := 0.0
 var _space_t := 0.0
 var _conceded := RIVAL
+## След ведущего мяч для опоздания соперника: место и скорость по шагам, самые старые первыми.
+var _trail: Array[Vector2] = []
+var _trail_owner := -1
 var _keeper_seen: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO]
 ## Сколько секунд зарядки держит ИИ игрока, который решил бить (по индексу).
 var _ai_charge: Dictionary[int, float] = {}
@@ -166,6 +169,7 @@ func step(axis: Vector2, kick: bool, slide: bool) -> void:
 		return
 	kick_t += DT
 	_steal_cd = maxf(_steal_cd - DT, 0.0)
+	_track_carrier()
 	# Управление переходит к своему, у кого мяч.
 	if owner >= 0 and owner != ctrl and players[owner].team == HERO and not players[owner].keeper:
 		ctrl = owner
@@ -560,7 +564,9 @@ func _field_ai(i: int) -> Array:
 			if players[j].pos.distance_to(c.pos) < players[presser].pos.distance_to(c.pos):
 				presser = j
 		if presser == i:
-			var guard := c.pos + (Vector2(own_x(team), mid()) - c.pos).normalized() * 14.0
+			# Соперник видит ведущего с опозданием на поворотах; свой партнёр героя без опоздания.
+			var seen := _seen_carrier() if team == RIVAL else c.pos
+			var guard := seen + (Vector2(own_x(team), mid()) - seen).normalized() * 14.0
 			var slide := c.pos.distance_to(p.pos) < 20.0 and p.slide_cd <= 0.0 and _rng.randf() < float(style[2]) * DT * tuning.tackle_rate
 			if slide:
 				p.facing = (b - p.pos).normalized()
@@ -584,6 +590,29 @@ func _field_ai(i: int) -> Array:
 		return [_toward(p.pos, b + Vector2(ball_vel.x, ball_vel.y) * 0.2), false, false]
 	var hold := b.lerp(Vector2(own_x(team), mid()), 0.45)
 	return [_toward(p.pos, hold), false, false]
+
+
+## Запоминает путь ведущего мяч на `rival_turn_delay` секунд назад; со сменой ведущего с нуля.
+func _track_carrier() -> void:
+	if owner != _trail_owner:
+		_trail_owner = owner
+		_trail.clear()
+	if owner < 0:
+		return
+	_trail.append(players[owner].pos)
+	_trail.append(players[owner].vel)
+	var keep := maxi(int(tuning.rival_turn_delay / DT), 1) * 2
+	while _trail.size() > keep:
+		_trail.remove_at(0)
+		_trail.remove_at(0)
+
+
+## Где соперник ждёт ведущего: место и скорость `rival_turn_delay` секунд назад, продолженные по
+## прямой до сейчас. Бежит ровно: совпадает с настоящим местом; повернул: соперник ошибается.
+func _seen_carrier() -> Vector2:
+	if owner < 0 or _trail.size() < 2:
+		return players[owner].pos if owner >= 0 else Vector2(ball.x, ball.y)
+	return _trail[0] + _trail[1] * (_trail.size() / 2 - 1) * DT
 
 
 var _ai_aim: Dictionary[int, float] = {}

@@ -20,6 +20,7 @@ slide_seconds = 0.35
 slide_cooldown = 0.8
 down_seconds = 0.7
 tackle_rate = 1.5
+rival_turn_delay = 0.25
 gravity = 600.0
 bounce = 0.5
 friction = 170.0
