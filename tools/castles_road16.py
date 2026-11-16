@@ -365,7 +365,7 @@ def _knight_back(c, x0, phase):
 def wagon(lean, phase, accent):
     """Боевая повозка со спины, 160×104: два высоких деревянных колеса с железной шиной, дощатый
     задний борт с окованными поясами и щитом цвета `accent`, по углам высокие зубцы с бойницей,
-    слева связка копий, справа древко с раздвоенным вымпелом; на облучке рыцарь. `lean` −1..1
+    слева связка копий, справа короткий флажок с раздвоенным концом; на облучке рыцарь. `lean` −1..1
     крен на повороте."""
     c = Canvas(160, 104)
     sh = lean * 6
@@ -424,71 +424,85 @@ def wagon(lean, phase, accent):
     c.rect(cx - 10, 61, cx + 10, 63, GOLD)
     # Древко с раздвоенным вымпелом у правого зубца.
     px = 126 + sh * 1.4
-    c.rect(px - 1, 5, px, 30, BRASS)
-    c.ellipse(px - 0.5, 3, 2, 2, GOLD)
-    flap = 3 * math.sin(phase * math.pi * 2 + 0.6)
-    c.poly([(px + 1, 6), (px + 22, 8 + flap), (px + 14, 13 + flap), (px + 22, 18 + flap), (px + 1, 20)], accent)
-    c.line(px + 2, 13, px + 12, 13 + flap * 0.6, GOLD, 1)
+    c.rect(px - 1, 15, px, 30, BRASS)
+    c.ellipse(px - 0.5, 14, 1.5, 1.5, GOLD)
+    flap = 2 * math.sin(phase * math.pi * 2 + 0.6)
+    c.poly([(px + 1, 16), (px + 14, 17 + flap), (px + 9, 20 + flap), (px + 14, 23 + flap), (px + 1, 25)], accent)
+    c.line(px + 2, 20, px + 7, 20 + flap * 0.6, GOLD, 1)
     c.finish()
     return c
 
 
 def rival_wagon(lean, phase, accent):
     """Повозка чужого герба со спины, 160×104: тёмный окованный короб со щитами по борту, над
-    ним полосатый шатёр цвета `accent` с флажком на шпиле, в проёме стражник в железной шляпе и
-    багровой тунике, слева алебарда, справа хоругвь. Ширина по колёсам та же, что у героя."""
+    ним крашеный в `accent` дощатый борт с белыми полосами, по углам столбики: на левом фонарь,
+    на правом короткий флажок; на облучке стражник в железной шляпе и багровой тунике, рядом
+    бочонок и сундук. Без шатра и высоких древков. Ширина по колёсам та же, что у героя."""
     c = Canvas(160, 104)
     sh = lean * 6
+    mark = WHITE if accent != GOLD else RED
     _wheel(c, 22 + sh * 0.3, 80, 22, phase, -1, METAL, DARK, GREY)
     _wheel(c, 138 + sh * 0.3, 80, 22, phase, 1, METAL, DARK, GREY)
     c.rect(27, 84, 133, 88, DARK)
     c.rect(27, 84, 133, 84, METAL)
-    # Алебарда слева: древко, топор и остриё.
-    hx = 32 + sh * 1.3
-    c.line(37 + sh * 0.8, 64, hx, 8, BRASS, 2)
-    c.poly([(hx - 1, 11), (hx - 9, 9), (hx - 12, 17), (hx - 9, 25), (hx - 1, 22)], GREY)
-    c.poly([(hx - 2, 10), (hx + 3, 10), (hx, 1)], GREY)
-    c.poly([(hx + 1, 14), (hx + 7, 16), (hx + 1, 19)], METAL)
-    # Хоругвь справа: древко с перекладиной, полотнище с ласточкиным хвостом.
-    bx = 127 + sh * 1.3
-    c.line(124 + sh * 0.8, 64, bx, 9, DARK, 2)
-    c.rect(bx - 9, 11, bx + 9, 12, DARK)
-    swing = 1 if phase >= 0.5 else 0
-    c.poly([(bx - 8, 13), (bx + 8, 13), (bx + 8 + swing, 40), (bx + swing, 34), (bx - 8 + swing, 40)], accent)
-    c.poly([(bx - 5, 17), (bx, 22), (bx + 5, 17), (bx + 5, 21), (bx, 26), (bx - 5, 21)], WHITE if accent != GOLD else RED)
-    c.ellipse(bx, 8, 2, 2, GOLD)
-    # Шатёр: конус полосами от шпиля, под ним подзор с зубчиками.
-    for y in range(16, 51):
-        k = (y - 16) / 34.0
-        cxr = 80 + sh * (1.3 - 0.3 * k)
-        half = 3 + 49 * k
-        for x in range(int(round(cxr - half)), int(round(cxr + half)) + 1):
-            idx = min(6, max(0, int((x - cxr + half) / (2 * half + 0.001) * 7)))
-            c.set(x, y, accent if idx % 2 == 0 else WHITE)
-    for i, x in enumerate(range(28, 132, 13)):
-        col = accent if i % 2 == 0 else WHITE
-        c.rect(x + sh, 51, x + 12 + sh, 59, col)
-        c.poly([(x + sh, 60), (x + 12 + sh, 60), (x + 6 + sh, 65)], col)
-    c.rect(28 + sh, 51, 131 + sh, 51, GOLD)
-    # Проём: стражник со спины в тени шатра.
-    gx = int(round(80 + sh * 1.1))
-    c.ellipse(gx, 41, 14, 12, K)
-    c.rect(gx - 14, 41, gx + 14, 63, K)
-    c.rect(gx - 8, 46, gx + 8, 63, TAN)
-    c.rect(gx - 8, 56, gx + 8, 57, GOLD)
-    c.rect(gx - 11, 47, gx - 9, 60, DARK)
-    c.rect(gx + 9, 47, gx + 11, 60, DARK)
-    c.rect(gx - 3, 42, gx + 3, 46, DARK)
-    c.ellipse(gx, 37, 6, 5, METAL)
-    c.rect(gx - 9, 40, gx + 9, 42, METAL)
-    c.rect(gx - 8, 40, gx + 3, 40, GREY)
-    c.rect(gx - 3, 33, gx - 2, 36, GREY)
-    # Шпиль и флажок.
-    ax = int(round(80 + sh * 1.3))
-    c.rect(ax, 5, ax + 1, 16, DARK)
-    c.ellipse(ax + 0.5, 15, 2.5, 2.5, GOLD)
+    # Груз за бортом: бочонок слева, сундук справа.
+    c.rect(46 + sh, 27, 61 + sh, 44, BRASS)
+    c.rect(47 + sh, 26, 60 + sh, 26, BRASS)
+    for y in (29, 37):
+        c.rect(46 + sh, y, 61 + sh, y + 1, METAL)
+    c.rect(49 + sh, 31, 50 + sh, 35, GOLD)
+    c.rect(98 + sh, 30, 116 + sh, 44, GREY)
+    c.rect(99 + sh, 28, 115 + sh, 29, GREY)
+    c.rect(98 + sh, 33, 116 + sh, 34, METAL)
+    c.rect(100 + sh, 30, 101 + sh, 31, WHITE)
+    c.rect(106 + sh, 34, 108 + sh, 37, GOLD)
+    # Стражник со спины: туника, руки к вожжам, железная шляпа с полями.
+    gx = int(round(80 + sh * 1.2))
+    c.rect(gx - 8, 25, gx + 8, 46, TAN)
+    c.rect(gx - 8, 38, gx + 8, 39, GOLD)
+    c.rect(gx - 1, 27, gx + 1, 36, DARK)
+    for side in (-1, 1):
+        sx = gx + side * 9
+        c.line(sx, 28, sx + side * 6, 36, DARK, 4)
+        c.line(sx + side * 6, 36, sx + side * 4, 44, DARK, 3)
+        c.ellipse(sx, 27, 3.5, 3.5, METAL)
+    c.rect(gx - 3, 21, gx + 3, 25, DARK)
+    c.ellipse(gx, 15, 6.5, 6, METAL)
+    c.rect(gx - 10, 19, gx + 10, 21, METAL)
+    c.rect(gx - 9, 19, gx + 3, 19, GREY)
+    c.rect(gx - 4, 11, gx - 3, 15, GREY)
+    bob = 1 if phase >= 0.5 else 0
+    c.rect(gx - 1, 7 + bob, gx + 1, 9 + bob, GREY)
+    # Крашеный борт: поле цвета герба, белые полосы, швы досок, перила с заклёпками.
+    c.poly([(30 + sh, 44), (130 + sh, 44), (132 + sh * 0.6, 65), (28 + sh * 0.6, 65)], accent)
+    for x in (44, 104):
+        c.rect(x + sh * 0.9, 47, x + 11 + sh * 0.9, 64, mark)
+    for x in (43, 56, 68, 92, 103, 116):
+        c.rect(x + sh * 0.9, 47, x + sh * 0.9, 64, DARK)
+    c.poly([(80 + sh * 0.9 - 9, 50), (80 + sh * 0.9, 58), (80 + sh * 0.9 + 9, 50),
+            (80 + sh * 0.9 + 9, 54), (80 + sh * 0.9, 62), (80 + sh * 0.9 - 9, 54)], mark)
+    c.rect(29 + sh, 42, 131 + sh, 45, METAL)
+    c.rect(29 + sh, 42, 131 + sh, 42, GREY)
+    for x in range(38, 126, 12):
+        c.rect(x + sh, 43, x + 1 + sh, 44, GOLD)
+    # Угловые столбики с железной шапкой.
+    for x0 in (26, 127):
+        c.rect(x0 + sh, 34, x0 + 7 + sh, 64, DARK)
+        c.rect(x0 + sh - 1, 32, x0 + 8 + sh, 34, METAL)
+        c.rect(x0 + 2 + sh, 38, x0 + 3 + sh, 60, METAL)
+    # Фонарь на левом столбике: огонь мигает.
+    lx = 26 + sh * 1.1
+    c.rect(lx + 1, 23, lx + 6, 31, METAL)
+    c.rect(lx + 2, 25, lx + 5, 30, GOLD)
+    c.rect(lx + 3, 26 + bob, lx + 4, 28 + bob, WHITE)
+    c.rect(lx, 21, lx + 7, 22, METAL)
+    c.rect(lx + 3, 19, lx + 4, 20, GREY)
+    # Короткий флажок на правом столбике.
+    px = 131 + sh * 1.2
+    c.rect(px - 1, 18, px, 31, DARK)
+    c.ellipse(px - 0.5, 17, 1.5, 1.5, GOLD)
     flap = 2 * math.sin(phase * math.pi * 2)
-    c.poly([(ax + 2, 4), (ax + 17, 7 + flap), (ax + 2, 11)], accent)
+    c.poly([(px + 1, 19), (px + 13, 22 + flap), (px + 1, 27)], accent)
     # Короб: тёмные доски, железные полосы с шипами, полоса герба, три щита.
     c.poly([(24 + sh * 0.6, 64), (136 + sh * 0.6, 64), (131 + sh * 0.4, 93), (29 + sh * 0.4, 93)], DARK)
     for x in (38, 66, 93, 121):
@@ -499,7 +513,7 @@ def rival_wagon(lean, phase, accent):
     for x in (52, 80, 108):
         c.ellipse(x + sh * 0.5, 81, 8, 8, GREY)
         c.ellipse(x + sh * 0.5, 81, 6, 6, accent)
-        c.rect(x + sh * 0.5 - 5, 80, x + sh * 0.5 + 5, 81, WHITE if accent != GOLD else RED)
+        c.rect(x + sh * 0.5 - 5, 80, x + sh * 0.5 + 5, 81, mark)
         c.ellipse(x + sh * 0.5, 81, 2, 2, GOLD)
     c.finish()
     return c
