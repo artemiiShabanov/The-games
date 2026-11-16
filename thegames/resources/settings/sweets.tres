@@ -1,0 +1,88 @@
+[gd_resource type="Resource" script_class="SettingDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+[ext_resource type="Script" path="res://scripts/settings/setting_env.gd" id="2_env"]
+
+[sub_resource type="Resource" id="env_lp"]
+script = ExtResource("2_env")
+sun_pitch = -50.0
+sun_yaw = 38.0
+sun_energy = 0.8
+sun_color = Color(1, 0.95, 0.86, 1)
+ambient_energy = 0.62
+ambient_color = Color(1, 0.92, 0.95, 1)
+fog_begin = 34.0
+fog_end = 100.0
+base = 0
+base_texture = "water"
+base_tile = 6.0
+base_scroll = Vector2(0.01, 0.016)
+
+[sub_resource type="Resource" id="env_td"]
+script = ExtResource("2_env")
+sun_pitch = -40.0
+sun_yaw = 58.0
+sun_energy = 1.65
+sun_color = Color(1, 0.93, 0.82, 1)
+ambient_energy = 0.55
+ambient_color = Color(1, 0.9, 0.94, 1)
+sky_colors = Array[Color]([Color(0.36, 0.7, 0.8, 1), Color(0.85, 0.97, 0.91, 1), Color(0.95, 0.49, 0.66, 1)])
+fog_density = 0.0018
+fog_aerial = 0.5
+glow_intensity = 0.45
+glow_bloom = 0.08
+glow_threshold = 0.95
+saturation = 1.08
+contrast = 1.02
+exposure = 0.9
+base = 0
+water_deep = Color(0.62, 0.16, 0.36, 1)
+water_shallow = Color(1, 0.6, 0.75, 1)
+water_clarity = 3.0
+water_waves = 0.4
+
+[resource]
+script = ExtResource("1_set")
+setting = 6
+id = &"sweets"
+complete = false
+sprites_8bit = "res://assets/settings/sweets/8bit/"
+sprites_16bit = "res://assets/settings/sweets/16bit/"
+bit16_colors = Array[Color]([Color(0.1686, 0.0863, 0.1176, 1), Color(0.1843, 0.4235, 0.5804, 1), Color(0.2471, 0.6627, 0.6118, 1), Color(0.5255, 0.8588, 0.7451, 1), Color(0.8275, 0.9647, 0.8941, 1), Color(1.0000, 0.9686, 0.9255, 1), Color(0.8392, 0.7490, 0.8000, 1), Color(0.7882, 0.5020, 0.2431, 1), Color(0.5804, 0.3216, 0.1569, 1), Color(0.9725, 0.8118, 0.4157, 1), Color(0.8157, 0.5647, 0.2196, 1), Color(0.4863, 0.2824, 0.2196, 1), Color(0.2902, 0.1569, 0.1490, 1), Color(0.9020, 0.2078, 0.2706, 1), Color(1.0000, 0.5569, 0.7137, 1), Color(0.7176, 0.2275, 0.4392, 1)])
+sky_bands = Array[Color]([Color(0.4353, 0.7647, 0.8392, 1), Color(0.5098, 0.8118, 0.8392, 1), Color(0.5882, 0.8549, 0.8392, 1), Color(0.6627, 0.8941, 0.8471, 1), Color(0.7373, 0.9255, 0.8627, 1), Color(0.7961, 0.9490, 0.8824, 1), Color(0.8510, 0.9686, 0.9098, 1)])
+sun = Color(1.0000, 0.8510, 0.4784, 1)
+horizon = Color(0.9490, 0.4863, 0.6588, 1)
+horizon_light = Color(1.0000, 0.7882, 0.8627, 1)
+silhouette = Color(0.5608, 0.8392, 0.7451, 1)
+silhouette_dark = Color(0.3098, 0.6902, 0.6353, 1)
+tones = Dictionary[StringName, Color]({
+&"wood": Color(0.8157, 0.5647, 0.2196, 1),
+&"post_cap": Color(0.9020, 0.2078, 0.2706, 1),
+&"sea": Color(0.7176, 0.2275, 0.4392, 1),
+&"pit_dark": Color(0.1686, 0.0863, 0.1176, 1),
+&"panel": Color(0.4863, 0.2824, 0.2196, 1),
+&"panel_dark": Color(0.2902, 0.1569, 0.1490, 1),
+&"panel_trim": Color(0.9725, 0.8118, 0.4157, 1),
+&"panel_light": Color(0.5804, 0.3216, 0.1569, 1),
+&"key_on": Color(0.7176, 0.2275, 0.4392, 1),
+&"key_off": Color(0.2902, 0.1569, 0.1490, 1),
+&"hero_ink": Color(1.0000, 0.9686, 0.9255, 1),
+&"hero_stripe": Color(0.2471, 0.6627, 0.6118, 1),
+&"rival_ink_0": Color(0.9020, 0.2078, 0.2706, 1),
+&"rival_ink_1": Color(0.9725, 0.8118, 0.4157, 1),
+&"rival_ink_2": Color(0.1686, 0.0863, 0.1176, 1),
+&"street_top": Color(0.1843, 0.4235, 0.5804, 1)
+})
+words = Dictionary[StringName, String]({
+&"hero": "ПРЯНИК",
+&"team": "ПРЯНИКИ",
+&"enemies": "МИШКИ",
+&"boss": "КОРОЛЬ",
+&"brute": "ПОНЧИК"
+})
+vector_colors = Array[Color]([Color(0.0627, 0.0275, 0.0431, 1), Color(1.0000, 0.7765, 0.2902, 1), Color(1.0000, 0.9098, 0.9490, 1), Color(1.0000, 0.1804, 0.3608, 1)])
+meshes_lowpoly = "res://assets/settings/sweets/lowpoly/"
+lowpoly_colors = Array[Color]([Color(0.8157, 0.5647, 0.2196, 1), Color(1.0000, 0.5569, 0.7137, 1), Color(0.4863, 0.2824, 0.2196, 1), Color(1.0000, 0.9686, 0.9255, 1), Color(0.7882, 0.5020, 0.2431, 1), Color(0.9020, 0.2078, 0.2706, 1), Color(0.9725, 0.8118, 0.4157, 1), Color(0.2902, 0.1569, 0.1490, 1)])
+lowpoly_sky = Color(0.7373, 0.9255, 0.8627, 1)
+env_lowpoly = SubResource("env_lp")
+env_threed = SubResource("env_td")

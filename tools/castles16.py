@@ -76,19 +76,22 @@ def _helm(c, x, y, wave=0, tail=1.0, comb=3):
     c.line(x - 4, y - 5, x - 5 - 2 * tail, y - 3 + wave, RED, 3)
     c.line(x - 5 - 2 * tail, y - 3 + wave, x - 6 - 2 * tail, y + 1 + wave * 2, RED, 3)
     c.rect(x - comb, y - 6, x + comb - 1, y - 5, RED)
-    c.rect(x - 5, y - 4, x + 4, y + 5, WHITE)
-    # Тёмный обод по низу и ребро через прорезь: вместе с прорезью дают крест ведёрного шлема.
-    c.rect(x - 5, y + 4, x + 4, y + 4, GREY)
-    c.rect(x - 5, y + 5, x + 4, y + 5, METAL)
-    c.rect(x + 1, y - 3, x + 1, y + 4, METAL)
+    c.rect(x - 5, y - 4, x + 4, y + 5, GREY)
+    # Сталь серая, белый только блик на темени. Ниже прорези лицевая пластина и обод тёмной
+    # сталью: это другой материал светотени, поэтому под прорезью не встаёт светлая кромка.
+    c.rect(x - 4, y - 4, x - 2, y - 4, WHITE)
+    c.set(x - 4, y - 3, WHITE)
+    c.rect(x - 2, y + 1, x + 4, y + 3, METAL)
+    c.rect(x - 5, y + 4, x + 4, y + 4, METAL)
+    c.rect(x - 5, y + 5, x + 4, y + 5, DARK)
 
 
 def _visor(c, x, y):
-    """Прорезь и дыхательные отверстия: ставятся после обводки, чтобы остались чёрными."""
-    c.rect(x - 2, y, x + 3, y, K)
-    c.set(x + 3, y + 2, K)
-    c.set(x - 1, y + 2, K)
-    c.set(x + 3, y + 3, K)
+    """Прорезь для глаз: тёмная горизонтальная щель до передней грани, ставится после обводки,
+    чтобы осталась чёрной; под ней два дыхательных отверстия тёмной сталью."""
+    c.rect(x - 2, y, x + 4, y, K)
+    c.set(x + 1, y + 2, DARK)
+    c.set(x + 3, y + 2, DARK)
 
 
 def _scabbard(c, x, y):
@@ -131,9 +134,9 @@ def _arm(c, x0, y0, x1, y1, col):
     def draw(t):
         t.line(x0, y0, x1, y1, col, 3)
         t.ellipse(x0, y0, 2, 2, col)
-        t.ellipse(x1, y1, 1.4, 1.4, METAL)
+        t.ellipse(x1, y1, 1.4, 1.4, METAL if col == GREY else DARK)
 
-    if col == WHITE:
+    if col == GREY:
         _inlay(c, draw)
     else:
         draw(c)
@@ -143,7 +146,7 @@ def _leg(c, hip, knee, foot, col):
     """Латная нога: набедренник толще, наголенник тоньше, наколенник темнее, сабатон."""
     c.line(hip[0], hip[1], knee[0], knee[1], col, 4)
     c.line(knee[0], knee[1], foot[0], foot[1], col, 3)
-    c.set(knee[0] + 1, knee[1], METAL)
+    c.set(knee[0] + 1, knee[1], METAL if col == GREY else DARK)
     _boot(c, foot[0], foot[1])
 
 
@@ -154,15 +157,15 @@ def knight_side(phase, jump=False):
     hip_y = 21 - bob
     swing = 0.9 if jump else math.sin(phase)
     _scabbard(c, 12, hip_y - 2)
-    _arm(c, 15, 15 - bob, 15 + 5 * swing, 20 - bob - (3 if jump else 0), GREY)
-    for sign, steel in ((-1, GREY), (1, WHITE)):
+    _arm(c, 15, 15 - bob, 15 + 5 * swing, 20 - bob - (3 if jump else 0), METAL)
+    for sign, steel in ((-1, METAL), (1, GREY)):
         a = swing * sign
         lift = max(0.0, math.cos(phase) * sign) * 3.0 if not jump else (4 if sign > 0 else 1)
         foot = (15 + 6 * a, 29 - lift)
         knee = ((15 + foot[0]) / 2 + 2, (hip_y + foot[1]) / 2)
         _leg(c, (15 + sign, hip_y), knee, foot, steel)
     _body(c, 11, 13 - bob, 19, hip_y)
-    _arm(c, 16, 15 - bob, 16 - 5 * swing, 20 - bob - (4 if jump else 0), WHITE)
+    _arm(c, 16, 15 - bob, 16 - 5 * swing, 20 - bob - (4 if jump else 0), GREY)
     wave = -2 if jump else int(round(math.cos(phase)))
     _helm(c, 16, 7 - bob, wave, 1.0 if jump else 1.5)
     c.finish()
@@ -178,17 +181,19 @@ def knight_back(phase):
     for sign in (-1, 1):
         lift = max(0.0, s * sign) * 4.0
         x = 16 + sign * 3
-        c.rect(x - 2, 21 - bob, x + 1, 28 - lift, WHITE if sign > 0 else GREY)
+        c.rect(x - 2, 21 - bob, x + 1, 28 - lift, GREY if sign > 0 else METAL)
         _boot(c, x - 1, 28 - lift)
-        _arm(c, 16 + sign * 6 - (1 if sign < 0 else 0), 15 - bob, 16 + sign * 7, 20 - bob + s * sign * 2, WHITE)
+        _arm(c, 16 + sign * 6 - (1 if sign < 0 else 0), 15 - bob, 16 + sign * 7, 20 - bob + s * sign * 2, GREY)
     c.rect(11, 13 - bob, 20, 23 - bob, RED)
     c.rect(11, 19 - bob, 20, 20 - bob, GOLD)
     # Разрез юбки табарда посередине.
     c.rect(15, 22 - bob, 16, 23 - bob, TAN)
     c.rect(12, 13 - bob, 19, 13 - bob, GREY)
     # Шлем со спины: коробка, пояс по низу, плюмаж от гребня вниз по затылку.
-    c.rect(11, 3 - bob, 20, 12 - bob, WHITE)
-    c.rect(11, 11 - bob, 20, 12 - bob, GREY)
+    c.rect(11, 3 - bob, 20, 12 - bob, GREY)
+    c.rect(12, 3 - bob, 13, 3 - bob, WHITE)
+    c.rect(11, 11 - bob, 20, 11 - bob, METAL)
+    c.rect(11, 12 - bob, 20, 12 - bob, DARK)
     c.rect(13, 1 - bob, 18, 2 - bob, RED)
     c.rect(15, 3 - bob, 16, 7 - bob, RED)
     c.rect(15 + int(round(s)), 8 - bob, 16 + int(round(s)), 9 - bob, RED)
@@ -202,13 +207,13 @@ def knight_leap(i):
     legs = ((2, 2), (5, -4), (3, -1), (4, 3))[i]
     hip_y = 21 + crouch
     _scabbard(c, 12, hip_y - 2)
-    _arm(c, 15, 15 + crouch, 12 - i % 2, 11 + crouch if i in (1, 2) else 20 + crouch, GREY)
-    for sign, steel in ((-1, GREY), (1, WHITE)):
+    _arm(c, 15, 15 + crouch, 12 - i % 2, 11 + crouch if i in (1, 2) else 20 + crouch, METAL)
+    for sign, steel in ((-1, METAL), (1, GREY)):
         foot = (15 + sign * legs[0] + (2 if i == 1 else 0), 29 if i in (0, 3) else 27 - (2 if i == 2 else 0))
         knee = ((15 + foot[0]) / 2 + 2 + legs[1] * 0.3, (hip_y + foot[1]) / 2 + (2 if i == 2 else 0))
         _leg(c, (15 + sign, hip_y), knee, foot, steel)
     _body(c, 11, 13 + crouch, 19, hip_y)
-    _arm(c, 16, 15 + crouch, 20 + i % 2, 10 + crouch if i in (1, 2) else 20 + crouch, WHITE)
+    _arm(c, 16, 15 + crouch, 20 + i % 2, 10 + crouch if i in (1, 2) else 20 + crouch, GREY)
     # Плюмаж: при толчке хвост тянет вниз, в полёте и на приземлении его подбрасывает.
     _helm(c, 16, 7 + crouch, (0, 2, 0, -2)[i], (1.0, 1.0, 1.5, 1.0)[i])
     c.finish()
@@ -221,14 +226,14 @@ def knight_idle(i):
     c = Canvas()
     up = i
     _scabbard(c, 12, 19)
-    for sign, steel in ((-1, GREY), (1, WHITE)):
+    for sign, steel in ((-1, METAL), (1, GREY)):
         x = 15 + sign * 2
         c.rect(x - 1, 21, x + 1, 28, steel)
         c.set(x + 1, 25, METAL)
         _boot(c, x, 29)
-    _arm(c, 14, 15 - up, 13, 21 - up, GREY)
+    _arm(c, 14, 15 - up, 13, 21 - up, METAL)
     _body(c, 11, 13 - up, 19, 21)
-    _arm(c, 17, 15 - up, 18, 21 - up, WHITE)
+    _arm(c, 17, 15 - up, 18, 21 - up, GREY)
     _helm(c, 16, 7 - up, 1 - i, 1.0)
     c.finish()
     _visor(c, 16, 7 - up)
@@ -250,15 +255,15 @@ def knight_slide(i):
     сзади на земле, плюмаж летит назад. Верх гребня на 15-й строке, как макушка матроса. Два
     кадра: колено и пыль."""
     c = Canvas()
-    c.line(19, 27, 24, 23 - i, GREY, 3)
-    c.line(24, 23 - i, 27, 27, GREY, 3)
+    c.line(19, 27, 24, 23 - i, METAL, 3)
+    c.line(24, 23 - i, 27, 27, METAL, 3)
     _boot(c, 27, 27)
-    c.line(13, 24, 19, 23, GREY, 2)
+    c.line(13, 24, 19, 23, METAL, 2)
     _lean(c, 12, 24, 19, 27, 6)
-    c.line(19, 28, 28, 28, WHITE, 3)
+    c.line(19, 28, 28, 28, GREY, 3)
     c.set(24, 27, METAL)
     c.rect(28, 26, 30, 29, DARK)
-    _arm(c, 12, 25, 7, 29, WHITE)
+    _arm(c, 12, 25, 7, 29, GREY)
     _helm(c, 10, 21, -1 + i, 0.5)
     c.finish()
     _visor(c, 10, 21)
@@ -272,8 +277,8 @@ def knight_crouch(i):
     """Присед: та же фигура, сложенная вниз, корпус прямо, колени вперёд. Два кадра шага."""
     c = Canvas()
     step = (-1, 1)[i]
-    c.line(15, 24, 19, 26, GREY, 2)
-    for sign, steel in ((-1, GREY), (1, WHITE)):
+    c.line(15, 24, 19, 26, METAL, 2)
+    for sign, steel in ((-1, METAL), (1, GREY)):
         hip = (14, 27)
         knee = (20 - sign + step * sign, 26)
         foot = (17 - sign * 2 + step * sign * 2, 29)
@@ -282,7 +287,7 @@ def knight_crouch(i):
         _boot(c, foot[0], foot[1])
     c.rect(11, 22, 18, 27, RED)
     c.rect(11, 26, 16, 27, GOLD)
-    _arm(c, 13, 24, 19, 26, WHITE)
+    _arm(c, 13, 24, 19, 26, GREY)
     _helm(c, 16, 19, i, 1.0)
     c.finish()
     _visor(c, 16, 19)
@@ -295,14 +300,14 @@ def knight_hang(i):
     c = Canvas()
     sw = (-1, 1)[i]
     _scabbard(c, 12, 20 + (1 if sw > 0 else 0))
-    for sign, steel in ((-1, GREY), (1, WHITE)):
+    for sign, steel in ((-1, METAL), (1, GREY)):
         foot = (15.5 + sign * 2 + sw * 2, 29)
         c.line(15.5 + sign * 2, 22, foot[0], foot[1], steel, 3)
         _boot(c, foot[0], foot[1], 3)
     _body(c, 11, 17, 20, 22)
     _helm(c, 16, 12, 2 - i, 0.0, 2)
     # Руки: от наплечника вверх вдоль шлема с зазором под обводку, над шлемом сходятся к хвату.
-    for side, steel in ((-1, GREY), (1, WHITE)):
+    for side, steel in ((-1, METAL), (1, GREY)):
         x = 15.5 + side * 7
         c.rect(x - 0.5, 9, x + 0.5, 19, steel)
         c.rect(x - 0.5 - (side < 0), 17, x + 0.5 + (side > 0), 19, steel)

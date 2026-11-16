@@ -1,0 +1,89 @@
+[gd_resource type="Resource" script_class="SettingDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+[ext_resource type="Script" path="res://scripts/settings/setting_env.gd" id="2_env"]
+
+[sub_resource type="Resource" id="env_lp"]
+script = ExtResource("2_env")
+sun_pitch = -50.0
+sun_yaw = 40.0
+sun_energy = 0.85
+sun_color = Color(1, 0.93, 0.78, 1)
+ambient_energy = 0.55
+ambient_color = Color(1, 0.9, 0.8, 1)
+fog_begin = 30.0
+fog_end = 92.0
+base = 0
+base_texture = "water"
+base_tile = 6.0
+base_scroll = Vector2(0.01, 0.016)
+
+[sub_resource type="Resource" id="env_td"]
+script = ExtResource("2_env")
+sun_pitch = -40.0
+sun_yaw = 56.0
+sun_energy = 1.75
+sun_color = Color(1, 0.91, 0.74, 1)
+ambient_energy = 0.5
+ambient_color = Color(1, 0.88, 0.76, 1)
+sky_top = 0.45
+sky_horizon = 1.15
+fog_density = 0.0026
+fog_aerial = 0.55
+glow_intensity = 0.6
+glow_bloom = 0.1
+glow_threshold = 0.9
+saturation = 1.06
+contrast = 1.05
+exposure = 0.92
+base = 0
+water_deep = Color(0.42, 0.07, 0.03, 1)
+water_shallow = Color(0.96, 0.5, 0.12, 1)
+water_clarity = 2.0
+water_waves = 0.35
+
+[resource]
+script = ExtResource("1_set")
+setting = 8
+id = &"dinosaurs"
+complete = false
+sprites_8bit = "res://assets/settings/dinosaurs/8bit/"
+sprites_16bit = "res://assets/settings/dinosaurs/16bit/"
+bit16_colors = Array[Color]([Color(0.0941, 0.0627, 0.0627, 1), Color(0.1098, 0.2745, 0.3529, 1), Color(0.1725, 0.5020, 0.5176, 1), Color(0.4863, 0.8000, 0.7059, 1), Color(0.9569, 0.9098, 0.7137, 1), Color(0.9569, 0.9333, 0.8549, 1), Color(0.7373, 0.6902, 0.6039, 1), Color(0.8627, 0.5961, 0.3843, 1), Color(0.6902, 0.3294, 0.2039, 1), Color(0.9569, 0.8000, 0.3216, 1), Color(0.7373, 0.5098, 0.1725, 1), Color(0.4863, 0.4078, 0.4314, 1), Color(0.3216, 0.1882, 0.1569, 1), Color(0.9255, 0.3686, 0.1412, 1), Color(0.3765, 0.7059, 0.2510, 1), Color(0.1490, 0.4235, 0.2275, 1)])
+sky_bands = Array[Color]([Color(0.1098, 0.3373, 0.4157, 1), Color(0.1412, 0.4235, 0.4784, 1), Color(0.2039, 0.5255, 0.5412, 1), Color(0.2980, 0.6275, 0.5961, 1), Color(0.4235, 0.7373, 0.6588, 1), Color(0.6275, 0.8314, 0.6902, 1), Color(0.8471, 0.8941, 0.7059, 1)])
+sun = Color(1.0000, 0.9098, 0.5647, 1)
+horizon = Color(0.1098, 0.3373, 0.3294, 1)
+horizon_light = Color(0.2980, 0.6431, 0.4235, 1)
+silhouette = Color(0.2902, 0.5490, 0.5490, 1)
+silhouette_dark = Color(0.1647, 0.4000, 0.4392, 1)
+tones = Dictionary[StringName, Color]({
+&"wood": Color(0.7373, 0.5098, 0.1725, 1),
+&"post_cap": Color(0.9569, 0.9333, 0.8549, 1),
+&"sea": Color(0.3216, 0.1882, 0.1569, 1),
+&"pit_dark": Color(0.0941, 0.0627, 0.0627, 1),
+&"panel": Color(0.4863, 0.4078, 0.4314, 1),
+&"panel_dark": Color(0.3216, 0.1882, 0.1569, 1),
+&"panel_trim": Color(0.9569, 0.8000, 0.3216, 1),
+&"panel_light": Color(0.7373, 0.6902, 0.6039, 1),
+&"key_on": Color(0.7373, 0.5098, 0.1725, 1),
+&"key_off": Color(0.0941, 0.0627, 0.0627, 1),
+&"hero_ink": Color(0.9569, 0.9333, 0.8549, 1),
+&"hero_stripe": Color(0.9255, 0.3686, 0.1412, 1),
+&"rival_ink_0": Color(0.3765, 0.7059, 0.2510, 1),
+&"rival_ink_1": Color(0.9569, 0.8000, 0.3216, 1),
+&"rival_ink_2": Color(0.1098, 0.2745, 0.3529, 1),
+&"street_top": Color(0.1725, 0.5020, 0.5176, 1)
+})
+words = Dictionary[StringName, String]({
+&"hero": "ОХОТНИК",
+&"team": "ОХОТНИКИ",
+&"enemies": "РАПТОРЫ",
+&"boss": "ШАМАН",
+&"brute": "ДИКАРЬ"
+})
+vector_colors = Array[Color]([Color(0.0627, 0.0314, 0.0157, 1), Color(1.0000, 0.7686, 0.2510, 1), Color(0.6275, 1.0000, 0.3922, 1), Color(1.0000, 0.2353, 0.2353, 1)])
+meshes_lowpoly = "res://assets/settings/dinosaurs/lowpoly/"
+lowpoly_colors = Array[Color]([Color(0.6902, 0.3294, 0.2039, 1), Color(0.3765, 0.7059, 0.2510, 1), Color(0.7373, 0.5098, 0.1725, 1), Color(0.9569, 0.9333, 0.8549, 1), Color(0.8627, 0.5961, 0.3843, 1), Color(0.9255, 0.3686, 0.1412, 1), Color(0.9569, 0.8000, 0.3216, 1), Color(0.3216, 0.1882, 0.1569, 1)])
+lowpoly_sky = Color(0.6, 0.82, 0.72, 1)
+env_lowpoly = SubResource("env_lp")
+env_threed = SubResource("env_td")

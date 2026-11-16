@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="SettingDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+[ext_resource type="Script" path="res://scripts/settings/setting_env.gd" id="2_env"]
+
+[sub_resource type="Resource" id="env_lp"]
+script = ExtResource("2_env")
+sun_pitch = -46.0
+sun_yaw = 38.0
+sun_energy = 0.8
+sun_color = Color(0.8, 0.88, 1, 1)
+ambient_energy = 0.6
+ambient_color = Color(0.66, 0.82, 0.76, 1)
+sky_colors = Array[Color]([Color(0.027, 0.039, 0.1, 1), Color(0.19, 0.28, 0.34, 1), Color(0.05, 0.09, 0.09, 1)])
+fog_begin = 26.0
+fog_end = 84.0
+base = 0
+base_texture = "water"
+base_tile = 6.0
+base_scroll = Vector2(0.008, 0.012)
+
+[sub_resource type="Resource" id="env_td"]
+script = ExtResource("2_env")
+sun_pitch = -36.0
+sun_yaw = 58.0
+sun_energy = 1.5
+sun_color = Color(0.8, 0.88, 1, 1)
+ambient_energy = 0.95
+ambient_color = Color(0.4, 0.52, 0.5, 1)
+ambient_sky = false
+sky_colors = Array[Color]([Color(0.02, 0.03, 0.08, 1), Color(0.17, 0.27, 0.31, 1), Color(0.04, 0.08, 0.08, 1)])
+stars = 700
+fog_density = 0.004
+fog_aerial = 0.5
+glow_intensity = 0.5
+glow_bloom = 0.08
+glow_threshold = 0.9
+saturation = 0.96
+contrast = 1.05
+exposure = 0.95
+base = 0
+water_deep = Color(0.03, 0.08, 0.05, 1)
+water_shallow = Color(0.25, 0.39, 0.22, 1)
+water_clarity = 2.5
+water_waves = 0.25
+
+[resource]
+script = ExtResource("1_set")
+setting = 3
+id = &"zombies"
+complete = false
+sprites_8bit = "res://assets/settings/zombies/8bit/"
+sprites_16bit = "res://assets/settings/zombies/16bit/"
+bit16_colors = Array[Color]([Color(0.0706, 0.0627, 0.0784, 1), Color(0.0941, 0.1294, 0.2588, 1), Color(0.1804, 0.3059, 0.5725, 1), Color(0.2941, 0.4549, 0.6824, 1), Color(0.5765, 0.6980, 0.8078, 1), Color(0.9333, 0.9216, 0.8667, 1), Color(0.6510, 0.6588, 0.6275, 1), Color(0.9412, 0.7529, 0.5804, 1), Color(0.7608, 0.5255, 0.3608, 1), Color(0.9098, 0.7608, 0.2902, 1), Color(0.6902, 0.5098, 0.1804, 1), Color(0.5255, 0.3843, 0.2745, 1), Color(0.2902, 0.1765, 0.1686, 1), Color(0.8235, 0.2314, 0.1804, 1), Color(0.4980, 0.6588, 0.3843, 1), Color(0.2471, 0.3882, 0.2706, 1)])
+sky_bands = Array[Color]([Color(0.0275, 0.0392, 0.1020, 1), Color(0.0431, 0.0627, 0.1490, 1), Color(0.0627, 0.0941, 0.1961, 1), Color(0.0863, 0.1294, 0.2471, 1), Color(0.1137, 0.1725, 0.2902, 1), Color(0.1451, 0.2235, 0.3216, 1), Color(0.1882, 0.2824, 0.3451, 1)])
+sun = Color(0.9333, 0.9216, 0.8667, 1)
+horizon = Color(0.0706, 0.1333, 0.1176, 1)
+horizon_light = Color(0.3608, 0.5255, 0.3451, 1)
+silhouette = Color(0.0863, 0.1176, 0.2039, 1)
+silhouette_dark = Color(0.0510, 0.0706, 0.1333, 1)
+tones = Dictionary[StringName, Color]({
+&"wood": Color(0.5255, 0.3843, 0.2745, 1),
+&"post_cap": Color(0.9098, 0.7608, 0.2902, 1),
+&"sea": Color(0.2471, 0.3882, 0.2706, 1),
+&"pit_dark": Color(0.0706, 0.0627, 0.0784, 1),
+&"panel": Color(0.0941, 0.1294, 0.2588, 1),
+&"panel_dark": Color(0.0510, 0.0706, 0.1333, 1),
+&"panel_trim": Color(0.4980, 0.6588, 0.3843, 1),
+&"panel_light": Color(0.1804, 0.3059, 0.5725, 1),
+&"key_on": Color(0.2471, 0.3882, 0.2706, 1),
+&"key_off": Color(0.0941, 0.1294, 0.2588, 1),
+&"hero_ink": Color(0.9333, 0.9216, 0.8667, 1),
+&"hero_stripe": Color(0.8235, 0.2314, 0.1804, 1),
+&"rival_ink_0": Color(0.4980, 0.6588, 0.3843, 1),
+&"rival_ink_1": Color(0.9098, 0.7608, 0.2902, 1),
+&"rival_ink_2": Color(0.0706, 0.0627, 0.0784, 1),
+&"street_top": Color(0.2353, 0.2510, 0.3059, 1)
+})
+words = Dictionary[StringName, String]({
+&"hero": "ВЫЖИВШИЙ",
+&"team": "ВЫЖИВШИЕ",
+&"enemies": "ЗОМБИ",
+&"boss": "МЯСНИК",
+&"brute": "ТОЛСТЯК"
+})
+vector_colors = Array[Color]([Color(0.0235, 0.0196, 0.0549, 1), Color(0.7059, 0.9412, 0.2353, 1), Color(0.9490, 0.9333, 0.8471, 1), Color(1.0000, 0.2314, 0.2314, 1)])
+meshes_lowpoly = "res://assets/settings/zombies/lowpoly/"
+lowpoly_colors = Array[Color]([Color(0.4314, 0.3451, 0.2510, 1), Color(0.2471, 0.3882, 0.2706, 1), Color(0.3686, 0.2588, 0.2039, 1), Color(0.9333, 0.9216, 0.8667, 1), Color(0.9412, 0.7529, 0.5804, 1), Color(0.8235, 0.2314, 0.1804, 1), Color(0.9098, 0.7608, 0.2902, 1), Color(0.0863, 0.1020, 0.1804, 1)])
+lowpoly_sky = Color(0.1000, 0.1500, 0.2200, 1)
+env_lowpoly = SubResource("env_lp")
+env_threed = SubResource("env_td")

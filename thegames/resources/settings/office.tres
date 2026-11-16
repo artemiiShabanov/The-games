@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="SettingDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+[ext_resource type="Script" path="res://scripts/settings/setting_env.gd" id="2_env"]
+
+[sub_resource type="Resource" id="env_lp"]
+script = ExtResource("2_env")
+sun_pitch = -62.0
+sun_yaw = 32.0
+sun_energy = 0.75
+sun_color = Color(0.96, 0.98, 1, 1)
+ambient_energy = 0.7
+ambient_color = Color(0.9, 0.93, 1, 1)
+sky_colors = Array[Color]([Color(0.23, 0.25, 0.35, 1), Color(0.57, 0.63, 0.71, 1), Color(0.16, 0.38, 0.36, 1)])
+fog_begin = 36.0
+fog_end = 104.0
+base = 2
+base_texture = "water"
+base_tile = 8.0
+
+[sub_resource type="Resource" id="env_td"]
+script = ExtResource("2_env")
+sun_pitch = -58.0
+sun_yaw = 50.0
+sun_energy = 1.5
+sun_color = Color(0.97, 0.98, 1, 1)
+ambient_energy = 0.75
+ambient_color = Color(0.86, 0.9, 1, 1)
+sky_colors = Array[Color]([Color(0.23, 0.25, 0.35, 1), Color(0.57, 0.63, 0.71, 1), Color(0.16, 0.38, 0.36, 1)])
+fog_density = 0.0016
+fog_aerial = 0.4
+glow_intensity = 0.45
+glow_bloom = 0.07
+glow_threshold = 0.92
+saturation = 0.98
+contrast = 1.03
+base = 2
+base_texture = "water"
+base_tile = 8.0
+
+[resource]
+script = ExtResource("1_set")
+setting = 9
+id = &"office"
+complete = false
+sprites_8bit = "res://assets/settings/office/8bit/"
+sprites_16bit = "res://assets/settings/office/16bit/"
+bit16_colors = Array[Color]([Color(0.0784, 0.0784, 0.1098, 1), Color(0.1020, 0.1333, 0.2824, 1), Color(0.1922, 0.2902, 0.5725, 1), Color(0.3451, 0.6980, 0.8627, 1), Color(0.7843, 0.9176, 0.9608, 1), Color(0.9569, 0.9608, 0.9725, 1), Color(0.7176, 0.7490, 0.8118, 1), Color(0.9490, 0.7843, 0.6039, 1), Color(0.7882, 0.5608, 0.3686, 1), Color(0.9647, 0.8039, 0.2980, 1), Color(0.7333, 0.5176, 0.2275, 1), Color(0.4784, 0.5098, 0.5804, 1), Color(0.1804, 0.1922, 0.2510, 1), Color(0.8549, 0.2275, 0.2118, 1), Color(0.3098, 0.6118, 0.5255, 1), Color(0.1647, 0.3765, 0.3608, 1)])
+sky_bands = Array[Color]([Color(0.2275, 0.2510, 0.3451, 1), Color(0.2745, 0.3059, 0.4078, 1), Color(0.3294, 0.3686, 0.4784, 1), Color(0.3843, 0.4314, 0.5412, 1), Color(0.4471, 0.4980, 0.6039, 1), Color(0.5098, 0.5647, 0.6588, 1), Color(0.5725, 0.6275, 0.7059, 1)])
+sun = Color(0.9647, 0.9490, 0.8471, 1)
+horizon = Color(0.1647, 0.3765, 0.3608, 1)
+horizon_light = Color(0.3098, 0.6118, 0.5255, 1)
+silhouette = Color(0.2902, 0.3451, 0.5020, 1)
+silhouette_dark = Color(0.1882, 0.2275, 0.3765, 1)
+tones = Dictionary[StringName, Color]({
+&"wood": Color(0.7333, 0.5176, 0.2275, 1),
+&"post_cap": Color(0.9647, 0.8039, 0.2980, 1),
+&"sea": Color(0.1647, 0.3765, 0.3608, 1),
+&"pit_dark": Color(0.0549, 0.0549, 0.0863, 1),
+&"panel": Color(0.1804, 0.1922, 0.2510, 1),
+&"panel_dark": Color(0.0784, 0.0784, 0.1098, 1),
+&"panel_trim": Color(0.3451, 0.6980, 0.8627, 1),
+&"panel_light": Color(0.4784, 0.5098, 0.5804, 1),
+&"key_on": Color(0.1922, 0.2902, 0.5725, 1),
+&"key_off": Color(0.1020, 0.1333, 0.2824, 1),
+&"hero_ink": Color(0.9569, 0.9608, 0.9725, 1),
+&"hero_stripe": Color(0.8549, 0.2275, 0.2118, 1),
+&"rival_ink_0": Color(0.1804, 0.1922, 0.2510, 1),
+&"rival_ink_1": Color(0.9647, 0.8039, 0.2980, 1),
+&"rival_ink_2": Color(0.3098, 0.6118, 0.5255, 1),
+&"street_top": Color(0.2275, 0.2510, 0.3451, 1)
+})
+words = Dictionary[StringName, String]({
+&"hero": "КЛЕРК",
+&"team": "КЛЕРКИ",
+&"enemies": "КОСТЮМЫ",
+&"boss": "ДИРЕКТОР",
+&"brute": "ОХРАННИК"
+})
+vector_colors = Array[Color]([Color(0.0235, 0.0392, 0.0784, 1), Color(0.4863, 0.8314, 1.0000, 1), Color(1.0000, 0.8784, 0.4157, 1), Color(1.0000, 0.2902, 0.2588, 1)])
+meshes_lowpoly = "res://assets/settings/office/lowpoly/"
+lowpoly_colors = Array[Color]([Color(0.3098, 0.6118, 0.5255, 1), Color(0.1922, 0.2902, 0.5725, 1), Color(0.7333, 0.5176, 0.2275, 1), Color(0.9569, 0.9608, 0.9725, 1), Color(0.9490, 0.7843, 0.6039, 1), Color(0.8549, 0.2275, 0.2118, 1), Color(0.9647, 0.8039, 0.2980, 1), Color(0.1804, 0.1922, 0.2510, 1)])
+lowpoly_sky = Color(0.57, 0.63, 0.71, 1)
+env_lowpoly = SubResource("env_lp")
+env_threed = SubResource("env_td")

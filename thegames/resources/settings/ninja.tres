@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="SettingDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/settings/setting_def.gd" id="1_set"]
+[ext_resource type="Script" path="res://scripts/settings/setting_env.gd" id="2_env"]
+
+[sub_resource type="Resource" id="env_lp"]
+script = ExtResource("2_env")
+sun_pitch = -32.0
+sun_yaw = 38.0
+sun_energy = 0.85
+sun_color = Color(1, 0.8, 0.6, 1)
+ambient_energy = 0.62
+ambient_color = Color(0.74, 0.72, 0.96, 1)
+sky_colors = Array[Color]([Color(0.09, 0.09, 0.24, 1), Color(0.82, 0.42, 0.3, 1), Color(0.08, 0.09, 0.22, 1)])
+fog_begin = 30.0
+fog_end = 95.0
+base = 0
+base_texture = "water"
+base_tile = 6.0
+base_scroll = Vector2(0.006, 0.01)
+
+[sub_resource type="Resource" id="env_td"]
+script = ExtResource("2_env")
+sun_pitch = -24.0
+sun_yaw = 58.0
+sun_energy = 1.6
+sun_color = Color(1, 0.78, 0.56, 1)
+ambient_energy = 0.9
+ambient_color = Color(0.46, 0.44, 0.7, 1)
+ambient_sky = false
+sky_colors = Array[Color]([Color(0.07, 0.07, 0.22, 1), Color(0.86, 0.45, 0.31, 1), Color(0.06, 0.07, 0.19, 1)])
+stars = 200
+fog_density = 0.003
+fog_aerial = 0.5
+glow_intensity = 0.55
+glow_bloom = 0.08
+glow_threshold = 0.9
+saturation = 1.08
+contrast = 1.05
+exposure = 0.95
+base = 0
+water_deep = Color(0.03, 0.04, 0.12, 1)
+water_shallow = Color(0.2, 0.26, 0.46, 1)
+water_clarity = 3.5
+water_waves = 0.2
+
+[resource]
+script = ExtResource("1_set")
+setting = 7
+id = &"ninja"
+complete = false
+sprites_8bit = "res://assets/settings/ninja/8bit/"
+sprites_16bit = "res://assets/settings/ninja/16bit/"
+bit16_colors = Array[Color]([Color(0.0706, 0.0627, 0.0941, 1), Color(0.1020, 0.1098, 0.2824, 1), Color(0.2196, 0.2745, 0.6118, 1), Color(0.9137, 0.4824, 0.3216, 1), Color(0.9843, 0.8627, 0.5725, 1), Color(0.9529, 0.9333, 0.8863, 1), Color(0.7176, 0.7059, 0.6980, 1), Color(0.9490, 0.7843, 0.6039, 1), Color(0.6902, 0.3216, 0.2667, 1), Color(0.9569, 0.7961, 0.3216, 1), Color(0.6980, 0.4627, 0.1804, 1), Color(0.4706, 0.4784, 0.5412, 1), Color(0.2078, 0.1922, 0.2627, 1), Color(0.8510, 0.2118, 0.1961, 1), Color(0.4353, 0.6627, 0.2941, 1), Color(0.1529, 0.3373, 0.2510, 1)])
+sky_bands = Array[Color]([Color(0.0863, 0.0863, 0.2353, 1), Color(0.1333, 0.1098, 0.2902, 1), Color(0.2118, 0.1333, 0.3451, 1), Color(0.3216, 0.1647, 0.3765, 1), Color(0.4784, 0.2118, 0.3686, 1), Color(0.6588, 0.2902, 0.3294, 1), Color(0.8157, 0.4235, 0.2980, 1)])
+sun = Color(0.9843, 0.8627, 0.5725, 1)
+horizon = Color(0.0784, 0.0941, 0.2196, 1)
+horizon_light = Color(0.9137, 0.4824, 0.3216, 1)
+silhouette = Color(0.2275, 0.1333, 0.3137, 1)
+silhouette_dark = Color(0.1176, 0.0784, 0.2039, 1)
+tones = Dictionary[StringName, Color]({
+&"wood": Color(0.6980, 0.4627, 0.1804, 1),
+&"post_cap": Color(0.9569, 0.7961, 0.3216, 1),
+&"sea": Color(0.1020, 0.1098, 0.2824, 1),
+&"pit_dark": Color(0.0706, 0.0627, 0.0941, 1),
+&"panel": Color(0.2078, 0.1922, 0.2627, 1),
+&"panel_dark": Color(0.1098, 0.0980, 0.1569, 1),
+&"panel_trim": Color(0.9569, 0.7961, 0.3216, 1),
+&"panel_light": Color(0.4706, 0.4784, 0.5412, 1),
+&"key_on": Color(0.6902, 0.3216, 0.2667, 1),
+&"key_off": Color(0.1020, 0.1098, 0.2824, 1),
+&"hero_ink": Color(0.9529, 0.9333, 0.8863, 1),
+&"hero_stripe": Color(0.2196, 0.2745, 0.6118, 1),
+&"rival_ink_0": Color(0.8510, 0.2118, 0.1961, 1),
+&"rival_ink_1": Color(0.9569, 0.7961, 0.3216, 1),
+&"rival_ink_2": Color(0.2078, 0.1922, 0.2627, 1),
+&"street_top": Color(0.3216, 0.1647, 0.3765, 1)
+})
+words = Dictionary[StringName, String]({
+&"hero": "НИНДЗЯ",
+&"team": "СИНОБИ",
+&"enemies": "РОНИНЫ",
+&"boss": "СЕГУН",
+&"brute": "СУМОИСТ"
+})
+vector_colors = Array[Color]([Color(0.0314, 0.0235, 0.0706, 1), Color(0.5412, 0.6902, 1.0000, 1), Color(1.0000, 0.8941, 0.6039, 1), Color(1.0000, 0.2510, 0.2824, 1)])
+meshes_lowpoly = "res://assets/settings/ninja/lowpoly/"
+lowpoly_colors = Array[Color]([Color(0.4706, 0.4784, 0.5412, 1), Color(0.2196, 0.2745, 0.6118, 1), Color(0.6980, 0.4627, 0.1804, 1), Color(0.9529, 0.9333, 0.8863, 1), Color(0.9490, 0.7843, 0.6039, 1), Color(0.8510, 0.2118, 0.1961, 1), Color(0.9569, 0.7961, 0.3216, 1), Color(0.1020, 0.0902, 0.1569, 1)])
+lowpoly_sky = Color(0.55, 0.3, 0.38, 1)
+env_lowpoly = SubResource("env_lp")
+env_threed = SubResource("env_td")

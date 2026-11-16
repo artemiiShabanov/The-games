@@ -367,17 +367,18 @@ def suit_side(phase):
     c.line(18, 14 - bob, 18, 18 - bob, DARK, 3)
     c.line(18, 19 - bob, 12, 20 - bob, DARK, 3)
     c.ellipse(11, 20 - bob, 1.3, 1.3, SKIN)
-    # Голова: зализанные волосы, усы щёткой вперёд за контур лица, под ними подбородок.
+    # Голова: зализанные волосы, нос, под ним крупные усы щёткой вперёд за контур лица, ниже
+    # чистый подбородок без бороды.
     hx, hy = 15.5, 6 - bob
     c.ellipse(hx, hy, 4.6, 5, SKIN)
     for yy in range(int(hy) - 6, int(hy) + 2):
         for xx in range(9, 23):
             if c.get(xx, yy) == SKIN and (yy <= hy - 4 or (xx >= hx + 3 and yy <= hy)):
                 c.set(xx, yy, DARK)
-    c.set(10, hy + 1, SKIN)
-    c.rect(11, hy + 4, 12, hy + 4, SKIN)
-    c.rect(10, hy + 2, 13, hy + 3, DARK)
-    c.rect(9, hy + 3, 9, hy + 4, DARK)
+    c.set(10, hy, SKIN)
+    c.rect(11, hy + 3, 12, hy + 4, SKIN)
+    c.rect(10, hy + 1, 14, hy + 1, DARK)
+    c.rect(9, hy + 2, 13, hy + 2, DARK)
     c.finish()
     c.set(13, hy - 1, K)
     c.rect(11, hy - 2, 14, hy - 2, K)
@@ -412,13 +413,11 @@ def suit_front(phase):
         for xx in range(9, 23):
             if c.get(xx, yy) == SKIN and yy <= hy - 4:
                 c.set(xx, yy, DARK)
-    # Усы: шире лица, кончики вниз.
-    c.rect(11, hy + 2, 20, hy + 2, DARK)
-    c.rect(10, hy + 3, 13, hy + 3, DARK)
-    c.rect(18, hy + 3, 21, hy + 3, DARK)
-    c.set(9, hy + 4, DARK)
-    c.set(22, hy + 4, DARK)
-    c.rect(15, hy + 1, 16, hy + 1, TAN)
+    # Усы сразу под носом: шире лица, кончики вниз; подбородок под ними чистый, без бороды.
+    c.rect(15, hy, 16, hy, TAN)
+    c.rect(11, hy + 1, 20, hy + 1, DARK)
+    c.rect(10, hy + 2, 13, hy + 2, DARK)
+    c.rect(18, hy + 2, 21, hy + 2, DARK)
     c.finish()
     for x0 in (12, 17):
         c.rect(x0, hy - 2, x0 + 2, hy - 2, K)
