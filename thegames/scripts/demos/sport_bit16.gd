@@ -29,6 +29,8 @@ const APRON := 26.0
 ## Поле и аут по сеттингу (плейтест 2026-11-12): тайлы `soccer_field_<сеттинг>` и
 ## `soccer_out_<сеттинг>` (4 кадра), кромка поля: внутренняя тень и линия у аута (у пиратов
 ## мокрый песок и пена прибоя).
+## Сеттинг без своей пары: мягкая тень и светлая линия, читаются на любом поле.
+const EDGE_DEFAULT := [Color(0.0, 0.0, 0.0, 0.32), Color("#f4fbff")]
 const EDGE := {"pirates": [Color(0.42, 0.3, 0.16, 0.45), Color("#f4fbff")],
 		"castles": [Color(0.0, 0.0, 0.0, 0.3), Color("#a8a2ac")],
 		"space": [Color(0.0, 0.0, 0.0, 0.35), Color("#7fd8ff")]}
@@ -72,7 +74,7 @@ func _on_start() -> void:
 	bit16.world.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	for name in ["soccer_hero", "soccer_keeper_hero", "soccer_keeper_rival", "soccer_ball", "soccer_grass"]:
 		tex[name] = bit16_set.sprite16(name)
-	_theme = String(bit16_set.id) if EDGE.has(String(bit16_set.id)) else "pirates"
+	_theme = String(bit16_set.id)
 	tex["field"] = bit16_set.sprite16("soccer_field_" + _theme)
 	tex["out"] = bit16_set.sprite16("soccer_out_" + _theme)
 	tex["rival"] = bit16_set.sprite16(KITS[plan.rival_kit % KITS.size()])
@@ -273,7 +275,7 @@ func _draw_pitch(canvas: CanvasItem) -> void:
 		var a := Vector2(-APRON, -APRON)
 		var rect := Rect2(_to_screen(a), Vector2(w, h) + Vector2(APRON, APRON) * 2.0)
 		canvas.draw_texture_rect_region(field, rect, Rect2(a + Vector2(1024.0, 1024.0), rect.size))
-		var edge: Array = EDGE[_theme]
+		var edge: Array = EDGE.get(_theme, EDGE_DEFAULT)
 		var shade: Color = edge[0]
 		canvas.draw_rect(Rect2(rect.position, Vector2(rect.size.x, 3.0)), shade)
 		canvas.draw_rect(Rect2(rect.position, Vector2(3.0, rect.size.y)), shade)
