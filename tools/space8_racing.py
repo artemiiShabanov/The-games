@@ -4,8 +4,8 @@
 два варианта и отражает их, поэтому рисунок симметричен), `race_shallow` обочина, которая
 тормозит (россыпь камней на плитах), `race_sand*` стена (реголит, туда не заехать; во втором
 варианте кратер), `race_rock` и `race_barrel` препятствия, `race_buoy` маячок на кромке,
-`race_finish` финишная полоса с прозрачными краями. Транспорт в 8 направлениях из двух карт (на
-восток и на северо-восток) поворотами на 90°; индекс по часовой на экране: 0 E, 1 SE, 2 S, 3 SW,
+`race_finish` финишная полоса с прозрачными краями. Транспорт в 8 направлениях из одной карты
+на восток: диагональ это она же, повёрнутая на 45° (`_turn45`), остальное поворотами на 90°; индекс по часовой на экране: 0 E, 1 SE, 2 S, 3 SW,
 4 W, 5 NW, 6 N, 7 NE. Герой на луноходе, соперник на ховере пришельцев.
 
     python3 tools/space8_racing.py --preview out.png
@@ -15,64 +15,47 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Луноход: белый корпус, бирюзовый колпак кабины впереди, четыре колеса по бортам, сзади пыль
-# (строчная `g` становится металлом, как пена `w` у шлюпки).
+# Луноход: белый корпус на четырёх колёсах по бортам, кабина с бирюзовым стеклом и белым шлемом
+# космонавта ближе к носу, на корме серый люк, спереди две фары, сзади пыль (строчная `g`
+# становится металлом, как пена `w` у шлюпки).
 ROVER_E = [
     "................",
     "................",
-    "................",
-    "..KKKK...KKKK...",
-    "..KGGK...KGGK...",
-    ".KKKKKKKKKKKKK..",
-    ".KWWWWWWKCCCWWK.",
-    "gKWGGWWKCCCCCWWK",
-    "gKWGGWWKCCCCCWWK",
-    ".KWWWWWWKCCCWWK.",
-    ".KKKKKKKKKKKKK..",
-    "..KGGK...KGGK...",
-    "..KKKK...KKKK...",
-    "................",
+    "...KKKK..KKKK...",
+    "...KGGK..KGGK...",
+    "..KKKKKKKKKKKK..",
+    ".KWWWWWWWWWWWWK.",
+    ".KWGGWWKCCCCWWKC",
+    "gKWGGWWKCWWCWWK.",
+    "gKWGGWWKCWWCWWK.",
+    ".KWGGWWKCCCCWWKC",
+    ".KWWWWWWWWWWWWK.",
+    "..KKKKKKKKKKKK..",
+    "...KGGK..KGGK...",
+    "...KKKK..KKKK...",
     "................",
     "................",
 ]
 
-# Ховер пришельцев: фиолетовая капля острым носом вперёд, бирюзовый купол, сзади два сопла
-# со свечением (строчная `c` становится бирюзой).
+# Ховер пришельцев: фиолетовый скруглённый корпус машины на воздушной подушке (бирюзовая юбка
+# по бортам), купол кабины с визором ближе к тупому носу, на корме решётка, спереди две фары,
+# сзади свечение сопел (строчная `c` становится бирюзой). Диагональ тем же поворотом на 45°.
 HOVER_E = [
     "................",
     "................",
     "................",
-    "...KKK..........",
-    "..KVVVKKKKK.....",
-    ".cKVVVVVVVVKK...",
-    "cCKKVVKCCKVVVKK.",
-    ".cKVVKCCCCKVVVVK",
-    ".cKVVKCCCCKVVVVK",
-    "cCKKVVKCCKVVVKK.",
-    ".cKVVVVVVVVKK...",
-    "..KVVVKKKKK.....",
-    "...KKK..........",
+    "....KKKKKKKK....",
+    "...KCCCCCCCCK...",
+    "..KVVVVVVVVVVK..",
+    "cKVVVVVKKKKVVVKW",
+    "cKVGGVKCCCWKVVK.",
+    "cKVGGVKCCCWKVVK.",
+    "cKVVVVVKKKKVVVKW",
+    "..KVVVVVVVVVVK..",
+    "...KCCCCCCCCK...",
+    "....KKKKKKKK....",
     "................",
     "................",
-    "................",
-]
-
-HOVER_NE = [
-    "................",
-    "..........KKKKK.",
-    "........KKVVVVK.",
-    "......KKVVVVVVK.",
-    ".....KVVVKCCVVK.",
-    "....KVVVKCCCCVK.",
-    "...KVVVVKCCCCVK.",
-    "..KVVVVVVKCCVK..",
-    ".KKVVVVVVVVVVK..",
-    ".KVVKKVVVVVVK...",
-    ".KVVKcKVVVKK....",
-    "..KKcCKVVVK.....",
-    "...cC.KVVK......",
-    "..cC..KKKK......",
-    "..c.............",
     "................",
 ]
 
@@ -120,7 +103,7 @@ def frames(prefix, east, north_east):
 
 SPRITES = {}
 SPRITES.update(frames("boat", ROVER_E, _turn45(ROVER_E)))
-SPRITES.update(frames("rival", HOVER_E, HOVER_NE))
+SPRITES.update(frames("rival", HOVER_E, _turn45(HOVER_E)))
 SPRITES.update({
     # Трасса: плита с заклёпками по углам (при отражении тайла рисунок тот же) и блик.
     "race_water": [

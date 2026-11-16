@@ -203,7 +203,8 @@ def _wheel(c, cx, cy, r, phase):
 
 def rover(lean, phase, accent):
     """Луноход со спины, 160×104: два больших колеса, белый корпус с панелями, задний борт с
-    фонарями, мачта антенны с вымпелом цвета `accent`; за рулём космонавт. `lean` −1..1 крен."""
+    фонарями, на деке плоская солнечная панель, низкая тарелка и короткий хлыст с флажком цвета
+    `accent` (всё ниже шлема, без мачты); за рулём космонавт. `lean` −1..1 крен."""
     c = Canvas(160, 104)
     sh = lean * 6
     _wheel(c, 22 + sh * 0.3, 78, 24, phase)
@@ -230,20 +231,28 @@ def rover(lean, phase, accent):
     for x in (50, 110):
         c.rect(x + sh * 0.6 - 5, 82, x + sh * 0.6 + 5, 88, DARK)
         c.rect(x + sh * 0.6 - 3, 84, x + sh * 0.6 + 3, 86, AQUA)
-    # Мачта антенны с вымпелом у правого заднего угла и тарелка слева.
-    c.rect(122 + sh * 1.4, 2, 124 + sh * 1.4, 46, METAL)
-    flap = 3 * math.sin(phase * math.pi * 2)
-    c.poly([(125 + sh * 1.4, 4), (149 + sh * 1.4, 10 + flap), (125 + sh * 1.4, 18)], accent)
-    c.ellipse(123 + sh * 1.4, 2, 2, 2, AQUA)
-    c.line(44 + sh, 44, 40 + sh * 1.2, 30, METAL, 2)
-    c.ellipse(39 + sh * 1.2, 26, 9, 5, GREY)
-    c.ellipse(39 + sh * 1.2, 26, 5, 2.5, METAL)
-    # Груз: топливный баллон и контейнер над бортом.
+    # Крылья над колёсами: машина, а не платформа.
+    for wx in (22, 138):
+        c.rect(wx + sh * 0.5 - 11, 49, wx + sh * 0.5 + 11, 53, WHITE)
+        c.rect(wx + sh * 0.5 - 11, 53, wx + sh * 0.5 + 11, 53, GREY)
+    # Низкая тарелка антенны слева: ниже шлема.
+    c.line(44 + sh, 44, 40 + sh * 1.2, 34, METAL, 2)
+    c.ellipse(39 + sh * 1.2, 31, 9, 5, GREY)
+    c.ellipse(39 + sh * 1.2, 31, 5, 2.5, METAL)
+    # Топливный баллон на деке.
     c.ellipse(58 + sh, 40, 7, 7, RED)
     c.rect(52 + sh, 36, 64 + sh, 37, DARK)
-    c.rect(98 + sh, 30, 116 + sh, 44, METAL)
-    c.rect(100 + sh, 32, 114 + sh, 43, GREY)
-    c.rect(105 + sh, 35, 109 + sh, 38, GOLD)
+    # Плоская солнечная панель на корпусе справа: лежит на деке, ячейки сеткой.
+    c.poly([(96 + sh * 1.1, 34), (126 + sh * 1.1, 34), (130 + sh, 45), (94 + sh, 45)], METAL)
+    c.poly([(98 + sh * 1.1, 36), (124 + sh * 1.1, 36), (127 + sh, 43), (97 + sh, 43)], NAVY)
+    for x in (106, 115):
+        c.line(x + sh * 1.1, 36, x + sh, 43, SEA, 1)
+    c.line(98 + sh * 1.05, 39, 126 + sh * 1.05, 39, SEA, 1)
+    c.line(100 + sh * 1.1, 37, 104 + sh * 1.1, 37, SKY, 1)
+    # Короткий хлыст с флажком цвета экипажа у заднего угла: ниже головы водителя.
+    flap = 2 * math.sin(phase * math.pi * 2)
+    c.rect(134 + sh * 1.2, 30, 135 + sh * 1.2, 46, METAL)
+    c.poly([(136 + sh * 1.2, 30), (146 + sh * 1.2, 33 + flap), (136 + sh * 1.2, 37)], accent)
     # Космонавт со спины: шлем, ранец с баллонами, руки на рычагах.
     x0 = 72 + sh * 1.2
     c.rect(x0 - 1, 22, x0 + 17, 42, WHITE)
@@ -267,7 +276,7 @@ def rover(lean, phase, accent):
 def hover(lean, phase, accent):
     """Ховер пришельца со спины, 160×104: широкий фиолетовый корпус-блюдце без колёс, по бокам
     гондолы с соплами, снизу свечение подушки (мерцает по `phase`), сверху стеклянный колпак с
-    головой пилота; полоса и киль цвета `accent`."""
+    головой пилота; полоса и низкий спойлер на корме цвета `accent`, без киля и мачт."""
     c = Canvas(160, 104)
     sh = lean * 6
     glow = 1 if phase < 0.25 else 0
@@ -294,9 +303,6 @@ def hover(lean, phase, accent):
     for i, x in enumerate(range(30, 132, 14)):
         on = (i + (0 if phase < 0.25 else 1)) % 2 == 0
         c.rect(x + sh * 0.7, 78, x + sh * 0.7 + 3, 80, GOLD if on else DARK)
-    # Киль-плавник на корме справа.
-    c.poly([(118 + sh * 1.3, 52), (132 + sh * 1.4, 18), (138 + sh * 1.4, 20), (130 + sh * 1.3, 54)], accent)
-    c.ellipse(134 + sh * 1.4, 18, 3, 3, GOLD)
     # Колпак и пилот: большая голова, два усика.
     cx = 80 + sh * 1.2
     c.ellipse(cx, 38, 22, 20, SEA)
@@ -309,6 +315,16 @@ def hover(lean, phase, accent):
     c.ellipse(cx + 9, 21, 2, 2, GOLD)
     c.line(cx - 15, 28, cx - 9, 22, SKY, 1)
     c.rect(cx - 22, 52, cx + 22, 54, DARK)
+    # Низкий спойлер на корме: крыло на двух стойках с шайбами по краям, ниже головы пилота.
+    wx = 80 + sh * 1.1
+    for side in (-1, 1):
+        c.rect(wx + side * 30 - 2, 50, wx + side * 30 + 2, 60, PLUM)
+    c.rect(wx - 46, 46, wx + 46, 51, DARK)
+    c.rect(wx - 45, 47, wx + 45, 50, accent)
+    c.rect(wx - 45, 47, wx + 45, 47, WHITE if accent != GOLD else SKY)
+    for side in (-1, 1):
+        c.rect(wx + side * 48 - 3, 42, wx + side * 48 + 3, 56, DARK)
+        c.rect(wx + side * 48 - 2, 43, wx + side * 48 + 2, 55, accent)
     c.finish()
     return c
 

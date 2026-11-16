@@ -8,8 +8,9 @@
               (эти же половины берёт `ThreedScreen.add_palm`)
   flag        флаг экспедиции: части `pole` и `cloth`
   lighthouse  ракета на стартовом столе, высота маяка
-  cart        луноход: `body`, оси `axle_f`, `axle_r`; на месте паруса солнечная панель
-  cart_rival  ховер пришельцев: те же части, на осях турбины
+  cart        луноход: `body`, оси `axle_f`, `axle_r`; машина без мачты: купол, панель плашмя на
+              корпусе, низкая тарелка
+  cart_rival  ховер пришельцев на подушке: те же части, на осях бортовые турбины, киль и спойлер
   pistol      лучевой пистолет в перчатке скафандра, вид от первого лица
   hoop        кольцо-портал со щитом-панелью; кольцо там же и того же размера
 
@@ -275,106 +276,203 @@ def space_lighthouse():
     return Model("lighthouse", a).part("body", (0.0, 0.0, 0.0), tris)
 
 
-def make_cart(name, rival):
-    """Транспорт гонок. Герой: луноход, белый корпус с оранжевой полосой, кабина, на мачте
-    солнечная панель там, где у повозки парус. Соперник: ховер пришельцев, фиолетовый корпус,
-    бирюзовый купол, на мачте гребень; на осях вместо колёс турбины. Части и точки вращения
-    как у пиратской повозки: `body`, `axle_f`, `axle_r`."""
-    a = Atlas(64, 64, 161 if not rival else 163)
-    main, dark = (VIOLET, VIOLET_D) if rival else (WHITE, WHITE_D)
-    # Борт.
-    a.rect(0, 0, 64, 12, main)
-    a.rect(0, 2, 64, 3, CYAN if rival else ORANGE)
-    a.rect(0, 5, 64, 1, VIOLET_L if rival else METAL)
+def paint_glass(a, x0, y0, w, h, frame):
+    """Остекление купола: тёмное к низу стекло, блик наискось, стойки и нижний обод рамы."""
+    for j in range(h):
+        k = j / float(h - 1)
+        for i in range(w):
+            a.px(x0 + i, y0 + j, mul(CYAN, 1.12 - 0.5 * k))
+    for i in range(w):
+        for j in range(h - 3):
+            if (i + j * 2) % 16 in (3, 4):
+                a.px(x0 + i, y0 + j, CYAN_L)
+    for i in range(0, w, 8):
+        a.rect(x0 + i, y0, 1, h, frame)
+    a.rect(x0, y0 + h - 3, w, 3, frame)
+    a.rect(x0, y0 + h - 3, w, 1, mul(frame, 1.25))
+    a.noise(x0, y0, w, h, 0.04)
+    return a.region(x0, y0, w, h)
+
+
+def cart_axles(m, rim, wheel, radius, half, x, n, rod=None):
+    """Оси гонок `axle_f` и `axle_r`: точки вращения как у пиратской повозки, демки крутят их
+    вокруг X и поворачивают переднюю. `rod` рисует балку моста между колёсами."""
+    for part, z in (("axle_f", -0.72), ("axle_r", 0.72)):
+        tris = []
+        for side in (-x, x):
+            tris += at(rot(loft([(-half, radius, radius), (half, radius, radius)], rim, n,
+                                caps=(wheel, wheel), flat=True), rz=90.0), side, 0.32, z)
+        if rod:
+            tris += at(rot(loft([(-x, 0.045, 0.045), (x, 0.045, 0.045)], rod, 4, flat=True), rz=90.0), 0.0, 0.32, z)
+        m.part(part, (0.0, 0.32, z), tris, "body")
+
+
+def space_cart():
+    """Луноход героя: низкая четырёхколёсная машина. Белый корпус с оранжевой полосой, нос с
+    фарами, кабина под стеклянным куполом, на моторном отсеке плашмя солнечная панель, на корме
+    низкая антенна-тарелка. Паруса и мачты нет. Части и точки вращения как у пиратской повозки:
+    `body`, `axle_f`, `axle_r`."""
+    a = Atlas(64, 64, 161)
+    # Борт лентой вокруг ящика: четверти это правый борт, нос, левый борт, корма.
+    a.rect(0, 0, 64, 12, WHITE)
+    a.rect(0, 2, 64, 3, ORANGE)
+    a.rect(0, 5, 64, 1, METAL)
     for x in range(0, 64, 8):
-        a.rect(x, 6, 1, 6, dark)
-        a.px(x + 3, 9, CYAN_L if rival else METAL_D)
-    if not rival:
-        a.rect(26, 7, 12, 4, BLACK)
-        for x in (27, 30, 33, 36):
+        a.rect(x, 6, 1, 6, WHITE_D)
+        a.px(x + 3, 9, METAL_D)
+    for x0 in (0, 32):
+        a.rect(x0 + 5, 7, 6, 4, BLACK)
+        for x in (x0 + 6, x0 + 8):
             a.px(x, 8, WHITE), a.px(x, 9, WHITE)
-    else:
-        for x in range(4, 64, 16):
-            a.rect(x, 8, 3, 2, CYAN_L)
+    a.rect(16, 6, 16, 5, METAL_D)
+    for x in (18, 27):
+        a.rect(x, 7, 3, 3, YELLOW)
+        a.px(x + 1, 8, WHITE)
+    a.rect(22, 8, 4, 2, BLACK)
+    a.rect(48, 6, 16, 5, METAL_D)
+    for x in (50, 59):
+        a.rect(x, 7, 3, 2, ORANGE)
+        a.px(x + 1, 7, YELLOW)
+    hazard(a, 54, 9, 4, 2)
     a.rect(0, 11, 64, 1, METAL_D)
     a.shade(0, 0, 64, 12, 1.08, 0.8, 1.0)
     a.noise(0, 0, 64, 12, 0.05)
     hull = a.region(0, 0, 64, 12)
-    # Палуба: настил героя или пластины ховера с огнями.
-    if rival:
-        a.rect(0, 12, 16, 16, VIOLET_D)
-        for y in range(12, 28, 4):
-            a.rect(0, y, 16, 1, BLACK)
-        a.rect(6, 14, 4, 12, CYAN)
-        a.rect(7, 15, 2, 10, CYAN_L)
-    else:
-        panels(a, 0, 12, 16, 16, METAL, 8, 4)
-        a.rect(5, 15, 6, 6, CYAN_D)
-        a.rect(6, 16, 4, 4, CYAN)
-        a.px(6, 16, CYAN_L)
+    panels(a, 0, 12, 16, 16, METAL, 8, 4)
+    a.rect(5, 15, 6, 6, CYAN_D)
+    a.rect(6, 16, 4, 4, CYAN)
+    a.px(6, 16, CYAN_L)
     deck = a.region(0, 12, 16, 16)
-    wheel = paint_tire(a, 16, 12, CYAN if rival else None)
-    a.rect(32, 12, 8, 4, BLACK if not rival else VIOLET_D)
+    wheel = paint_tire(a, 16, 12)
+    a.rect(32, 12, 8, 4, BLACK)
     for x in range(32, 40, 2):
-        a.px(x, 13, METAL_D if not rival else CYAN)
+        a.px(x, 13, METAL_D)
     rim = a.region(32, 12, 8, 4)
-    a.rect(40, 12, 8, 16, VIOLET_D if rival else METAL)
+    # Крыло над колёсами: белое с оранжевой кромкой.
+    a.rect(32, 16, 8, 12, WHITE)
+    a.rect(32, 16, 8, 2, ORANGE)
+    a.rect(32, 26, 8, 2, WHITE_D)
+    a.rect(35, 20, 2, 4, METAL)
+    a.noise(32, 16, 8, 12, 0.04)
+    fender = a.region(32, 16, 8, 12)
+    # Бок моторного отсека: жалюзи.
+    a.rect(40, 12, 8, 16, METAL)
     for y in range(12, 28, 4):
-        a.rect(40, y, 8, 1, BLACK if rival else METAL_D)
-    mast = a.region(40, 12, 8, 16)
-    if rival:
-        # Гребень-парус: перепонка с жилами и бирюзовым знаком.
-        a.rect(0, 32, 32, 28, VIOLET_D)
-        for x in range(0, 32, 5):
-            a.rect(x, 32, 1, 28, VIOLET)
-        for y in range(34, 60, 6):
-            a.rect(0, y, 32, 1, mul(VIOLET_D, 0.75))
-        for j in range(12):
-            for i in range(12):
-                d = math.hypot(i - 5.5, j - 5.5)
-                if 3.0 < d < 5.4 or d < 1.4:
-                    a.px(10 + i, 40 + j, CYAN)
-    else:
-        # Солнечная панель: синие ячейки в белой раме.
-        a.rect(0, 32, 32, 28, WHITE)
-        for j in range(4):
-            for i in range(4):
-                a.rect(1 + i * 8, 33 + j * 7, 7, 6, rgb("23408E"))
-                a.rect(1 + i * 8, 33 + j * 7, 7, 1, rgb("4A78D0"))
-                a.px(2 + i * 8, 35 + j * 7, CYAN)
-        a.rect(15, 32, 2, 28, METAL)
+        a.rect(40, y, 8, 1, METAL_D)
+        a.rect(40, y + 1, 8, 1, METAL_L)
+    vent = a.region(40, 12, 8, 16)
+    # Тарелка: белые кольца, оранжевый край.
+    for j in range(16):
+        a.rect(48, 12 + j, 16, 1, WHITE if (j // 2) % 2 == 0 else WHITE_D)
+    a.rect(48, 12, 16, 2, ORANGE)
+    a.rect(48, 26, 16, 2, METAL_D)
+    dish = a.region(48, 12, 16, 16)
+    # Солнечная панель: синие ячейки в белой раме.
+    a.rect(0, 32, 32, 28, WHITE)
+    for j in range(4):
+        for i in range(4):
+            a.rect(1 + i * 8, 33 + j * 7, 7, 6, rgb("23408E"))
+            a.rect(1 + i * 8, 33 + j * 7, 7, 1, rgb("4A78D0"))
+            a.px(2 + i * 8, 35 + j * 7, CYAN)
+    a.rect(15, 32, 2, 28, METAL)
     a.noise(0, 32, 32, 28, 0.05)
-    sail = a.region(0, 32, 32, 28)
-    m = Model(name, a)
-    if rival:
-        body = (at(loft([(-0.18, 0.3, 0.7), (-0.06, 0.62, 1.2), (0.06, 0.62, 1.2), (0.18, 0.4, 0.9)], hull, 8,
-                        caps=(deck, deck)), 0.0, 0.58, -0.1)
-                + at(loft([(0.0, 0.3, 0.4), (0.16, 0.26, 0.34), (0.3, 0.1, 0.14)], deck, 6), 0.0, 0.76, -0.45)
-                + at(box((0.8, 0.12, 0.3), deck, deck, deck), 0.0, 0.84, 0.55))
-    else:
-        body = (at(box((1.0, 0.36, 2.0), hull, deck, deck, (1.12, 1.0)), 0.0, 0.58)
-                + at(box((0.62, 0.3, 0.55), hull, deck, deck, (0.5, 0.6)), 0.0, 0.6, -1.22)
-                + at(box((0.8, 0.12, 0.3), deck, deck, deck), 0.0, 0.84, 0.55)
-                + at(box((0.6, 0.3, 0.5), hull, deck, None, (0.7, 0.7)), 0.0, 0.91, -0.6))
-    body += (at(loft([(0.0, 0.05, 0.05), (2.0, 0.035, 0.035)], mast, 4), 0.0, 0.76, -0.25)
-             + at(box((1.5, 0.07, 0.07), mast, mast, mast), 0.0, 2.62, -0.25)
-             + quad((-0.72, 2.6, -0.28), (0.72, 2.6, -0.28), (0.62, 1.2, -0.38), (-0.62, 1.2, -0.38), sail))
+    solar = a.region(0, 32, 32, 28)
+    glass = paint_glass(a, 32, 32, 32, 16, WHITE_D)
+    m = Model("cart", a)
+    body = (at(box((0.9, 0.28, 2.0), hull, deck, deck, (0.94, 0.98)), 0.0, 0.52)
+            # Нос клином и бампер.
+            + at(box((0.78, 0.24, 0.5), hull, deck, deck, (0.8, 0.7)), 0.0, 0.5, -1.2)
+            + at(box((0.86, 0.07, 0.08), rim, rim, rim), 0.0, 0.42, -1.44)
+            # Моторный отсек, на крышке панель плашмя.
+            + at(box((0.8, 0.14, 0.92), vent, solar, None), 0.0, 0.73, 0.5)
+            # Кабина-купол.
+            + at(loft([(0.0, 0.37, 0.44), (0.2, 0.34, 0.4), (0.31, 0.2, 0.25), (0.35, 0.0, 0.0)], glass, 8),
+                 0.0, 0.65, -0.45))
+    # Крылья вдоль бортов над колёсами.
+    for x in (-0.57, 0.57):
+        body += at(box((0.3, 0.06, 1.96), rim, fender, rim), x, 0.675, 0.0)
+    # Антенна-тарелка на корме: стойка и чаша, смотрит назад и вверх.
+    cup = loft([(0.0, 0.02, 0.02), (0.07, 0.14, 0.14)], dish, 6, flat=True)
+    body += (at(loft([(0.0, 0.025, 0.025), (0.14, 0.02, 0.02)], rim, 4, flat=True), 0.26, 0.8, 0.8)
+             + at(rot(cup + flip(cup), rx=40.0), 0.26, 0.93, 0.8))
     m.part("body", (0.0, 0.0, 0.0), body)
-    for part, z in (("axle_f", -0.72), ("axle_r", 0.72)):
-        tris = []
-        for x in (-0.6, 0.6):
-            tris += at(rot(loft([(-0.07 if not rival else -0.05, 0.32, 0.32), (0.07 if not rival else 0.05, 0.32, 0.32)], rim, 8,
-                                caps=(wheel, wheel), flat=True), rz=90.0), x, 0.32, z)
-        m.part(part, (0.0, 0.32, z), tris, "body")
+    cart_axles(m, rim, wheel, 0.32, 0.09, 0.6, 8, rim)
     return m
 
 
-def space_cart():
-    return make_cart("cart", False)
-
-
 def space_cart_rival():
-    return make_cart("cart_rival", True)
+    """Ховер соперников: обтекаемая платформа на воздушной подушке. Тёмная юбка у самой земли,
+    фиолетовый корпус каплей с бирюзовой полосой по хребту, низкий купол, на корме киль и
+    спойлер. Колёс и гребня нет; на осях `axle_f`, `axle_r` бортовые турбины, они не достают
+    до земли. Части и точки вращения те же, что у лунохода."""
+    a = Atlas(64, 64, 163)
+    # Обшивка корпуса: лента вокруг тела, середина это хребет, края это днище; сверху вниз
+    # куска от кормы к носу.
+    a.rect(0, 0, 64, 16, VIOLET)
+    for y in range(0, 16, 4):
+        a.rect(0, y, 64, 1, VIOLET_D)
+    for x in (10, 20, 43, 53):
+        a.rect(x, 0, 1, 16, VIOLET_D)
+        a.rect(x + 1, 0, 1, 16, VIOLET_L)
+    for x0 in (13, 46):
+        for y in (2, 6, 10):
+            a.rect(x0, y, 5, 1, CYAN_L)
+    a.rect(0, 0, 8, 16, VIOLET_D), a.rect(56, 0, 8, 16, VIOLET_D)
+    a.rect(29, 0, 6, 16, CYAN)
+    a.rect(31, 0, 2, 16, CYAN_L)
+    a.rect(0, 0, 64, 2, BLACK)
+    for x in (14, 22, 40, 48):
+        a.rect(x, 0, 3, 2, ORANGE)
+    a.noise(0, 0, 64, 16, 0.05)
+    hull = a.region(0, 0, 64, 16)
+    # Юбка подушки: рёбра резины, снизу свечение.
+    a.rect(0, 16, 64, 8, mul(VIOLET_D, 0.55))
+    for x in range(0, 64, 4):
+        a.rect(x, 16, 1, 8, BLACK)
+        a.rect(x + 1, 16, 1, 8, mul(VIOLET_D, 0.8))
+    a.rect(0, 16, 12, 8, CYAN), a.rect(52, 16, 12, 8, CYAN)
+    a.rect(0, 16, 6, 8, CYAN_L), a.rect(58, 16, 6, 8, CYAN_L)
+    a.noise(0, 16, 64, 8, 0.05)
+    skirt = a.region(0, 16, 64, 8)
+    a.rect(0, 24, 16, 16, VIOLET_D)
+    for y in range(24, 40, 4):
+        a.rect(0, y, 16, 1, BLACK)
+    a.rect(6, 26, 4, 12, CYAN)
+    a.rect(7, 27, 2, 10, CYAN_L)
+    deck = a.region(0, 24, 16, 16)
+    fan = paint_tire(a, 16, 24, CYAN)
+    a.rect(32, 24, 8, 4, VIOLET_D)
+    for x in range(32, 40, 2):
+        a.px(x, 25, CYAN)
+    rim = a.region(32, 24, 8, 4)
+    # Спойлер и киль: пластина с жилами и бирюзовым знаком.
+    a.rect(0, 40, 32, 16, VIOLET_D)
+    for x in range(0, 32, 5):
+        a.rect(x, 40, 1, 16, VIOLET)
+    a.rect(0, 40, 32, 1, CYAN), a.rect(0, 55, 32, 1, VIOLET_L)
+    for j in range(10):
+        for i in range(10):
+            d = math.hypot(i - 4.5, j - 4.5)
+            if 2.6 < d < 4.6 or d < 1.2:
+                a.px(11 + i, 43 + j, CYAN)
+    a.noise(0, 40, 32, 16, 0.05)
+    wing = a.region(0, 40, 32, 16)
+    glass = paint_glass(a, 32, 32, 32, 16, VIOLET_D)
+    m = Model("cart_rival", a)
+    # Тела вдоль хода: кольца (z, полуширина, полувысота), после поворота высота центра в `y`.
+    body = (at(rot(loft([(-1.26, 0.2, 0.08), (-0.95, 0.58, 0.14), (-0.3, 0.66, 0.16), (0.6, 0.66, 0.16), (0.98, 0.48, 0.13)],
+                        skirt, 8, caps=(deck, deck)), rx=90.0), 0.0, 0.2)
+            + at(rot(loft([(-1.3, 0.05, 0.04), (-0.95, 0.4, 0.13), (-0.4, 0.6, 0.18), (0.5, 0.62, 0.18), (1.0, 0.46, 0.12)],
+                          hull, 8, caps=(None, deck)), rx=90.0), 0.0, 0.46)
+            + at(loft([(0.0, 0.28, 0.5), (0.13, 0.24, 0.42), (0.22, 0.12, 0.22), (0.24, 0.0, 0.0)], glass, 6), 0.0, 0.54, -0.4)
+            # Спойлер на двух стойках и низкий киль по хребту.
+            + at(box((1.2, 0.04, 0.24), rim, wing, wing), 0.0, 0.8, 0.84))
+    for x in (-0.42, 0.42):
+        body += quad((x, 0.79, 0.74), (x, 0.79, 0.94), (x, 0.5, 0.96), (x, 0.5, 0.66), deck)
+    body += quad((0.0, 0.79, 0.72), (0.0, 0.79, 0.94), (0.0, 0.56, 0.96), (0.0, 0.6, 0.1), wing)
+    m.part("body", (0.0, 0.0, 0.0), body)
+    cart_axles(m, rim, fan, 0.2, 0.09, 0.64, 6)
+    return m
 
 
 def space_pistol():
