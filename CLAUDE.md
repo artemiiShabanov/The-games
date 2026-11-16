@@ -154,6 +154,11 @@
 - Набор 16/32 другого сеттинга (#136): модули `tools/space16.py` и `tools/space_*16.py`, пишутся
   тем же `python3 tools/pixel_sprites16.py`; лист одного модуля `python3 tools/space_road16.py
   --preview out.png`; проверка `sh tools/setting_matrix.sh 1 bit16`.
+- Наборы остальных сеттингов (#137): модули-зеркала космоса `tools/<id>8*.py`, `<id>16.py`,
+  `<id>_*16.py`, `<id>_mesh_*.py`, `<id>_rig_*.py`, список сеттингов в `tools/setting_sets.py`; пишут
+  их те же три генератора. Номера `--setting=N`: 0 пираты, 1 космос, 2 замки, 3 зомби, 4
+  супергерои, 5 фэнтези, 6 сладости, 7 ниндзя, 8 динозавры, 9 офис. Листы кадров сеттинга (шесть
+  на технологию, `debug/playtest/shots/<id>_<tech>.jpg`): `sh tools/setting_shots.sh <n> [tech]`.
 - Окружение сеттинга в 3D (#147): свет, небо, туман и основание мира лежат в ресурсе сеттинга
   (`SettingEnv`), не в `lowpoly.tres` и `threed.tres`. Вид основания под кадр: `--base=liquid|void|solid`
   у любой 3D-демки (`--scene=demo_test --tech=threed --setting=1 --base=liquid --no-checks
