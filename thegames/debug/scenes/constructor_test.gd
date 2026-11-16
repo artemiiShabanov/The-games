@@ -278,7 +278,8 @@ func _check_franchise() -> void:
 	_expect(c != null and chooser == null, "конструктор после выбора сиквела не открылся")
 	_expect(c.title == "Пираты на платформах 3", "название сиквела «%s»" % c.title)
 	_expect(c.is_locked_column(0) and c.is_locked_column(2) and not c.is_locked_column(1), "локи сиквела")
-	_expect(c.index[0] == 0 and c.index[2] == 0 and c.selection_open(), "жанр и сеттинг оригинала не выбраны")
+	_expect(c.index[0] == 0 and c.index[2] == c.catalogs[2].index_of(int(Game.Setting.PIRATES)) and c.selection_open(),
+			"жанр и сеттинг оригинала не выбраны")
 	var t0 := c.title
 	c.regenerate_title()
 	_expect(c.title == t0, "R поменял название сиквела")

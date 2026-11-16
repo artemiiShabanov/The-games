@@ -19,12 +19,13 @@ extends Resource
 @export var mood := 1.0
 
 
-static func create(tuning: SuccessTuning, rng: RandomNumberGenerator, deterministic := false) -> MarketState:
+static func create(tuning: SuccessTuning, rng: RandomNumberGenerator, deterministic := false,
+		settings: Array[Game.Setting] = []) -> MarketState:
 	var m := MarketState.new()
 	for g in Game.Genre.size():
 		m.demand_genre.append(1.0 if deterministic else rng.randf_range(1.0 - tuning.demand_spread, 1.0 + tuning.demand_spread))
 		m.saturation_genre.append(0.0)
-	for s in Game.SETTINGS_IN_RUN:
+	for s in Game.Setting.size():
 		m.demand_setting.append(1.0 if deterministic else rng.randf_range(1.0 - tuning.demand_spread, 1.0 + tuning.demand_spread))
 		m.saturation_setting.append(0.0)
 	for t in Game.Tech.size():
@@ -32,21 +33,35 @@ static func create(tuning: SuccessTuning, rng: RandomNumberGenerator, determinis
 			m.synergy_jitter[t * Game.Genre.size() + g] = 1.0 if deterministic else 1.0 + rng.randf_range(-tuning.syn_jitter, tuning.syn_jitter)
 	m.mood = 1.0
 	if not deterministic:
-		m.roll_release(tuning, rng)
+		m.roll_release(tuning, rng, settings)
 	return m
 
 
-## Перед релизом: настрой рынка и тренд (жанр и сеттинг не те, что в прошлый раз).
-func roll_release(tuning: SuccessTuning, rng: RandomNumberGenerator) -> void:
+## Старое сохранение (три сеттинга): массивы дорастают до десяти (#139).
+func fit() -> void:
+	while demand_setting.size() < Game.Setting.size():
+		demand_setting.append(1.0)
+	while saturation_setting.size() < Game.Setting.size():
+		saturation_setting.append(0.0)
+
+
+## Перед релизом: настрой рынка и тренд (жанр и сеттинг не те, что в прошлый раз). Тренд
+## сеттинга разыгрывается среди открытых студии (`settings`; пусто: среди всех).
+func roll_release(tuning: SuccessTuning, rng: RandomNumberGenerator, settings: Array[Game.Setting] = []) -> void:
 	mood = rng.randf_range(tuning.mood_min, tuning.mood_max)
 	var g := rng.randi_range(0, Game.Genre.size() - 1)
 	if g == trend_genre:
 		g = (g + 1) % Game.Genre.size()
 	trend_genre = g
-	var s := rng.randi_range(0, Game.SETTINGS_IN_RUN - 1)
-	if s == trend_setting:
-		s = (s + 1) % Game.SETTINGS_IN_RUN
-	trend_setting = s
+	var pool: Array[int] = []
+	for x in settings:
+		pool.append(int(x))
+	if pool.is_empty():
+		pool.assign(range(Game.Setting.size()))
+	var i := rng.randi_range(0, pool.size() - 1)
+	if pool[i] == trend_setting:
+		i = (i + 1) % pool.size()
+	trend_setting = pool[i]
 
 
 func saturation(genre: Game.Genre, setting: Game.Setting) -> float:

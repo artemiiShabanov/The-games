@@ -87,6 +87,8 @@ var _release_count := 0
 var _new_index := 0
 var _upgrades_index := 0
 var _money_index := 0
+var _settings_index := -1
+var _settings: SettingsScreen
 var _offer_index := -1
 var _offer_rows: Array[PanelContainer] = []
 var _offer_lifts: Array[JellyLift] = []
@@ -321,6 +323,8 @@ func activate(i: int) -> void:
 		_toggle_window(Pop.UPGRADES)
 	elif i == _money_index:
 		_toggle_window(Pop.MONEY)
+	elif i == _settings_index:
+		open_settings()
 	elif i == _offer_index:
 		_toggle_window(Pop.OFFER)
 	elif _wave_focus.has(i):
@@ -334,6 +338,24 @@ func open_money() -> void:
 
 func open_upgrades() -> void:
 	_toggle_window(Pop.UPGRADES)
+
+
+## Список сеттингов и достижений (#139) поверх главного экрана.
+func open_settings() -> void:
+	if _settings != null:
+		return
+	_close_window(false)
+	_lifts[_settings_index].press()
+	_settings = SettingsScreen.new()
+	_settings.setup(run.profile, run)
+	_settings.closed.connect(func() -> void:
+		_settings.queue_free()
+		_settings = null
+		_hints.visible = true
+		overlay_changed.emit(false))
+	_hints.visible = false
+	overlay_changed.emit(true)
+	add_child(_settings)
 
 
 func open_offer() -> void:
@@ -486,7 +508,7 @@ func _game_input(event: InputEvent, viewport: Viewport) -> void:
 # --- Ввод -------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if playing:
+	if playing or _settings != null:
 		return
 	var viewport := get_viewport()
 	if window == Pop.RELEASE:
@@ -1165,6 +1187,8 @@ func _build() -> void:
 	_pill_button(_pills, Style.format_money(run.wallet.cash), true)
 	_upgrades_index = _focusables.size()
 	_pill_button(_pills, "Прокачка · %d" % run.studio.upgrade_ids.size(), false)
+	_settings_index = _focusables.size()
+	_pill_button(_pills, "Сеттинги · %d из %d" % [SettingsScreen.open_count(run.profile, run), Game.Setting.size()], false)
 	if not run.pending_defs().is_empty():
 		_offer_index = _focusables.size()
 		_offer_button(_pills)

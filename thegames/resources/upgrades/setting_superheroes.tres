@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/studio/upgrade_def.gd" id="1_c1187"]
+
+[resource]
+script = ExtResource("1_c1187")
+id = &"setting_superheroes"
+title = "Сеттинг: Супергерои"
+effect_line = "Новый сеттинг в конструкторе до конца забега"
+setting = 4
+prop = "плакат сеттинга на стене"

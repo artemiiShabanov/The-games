@@ -28,6 +28,8 @@ static var path := PATH
 ## Законченные забеги для вкладки «Студии» галереи: `run`, `studio`, `logo` (как в слоте),
 ## `ending` (ключ `Endings.KEYS`), `score`, `releases`, `finished` (unix-время).
 @export var runs: Array[Dictionary] = []
+## Достижения (#139): id `AchievementDef` → unix-время. Каждое открывает сеттинг на все забеги.
+@export var achievements: Dictionary[StringName, int] = {}
 
 
 ## Автотест: свой файл, пустой на старте прогона.

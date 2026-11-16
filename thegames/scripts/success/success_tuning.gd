@@ -11,7 +11,7 @@ const PATH := "res://resources/success.tres"
 @export var tech_sales: Array[float] = [0.62, 0.7, 0.85, 1.0, 1.2]
 @export var tech_critics: Array[float] = [0.6, 0.3, 0.1, 0.0, -0.3]
 @export var tech_spectacle: Array[float] = [0.5, 0.6, 0.68, 0.9, 1.0]
-@export var setting_hype: Array[float] = [0.5, 0.7, 0.6]
+@export var setting_hype: Array[float] = [0.5, 0.7, 0.6, 0.5, 0.7, 0.6, 0.5, 0.6, 0.7, 0.5]
 @export var syn_tech_genre: Array[float] = [
 	1.00, 0.90, 1.10, 0.85, 0.85,
 	1.20, 1.00, 1.05, 1.00, 0.95,
@@ -21,7 +21,14 @@ const PATH := "res://resources/success.tres"
 @export var syn_genre_setting: Array[float] = [
 	1.03, 1.05, 1.00, 0.97, 1.00,
 	1.00, 1.00, 1.05, 0.95, 0.97,
-	1.00, 0.95, 0.97, 1.00, 1.05]
+	1.00, 0.95, 0.97, 1.00, 1.05,
+	1.03, 1.05, 1.00, 0.97, 1.00,
+	1.03, 0.95, 1.00, 0.97, 1.05,
+	1.05, 0.95, 1.00, 0.97, 1.03,
+	1.05, 1.03, 0.95, 1.00, 0.97,
+	1.05, 0.97, 0.97, 0.96, 1.05,
+	1.03, 1.05, 1.00, 0.97, 0.95,
+	0.97, 0.95, 1.00, 1.05, 1.03]
 ## Скрытый шум синергии на пару, разыгрывается на забег.
 @export var syn_jitter := 0.05
 

@@ -12,7 +12,10 @@ const PATH := "res://resources/run.tres"
 @export var tech: Game.Tech = Game.Tech.BIT8
 ## Технологии розыгрыша старта: с M3 (#104) вектор, 8-bit и 16/32, остальные покупаются.
 @export var start_techs: Array[Game.Tech] = [Game.Tech.BIT8]
-@export var title := "Пираты на платформах"
+@export var title := "Зомби на платформах"
+## Сеттинги, открытые со старта забега (#139): зомби, космос, замки. Первый из них берёт
+## быстрая конфигурация дебага и автотеста.
+@export var start_settings: Array[Game.Setting] = [Game.Setting.ZOMBIES, Game.Setting.SPACE, Game.Setting.CASTLES]
 @export var sprints := 5
 ## Кап забега (#62): разыгрывается на забег в `cap_min`..`cap_max` релизов, игроку не
 ## показывается. Сигналы капа считаются от него: «студия-ветеран» у критиков с капа −

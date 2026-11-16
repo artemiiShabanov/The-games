@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/run/achievement_def.gd" id="1_ach"]
+
+[resource]
+script = ExtResource("1_ach")
+id = &"treasure"
+title = "Сокровище"
+text = "На счету студии $200 000"
+setting = 0
+condition = 0
+threshold = 200000
+ending = &""

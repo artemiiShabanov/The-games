@@ -32,7 +32,9 @@ RES = ROOT / "thegames" / "resources"
 
 GENRES = ["platformer", "racing", "shooter", "sport", "fighting"]
 TECHS = ["vector", "8bit", "16bit", "lowpoly", "3d"]
-SETTINGS = ["pirates", "space", "castles"]
+# Все сеттинги в порядке `Game.Setting` (индексы тюнинга) и стартовая тройка забега (#139).
+ALL_SETTINGS = ["pirates", "space", "castles", "zombies", "superheroes", "fantasy", "sweets", "ninja", "dinosaurs", "office"]
+SETTINGS = ["zombies", "space", "castles"]
 
 
 def load_tres(path):
@@ -79,7 +81,7 @@ def rnd(x):
 
 def sprint_price(g, t, s, discount=0.0):
     raw = E["sprint_base_by_tech"][TECHS.index(t)] * E["genre_cost_mult"][GENRES.index(g)] \
-        * E["setting_cost_mult"][SETTINGS.index(s)] * (1.0 - discount)
+        * E["setting_cost_mult"][ALL_SETTINGS.index(s)] * (1.0 - discount)
     return rnd(raw / 10.0) * 10
 
 
@@ -94,7 +96,7 @@ def cheapest(genres, techs, settings):
 # --- Успех, как Success ---------------------------------------------------------------------------
 
 def synergy(g, t, s):
-    return S["syn_tech_genre"][TECHS.index(t) * 5 + GENRES.index(g)] * S["syn_genre_setting"][SETTINGS.index(s) * 5 + GENRES.index(g)]
+    return S["syn_tech_genre"][TECHS.index(t) * 5 + GENRES.index(g)] * S["syn_genre_setting"][ALL_SETTINGS.index(s) * 5 + GENRES.index(g)]
 
 
 def novelty(g, t, s, part, past):
@@ -113,16 +115,16 @@ def franchise_boost(part):
 
 # (genre, tech, setting, q, bugs, spectacular, sequel_part, purchases_after)
 RUN = [
-    ("platformer", "8bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
-    ("shooter", "8bit", "pirates", 0.8, 1, 0, 1, [("cap", "replay")]),
+    ("platformer", "8bit", "zombies", 0.6, 2, 1, 1, [("genre", "shooter")]),
+    ("shooter", "8bit", "zombies", 0.8, 1, 0, 1, [("cap", "replay")]),
     ("platformer", "8bit", "space", 0.6, 2, 1, 1, [("tech", "vector")]),
     ("shooter", "vector", "space", 1.0, 0, 0, 1, [("cap", "sequels")]),
-    ("platformer", "8bit", "pirates", 0.8, 1, 0, 2, []),
+    ("platformer", "8bit", "zombies", 0.8, 1, 0, 2, []),
     ("platformer", "vector", "castles", 0.75, 1, 0, 1, [("tech", "lowpoly")]),
     ("shooter", "lowpoly", "castles", 0.57, 3, 1, 1, []),
-    ("shooter", "8bit", "pirates", 0.8, 1, 0, 2, [("genre", "racing")]),
+    ("shooter", "8bit", "zombies", 0.8, 1, 0, 2, [("genre", "racing")]),
     ("racing", "lowpoly", "space", 0.71, 2, 1, 1, []),
-    ("platformer", "lowpoly", "pirates", 0.86, 1, 0, 3, [("tech", "3d")]),
+    ("platformer", "lowpoly", "zombies", 0.86, 1, 0, 3, [("tech", "3d")]),
     ("racing", "3d", "castles", 0.75, 2, 1, 1, []),
     ("shooter", "3d", "space", 0.875, 1, 1, 1, []),
 ]
@@ -136,7 +138,7 @@ def simulate(mid=False, plan=None, events=0):
     upkeep = int(E["upkeep_base"])
     R = 0.0
     sat_g = {g: 0.0 for g in GENRES}
-    sat_s = {s: 0.0 for s in SETTINGS}
+    sat_s = {s: 0.0 for s in ALL_SETTINGS}
     # Стартовая технология: технология первой игры плана (в M1 и M2 это 8-bit, в M3 любая из трёх).
     open_g, open_t, open_s = ["platformer"], [plan[0][1]], list(SETTINGS)
     games, rows = [], []
@@ -157,7 +159,7 @@ def simulate(mid=False, plan=None, events=0):
         sat = max(sat_g[g], sat_s[s])
         P0 = S["p_base"] * S["tech_sales"][ti] * sy * (S["sales_critics_base"] + S["sales_critics"] * C) \
             * (1.0 + S["sales_reputation"] * R) * franchise_boost(part) * (1.0 - S["sales_saturation"] * sat)
-        V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][SETTINGS.index(s)]
+        V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][ALL_SETTINGS.index(s)]
                                                      + S["streamers_quality"] * q) + S["streamers_spectacular_bug"] * bs
         V = max(0.0, min(100.0, V))
         viral = V >= S["viral_threshold"]
@@ -218,15 +220,15 @@ def print_table(rows):
 # Одна технология 8-bit, кап 12, старт платформером. Покупки после релиза: жанры по одному,
 # возможности переигровки, сиквелов, QA, инсайдера, менеджера. Сиквел хита на 5 и 10 релизе.
 RUN_M2 = [
-    ("platformer", "8bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+    ("platformer", "8bit", "zombies", 0.6, 2, 1, 1, [("genre", "shooter")]),
     ("shooter", "8bit", "space", 0.8, 1, 0, 1, [("cap", "replay")]),
     ("platformer", "8bit", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
-    ("shooter", "8bit", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+    ("shooter", "8bit", "zombies", 0.8, 1, 0, 1, [("genre", "racing")]),
     ("shooter", "8bit", "space", 0.8, 1, 0, 2, []),
     ("racing", "8bit", "castles", 0.71, 2, 1, 1, [("cap", "qa")]),
     ("platformer", "8bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
-    ("sport", "8bit", "pirates", 0.75, 1, 0, 1, [("cap", "insider")]),
-    ("racing", "8bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+    ("sport", "8bit", "zombies", 0.75, 1, 0, 1, [("cap", "insider")]),
+    ("racing", "8bit", "zombies", 0.86, 1, 0, 1, [("genre", "fighting")]),
     ("shooter", "8bit", "space", 0.8, 1, 0, 3, [("cap", "manager")]),
     ("fighting", "8bit", "castles", 0.75, 2, 1, 1, []),
     ("sport", "8bit", "space", 0.86, 1, 0, 1, []),
@@ -248,43 +250,43 @@ EVENTS_AVG = 400
 # мало (0,5); 16/32 дорог (6 спринтов по 1900) и продаёт больше (0,85).
 RUN_M3 = {
     "vector": [
-        ("platformer", "vector", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("platformer", "vector", "zombies", 0.6, 2, 1, 1, [("genre", "shooter")]),
         ("shooter", "vector", "space", 0.8, 1, 0, 1, [("cap", "replay")]),
         ("platformer", "vector", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
-        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("tech", "16bit")]),
+        ("shooter", "vector", "zombies", 0.8, 1, 0, 1, [("tech", "16bit")]),
         ("shooter", "16bit", "space", 0.8, 1, 0, 1, [("genre", "racing")]),
         ("racing", "vector", "castles", 0.71, 2, 1, 1, [("cap", "qa")]),
         ("platformer", "16bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
-        ("sport", "16bit", "pirates", 0.75, 1, 0, 1, [("cap", "insider")]),
-        ("racing", "16bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("sport", "16bit", "zombies", 0.75, 1, 0, 1, [("cap", "insider")]),
+        ("racing", "16bit", "zombies", 0.86, 1, 0, 1, [("genre", "fighting")]),
         ("shooter", "16bit", "space", 0.8, 1, 0, 2, [("cap", "manager")]),
         ("fighting", "16bit", "castles", 0.75, 2, 1, 1, []),
         ("sport", "16bit", "space", 0.86, 1, 0, 1, []),
     ],
     "8bit": [
-        ("platformer", "8bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("platformer", "8bit", "zombies", 0.6, 2, 1, 1, [("genre", "shooter")]),
         ("shooter", "8bit", "space", 0.8, 1, 0, 1, [("tech", "vector")]),
         ("platformer", "vector", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
-        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("shooter", "vector", "zombies", 0.8, 1, 0, 1, [("genre", "racing")]),
         ("shooter", "8bit", "space", 0.8, 1, 0, 2, [("cap", "replay")]),
         ("racing", "vector", "castles", 0.71, 2, 1, 1, [("tech", "16bit")]),
         ("platformer", "16bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
-        ("sport", "16bit", "pirates", 0.75, 1, 0, 1, [("cap", "qa")]),
-        ("racing", "16bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("sport", "16bit", "zombies", 0.75, 1, 0, 1, [("cap", "qa")]),
+        ("racing", "16bit", "zombies", 0.86, 1, 0, 1, [("genre", "fighting")]),
         ("shooter", "16bit", "space", 0.8, 1, 0, 3, [("cap", "manager")]),
         ("fighting", "16bit", "castles", 0.75, 2, 1, 1, []),
         ("sport", "16bit", "space", 0.86, 1, 0, 1, []),
     ],
     "16bit": [
-        ("platformer", "16bit", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("platformer", "16bit", "zombies", 0.6, 2, 1, 1, [("genre", "shooter")]),
         ("shooter", "16bit", "space", 0.8, 1, 0, 1, [("tech", "vector")]),
         ("platformer", "vector", "castles", 0.6, 2, 1, 1, [("cap", "sequels")]),
-        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("shooter", "vector", "zombies", 0.8, 1, 0, 1, [("genre", "racing")]),
         ("shooter", "16bit", "space", 0.8, 1, 0, 2, [("cap", "replay")]),
         ("racing", "vector", "castles", 0.71, 2, 1, 1, [("cap", "qa")]),
         ("platformer", "16bit", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
-        ("sport", "16bit", "pirates", 0.75, 1, 0, 1, [("cap", "insider")]),
-        ("racing", "16bit", "pirates", 0.86, 1, 0, 1, [("genre", "fighting")]),
+        ("sport", "16bit", "zombies", 0.75, 1, 0, 1, [("cap", "insider")]),
+        ("racing", "16bit", "zombies", 0.86, 1, 0, 1, [("genre", "fighting")]),
         ("shooter", "16bit", "space", 0.8, 1, 0, 3, [("cap", "manager")]),
         ("fighting", "16bit", "castles", 0.75, 2, 1, 1, []),
         ("sport", "16bit", "space", 0.86, 1, 0, 1, []),
@@ -292,18 +294,18 @@ RUN_M3 = {
     # Средние руки держатся дешёвой технологии: весь забег на векторе, жанры по одному, из
     # возможностей только переигровка.
     "cheap": [
-        ("platformer", "vector", "pirates", 0.6, 2, 1, 1, [("genre", "shooter")]),
+        ("platformer", "vector", "zombies", 0.6, 2, 1, 1, [("genre", "shooter")]),
         ("shooter", "vector", "space", 0.8, 1, 0, 1, [("cap", "replay")]),
         ("platformer", "vector", "castles", 0.6, 2, 1, 1, []),
-        ("shooter", "vector", "pirates", 0.8, 1, 0, 1, [("genre", "racing")]),
+        ("shooter", "vector", "zombies", 0.8, 1, 0, 1, [("genre", "racing")]),
         ("racing", "vector", "space", 0.71, 2, 1, 1, []),
         ("platformer", "vector", "space", 0.8, 1, 0, 1, [("genre", "sport")]),
-        ("sport", "vector", "pirates", 0.75, 1, 0, 1, []),
+        ("sport", "vector", "zombies", 0.75, 1, 0, 1, []),
         ("racing", "vector", "castles", 0.86, 1, 0, 1, [("genre", "fighting")]),
         ("shooter", "vector", "castles", 0.8, 1, 0, 1, []),
         ("fighting", "vector", "space", 0.75, 2, 1, 1, []),
         ("sport", "vector", "space", 0.86, 1, 0, 1, []),
-        ("fighting", "vector", "pirates", 0.75, 1, 0, 1, []),
+        ("fighting", "vector", "zombies", 0.75, 1, 0, 1, []),
     ],
 }
 
@@ -352,7 +354,7 @@ def outcome(g, t, s, q, b, bs, part, games, R, sat_g, sat_s):
     sat = max(sat_g[g], sat_s[s])
     P0 = S["p_base"] * S["tech_sales"][ti] * sy * (S["sales_critics_base"] + S["sales_critics"] * C) \
         * (1.0 + S["sales_reputation"] * R) * franchise_boost(part) * (1.0 - S["sales_saturation"] * sat)
-    V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][SETTINGS.index(s)]
+    V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][ALL_SETTINGS.index(s)]
                                                  + S["streamers_quality"] * q) + S["streamers_spectacular_bug"] * bs
     V = max(0.0, min(100.0, V))
     viral = V >= S["viral_threshold"]
@@ -394,7 +396,7 @@ def simulate_m4(start, mid=False, events=0, skip=(), only=None):
     upkeep = int(E["upkeep_base"])
     R = 0.0
     sat_g = {g: 0.0 for g in GENRES}
-    sat_s = {x: 0.0 for x in SETTINGS}
+    sat_s = {x: 0.0 for x in ALL_SETTINGS}
     open_g, open_t, open_s = ["platformer"], [start], list(SETTINGS)
     wish = m4_wish(start, skip)
     games, rows = [], []
@@ -501,9 +503,9 @@ def m4_niches():
     zero_s = {x: 0.0 for x in SETTINGS}
     for t in TECHS:
         ti = TECHS.index(t)
-        cost = release_cost("platformer", t, "pirates")
+        cost = release_cost("platformer", t, "zombies")
         for R in (0.0, 6.0):
-            C, P0, V, viral, d = outcome("platformer", t, "pirates", 0.8, 1, 0, 1, [], R, zero_g, zero_s)
+            C, P0, V, viral, d = outcome("platformer", t, "zombies", 0.8, 1, 0, 1, [], R, zero_g, zero_s)
             total = P0 + tail_total(P0, d)
             minutes = int(E["sprints_by_tech"][ti]) * M4_SPRINT_MIN + M4_FIXED_MIN
             print(f"| {t} | {int(E['sprints_by_tech'][ti])} | {cost} | {int(E['unlock_price_by_tech'][ti])} | "
@@ -608,6 +610,123 @@ def events_avg(path):
     return total / max(len(ledger), 1), len(ledger)
 
 
+# --- Редкость достижений (#139) -------------------------------------------------------------------
+
+def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
+    """Жадный забег M4 со случайными руками: спринт удаётся с вероятностью `p`, провал даёт баг,
+    один багфикс (тоже с `p`) снимает один баг. Доля забегов, в которых выполнено достижение:
+    «Десятка» (все три критика 10, `ten_streak` игр подряд), «Без следа» (3 релиза подряд без
+    багов), «Сладкая жизнь» (5 подряд окупились первой неделей), «Сокровище» ($200 000 на счету),
+    «Пять технологий». Трилогию и корпорацию жадный забег без сиквелов не играет."""
+    import random
+    rnd_ = random.Random(seed)
+    hit = dict(ten=0, no_trace=0, sweet_life=0, treasure=0, five_techs=0)
+    first_ten = []
+    for _ in range(runs):
+        cash, upkeep, R = int(E["start_cash"]), int(E["upkeep_base"]), 0.0
+        sat_g = {g: 0.0 for g in GENRES}
+        sat_s = {x: 0.0 for x in ALL_SETTINGS}
+        open_g, open_t, open_s = ["platformer"], [start], list(SETTINGS)
+        wish = m4_wish(start)
+        games = []
+        got = set()
+        clean = paid = tens = 0
+        for i in range(1, M4_CAP + 1):
+            best = None
+            for g in open_g:
+                for t in open_t:
+                    for x in SETTINGS:
+                        cost = release_cost(g, t, x)
+                        if cost > cash:
+                            continue
+                        C, P0, V, viral, d = outcome(g, t, x, p, 0, 0, 1, games, R, sat_g, sat_s)
+                        gain = P0 + tail_total(P0, d) - cost
+                        if best is None or gain > best[0]:
+                            best = (gain, g, t, x, cost)
+            if best is None:
+                break
+            _, g, t, x, cost = best
+            n_sprints = int(E["sprints_by_tech"][TECHS.index(t)])
+            wins = sum(1 for _k in range(n_sprints) if rnd_.random() < p)
+            bugs = n_sprints - wins
+            if bugs > 0 and rnd_.random() < p:
+                bugs -= 1
+            q = wins / n_sprints
+            nov = novelty(g, t, x, 1, games)
+            C, P0, V, viral, d = outcome(g, t, x, q, bugs, 0, 1, games, R, sat_g, sat_s)
+            # Шум критиков и их характеры, как в `Feed.critic_score`.
+            ti = TECHS.index(t)
+            raw = S["critics_base"] + S["critics_quality"] * q + S["critics_novelty"] * nov + S["tech_critics"][ti] \
+                + S["critics_synergy"] * (synergy(g, t, x) - 1.0) - S["critics_bug"] * bugs
+            c = max(0.0, min(10.0, raw + rnd_.uniform(-S["critics_noise"], S["critics_noise"])))
+            retro = c + (S["critic_retro_bonus"] if t in ("vector", "8bit") else -S["critic_retro_penalty"])
+            hater = c + (S["critic_bug_hater_clean"] if bugs == 0 else -S["critic_bug_hater_per_bug"] * bugs)
+            fresh = c + S["critic_novelty_weight"] * (nov - S["novelty_new_setting"])
+            tens = tens + 1 if min(retro, hater, fresh) >= 9.95 else 0
+            if tens >= ten_streak and "ten" not in got:
+                got.add("ten")
+                first_ten.append(i)
+            clean = clean + 1 if bugs == 0 else 0
+            paid = paid + 1 if P0 >= cost else 0
+            if clean >= 3:
+                got.add("no_trace")
+            if paid >= 5:
+                got.add("sweet_life")
+            cash -= cost
+            tails = 0
+            for game in games:
+                game["i"] += 1
+                tick = game["P0"] * (game["d"] ** game["i"])
+                if game["i"] > S["tail_max_ticks"] or tick < S["tail_min_share"] * game["P0"]:
+                    tick = 0.0
+                tails += int(round(tick))
+            cash += P0 + tails - upkeep
+            if cash >= 200000:
+                got.add("treasure")
+            if cash < cheapest(open_g, open_t, open_s):
+                break
+            R += (C - 5.0) / 2.0 + (S["reputation_viral_bonus"] if viral else 0.0)
+            for k in sat_g:
+                sat_g[k] *= S["saturation_keep"]
+            for k in sat_s:
+                sat_s[k] *= S["saturation_keep"]
+            add = S["saturation_add"] + S["saturation_add_bad"] * (1.0 - q)
+            sat_g[g] = min(1.0, sat_g[g] + add)
+            sat_s[x] = min(1.0, sat_s[x] + add)
+            games.append(dict(g=g, t=t, s=x, P0=P0, d=d, i=0))
+            if len({gm["t"] for gm in games}) >= 5:
+                got.add("five_techs")
+            if wish:
+                kind, name = wish[0]
+                if kind == "tech":
+                    pr, u = E["unlock_price_by_tech"][TECHS.index(name)], E["unlock_upkeep_by_tech"][TECHS.index(name)]
+                elif kind == "genre":
+                    pr, u = E["genre_unlock_price"], E["genre_unlock_upkeep"]
+                else:
+                    pr, u = E["capability_prices"][name], E["capability_upkeeps"][name]
+                if cash - int(pr) >= cheapest(open_g, open_t, open_s) + 2 * (upkeep + int(u)):
+                    wish.pop(0)
+                    cash -= int(pr)
+                    upkeep += int(u)
+                    if kind == "tech":
+                        open_t.append(name)
+                    elif kind == "genre":
+                        open_g.append(name)
+        for k in got:
+            hit[k] += 1
+    return {k: v / runs for k, v in hit.items()}, (sum(first_ten) / len(first_ten) if first_ten else 0.0)
+
+
+def achievements_table():
+    print("Доля забегов с достижением (жадный забег M4, случайные руки; трилогия и корпорация не играются)")
+    print("старт     руки  десятка  (релиз)  две подряд  без следа  сладкая жизнь  сокровище  пять технологий")
+    for start in ("vector", "8bit", "16bit", "lowpoly", "3d"):
+        for p in (0.7, 0.8, 0.9, 1.0):
+            r, at = achievements_mc(start, p)
+            r2, _ = achievements_mc(start, p, ten_streak=2)
+            print(f"{start:8}  {p:.1f}   {r['ten']:6.0%}   {at:5.1f}    {r2['ten']:6.0%}     {r['no_trace']:6.0%}      {r['sweet_life']:6.0%}       {r['treasure']:6.0%}     {r['five_techs']:6.0%}")
+
+
 # --- Сверка с реальным забегом (#72) --------------------------------------------------------------
 
 KIND_TECH, KIND_GENRE, KIND_CAP = 0, 1, 2
@@ -624,7 +743,7 @@ def replay(path):
     upkeep = int(ledger[0]["upkeep"]) if ledger else int(E["upkeep_base"])
     R = 0.0
     sat_g = {g: 0.0 for g in GENRES}
-    sat_s = {s: 0.0 for s in SETTINGS}
+    sat_s = {s: 0.0 for s in ALL_SETTINGS}
     games = []
     cash = ledger[0]["cash_before"] if ledger else 0
 
@@ -634,7 +753,7 @@ def replay(path):
 
     for e in ledger:
         i = e["release"]
-        g, t, s = GENRES[e["genre"]], TECHS[e["tech"]], SETTINGS[e["setting"]]
+        g, t, s = GENRES[e["genre"]], TECHS[e["tech"]], ALL_SETTINGS[e["setting"]]
         ti = TECHS.index(t)
         flows = e["flows"]
         cost = release_cost(g, t, s, e["discount"])
@@ -656,7 +775,7 @@ def replay(path):
         sat = max(sat_g[g], sat_s[s])
         P0 = S["p_base"] * S["tech_sales"][ti] * sy * (S["sales_critics_base"] + S["sales_critics"] * C) \
             * (1.0 + S["sales_reputation"] * R) * franchise * (1.0 - S["sales_saturation"] * sat)
-        V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][SETTINGS.index(s)]
+        V = 100.0 * S["tech_spectacle"][ti] * sy * (S["streamers_base"] + S["streamers_hype"] * S["setting_hype"][ALL_SETTINGS.index(s)]
                                                      + S["streamers_quality"] * q) + S["streamers_spectacular_bug"] * e["spectacular"]
         V = max(0.0, min(100.0, V + e["bonus_streamers"]))
         viral = V >= S["viral_threshold"]
@@ -684,7 +803,9 @@ def replay(path):
             elif u["kind"] == KIND_GENRE:
                 p, up = E["genre_unlock_price"], E["genre_unlock_upkeep"]
             else:
-                p, up = E["capability_prices"][u["id"]], E["capability_upkeeps"][u["id"]]
+                # «Новый сеттинг» (#139): семь карточек `setting_<id>` с одной ценой.
+                key = "new_setting" if u["id"].startswith("setting_") else u["id"]
+                p, up = E["capability_prices"][key], E["capability_upkeeps"][key]
             price += int(p)
             upkeep += int(up)
         expect(i, "покупки", price, -flows.get("upgrade", 0), 0)
@@ -727,6 +848,9 @@ if __name__ == "__main__":
         sys.exit(0)
     if "--check" in sys.argv:
         sys.exit(0 if check() else 1)
+    if "--achievements" in sys.argv:
+        achievements_table()
+        sys.exit(0)
     if "--m4" in sys.argv:
         start = None
         for arg in sys.argv:

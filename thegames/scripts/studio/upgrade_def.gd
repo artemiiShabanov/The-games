@@ -19,6 +19,9 @@ const KIND_NAMES: Array[String] = ["технология", "жанр", "возм
 ## Для технологии и жанра: что открывает.
 @export var tech: Game.Tech = Game.Tech.VECTOR
 @export var genre: Game.Genre = Game.Genre.PLATFORMER
+## Возможность «новый сеттинг» (#139): какой сеттинг открывает на этот забег, −1 у остальных.
+## Цена и надбавка общие, под ключом `new_setting`.
+@export var setting := -1
 @export var prop := ""
 
 
@@ -32,7 +35,7 @@ func price(economy: EconomyTuning) -> int:
 			return economy.unlock_price_by_tech[tech]
 		Kind.GENRE:
 			return economy.genre_unlock_price
-	return economy.capability_price(id)
+	return economy.capability_price(&"new_setting" if setting >= 0 else id)
 
 
 func upkeep(economy: EconomyTuning) -> int:
@@ -41,7 +44,7 @@ func upkeep(economy: EconomyTuning) -> int:
 			return economy.unlock_upkeep_by_tech[tech]
 		Kind.GENRE:
 			return economy.genre_unlock_upkeep
-	return economy.capability_upkeep(id)
+	return economy.capability_upkeep(&"new_setting" if setting >= 0 else id)
 
 
 func _to_string() -> String:

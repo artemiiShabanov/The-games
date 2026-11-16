@@ -66,6 +66,9 @@ var _dev_discount := 0.0
 var _expected_cash := 0
 var _debug_upgrade := ""
 var _profile: Profile
+## Пилюля достижений (#139) поверх любого экрана и выбранное в дебаг-меню достижение.
+var _toast: AchievementToast
+var _debug_achievement := ""
 ## Автотест `--broke-at=N`: перед фазой студии релиза N денег −10 000 (банкротство, #67).
 var _broke_at := -1
 ## Сколько раз этот забег продолжали из слота: сдвиг сида мини-игр.
@@ -189,6 +192,27 @@ func _ready() -> void:
 	if AutoTest.enabled:
 		Profile.use_test_file()
 	_profile = Profile.load_saved()
+	run.profile = _profile
+	_toast = AchievementToast.new()
+	add_child(_toast)
+	var ach_ids: Array[String] = []
+	for a in Achievements.load_all():
+		ach_ids.append(String(a.id))
+	_debug_achievement = ach_ids[0] if not ach_ids.is_empty() else ""
+	Debug.add_choice(SECTION, "Достижение", ach_ids, func() -> String: return _debug_achievement,
+			func(v: String) -> void: _debug_achievement = v)
+	Debug.add_action(SECTION, "Выдать достижение", func() -> void:
+		var a := Achievements.find(StringName(_debug_achievement))
+		if a != null and not _profile.achievements.has(a.id):
+			_profile.achievements[a.id] = int(Time.get_unix_time_from_system())
+			_profile.save()
+			_toast.push([a]))
+	Debug.add_action(SECTION, "Сбросить достижение", func() -> void:
+		_profile.achievements.erase(StringName(_debug_achievement))
+		_profile.save())
+	Debug.add_action(SECTION, "Сбросить все достижения", func() -> void:
+		_profile.achievements.clear()
+		_profile.save())
 	if not AutoTest.enabled and resume == null:
 		run.draw_start(_profile.last_start_genre, _profile.last_start_tech)
 	Debug.watch("профиль", func() -> String: return str(_profile))
@@ -565,6 +589,7 @@ func _open_studio() -> void:
 		run.wallet.cash = -10000
 		_expected_cash = run.wallet.cash
 	report = run.settle(record)
+	_achieve()
 	_expected_cash += report.first_week + report.tails_total - report.shares_total - report.upkeep
 	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
@@ -597,7 +622,18 @@ func _apply_event(index: int, offer: Events.Offer) -> String:
 		StudioPhase.after_rescue(report, run.wallet, run.studio, run.event_state.ending == &"bankruptcy")
 	report.stats = run.stats_with(record)
 	AutoTest.note("event %s: ответ %d %s, %s" % [offer.def.id, index, outcome, run.event_state])
+	_achieve()
 	return outcome
+
+
+## Достижения (#139): что выполнено к этой минуте, пилюлей поверх экрана. Сеттинг открыт сразу.
+func _achieve(ending: StringName = &"") -> void:
+	var fresh := run.check_achievements(record if not run.records.has(record) else null, ending)
+	if fresh.is_empty():
+		return
+	for a in fresh:
+		AutoTest.note("achievement: %s, открыт сеттинг %s" % [a.id, Game.setting_name(a.setting)])
+	_toast.push(fresh)
 
 
 func _on_studio_finished() -> void:
@@ -660,6 +696,7 @@ func _show_ending(id: Endings.Id) -> void:
 	result.studio = run.studio_name
 	_profile.finish_run(Endings.KEYS[id], result.score, run.run_number, run.studio_name,
 			RunSave.logo_to_dict(run.studio_logo), run.records.size())
+	_achieve(Endings.KEYS[id])
 	# Забег окончен: слот свободен.
 	if slot > 0:
 		RunSave.delete_slot(slot)

@@ -37,6 +37,8 @@ extends Resource
 @export var bet_done := false
 ## Кадр демки с плейтеста (галерея, плейтест 2026-11-11): PNG в `user://`, пусто без кадра.
 @export var shot := ""
+## Стоимость разработки (#139): достижение «Сладкая жизнь» сверяет её с первой неделей продаж.
+@export var cost := 0
 
 
 static func create(genre_: Game.Genre, tech_: Game.Tech, seed_: int, title_ := "", setting_ := Game.Setting.PIRATES) -> GameRecord:

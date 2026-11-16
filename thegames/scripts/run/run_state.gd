@@ -30,6 +30,11 @@ var cap := 12
 ## Стартовая пара забега: открыта с первого релиза, на ней идёт первый релиз.
 var start_genre := Game.Genre.PLATFORMER
 var start_tech := Game.Tech.BIT8
+## Сеттинги, открытые со старта этого забега (`RunTuning.start_settings`, #139).
+var start_settings: Array[Game.Setting] = []
+## Профиль игрока: его достижения открывают сеттинги сразу во всех забегах. Без профиля
+## (тестовые сцены) открыты только стартовые и купленные.
+var profile: Profile
 var studio_name := ""
 var studio_logo: StudioLogo
 ## Номер забега в профиле (#69): галерея помнит, в каком забеге вышла игра.
@@ -81,7 +86,8 @@ static func start(seed_: int, deterministic_market := false) -> RunState:
 	r.cap = r.rng.randi_range(r.tuning.cap_min, r.tuning.cap_max)
 	r.start_genre = r.tuning.genre
 	r.start_tech = r.tuning.tech
-	r.market = MarketState.create(r.success, r.rng, deterministic_market)
+	r.start_settings = r.tuning.start_settings.duplicate()
+	r.market = MarketState.create(r.success, r.rng, deterministic_market, r.start_settings)
 	r.wallet = Wallet.new(r.economy.start_cash)
 	r.upkeep = Upkeep.new(r.economy.upkeep_base)
 	r.studio = StudioState.new()
@@ -117,6 +123,7 @@ func to_save(stage: StringName) -> RunSave:
 	s.cap = cap
 	s.start_genre = start_genre
 	s.start_tech = start_tech
+	s.start_settings.assign(start_settings)
 	s.studio_name = studio_name
 	s.logo = RunSave.logo_to_dict(studio_logo)
 	s.run_number = run_number
@@ -149,6 +156,7 @@ static func from_save(s: RunSave) -> RunState:
 	r.cap = s.cap
 	r.start_genre = s.start_genre
 	r.start_tech = s.start_tech
+	r.start_settings.assign(s.start_settings)
 	r.studio_name = s.studio_name
 	r.studio_logo = RunSave.logo_from_dict(s.logo)
 	r.run_number = s.run_number
@@ -160,6 +168,7 @@ static func from_save(s: RunSave) -> RunState:
 		r.upkeep.add(k, s.upkeep_extras[k])
 	if s.market != null:
 		r.market = s.market
+		r.market.fit()
 	if s.studio != null:
 		r.studio = s.studio
 	r.records = s.records.duplicate()
@@ -230,10 +239,23 @@ func unlocked_techs() -> Array[Game.Tech]:
 	return out
 
 
-## M1: один сеттинг (решение 2026-11-06), три сеттинга и «новый сеттинг» в M2.
-## Три сеттинга открыты со старта забега (`specs/run.md`, #46).
+## Сеттинги (#139): стартовые забега, открытые достижениями профиля (сразу, и в идущем забеге)
+## и купленные возможностью «новый сеттинг» на этот забег.
 func unlocked_settings() -> Array[Game.Setting]:
-	return [Game.Setting.PIRATES, Game.Setting.SPACE, Game.Setting.CASTLES]
+	var out: Array[Game.Setting] = start_settings.duplicate()
+	for s in Achievements.unlocked(profile):
+		if not out.has(s):
+			out.append(s)
+	for d in _bought():
+		if d.setting >= 0 and not out.has(d.setting as Game.Setting):
+			out.append(d.setting as Game.Setting)
+	return out
+
+
+## Достижения, выполненные к этому моменту (#139): `current` ещё не закрытый релиз, `ending`
+## ключ концовки. Новые уже записаны в профиль.
+func check_achievements(current: GameRecord = null, ending: StringName = &"") -> Array[AchievementDef]:
+	return Achievements.check(profile, self, _with_current(current), ending)
 
 
 func _bought() -> Array[UpgradeDef]:
@@ -258,7 +280,7 @@ func prepare_release() -> void:
 		market.trend_genre = -1
 		market.trend_setting = -1
 	else:
-		market.roll_release(success, rng)
+		market.roll_release(success, rng, unlocked_settings())
 	reputation_before = market.reputation
 	wallet.release = release
 
@@ -275,6 +297,7 @@ func start_development(config: GameConfig) -> GameRecord:
 	pending_offer.clear()
 	wallet.spend(config.total_cost(), &"release", config.title)
 	var record := config.to_record(rng.randi())
+	record.cost = config.total_cost()
 	_apply_contracts(record)
 	last_plan = SprintPlanner.plan(economy.sprints(record.tech), record.genre, record.tech, minigames,
 			sprint_tuning, rng, last_first, studio.replays())
@@ -474,7 +497,7 @@ func pending_defs() -> Array[UpgradeDef]:
 	var out: Array[UpgradeDef] = []
 	for id in pending_offer:
 		var d := UpgradePool.find(upgrades, id)
-		if d != null and not studio.has(d.id):
+		if d != null and not studio.has(d.id) and not (d.setting >= 0 and unlocked_settings().has(d.setting as Game.Setting)):
 			out.append(d)
 	return out
 

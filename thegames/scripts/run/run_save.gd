@@ -24,6 +24,8 @@ static var test_files := false
 @export var cap := 12
 @export var start_genre: Game.Genre = Game.Genre.PLATFORMER
 @export var start_tech: Game.Tech = Game.Tech.BIT8
+## Стартовые сеттинги забега (#139). По умолчанию тройка до #139: так читается старый слот.
+@export var start_settings: Array[int] = [0, 1, 2]
 @export var studio_name := ""
 @export var logo := {}
 @export var run_number := 1

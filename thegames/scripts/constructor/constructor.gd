@@ -451,7 +451,8 @@ func _build() -> void:
 func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	var c := entry_card(e)
 	var inner := CardColumns.inner_of(c)
-	inner.add_child(CardColumns.center_pill("придёт с прокачкой", &"upgrade"))
+	# Закрытый сеттинг (#139) открывает достижение; на один забег его даёт и прокачка.
+	inner.add_child(CardColumns.center_pill("откроет достижение" if e.kind == CatalogEntry.Kind.SETTING else "придёт с прокачкой", &"upgrade"))
 	inner.add_child(CardColumns.center_pill("недоступно", &"franchise"))
 	inner.add_child(CardColumns.center_pill("демка в работе", &"demo"))
 	inner.add_child(CardColumns.center_pill("по договору", &"contract"))

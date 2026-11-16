@@ -22,6 +22,8 @@ var _record: GameRecord
 var _finished := false
 var _bets: Array[bool] = []
 var _started := false
+var _achieved := ""
+var _buy_setting := ""
 var _bg: StudioBackdrop
 var _dim: ColorRect
 
@@ -42,6 +44,8 @@ func _ready() -> void:
 		var args := AutoTest.parse_args(OS.get_cmdline_user_args())
 		past = int(str(args.get("past", past)))
 		_pop = str(args.get("pop", ""))
+		_achieved = str(args.get("achieved", ""))
+		_buy_setting = str(args.get("buy-setting", ""))
 		_after_on = args.has("after")
 		_after = str(args.get("after", ""))
 		if args.has("no-checks"):
@@ -55,6 +59,7 @@ func _ready() -> void:
 	Debug.add_action(SECTION, "Окно прокачки", func() -> void: hub.open_upgrades())
 	Debug.add_action(SECTION, "Последний релиз", func() -> void: hub.open_release(0))
 	Debug.add_action(SECTION, "Отложенная прокачка", func() -> void: hub.open_offer())
+	Debug.add_action(SECTION, "Сеттинги и достижения", func() -> void: hub.open_settings())
 	Debug.add_toggle(SECTION, "После релиза (#133)", func() -> bool: return _after_on,
 			func(v: bool) -> void:
 				_after_on = v
@@ -76,6 +81,16 @@ func _open() -> void:
 	if hub != null:
 		hub.queue_free()
 	run = _make_run(past)
+	# Профиль (#139): тестовый файл; `--achieved=treasure,ten` выдаёт достижения, `--buy-setting=ninja`
+	# покупает сеттинг на забег.
+	Profile.use_test_file()
+	run.profile = Profile.load_saved()
+	for id in _achieved.split(",", false):
+		run.profile.achievements[StringName(id)] = 1
+	if _buy_setting != "":
+		var sd := UpgradePool.find(run.upgrades, StringName("setting_" + _buy_setting))
+		if sd != null:
+			run.studio.buy(sd, 1)
 	_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
 	_bg.set_shelf(_shelf_colors())
 	_bg.set_parcel(not _after_on and not run.pending_defs().is_empty())
@@ -110,6 +125,13 @@ func _show_pop() -> void:
 			hub.open_wave(RunHub.Wave.CRITICS if hub.waves_left() == 0 else RunHub.Wave.TWEETS)
 		"game":
 			hub.open_record(0)
+		"settings":
+			hub.open_settings()
+		"toast":
+			# Пилюля достижения (#139) поверх главного экрана.
+			var toast := AchievementToast.new()
+			add_child(toast)
+			toast.push([Achievements.find(&"treasure")])
 
 
 ## Экран после релиза: ещё один релиз разработан и оценён, но фаза студии не пройдена.

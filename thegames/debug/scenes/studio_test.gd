@@ -330,8 +330,8 @@ func _run_checks() -> void:
 		techs_offered += 1 if d.kind == UpgradeDef.Kind.TECH else 0
 	_expect(genres_offered <= 1 and techs_offered <= 1, "жанров в предложении %d, технологий %d" % [genres_offered, techs_offered])
 	# Пул M4 (#127): семь возможностей, четыре жанра и четыре технологии (все, кроме стартовой
-	# 8-bit).
-	_expect(pool.size() == 15, "пул из %d" % pool.size())
+	# 8-bit) и семь карточек «нового сеттинга» (#139).
+	_expect(pool.size() == 22, "пул из %d" % pool.size())
 	# Ремейки не предлагаются, пока открыта одна технология.
 	var one_tech: Array[Game.Tech] = [Game.Tech.BIT8]
 	var avail := StudioOffer.available(pool, StudioState.new(), unlocked_genres, one_tech)

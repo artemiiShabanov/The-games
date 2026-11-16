@@ -25,6 +25,7 @@ var _gallery: GalleryScreen
 ## Нижние пилюли меню: прячутся вместе с карточкой, иначе лежат под пилюлями галереи.
 var _hints: HBoxContainer
 var _options: OptionsScreen
+var _settings: SettingsScreen
 var _leaving := false
 
 
@@ -55,6 +56,9 @@ func _ready() -> void:
 	_build()
 	_refresh()
 	card.raise_card()
+	# Автотест `--menu --settings`: экран сеттингов поверх меню.
+	if AutoTest.enabled and args.has("settings"):
+		_open_settings.call_deferred()
 
 
 func _open_game(slot: int, save: RunSave) -> void:
@@ -68,7 +72,7 @@ func _open_game(slot: int, save: RunSave) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# Выбор может синхронно увести экран из дерева, поэтому вьюпорт берётся заранее.
 	var viewport := get_viewport()
-	if _leaving or _gallery != null or _options != null:
+	if _leaving or _gallery != null or _options != null or _settings != null:
 		return
 	if event is InputEventMouseMotion:
 		var over := _item_at(event)
@@ -150,6 +154,8 @@ func activate() -> void:
 	elif focus == RunSave.SLOTS:
 		_open_gallery()
 	elif focus == RunSave.SLOTS + 1:
+		_open_settings()
+	elif focus == RunSave.SLOTS + 2:
 		_open_options()
 	else:
 		ShellSounds.play(&"tick")
@@ -201,6 +207,19 @@ func _open_gallery() -> void:
 	add_child(_gallery)
 
 
+## Сеттинги и достижения (#139) поверх меню.
+func _open_settings() -> void:
+	ShellSounds.play(&"done")
+	_hints.visible = false
+	_settings = SettingsScreen.new()
+	_settings.setup(Profile.load_saved())
+	_settings.closed.connect(func() -> void:
+		_settings.queue_free()
+		_settings = null
+		_hints.visible = true)
+	add_child(_settings)
+
+
 ## Настройки (#81) поверх меню; меню ждёт, пока их закроют.
 func _open_options() -> void:
 	ShellSounds.play(&"done")
@@ -245,9 +264,9 @@ func _build() -> void:
 	buttons.add_theme_constant_override("separation", Style.GAP_CARDS)
 	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(buttons)
-	for text in ["Галерея", "Настройки", "Выход"]:
+	for text in ["Галерея", "Сеттинги", "Настройки", "Выход"]:
 		var b := PanelContainer.new()
-		b.custom_minimum_size = Vector2(320, Style.BUTTON_HEIGHT)
+		b.custom_minimum_size = Vector2(300, Style.BUTTON_HEIGHT)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var l := _label(text, Style.FONT_H2, Style.INK)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

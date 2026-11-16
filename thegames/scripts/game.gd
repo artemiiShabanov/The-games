@@ -6,11 +6,9 @@ extends RefCounted
 enum Aspect { OPTIMIZATION, SOUND, CONTROLS, GRAPHICS, BALANCE }
 enum Genre { PLATFORMER, RACING, SHOOTER, SPORT, FIGHTING }
 enum Tech { VECTOR, BIT8, BIT16, LOWPOLY, THREED }
-## Стартовые сеттинги; открываемые достижениями приходят в M2+.
-## Первые `SETTINGS_IN_RUN` участвуют в забеге и рынке; остальные пока только в демках и
-## дебаге: набор ассетов рисуется (#138, #142–#144), в игру их вводит #139.
+## Десять сеттингов (#139): забег стартует с трёх из `RunTuning.start_settings`, остальные
+## открываются достижениями (`Achievements`) или возможностью «новый сеттинг» на один забег.
 enum Setting { PIRATES, SPACE, CASTLES, ZOMBIES, SUPERHEROES, FANTASY, SWEETS, NINJA, DINOSAURS, OFFICE }
-const SETTINGS_IN_RUN := 3
 
 const ASPECT_NAMES: Array[String] = ["оптимизация", "звук", "управление", "графика", "баланс"]
 const GENRE_NAMES: Array[String] = ["платформер", "гонки", "шутер", "спорт", "файтинг"]

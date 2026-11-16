@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/run/achievement_def.gd" id="1_ach"]
+
+[resource]
+script = ExtResource("1_ach")
+id = &"no_trace"
+title = "Без следа"
+text = "Три релиза подряд без единого бага"
+setting = 7
+condition = 4
+threshold = 3
+ending = &""

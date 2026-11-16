@@ -113,7 +113,7 @@ static func settle(release: int, past: Array[GameRecord], current: GameRecord, m
 	r.stats = Success.run_stats(all, market, wallet.cash, success)
 	# 6. Предложение прокачки (5, мета, приходит в M2).
 	if not r.game_over:
-		r.offer = StudioOffer.compose(pool, state, unlocked_genres, unlocked_techs, rng)
+		r.offer = StudioOffer.compose(pool, state, unlocked_genres, unlocked_techs, rng, 3, unlocked_settings)
 	return r
 
 

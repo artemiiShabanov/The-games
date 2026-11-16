@@ -6,10 +6,11 @@
 [sub_resource type="Resource" id="Resource_53nfg"]
 script = ExtResource("1_2sc6m")
 kind = 2
-id = &"pirates"
-title = "Пираты"
-color = Color(0.12156863, 0.47843137, 0.54901963, 1)
-title_tags = Array[String](["Пираты", "Корсары", "Флибустьеры", "Абордаж", "Чёрная метка"])
+value = 3
+id = &"zombies"
+title = "Зомби"
+color = Color(0.30588236, 0.47843137, 0.22745098, 1)
+title_tags = Array[String](["Зомби", "Мертвецы", "Карантин", "Выжившие", "Последняя ночь"])
 
 [sub_resource type="Resource" id="Resource_fatpa"]
 script = ExtResource("1_2sc6m")
@@ -27,8 +28,70 @@ value = 2
 id = &"castles"
 title = "Замки"
 color = Color(0.5411765, 0.3529412, 0.16470589, 1)
-title_tags = Array[String](["Рыцари", "Замки", "Осада", "Драконы", "Турнир"])
+title_tags = Array[String](["Рыцари", "Замки", "Осада", "Латники", "Турнир"])
+
+[sub_resource type="Resource" id="Resource_x7ams"]
+script = ExtResource("1_2sc6m")
+kind = 2
+id = &"pirates"
+title = "Пираты"
+color = Color(0.12156863, 0.47843137, 0.54901963, 1)
+title_tags = Array[String](["Пираты", "Корсары", "Флибустьеры", "Абордаж", "Чёрная метка"])
+
+[sub_resource type="Resource" id="Resource_16faq"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 4
+id = &"superheroes"
+title = "Супергерои"
+color = Color(0.78431374, 0.19607843, 0.23529412, 1)
+title_tags = Array[String](["Супергерои", "Плащи", "Маски", "Лига", "Суперсила"])
+
+[sub_resource type="Resource" id="Resource_bu7lp"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 5
+id = &"fantasy"
+title = "Фэнтези"
+color = Color(0.41960785, 0.24705882, 0.627451, 1)
+title_tags = Array[String](["Драконы", "Маги", "Эльфы", "Зелья", "Заклинание"])
+
+[sub_resource type="Resource" id="Resource_yydo2"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 6
+id = &"sweets"
+title = "Сладости"
+color = Color(0.89411765, 0.43529412, 0.65882355, 1)
+title_tags = Array[String](["Конфеты", "Пончики", "Карамель", "Зефир", "Сахарная лихорадка"])
+
+[sub_resource type="Resource" id="Resource_4n8lt"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 7
+id = &"ninja"
+title = "Ниндзя"
+color = Color(0.18039216, 0.20392157, 0.2509804, 1)
+title_tags = Array[String](["Ниндзя", "Сюрикены", "Тени", "Клан", "Додзё"])
+
+[sub_resource type="Resource" id="Resource_aweag"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 8
+id = &"dinosaurs"
+title = "Динозавры"
+color = Color(0.70980394, 0.39607844, 0.11372549, 1)
+title_tags = Array[String](["Динозавры", "Ящеры", "Рапторы", "Юрский период", "Мезозой"])
+
+[sub_resource type="Resource" id="Resource_tx1rm"]
+script = ExtResource("1_2sc6m")
+kind = 2
+value = 9
+id = &"office"
+title = "Офис"
+color = Color(0.35686275, 0.4862745, 0.6, 1)
+title_tags = Array[String](["Офис", "Менеджеры", "Дедлайн", "Планёрка", "Отчёт"])
 
 [resource]
 script = ExtResource("2_m7y5l")
-entries = Array[ExtResource("1_2sc6m")]([SubResource("Resource_53nfg"), SubResource("Resource_fatpa"), SubResource("Resource_18krt")])
+entries = Array[ExtResource("1_2sc6m")]([SubResource("Resource_53nfg"), SubResource("Resource_fatpa"), SubResource("Resource_18krt"), SubResource("Resource_x7ams"), SubResource("Resource_16faq"), SubResource("Resource_bu7lp"), SubResource("Resource_yydo2"), SubResource("Resource_4n8lt"), SubResource("Resource_aweag"), SubResource("Resource_tx1rm")])

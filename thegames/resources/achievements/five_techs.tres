@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/run/achievement_def.gd" id="1_ach"]
+
+[resource]
+script = ExtResource("1_ach")
+id = &"five_techs"
+title = "Пять технологий"
+text = "Игры на всех пяти технологиях за один забег"
+setting = 8
+condition = 5
+threshold = 5
+ending = &""
