@@ -53,6 +53,8 @@ def syms(cells, c):
 # Общие куски настроений для лиц с глазами 2×2 в столбцах 7-8 и 15-16, строки 10-11.
 EYES_BLINK = syms([(7, 10), (8, 10)], "A")
 EYES_HAPPY = syms([(7, 11), (8, 11)], "A") + syms([(6, 11), (9, 11)], "K")
+# Улыбающиеся глаза закрываются в полоску, а не теряют верх.
+HAPPY_BLINK = syms([(7, 10), (8, 10)], "A") + syms([(7, 11), (8, 11)], "K")
 BROWS_ANGRY = syms([(7, 8), (8, 9), (9, 9)], "K")
 
 
@@ -95,7 +97,7 @@ FACES["marta"] = dict(
         "..KWWWWWWWWW",
         "..KWWWWWWWWW",
     ]),
-    blink=syms([(6, 11), (8, 11)], "K"),
+    blink=[],
     talk=mouth_open(15),
     pos=syms([(9, 14)], "K"),
     neg=frown(15) + syms([(8, 8), (9, 8)], "K"),
@@ -167,6 +169,7 @@ FACES["sol"] = dict(
         + span(11, 15, 18, "K") + span(12, 16, 18, "K") + span(13, 17, 18, "K")
         + [(14, 7, "W"), (15, 8, "W"), (16, 9, "W"), (17, 10, "W"), (14, 14, "A")]),
     blink=[(7, 10, "A"), (8, 10, "A")],
+    blink_mood={1: [(7, 10, "A"), (8, 10, "A"), (7, 11, "K"), (8, 11, "K")]},
     talk=mouth_open(15),
     pos=[(14, 14, "K"), (7, 11, "A"), (8, 11, "A"), (6, 11, "K"), (9, 11, "K")],
     neg=frown(15) + [(6, 8, "K"), (7, 8, "K"), (8, 9, "K"), (9, 9, "K")],
@@ -203,6 +206,7 @@ FACES["kraken"] = dict(
     blink=EYES_BLINK,
     talk=span(14, 8, 15, "K") + span(16, 9, 14, "K"),
     pos=EYES_HAPPY,
+    blink_mood={1: HAPPY_BLINK},
     neg=span(13, 7, 16, "A") + span(14, 7, 16, "A") + span(15, 7, 16, "A") + span(14, 8, 15, "K")
         + syms([(6, 8)], "K") + BROWS_ANGRY,
 )
@@ -274,7 +278,7 @@ FACES["dedushka"] = dict(
         ".KAAAAAAAAKK",
         ".KAAAAAAAAAA",
     ], [(2, 13, "K"), (2, 14, "K"), (3, 15, "K"), (3, 16, "K")]),
-    blink=syms([(7, 10), (8, 10)], "A"),
+    blink=syms([(7, 10), (8, 10)], "A") + syms([(7, 11), (8, 11)], "K"),
     talk=mouth_open(14),
     pos=syms([(6, 8), (7, 8), (8, 8), (9, 8)], "A") + syms([(6, 7), (7, 7), (8, 7), (9, 7)], "W") + syms([(9, 13)], "K"),
     neg=syms([(8, 8), (9, 8)], "A") + syms([(8, 9), (9, 9)], "W") + syms([(9, 15)], "K"),
@@ -311,6 +315,7 @@ FACES["publisher"] = dict(
     blink=EYES_BLINK,
     talk=span(16, 9, 14, "K"),
     pos=EYES_HAPPY,
+    blink_mood={1: HAPPY_BLINK},
     neg=syms([(7, 14)], "A") + span(15, 8, 15, "A") + span(15, 9, 14, "K") + BROWS_ANGRY,
 )
 
@@ -342,7 +347,7 @@ FACES["investor"] = dict(
         "..KKWWWWWWWW",
         ".KWWWWWWWWWW",
     ]),
-    blink=syms([(7, 11), (8, 11)], "A"),
+    blink=syms([(6, 10), (7, 10), (8, 10)], "A") + syms([(6, 11), (7, 11), (8, 11)], "K"),
     talk=mouth_open(15),
     pos=syms([(9, 14)], "K") + syms([(6, 10)], "A") + syms([(6, 11)], "K"),
     neg=frown(15) + syms([(8, 9), (9, 10)], "K"),
