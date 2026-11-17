@@ -105,25 +105,15 @@ func _achievements() -> void:
 	_expect(run.check_achievements(null, &"sale").is_empty(), "офис за продажу")
 	_expect(_ids(run.check_achievements(null, &"corporation")) == [&"corporation"], "корпорация")
 	_expect(run.unlocked_settings().size() == Game.Setting.size(), "открыто %d" % run.unlocked_settings().size())
-	# «Новый сеттинг»: одна карточка на предложение, только закрытые, покупка открывает на забег.
+	# Сеттинг не покупается (2026-11-17): в предложении после релиза только жанры и технологии.
 	var fresh := RunState.start(9, true)
 	fresh.profile = Profile.new()
-	fresh.profile.achievements[&"treasure"] = 1
-	var seen := {}
-	for i in 60:
+	for i in 30:
 		var offer := StudioOffer.compose(fresh.upgrades, fresh.studio, fresh.unlocked_genres(), fresh.unlocked_techs(),
 				fresh.rng, 3, fresh.unlocked_settings())
-		var cards := offer.filter(func(d: UpgradeDef) -> bool: return d.setting >= 0)
-		_expect(cards.size() <= 1, "сеттингов в предложении %d" % cards.size())
-		for d: UpgradeDef in cards:
-			seen[d.setting] = true
-			_expect(not fresh.unlocked_settings().has(d.setting as Game.Setting), "предложен открытый сеттинг %d" % d.setting)
-	_expect(seen.size() == 6 and not seen.has(int(S.PIRATES)), "предлагались сеттинги %s" % [seen.keys()])
-	var ninja := UpgradePool.find(fresh.upgrades, &"setting_ninja")
-	_expect(ninja != null and ninja.price(fresh.economy) == fresh.economy.capability_price(&"new_setting"), "цена нового сеттинга")
-	fresh.studio.buy(ninja, 1)
-	_expect(fresh.unlocked_settings().has(S.NINJA), "купленный сеттинг не открыт")
-	_expect(not fresh.profile.achievements.has(&"no_trace"), "покупка выдала достижение")
+		for d: UpgradeDef in offer:
+			_expect(d.kind != UpgradeDef.Kind.CAPABILITY and d.setting < 0, "в предложении не жанр и не технология: %s" % d)
+	_staff()
 	# Старый слот: рынок на три сеттинга дорастает, стартовая тройка прежняя.
 	var old := fresh.to_save(&"release")
 	old.start_settings = [0, 1, 2]
@@ -133,6 +123,72 @@ func _achievements() -> void:
 	_expect(back.start_settings == ([S.PIRATES, S.SPACE, S.CASTLES] as Array[Game.Setting])
 			and back.market.demand_setting.size() == Game.Setting.size(), "старый слот: %s" % [back.start_settings])
 	AutoTest.note("achievements: %s" % [prof.achievements.keys()])
+
+
+## Штат и доска соискателей (спека `docs/specs/staff.md`): сложный процент, эффекты ролей,
+## срок соискателя, наём с запасом на релиз, сложность мини-игр.
+func _staff() -> void:
+	var R := Staff.Role
+	var G := Staff.Grade
+	var t := StaffTuning.load_default()
+	var run := RunState.start(11, true)
+	_expect(run.board.size() == t.board_start, "на старте соискателей %d" % run.board.size())
+	for m in run.board:
+		_expect(m.until == t.board_stay, "соискатель ждёт до релиза %d" % m.until)
+	_expect(is_equal_approx(run.t_value(), run.tuning.t_start), "сложность первого релиза %.2f" % run.t_value())
+	var st := run.studio
+	st.hire(StaffMember.make(R.ARTIST, G.JUNIOR))
+	st.hire(StaffMember.make(R.ARTIST, G.MIDDLE))
+	_expect(is_equal_approx(st.ease(Game.Aspect.GRAPHICS), 1.0 - 0.9 * 0.8) and st.ease(Game.Aspect.SOUND) == 0.0,
+			"два художника сложным процентом: %.3f" % st.ease(Game.Aspect.GRAPHICS))
+	var graphics: MinigameDef = null
+	var other: MinigameDef = null
+	for d in run.minigames:
+		if d.kind == MinigameDef.Kind.ASPECT and d.aspect == Game.Aspect.GRAPHICS:
+			graphics = d
+		elif d.kind == MinigameDef.Kind.ASPECT and other == null:
+			other = d
+	if graphics != null and other != null:
+		_expect(is_equal_approx(run.t_for(graphics), run.t_value() * 0.72) and is_equal_approx(run.t_for(other), run.t_value()),
+				"художники упрощают только графику: %.3f и %.3f" % [run.t_for(graphics), run.t_for(other)])
+	_expect(st.replays() == 0 and st.bugfix_offers() == 1 and not st.sequels_unlocked() and st.insider_level() == 0, "пустые эффекты")
+	st.hire(StaffMember.make(R.LEAD, G.MIDDLE))
+	st.hire(StaffMember.make(R.LEAD, G.SENIOR))
+	_expect(st.replays() == t.max_replays, "повторов %d" % st.replays())
+	st.hire(StaffMember.make(R.TESTER, G.JUNIOR))
+	_expect(st.bugfix_offers() == 2 and is_equal_approx(st.bugfix_discount(), t.value(R.TESTER, G.JUNIOR)), "тестировщик")
+	st.hire(StaffMember.make(R.PRODUCER, G.JUNIOR))
+	_expect(st.sequels_unlocked() and not st.remakes_unlocked() and st.producer_discount() == 0.0, "продюсер-джуниор")
+	st.hire(StaffMember.make(R.PRODUCER, G.SENIOR))
+	_expect(st.remakes_unlocked() and st.producer_discount() > 0.0, "продюсер-сеньор")
+	st.hire(StaffMember.make(R.ANALYST, G.MIDDLE))
+	_expect(st.insider_level() == 2, "аналитик-мидл: уровень %d" % st.insider_level())
+	st.hire(StaffMember.make(R.MANAGER, G.JUNIOR))
+	st.hire(StaffMember.make(R.MANAGER, G.SENIOR))
+	_expect(is_equal_approx(st.discount(run.economy), 1.0 - 0.95 * 0.85), "менеджеры: %.4f" % st.discount(run.economy))
+	# Наём с доски: цена сразу, зарплата в содержание, запас на релиз не тратится.
+	var hired := RunState.start(12, true)
+	var m: StaffMember = hired.board[0]
+	var cash := hired.wallet.cash
+	var upkeep := hired.upkeep.total()
+	_expect(hired.hire(m) and hired.wallet.cash == cash - hired.hire_price(m)
+			and hired.upkeep.total() == upkeep + hired.hire_salary(m) and hired.studio.staff == [m] and not hired.board.has(m), "наём")
+	hired.wallet.cash = hired.cheapest_next() + hired.hire_price(hired.board[0]) - 1
+	_expect(not hired.hire(hired.board[0]), "наём съел запас на релиз")
+	# Доска после релизов: по `board_add` приходят, отсидевшие `board_stay` уходят.
+	var left := hired.board.size()
+	hired.release = 2
+	hired.refresh_board()
+	_expect(hired.board.size() == left + t.board_add, "после релиза на доске %d" % hired.board.size())
+	hired.release = t.board_stay + 1
+	hired.refresh_board()
+	for b in hired.board:
+		_expect(b.until >= hired.release, "на доске остался просроченный соискатель")
+	# Слот помнит штат и доску.
+	var back := RunState.from_save(hired.to_save(&"release"))
+	_expect(back.studio.staff.size() == 1 and back.board.size() == hired.board.size(), "слот: штат %d, доска %d" % [
+			back.studio.staff.size(), back.board.size()])
+	AutoTest.note("staff: %s; доска %s" % [st.staff, hired.board])
 
 
 func _ids(list: Array[AchievementDef]) -> Array:

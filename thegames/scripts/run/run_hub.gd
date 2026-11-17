@@ -3,11 +3,13 @@ extends Control
 ## Главный экран забега (плейтест 2026-11-11, #77 и #78), спека `docs/specs/run.md`. Между
 ## релизами игрок стоит здесь, новый релиз начинается кнопкой «Новая игра», а не сам. Фоном
 ## студия (её рисует хозяин под экраном), поверх только хром: слева сверху логотип и название,
-## под ними пилюли денег и «Прокачка» (и «Прокачаться», если от предложения фазы студии
+## под ними пилюли денег, «Штат», «Соискатели» и «Сеттинги» (и зелёная «Жанр или технология», если от предложения фазы студии
 ## отказались), снизу по центру «Новая игра». Столбика карточек релизов справа нет (полировка
 ## 2026-11-17): выпущенные игры открываются со статуэток на полке студии.
 ## - Пилюля денег раскрывает мармеладом окно с историей денег по релизам (`Wallet.history`).
-## - «Прокачка» раскрывает окно купленной прокачки по порядку покупки с цветом вида (#79).
+## - «Штат» раскрывает окно нанятых людей (роль, грейд, эффект, зарплата) и купленных жанров и
+##   технологий. «Соискатели» раскрывает доску: ↑ ↓ или наведение выбирают, ␣ или клик нанимают,
+##   нанимать можно нескольких подряд, пока хватает денег сверх запаса на следующий релиз.
 ## - «Прокачаться» раскрывает отложенное предложение прокачки (`RunState.pending_offer`): одна
 ##   покупка до старта новой игры, с тем же запасом на следующий релиз, что и в фазе студии.
 ## - Статуэтка на полке открывает карточку игры как в галерее: «Играть» (демка на весь экран),
@@ -30,6 +32,8 @@ extends Control
 
 signal new_game
 signal upgrade_bought(upgrade: UpgradeDef)
+## Нанят человек с доски соискателей (спека `docs/specs/staff.md`).
+signal staff_hired(member: StaffMember)
 ## Окно или панель релиза открылись (`true`) или закрылись: хозяин притеняет студию под ними.
 signal overlay_changed(on: bool)
 ## После релиза (#133): пришла волна отклика; ставка на критиков сыграла или нет; игрок
@@ -48,11 +52,10 @@ const NEW_GAME_SIZE := Vector2(520, 88)
 const NEW_GAME_BOTTOM := 104.0
 const POP_SECONDS := 0.36
 const ROW_GAP := 12
-## «Прокачаться»: цвет и как часто кнопка зовёт к себе.
-const OFFER_COLOR := Color("#2BB37A")
+## «Прокачаться» (цвет `success` палитры): как часто кнопка зовёт к себе.
 const OFFER_PULSE_SECONDS := 2.4
 
-enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME, STREAM }
+enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME, STREAM, BOARD }
 ## Волны отклика после релиза по порядку прихода; ставка стоит первой и не приходит.
 enum Wave { BET, TWEETS, STREAM, CRITICS, SALES }
 
@@ -73,7 +76,7 @@ const REASONS := {
 	"release": "Разработка", "bugfix": "Багфикс", "sales": "Первая неделя", "tail": "Продажи прошлых игр",
 	"share": "Доли по договорам", "upkeep": "Содержание", "upgrade": "Улучшения", "event": "Вставка",
 	"bet": "Ставка на критиков",
-	"rescue": "Аванс издателя",
+	"rescue": "Аванс издателя", "staff": "Наём",
 }
 
 var run: RunState
@@ -97,6 +100,9 @@ var _money_index := 0
 var _settings_index := -1
 var _settings: SettingsScreen
 var _offer_index := -1
+## Пилюля «Соискатели» и люди в открытом окне доски, по строкам.
+var _board_index := -1
+var _board_members: Array[StaffMember] = []
 var _offer_rows: Array[PanelContainer] = []
 var _offer_lifts: Array[JellyLift] = []
 var _offer_defs: Array[UpgradeDef] = []
@@ -339,6 +345,8 @@ func activate(i: int) -> void:
 		open_settings()
 	elif i == _offer_index:
 		_toggle_window(Pop.OFFER)
+	elif i == _board_index:
+		_toggle_window(Pop.BOARD)
 	elif _wave_focus.has(i):
 		_lifts[i].press()
 		open_wave(_wave_focus[i])
@@ -398,7 +406,47 @@ func buy_offer(i: int) -> bool:
 
 
 func _offer_affordable(i: int) -> bool:
+	if window == Pop.BOARD:
+		return run.can_hire(_board_members[i])
 	return run.wallet.can_afford(_offer_defs[i].price(run.economy) + run.cheapest_next())
+
+
+func open_board() -> void:
+	if _board_index >= 0:
+		_toggle_window(Pop.BOARD)
+
+
+## Нанять соискателя из строки `i` доски. Доска остаётся открытой, пока на ней кто-то есть.
+func hire_staff(i: int) -> bool:
+	if i < 0 or i >= _board_members.size():
+		return false
+	var m := _board_members[i]
+	_offer_lifts[i].press()
+	if not run.hire(m):
+		_shake(_offer_rows[i])
+		ShellSounds.play(&"miss")
+		return false
+	ShellSounds.play(&"done")
+	staff_hired.emit(m)
+	_close_window(false)
+	_rebuild()
+	if _board_index >= 0:
+		focus = _board_index
+		_refresh_focus()
+		_toggle_window(Pop.BOARD)
+	else:
+		focus = _upgrades_index
+		_refresh_focus()
+		Jelly.poke(_focusables[_upgrades_index], 1.2)
+	return true
+
+
+## Нажата строка окна с покупкой: предложение жанра или технологии, либо доска.
+func _buy_row(i: int) -> void:
+	if window == Pop.BOARD:
+		hire_staff(i)
+	else:
+		buy_offer(i)
 
 
 ## Лента релиза `i` с конца (0 последний).
@@ -595,26 +643,26 @@ func _window_input(event: InputEvent, viewport: Viewport) -> void:
 	elif MouseUi.is_click(event):
 		var inside := MouseUi.hit(_window_node, event)
 		var on_pill := _pill_at(event)
-		if window == Pop.OFFER and inside:
+		if window in [Pop.OFFER, Pop.BOARD] and inside:
 			var row := _offer_row_at(event)
 			if row >= 0:
 				_offer_focus = row
 				_refresh_offer()
-				buy_offer(row)
+				_buy_row(row)
 		elif on_pill >= 0:
 			activate(on_pill)
 		elif not inside:
 			_close_window()
-	elif window == Pop.OFFER and MouseUi.is_motion(event):
+	elif window in [Pop.OFFER, Pop.BOARD] and MouseUi.is_motion(event):
 		var row := _offer_row_at(event)
 		if row >= 0 and row != _offer_focus:
 			_offer_focus = row
 			ShellSounds.play(&"tick")
 			_refresh_offer()
 		return
-	elif window == Pop.OFFER and not event.is_echo() and GameInput.is_a(event):
-		buy_offer(_offer_focus)
-	elif window == Pop.OFFER and (event.is_action_pressed(GameInput.DOWN, true) or event.is_action_pressed(GameInput.UP, true)):
+	elif window in [Pop.OFFER, Pop.BOARD] and not event.is_echo() and GameInput.is_a(event):
+		_buy_row(_offer_focus)
+	elif window in [Pop.OFFER, Pop.BOARD] and (event.is_action_pressed(GameInput.DOWN, true) or event.is_action_pressed(GameInput.UP, true)):
 		var next := clampi(_offer_focus + (1 if event.is_action_pressed(GameInput.DOWN, true) else -1), 0, _offer_rows.size() - 1)
 		if next != _offer_focus:
 			_offer_focus = next
@@ -668,7 +716,7 @@ func _bet_input(event: InputEvent) -> bool:
 
 ## Пилюля шапки под курсором (деньги, прокачка, «Прокачаться»), или -1.
 func _pill_at(event: InputEvent) -> int:
-	for i in [_money_index, _upgrades_index, _offer_index]:
+	for i in [_money_index, _upgrades_index, _offer_index, _board_index]:
 		if i >= 0 and MouseUi.hit(_focusables[i], event):
 			return i
 	return -1
@@ -720,17 +768,21 @@ func _toggle_window(w: Pop) -> void:
 		Pop.UPGRADES:
 			pill = _focusables[_upgrades_index]
 			rows = _upgrade_rows()
-			title = "Улучшения студии"
+			title = "Штат"
 		Pop.OFFER:
 			pill = _focusables[_offer_index]
 			rows = _offer_window_rows()
-			title = "Предложение ещё в силе"
+			title = "Жанр или технология"
+		Pop.BOARD:
+			pill = _focusables[_board_index]
+			rows = _board_window_rows()
+			title = "Соискатели"
 		Pop.BET:
 			rows = _bet_window_rows()
 			title = "Оценка критиков"
 	_window_node = _make_window(rows, title)
 	add_child(_window_node)
-	if w == Pop.OFFER:
+	if w == Pop.OFFER or w == Pop.BOARD:
 		_refresh_offer()
 	elif w == Pop.BET:
 		_refresh_bet()
@@ -894,9 +946,14 @@ func _money_row(text: String, delta: int, head: bool) -> Control:
 func _upgrade_rows() -> Array[Control]:
 	var rows: Array[Control] = []
 	var ids := run.studio.upgrade_ids
-	if ids.is_empty():
-		rows.append(_wrap_label("Улучшений нет.", Style.FONT_BODY, Style.INK_2))
-		return rows
+	var tuning := StaffTuning.load_default()
+	if run.studio.staff.is_empty():
+		rows.append(_wrap_label("В штате никого. Люди нанимаются с доски соискателей.", Style.FONT_BODY, Style.INK_2))
+	for m in run.studio.staff:
+		rows.append(_staff_row(m, Staff.effect_line(m.role, m.grade, tuning),
+				"%s за релиз" % Style.format_money(run.hire_salary(m)), Style.INK_3))
+	if not ids.is_empty():
+		rows.append(_wrap_label("Жанры и технологии", Style.FONT_CAPTION, Style.INK_3))
 	for i in ids.size():
 		var def := UpgradePool.find(run.upgrades, ids[i])
 		var row := PanelContainer.new()
@@ -944,7 +1001,7 @@ func _offer_window_rows() -> Array[Control]:
 		if _offer_affordable(i):
 			_offer_focus = i
 			break
-	rows.append(_wrap_label("Отложенное предложение. Одно улучшение можно купить до начала новой игры.",
+	rows.append(_wrap_label("Одну карточку можно купить до начала новой игры.",
 			Style.FONT_CAPTION, Style.INK_2))
 	for def in _offer_defs:
 		var row := PanelContainer.new()
@@ -974,6 +1031,69 @@ func _offer_window_rows() -> Array[Control]:
 		rows.append(row)
 		_offer_rows.append(row)
 		_offer_lifts.append(Jelly.button(row, Style.R_CTL))
+	return rows
+
+
+## Строка человека: полоса цвета грейда, роль, эффект, справа грейд пилюлей и подпись.
+func _staff_row(m: StaffMember, effect: String, note: String, note_color: Color) -> PanelContainer:
+	var row := PanelContainer.new()
+	var sb := Style.flat(Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0)
+	sb.content_margin_left = 0
+	sb.content_margin_right = 20
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 14
+	row.add_theme_stylebox_override("panel", sb)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	row.add_child(h)
+	# Цвет грейда: джуниор бирюзовый, мидл янтарный, сеньор фиолетовый (цвета видов улучшений).
+	var kind := 2 - int(m.grade)
+	var bar := Panel.new()
+	bar.custom_minimum_size = Vector2(8, 0)
+	bar.add_theme_stylebox_override("panel", Style.flat(Style.kind_color(kind), 4, Color.TRANSPARENT, 0))
+	h.add_child(bar)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(col)
+	col.add_child(_label(Staff.title(m.role), Style.FONT_BODY, Style.INK))
+	var sub := _label(effect, Style.FONT_CAPTION, Style.INK_2)
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(sub)
+	var right := VBoxContainer.new()
+	right.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_child(right)
+	right.add_child(_kind_pill(kind, Staff.GRADE_NAMES[m.grade]))
+	var nl := _label(note, Style.FONT_CAPTION if note_color == Style.INK_3 else Style.FONT_BODY, note_color)
+	if note_color != Style.INK_3:
+		nl.add_theme_font_override("font", Style.mono_font())
+	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(nl)
+	return row
+
+
+## Доска соискателей: строки как у предложения, справа цена найма; нанять можно нескольких.
+func _board_window_rows() -> Array[Control]:
+	var rows: Array[Control] = []
+	var tuning := StaffTuning.load_default()
+	_board_members = run.board.duplicate()
+	_offer_rows.clear()
+	_offer_lifts.clear()
+	_offer_focus = 0
+	rows.append(_wrap_label("Нанятый получает зарплату каждый релиз. Соискатель ждёт недолго.",
+			Style.FONT_CAPTION, Style.INK_2))
+	for i in _board_members.size():
+		var m := _board_members[i]
+		var left := m.until - run.release + 1
+		var effect := "%s\nЗарплата %s за релиз · ждёт ещё %d рел." % [Staff.effect_line(m.role, m.grade, tuning),
+				Style.format_money(run.hire_salary(m)), left]
+		var row := _staff_row(m, effect, Style.format_money(run.hire_price(m)), Style.INK)
+		rows.append(row)
+		_offer_rows.append(row)
+		_offer_lifts.append(Jelly.button(row, Style.R_CTL))
+	for i in _board_members.size():
+		if run.can_hire(_board_members[i]):
+			_offer_focus = i
+			break
 	return rows
 
 
@@ -1027,6 +1147,8 @@ static func _score(v: float) -> String:
 
 ## Фокус строки предложения: тёмная подложка; цена красным, если покупка съест запас.
 func _refresh_offer() -> void:
+	if _window_scroll != null and _offer_focus >= 0 and _offer_focus < _offer_rows.size():
+		_window_scroll.ensure_control_visible.call_deferred(_offer_rows[_offer_focus])
 	for i in _offer_rows.size():
 		var on := i == _offer_focus
 		var sb := Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0)
@@ -1159,6 +1281,7 @@ func _rebuild() -> void:
 	_lifts.clear()
 	_labels.clear()
 	_offer_index = -1
+	_board_index = -1
 	_offer_halo = null
 	_wave_focus.clear()
 	_wave_nodes.clear()
@@ -1245,7 +1368,10 @@ func _build() -> void:
 	_money_index = _focusables.size()
 	_pill_button(_pills, Style.format_money(run.wallet.cash), true)
 	_upgrades_index = _focusables.size()
-	_pill_button(_pills, "Улучшения · %d" % run.studio.upgrade_ids.size(), false)
+	_pill_button(_pills, "Штат · %d" % run.studio.staff.size(), false)
+	if not run.board.is_empty():
+		_board_index = _focusables.size()
+		_pill_button(_pills, "Соискатели · %d" % run.board.size(), false)
 	_settings_index = _focusables.size()
 	_pill_button(_pills, "Сеттинги · %d из %d" % [SettingsScreen.open_count(run.profile, run), Game.Setting.size()], false)
 	if not run.pending_defs().is_empty():
@@ -1366,14 +1492,14 @@ func _wave_card(kind: Wave) -> PanelContainer:
 func _offer_button(parent: Control) -> void:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(0, Style.PILL_HEIGHT + 16)
-	var l := _label("Выбрать улучшение", Style.FONT_BODY, Style.SURFACE_SOLID)
+	var l := _label("Жанр или технология", Style.FONT_BODY, Style.SURFACE_SOLID)
 	l.add_theme_font_override("font", Jelly.fun_font(800))
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	p.add_child(l)
 	_offer_halo = Panel.new()
 	_offer_halo.show_behind_parent = true
 	_offer_halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_offer_halo.add_theme_stylebox_override("panel", Style.flat(OFFER_COLOR, Style.R_PILL, Color.TRANSPARENT, 0))
+	_offer_halo.add_theme_stylebox_override("panel", Style.flat(Style.SUCCESS, Style.R_PILL, Color.TRANSPARENT, 0))
 	_offer_halo.modulate.a = 0.0
 	p.add_child(_offer_halo)
 	parent.add_child(p)
@@ -1436,7 +1562,7 @@ func _refresh_focus() -> void:
 		var radius := Style.R_PILL if i != _new_index else Style.R_CTL
 		var bg := Style.INK if on else Style.SURFACE_SOLID
 		if i == _offer_index:
-			bg = OFFER_COLOR.darkened(0.3) if on else OFFER_COLOR
+			bg = Style.SUCCESS.darkened(0.3) if on else Style.SUCCESS
 		var sb := Style.flat(bg, radius, Color.TRANSPARENT, 0)
 		sb.content_margin_left = 24
 		sb.content_margin_right = 24

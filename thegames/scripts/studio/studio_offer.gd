@@ -1,8 +1,8 @@
 class_name StudioOffer
 extends RefCounted
-## Состав предложения прокачки как чистая функция, спека `docs/specs/studio.md`: до трёх
-## разных карточек, не больше одной технологии, не больше одного жанра, хотя бы одна
-## возможность, если она осталась. Купленное, уже открытое и то, чьи `requires` не куплены,
+## Состав предложения после релиза как чистая функция, спека `docs/specs/studio.md`: до трёх
+## разных карточек, только жанры и технологии (2026-11-17: улучшения студии ушли в штат,
+## `docs/specs/staff.md`), хотя бы одна технология и один жанр, пока они остались. Купленное, уже открытое и то, чьи `requires` не куплены,
 ## не предлагается; ремейки не предлагаются, пока открыта одна технология. «Новый сеттинг»
 ## (#139) одна карточка на предложение: случайный из закрытых сеттингов с готовым набором. Пул исчерпан: карточек меньше, пуст: ни одной. Порядок случайный от `rng`.
 
@@ -11,36 +11,18 @@ static func compose(pool: Array[UpgradeDef], state: StudioState, unlocked_genres
 		unlocked_techs: Array[Game.Tech], rng: RandomNumberGenerator, count := 3,
 		unlocked_settings: Array[Game.Setting] = []) -> Array[UpgradeDef]:
 	var candidates := available(pool, state, unlocked_genres, unlocked_techs, unlocked_settings)
-	# «Новый сеттинг» это одна возможность пула: из закрытых остаётся один случайный.
-	var closed: Array[UpgradeDef] = []
-	for d in candidates:
-		if d.setting >= 0:
-			closed.append(d)
-	if closed.size() > 1:
-		var keep := closed[rng.randi_range(0, closed.size() - 1)]
-		for d in closed:
-			if d != keep:
-				candidates.erase(d)
 	_shuffle(candidates, rng)
+	# Сначала по одной карточке каждого вида, чтобы выбор был между жанром и технологией.
 	var out: Array[UpgradeDef] = []
-	for d in candidates:
-		if d.kind == UpgradeDef.Kind.CAPABILITY:
-			out.append(d)
-			candidates.erase(d)
-			break
-	var tech_used := false
-	var genre_used := false
+	for kind in [UpgradeDef.Kind.TECH, UpgradeDef.Kind.GENRE]:
+		for d in candidates:
+			if d.kind == kind and out.size() < count:
+				out.append(d)
+				candidates.erase(d)
+				break
 	for d in candidates:
 		if out.size() >= count:
 			break
-		if d.kind == UpgradeDef.Kind.TECH:
-			if tech_used:
-				continue
-			tech_used = true
-		elif d.kind == UpgradeDef.Kind.GENRE:
-			if genre_used:
-				continue
-			genre_used = true
 		out.append(d)
 	_shuffle(out, rng)
 	return out

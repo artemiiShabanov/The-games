@@ -1,7 +1,8 @@
 class_name OptionsScreen
 extends Control
 ## Экран настроек (#81) поверх меню или паузы: карточка со строками громкости (общая, музыка,
-## звуки), полного экрана, движения интерфейса, подписей клавиш и чувствительности обзора мышью
+## звуки), полного экрана, движения интерфейса, палитры (название и десять образцов: пять смысловых
+## цветов и пять акцентов мини-игр), подписей клавиш и чувствительности обзора мышью
 ## и стиком (#109), внизу «Готово». ↑ ↓ строка,
 ## ← → меняют значение (громкость шагом 10 %), ␣ переключает или закрывает на «Готово».
 ## Мышь: наведение берёт строку, клик по полосе громкости ставит значение по месту, клик по
@@ -12,18 +13,22 @@ extends Control
 signal closed
 
 const WIDTH := 880.0
-const ROW_HEIGHT := 64.0
+const ROW_HEIGHT := 56.0
 const BAR := Vector2(320, 12)
 const STEP := 0.1
 ## Зазор между строками (плейтест 2026-11-11: строки слипались).
 const ROW_GAP := 14
 
-enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
+enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, PALETTE, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
 
-const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Анимация интерфейса", "Подписи клавиш",
+const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Анимация интерфейса", "Палитра", "Подписи клавиш",
 		"Обзор мышью", "Обзор стиком", "Готово"]
 ## Строки с полосой: громкости и чувствительность обзора.
 const BARS: Array[int] = [Row.MASTER, Row.MUSIC, Row.SFX, Row.MOUSE_LOOK, Row.STICK_LOOK]
+## Образцы палитры в строке «Палитра»: квадрат и зазор; между смысловыми и акцентами зазор шире.
+const CHIP := 20.0
+const CHIP_GAP := 6
+const CHIP_GROUP_GAP := 14.0
 
 var index := 0
 var _rows: Array[PanelContainer] = []
@@ -31,6 +36,7 @@ var _values: Array[Label] = []
 var _bars: Array[Control] = []
 var _fills: Array[ColorRect] = []
 var _lifts: Array[JellyLift] = []
+var _chips: Array[Panel] = []
 
 
 func _ready() -> void:
@@ -59,7 +65,7 @@ func _ready() -> void:
 	column.add_child(_spacer(8))
 	for i in TITLES.size():
 		column.add_child(_make_row(i))
-		if i == Row.SFX or i == Row.MOTION or i == Row.STICK_LOOK:
+		if i == Row.SFX or i == Row.PALETTE or i == Row.STICK_LOOK:
 			column.add_child(_spacer(12))
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -90,6 +96,8 @@ func change(row: int, dir: int) -> void:
 			Options.fullscreen = not Options.fullscreen
 		Row.MOTION:
 			Options.motion = not Options.motion
+		Row.PALETTE:
+			Options.cycle_palette(dir)
 		Row.GLYPHS:
 			Options.glyphs = wrapi(int(Options.glyphs) + (dir if dir != 0 else 1), 0, Options.Glyphs.size()) as Options.Glyphs
 		Row.MOUSE_LOOK:
@@ -158,6 +166,8 @@ func _value_text(row: int) -> String:
 			return "да" if Options.fullscreen else "окно"
 		Row.MOTION:
 			return "полная" if Options.motion else "сокращённая"
+		Row.PALETTE:
+			return Style.palette.title if Style.palette != null else ""
 		Row.GLYPHS:
 			return Options.GLYPH_NAMES[Options.glyphs]
 		Row.MOUSE_LOOK, Row.STICK_LOOK:
@@ -265,6 +275,21 @@ func _make_row(i: int) -> PanelContainer:
 		fill.size = Vector2(0, BAR.y)
 		bar.add_child(fill)
 		h.add_child(bar)
+	elif i == Row.PALETTE:
+		var strip := HBoxContainer.new()
+		strip.add_theme_constant_override("separation", CHIP_GAP)
+		strip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for k in 10:
+			if k == 5:
+				var gap := Control.new()
+				gap.custom_minimum_size = Vector2(CHIP_GROUP_GAP - CHIP_GAP * 2, 0)
+				strip.add_child(gap)
+			var chip := Panel.new()
+			chip.custom_minimum_size = Vector2(CHIP, CHIP)
+			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			strip.add_child(chip)
+			_chips.append(chip)
+		h.add_child(strip)
 	var value := _label("", Style.FONT_BODY, Style.INK_2)
 	value.custom_minimum_size = Vector2(180 if i != Row.DONE else 0, 0)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -295,6 +320,11 @@ func _refresh() -> void:
 			_fills[i].color = Style.SURFACE_SOLID if on else Style.INK
 			var track := _bars[i].get_child(0) as Panel
 			track.add_theme_stylebox_override("panel", Style.flat(Style.INK_2 if on else Style.BG, Style.R_PILL, Color.TRANSPARENT, 0))
+	var colors: Array[Color] = [Style.FOCUS, Style.MONEY, Style.SUCCESS, Style.DANGER, Style.BUG]
+	for k in 5:
+		colors.append(Style.accent(k))
+	for k in _chips.size():
+		_chips[k].add_theme_stylebox_override("panel", Style.flat(colors[k], 6, Color.TRANSPARENT, 0))
 
 
 func _label(text: String, font_size: int, color: Color) -> Label:

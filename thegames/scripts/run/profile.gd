@@ -30,6 +30,8 @@ static var path := PATH
 @export var runs: Array[Dictionary] = []
 ## Достижения (#139): id `AchievementDef` → unix-время. Каждое открывает сеттинг на все забеги.
 @export var achievements: Dictionary[StringName, int] = {}
+## Мини-игры, в которые игрок уже играл: первая встреча с каждой идёт на сложности 0.
+@export var seen_minigames: Array[StringName] = []
 
 
 ## Автотест: свой файл, пустой на старте прогона.

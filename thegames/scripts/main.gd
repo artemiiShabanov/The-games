@@ -136,9 +136,11 @@ func _ready() -> void:
 		# бот ведомости перебирает и технологию.
 		var pre: Array[StringName] = []
 		if _bot_remake:
-			# `--remake=lowpoly` (#127): вторая технология для ремейка не вектор, а названная.
+			# `--remake=lowpoly` (#127): вторая технология для ремейка не вектор, а названная;
+			# ремейки открывает продюсер-мидл в штате.
 			var other := str(args["remake"])
-			pre.append_array([StringName("tech_" + other) if other in ["bit16", "lowpoly", "threed"] else &"tech_vector", &"remakes"])
+			pre.append(StringName("tech_" + other) if other in ["bit16", "lowpoly", "threed"] else &"tech_vector")
+			run.studio.hire(StaffMember.make(Staff.Role.PRODUCER, Staff.Grade.MIDDLE))
 		if args.has("techs"):
 			# С M4 (#127) это все пять технологий: стартовая плюс четыре купленные.
 			pre.append_array([&"tech_vector", &"tech_bit16", &"tech_lowpoly", &"tech_threed"])
@@ -183,6 +185,13 @@ func _ready() -> void:
 	Debug.add_choice(SECTION, "Улучшения", ids, func() -> String: return _debug_upgrade,
 			func(v: String) -> void: _debug_upgrade = v)
 	Debug.add_action(SECTION, "Купить прокачку бесплатно", _debug_buy)
+	Debug.add_action(SECTION, "Штат: нанять первого с доски бесплатно", func() -> void:
+		if not run.board.is_empty():
+			var m: StaffMember = run.board[0]
+			run.board.erase(m)
+			run.studio.hire(m, run.release)
+			_sync_studio())
+	Debug.add_action(SECTION, "Штат: новые соискатели", func() -> void: run.refresh_board())
 	Debug.add_action(SECTION, "Пропустить этап", _skip_stage)
 	Debug.add_action(SECTION, "Забыть стартовый жанр прошлого забега", func() -> void:
 		if _profile != null:
@@ -247,6 +256,7 @@ func _start_release(prepared := false) -> void:
 ## Студия фоном растёт с людьми и прокачкой; вызывать можно сколько угодно.
 func _sync_studio() -> void:
 	if _bg != null:
+		run.studio.refresh_people(run.release)
 		_bg.busy = stage in [Stage.SPRINTS, Stage.FIXING]
 		_bg.set_studio(run.studio, run.release, run.start_tech, run.start_genre)
 		_bg.set_shelf(_shelf_colors())
@@ -294,6 +304,10 @@ func _open_hub() -> void:
 	hub.overlay_changed.connect(func(on: bool) -> void: _hub_overlay = on)
 	hub.upgrade_bought.connect(func(u: UpgradeDef) -> void:
 		_expected_cash -= u.price(run.economy)
+		_sync_studio()
+		_save(&"release", true))
+	hub.staff_hired.connect(func(m: StaffMember) -> void:
+		_expected_cash -= run.hire_price(m)
 		_sync_studio()
 		_save(&"release", true))
 	_set_screen(hub)
@@ -408,8 +422,8 @@ func _open_constructor() -> void:
 	stage = Stage.CONSTRUCTOR
 	var c := (load(CONSTRUCTOR_PATH) as PackedScene).instantiate() as Constructor
 	c.setup(run.unlocked_genres(), run.unlocked_techs(), run.unlocked_settings(), run.wallet.cash, run.release,
-			run.rng.randi(), run.discount(), base)
-	c.set_market(run.market, run.success, run.studio.insider())
+			run.rng.randi(), run.discount_for(base), base)
+	c.set_market(run.market, run.success, run.studio.insider_level())
 	c.set_contracts(run.contracts())
 	c.game_configured.connect(_on_configured)
 	_set_screen(c)
@@ -423,7 +437,7 @@ func _on_configured(config: GameConfig) -> void:
 
 func _begin_development(config: GameConfig) -> void:
 	stage = Stage.SPRINTS
-	_dev_discount = run.discount()
+	_dev_discount = run.discount_for(base)
 	record = run.start_development(config)
 	_expected_cash -= config.total_cost()
 	_start_runner(0)
@@ -437,6 +451,7 @@ func _start_runner(from: int) -> void:
 	_runner = SprintRunner.new()
 	_runner.own_background = false
 	_runner.tuning = run.sprint_tuning
+	_runner.t_of = _t_for
 	_runner.sprint_finished.connect(_on_sprint_finished)
 	_runner.plan_finished.connect(_on_plan_finished)
 	_runner.menu_requested.connect(_to_menu)
@@ -445,7 +460,21 @@ func _start_runner(from: int) -> void:
 			"%s · релиз %d" % [record.title, run.release], from, record.sprint_results)
 
 
+## Сложность мини-игры: первая встреча за всю игру идёт на 0, дальше по релизу и штату.
+func _t_for(def: MinigameDef) -> float:
+	if _profile != null and not _profile.seen_minigames.has(def.id):
+		return 0.0
+	return run.t_for(def)
+
+
+func _seen(def: MinigameDef) -> void:
+	if _profile != null and def != null and not _profile.seen_minigames.has(def.id):
+		_profile.seen_minigames.append(def.id)
+		_profile.save()
+
+
 func _on_sprint_finished(d: MinigameDef, success: bool) -> void:
+	_seen(d)
 	record.add_sprint(success)
 	if not success:
 		run.catalog.apply_fail(d, record, run.rng)
@@ -563,12 +592,14 @@ func _on_bugfix_accepted() -> void:
 	_runner = SprintRunner.new()
 	_runner.own_background = false
 	_runner.tuning = run.sprint_tuning
+	_runner.t_of = _t_for
 	_runner.sprint_finished.connect(_on_bugfix_sprint)
 	add_child(_runner)
 	_runner.run(Bugfix.plan_for(def), run.t_value(), false, run.rng.randi(), "Багфикс · %s" % record.title)
 
 
-func _on_bugfix_sprint(_def: MinigameDef, success: bool) -> void:
+func _on_bugfix_sprint(def: MinigameDef, success: bool) -> void:
+	_seen(def)
 	var fixed: Array[StringName] = []
 	if success:
 		fixed = Bugfix.apply_fix(record, run.rng)

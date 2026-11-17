@@ -23,3 +23,4 @@ corp_tick = 3500
 legend_critics = 9.0
 legend_viral = 3
 legend_min_games = 8
+t_start = 0.5

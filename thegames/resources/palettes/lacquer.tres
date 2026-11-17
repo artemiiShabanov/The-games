@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UiPalette" format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/ui_palette.gd" id="1_pal"]
+
+[resource]
+script = ExtResource("1_pal")
+id = &"lacquer"
+title = "Лак"
+focus = Color(0, 0.356863, 0.552941, 1)
+money = Color(0.101961, 0.454902, 0.266667, 1)
+success = Color(0, 0.580392, 0.396078, 1)
+danger = Color(0.796078, 0.184314, 0.262745, 1)
+bug = Color(0.760784, 0.458824, 0.266667, 1)
+accents = PackedColorArray(0.309804, 0.25098, 0.52549, 1, 0.988235, 0.701961, 0.0823529, 1, 0, 0.443137, 0.564706, 1, 0.560784, 0.627451, 0.443137, 1, 0.470588, 0.803922, 0.815686, 1)
+accent_names = PackedStringArray("фиолетовое", "жёлтое", "синее", "зелёное", "голубое")
+metadata/wada = "Helvetia Blue, Diamine Green, Dull Viridian Green, Scarlet, Cinnamon Rufous; Violet, Orange Yellow, Antwarp Blue, Rainette Green, Calamine Blue"

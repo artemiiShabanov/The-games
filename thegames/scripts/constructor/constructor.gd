@@ -146,7 +146,11 @@ func set_contracts(contracts: Dictionary) -> void:
 
 ## Подсказки рынка на карточках: насыщение всегда, тренд только с «Инсайдером». Зовётся до
 ## или после `setup`, до добавления в дерево или в любой момент.
-func set_market(market: MarketState, success: SuccessTuning, insider: bool) -> void:
+## `insider` это уровень аналитика: 1 виден жанр в тренде, 2 ещё и сеттинг, 3 ещё и высокий
+## спрос (`StaffTuning.demand_tag_from`); `true` из старого кода значит 2.
+func set_market(market: MarketState, success: SuccessTuning, insider: Variant) -> void:
+	var level := (2 if insider else 0) if insider is bool else int(insider)
+	var demand_from := StaffTuning.load_default().demand_tag_from
 	market_tags = [{}, {}, {}]
 	if market == null:
 		if _ready_done:
@@ -154,13 +158,17 @@ func set_market(market: MarketState, success: SuccessTuning, insider: bool) -> v
 		return
 	for g in market.saturation_genre.size():
 		var tag := market.saturation_label(market.saturation_genre[g], success)
-		if insider and g == market.trend_genre:
+		if level >= 3 and tag == "" and market.demand_genre[g] >= demand_from:
+			tag = "высокий спрос"
+		if level >= 1 and g == market.trend_genre:
 			tag = "в тренде" if tag == "" else "в тренде · " + tag
 		if tag != "":
 			market_tags[0][g] = tag
 	for st in market.saturation_setting.size():
 		var tag := market.saturation_label(market.saturation_setting[st], success)
-		if insider and st == market.trend_setting:
+		if level >= 3 and tag == "" and market.demand_setting[st] >= demand_from:
+			tag = "высокий спрос"
+		if level >= 2 and st == market.trend_setting:
 			tag = "в тренде" if tag == "" else "в тренде · " + tag
 		if tag != "":
 			market_tags[2][st] = tag

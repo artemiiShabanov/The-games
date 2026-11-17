@@ -15,15 +15,64 @@ const SURFACE_2 := Color("#ECE8E1")
 const INK := Color("#1C1B19")
 const INK_2 := Color("#6F6A62")
 const INK_3 := Color("#A8A39A")
-const FOCUS := Color("#2F5BFF")
-const MONEY := Color("#1F8A4C")
-const SUCCESS := Color("#2BB37A")
-const DANGER := Color("#D93A2B")
-const BUG := Color("#F07A1C")
+## Смысловые цвета и акценты мини-игр приходят из палитры, которую игрок выбирает в настройках
+## (`UiPalette`, `resources/palettes/`, 2026-11-17); база выше общая для всех палитр. Значения
+## здесь это палитра по умолчанию «Бумага» до `use_palette`.
+static var FOCUS := Color("#006EB8")
+static var MONEY := Color("#1A7444")
+static var SUCCESS := Color("#00B49B")
+static var DANGER := Color("#CB2F43")
+static var BUG := Color("#C16B27")
 ## Подложки пилюль последствий (концепт `06-meta-event`, #63): плюс, минус, ограничение.
-const TINT_PLUS := Color("#E3F4EA")
-const TINT_MINUS := Color("#FBE5E2")
-const TINT_LOCK := Color("#E6ECFF")
+## Светлые тона `money`, `danger`, `focus`, считаются из палитры.
+static var TINT_PLUS := tint(MONEY)
+static var TINT_MINUS := tint(DANGER)
+static var TINT_LOCK := tint(FOCUS)
+
+const PALETTE_DIR := "res://resources/palettes/"
+## Порядок палитр в настройках; первая по умолчанию.
+const PALETTE_IDS: Array[StringName] = [&"paper", &"fog", &"lacquer", &"contrast"]
+static var palette: UiPalette
+
+
+## Светлая подложка того же тона для пилюли с текстом этого цвета.
+static func tint(c: Color) -> Color:
+	return c.lerp(Color.WHITE, 0.88)
+
+
+static func load_palette(id: StringName) -> UiPalette:
+	var path := PALETTE_DIR + String(id) + ".tres"
+	if not ResourceLoader.exists(path):
+		path = PALETTE_DIR + String(PALETTE_IDS[0]) + ".tres"
+	return load(path) as UiPalette
+
+
+## Раскладывает палитру по токенам. Тему окна перестраивает `UiTheme.apply()`; то, что
+## рисуется каждый кадр (мини-игры), подхватывает сразу, остальное при следующей сборке экрана.
+static func use_palette(id: StringName) -> void:
+	var p := load_palette(id)
+	if p == null:
+		return
+	palette = p
+	FOCUS = p.focus
+	MONEY = p.money
+	SUCCESS = p.success
+	DANGER = p.danger
+	BUG = p.bug
+	TINT_PLUS = tint(MONEY)
+	TINT_MINUS = tint(DANGER)
+	TINT_LOCK = tint(FOCUS)
+	if p.accents.size() > 0:
+		accents.assign(Array(p.accents))
+
+
+## Имя акцента словом в среднем роде («синее») для правил «Реши».
+static func accent_name(i: int) -> String:
+	if palette == null or palette.accent_names.is_empty():
+		return ""
+	return palette.accent_names[wrapi(i, 0, palette.accent_names.size())]
+
+
 ## Притенение студии фоном под карточкой, экраном или окном (плейтест 2026-11-11).
 const STUDIO_DIM := Color(0.11, 0.1, 0.09, 0.2)
 const STUDIO_DIM_SECONDS := 0.3
@@ -43,8 +92,8 @@ static func kind_tint(kind: int) -> Color:
 	return KIND_TINTS[clampi(kind, 0, KIND_TINTS.size() - 1)]
 
 
-## Акценты мини-игр a1..a4; палитру выбирает игрок в настройках, стартовая здесь.
-static var accents: Array[Color] = [Color("#2F5BFF"), Color("#F07A1C"), Color("#2BB37A"), Color("#E0457B")]
+## Акценты мини-игр a1..a5 из палитры (`use_palette`); здесь «Бумага» по умолчанию.
+static var accents: Array[Color] = [Color("#064F6E"), Color("#E2B540"), Color("#653514"), Color("#A6A159"), Color("#78CDD0")]
 
 
 static func accent(i: int) -> Color:

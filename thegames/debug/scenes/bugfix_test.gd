@@ -80,7 +80,8 @@ func _launch() -> void:
 	wallet = Wallet.new(cash)
 	state = StudioState.new()
 	if qa:
-		state.buy(UpgradePool.find(UpgradePool.load_all(), &"qa"))
+		# Второе предложение багфикса даёт тестировщик в штате (раньше «Отдел QA»).
+		state.hire(StaffMember.make(Staff.Role.TESTER, Staff.Grade.JUNIOR))
 	offers_shown = 0
 	_show_offer()
 

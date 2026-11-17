@@ -63,6 +63,8 @@ var calm := false
 ## Предложение прокачки, от которого отказались в фазе студии (плейтест 2026-11-11): до старта
 ## новой игры его можно открыть с главного экрана и купить одно. Пусто: нечего предлагать.
 var pending_offer: Array[StringName] = []
+## Доска соискателей (спека `docs/specs/staff.md`): кто сейчас ждёт найма.
+var board: Array[StaffMember] = []
 var finish_reason := ""
 
 
@@ -91,6 +93,7 @@ static func start(seed_: int, deterministic_market := false) -> RunState:
 	r.wallet = Wallet.new(r.economy.start_cash)
 	r.upkeep = Upkeep.new(r.economy.upkeep_base)
 	r.studio = StudioState.new()
+	r.refresh_board(true)
 	return r
 
 
@@ -142,6 +145,7 @@ func to_save(stage: StringName) -> RunSave:
 	s.rep_log = rep_log.duplicate()
 	s.events = RunSave.events_to_dict(event_state)
 	s.pending_offer = pending_offer.duplicate()
+	s.board = board.duplicate()
 	if last_plan != null:
 		for d in last_plan.defs:
 			s.plan_ids.append(d.id)
@@ -180,6 +184,7 @@ static func from_save(s: RunSave) -> RunState:
 	r.rep_log = s.rep_log.duplicate()
 	r.event_state = RunSave.events_from_dict(s.events)
 	r.pending_offer = s.pending_offer.duplicate()
+	r.board = s.board.duplicate()
 	if not s.plan_ids.is_empty():
 		r.last_plan = SprintPlan.new()
 		for id in s.plan_ids:
@@ -190,9 +195,56 @@ static func from_save(s: RunSave) -> RunState:
 	return r
 
 
-## Сложность релиза по спеке мини-игр.
+## Сложность релиза по спеке мини-игр: от `t_start` на первом релизе до 1 на последнем.
 func t_value() -> float:
-	return clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
+	var k := clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
+	return lerpf(tuning.t_start, 1.0, k)
+
+
+## Сложность одной мини-игры: аспектную упрощает специалист этого аспекта в штате.
+func t_for(def: MinigameDef) -> float:
+	var t := t_value()
+	if def != null and def.kind == MinigameDef.Kind.ASPECT:
+		t *= 1.0 - studio.ease(def.aspect)
+	return t
+
+
+# --- Доска соискателей и наём ---------------------------------------------------------------
+
+## Доска после релиза: ушли те, чей срок вышел, пришли новые. `first` это старт забега.
+## Свой генератор от сида забега и номера релиза: остальные розыгрыши забега не сдвигаются.
+func refresh_board(first := false) -> void:
+	var t := StaffTuning.load_default()
+	board = board.filter(func(m: StaffMember) -> bool: return m.until >= release)
+	var board_rng := RandomNumberGenerator.new()
+	board_rng.seed = hash([rng.seed, "board", release])
+	for i in (t.board_start if first else t.board_add):
+		board.append(Staff.roll(studio.staff, t, board_rng, release + t.board_stay - 1))
+
+
+func hire_price(m: StaffMember) -> int:
+	return StaffTuning.load_default().price_of(m.role, m.grade)
+
+
+func hire_salary(m: StaffMember) -> int:
+	return StaffTuning.load_default().salary_of(m.role, m.grade)
+
+
+## Нанять можно, если после найма хватит на самый дешёвый следующий релиз.
+func can_hire(m: StaffMember) -> bool:
+	return wallet.can_afford(hire_price(m) + cheapest_next())
+
+
+## Нанять соискателя с доски: цена найма сразу, зарплата в содержание. false, если не по карману.
+func hire(m: StaffMember) -> bool:
+	if not board.has(m) or not can_hire(m):
+		return false
+	wallet.spend(hire_price(m), &"staff", str(m))
+	upkeep.add(StringName("staff_%d" % studio.staff.size()), hire_salary(m))
+	board.erase(m)
+	studio.hire(m, release)
+	studio.refresh_people(release)
+	return true
 
 
 # --- Кап и его сигналы (#62) --------------------------------------------------------------------
@@ -271,6 +323,14 @@ func discount() -> float:
 	return studio.discount(economy)
 
 
+## Скидка на разработку игры с основой `base`: сиквелу и ремейку добавляет продюсер-сеньор.
+func discount_for(base: BaseOption) -> float:
+	var d := discount()
+	if base != null and base.kind != GameConfig.Kind.NEW:
+		d = 1.0 - (1.0 - d) * (1.0 - studio.producer_discount())
+	return d
+
+
 # --- Порядок релиза -----------------------------------------------------------------------------
 
 ## Перед конструктором: настрой рынка и тренд этого релиза.
@@ -340,7 +400,7 @@ func _feed_index(record: GameRecord) -> int:
 
 
 func bugfix_price(record: GameRecord) -> int:
-	return Bugfix.price(record, economy, discount())
+	return Bugfix.price(record, economy, 1.0 - (1.0 - discount()) * (1.0 - studio.bugfix_discount()))
 
 
 ## Фаза студии: деньги, банкротство, оценка, предложение.
@@ -501,6 +561,9 @@ func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
 	if release > cap:
 		finished = true
 		finish_reason = "год закончился"
+		return
+	studio.refresh_people(release)
+	refresh_board()
 
 
 ## Отложенное предложение прокачки: то, что ещё можно купить (куплено или открыто иначе уходит).

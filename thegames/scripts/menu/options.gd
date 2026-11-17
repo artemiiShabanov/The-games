@@ -3,7 +3,8 @@ extends RefCounted
 ## Настройки игры (#81), `user://settings.cfg`: громкость общая, музыки и звуков (шины
 ## `Master`, `Music`, `Sfx`), окно или полный экран, движение интерфейса (мармелад и студия,
 ## `Jelly.enabled`), подписи клавиш (авто, клавиатура, геймпад), чувствительность обзора мышью и
-## правым стиком в демках от первого лица (#109, 0..1, числа в `LookTuning`). Применяются сразу
+## правым стиком в демках от первого лица (#109, 0..1, числа в `LookTuning`), палитра смысловых цветов и
+## акцентов мини-игр (`Style.PALETTE_IDS`, 2026-11-17). Применяются сразу
 ## (`apply`). Под автотестом файл не читается и не пишется: прогоны идут с умолчаниями и не
 ## трогают настройки игрока.
 
@@ -23,6 +24,7 @@ static var motion := true
 static var glyphs := Glyphs.AUTO
 static var mouse_look := 0.5
 static var stick_look := 0.5
+static var palette: StringName = Style.PALETTE_IDS[0]
 
 
 ## На старте игры: шины, чтение файла, применение.
@@ -30,6 +32,12 @@ static func boot() -> void:
 	ensure_buses()
 	if not _auto_test():
 		load_saved()
+	# Палитра под автотестом для кадров: `--palette=<id>`.
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--palette="):
+			var pal := StringName(arg.trim_prefix("--palette="))
+			if Style.PALETTE_IDS.has(pal):
+				palette = pal
 	apply()
 
 
@@ -60,6 +68,8 @@ static func load_saved() -> void:
 	glyphs = clampi(int(cfg.get_value("input", "glyphs", glyphs)), 0, Glyphs.size() - 1) as Glyphs
 	mouse_look = clampf(float(cfg.get_value("input", "mouse_look", mouse_look)), 0.0, 1.0)
 	stick_look = clampf(float(cfg.get_value("input", "stick_look", stick_look)), 0.0, 1.0)
+	var pal := StringName(str(cfg.get_value("video", "palette", palette)))
+	palette = pal if Style.PALETTE_IDS.has(pal) else Style.PALETTE_IDS[0]
 
 
 static func save() -> void:
@@ -71,6 +81,7 @@ static func save() -> void:
 	cfg.set_value("audio", "sfx", sfx)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "motion", motion)
+	cfg.set_value("video", "palette", String(palette))
 	cfg.set_value("input", "glyphs", int(glyphs))
 	cfg.set_value("input", "mouse_look", mouse_look)
 	cfg.set_value("input", "stick_look", stick_look)
@@ -86,6 +97,12 @@ static func apply() -> void:
 		if DisplayServer.window_get_mode() != mode:
 			DisplayServer.window_set_mode(mode)
 	Jelly.enabled = motion
+	if Style.palette == null or Style.palette.id != palette:
+		Style.use_palette(palette)
+		# Тема окна держит фокус и ползунки в цвете палитры; на старте её строит сам `UiTheme`.
+		var theme_node := (Engine.get_main_loop() as SceneTree).root.get_node_or_null(^"UiTheme")
+		if theme_node != null and theme_node.is_node_ready():
+			theme_node.call(&"apply")
 	match glyphs:
 		Glyphs.KEYBOARD:
 			GameInput.device = GameInput.Device.KEYBOARD
@@ -93,6 +110,12 @@ static func apply() -> void:
 			GameInput.device = GameInput.Device.GAMEPAD
 		_:
 			GameInput.device = GameInput.Device.GAMEPAD if not Input.get_connected_joypads().is_empty() else GameInput.Device.KEYBOARD
+
+
+## Следующая или предыдущая палитра по кругу.
+static func cycle_palette(dir: int) -> void:
+	var i := Style.PALETTE_IDS.find(palette)
+	palette = Style.PALETTE_IDS[wrapi(i + (dir if dir != 0 else 1), 0, Style.PALETTE_IDS.size())]
 
 
 static func _volume(bus: StringName, v: float) -> void:

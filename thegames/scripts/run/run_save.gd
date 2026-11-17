@@ -46,6 +46,8 @@ static var test_files := false
 @export var events := {}
 ## Отложенное предложение прокачки (`RunState.pending_offer`).
 @export var pending_offer: Array[StringName] = []
+## Доска соискателей (`RunState.board`).
+@export var board: Array[StaffMember] = []
 
 ## Текущий релиз: запись, план спринтов, сколько спринтов сыграно, предложений багфикса.
 @export var current: GameRecord

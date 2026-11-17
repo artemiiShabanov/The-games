@@ -376,20 +376,20 @@ func _show_offer() -> void:
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	if report.offer.is_empty():
-		_offer_title.text = "Все улучшения куплены"
+		_offer_title.text = "Все жанры и технологии открыты"
 		_offer_caption.text = "Предложений больше не будет."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	if defer_offer:
-		_offer_title.text = "Улучшение доставлено"
-		_offer_caption.text = "Предложение доступно на главном экране до начала новой игры."
+		_offer_title.text = "Пришло предложение"
+		_offer_caption.text = "Новый жанр или технология. Доступно на главном экране до начала новой игры."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
-	_offer_title.text = "Улучшение студии"
+	_offer_title.text = "Жанр или технология"
 	_fade_in(_offer_title)
 	index = 0
 	for i in report.offer.size():

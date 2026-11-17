@@ -228,7 +228,7 @@ func _default_studio() -> void:
 ## в дверь и идут к своим столам. `start_tech` и `start_genre` (стартовая пара, -1 нет) ставят
 ## свою технику и плакат, как купленные.
 func set_studio(state: StudioState, release := 1, start_tech := -1, start_genre := -1) -> void:
-	var sig := "%s|%d|%d|%d" % [state.upgrade_ids, state.people, start_tech, start_genre]
+	var sig := "%s|%s|%d|%d|%d" % [state.upgrade_ids, state.staff, state.people, start_tech, start_genre]
 	_release = release
 	if sig == _signature:
 		return
@@ -331,6 +331,21 @@ func _build(state: StudioState, start_tech: int, start_genre: int) -> void:
 			caps[id] = true
 		else:
 			generic.append(id)
+	# Штат (2026-11-17) ставит те же предметы и особые места, что прежние возможности.
+	if Staff.count(state.staff, Staff.Role.TESTER) > 0:
+		caps[&"qa"] = true
+	if Staff.count(state.staff, Staff.Role.MANAGER) > 0:
+		caps[&"manager"] = true
+	if state.insider():
+		caps[&"insider"] = true
+	if state.sequels_unlocked():
+		caps[&"sequels"] = true
+	if state.remakes_unlocked():
+		caps[&"remakes"] = true
+	if state.replays() >= 1:
+		caps[&"replay"] = true
+	if state.replays() >= 2:
+		caps[&"replay2"] = true
 	var specials := int(caps.has(&"qa")) + int(caps.has(&"manager")) + int(caps.has(&"insider"))
 	var desk_people := clampi(state.people - specials, 1, DESK_ORDER.size())
 	_has_board = desk_people >= 3

@@ -32,6 +32,9 @@ const PLACEHOLDER := preload("res://scenes/minigames/placeholder_minigame.tscn")
 var tuning: SprintTuning
 var plan: SprintPlan
 var t := 0.0
+## Сложность отдельной мини-игры (`(def) -> float`): хозяин учитывает штат и первую встречу.
+## Не задана: общая `t`.
+var t_of: Callable
 var first_release := false
 var seed_base := 0
 var game_title := ""
@@ -157,7 +160,7 @@ func _run_sprint(def: MinigameDef) -> void:
 			push_error("SprintRunner: сцена %s не Minigame" % def.id)
 			_minigame = PLACEHOLDER.instantiate() as Minigame
 		var mult := tuning.first_release_time_multiplier if first_release else 1.0
-		_minigame.setup(def, t, seed_base + index + attempt * REPLAY_SEED_STEP, mult)
+		_minigame.setup(def, float(t_of.call(def)) if t_of.is_valid() else t, seed_base + index + attempt * REPLAY_SEED_STEP, mult)
 		_minigame.menu_requested.connect(func() -> void: menu_requested.emit())
 		await _switch_view(_minigame)
 		AutoTest.next_hand()

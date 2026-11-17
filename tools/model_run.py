@@ -38,6 +38,11 @@ ALL_SETTINGS = ["pirates", "space", "castles", "zombies", "superheroes", "fantas
 SETTINGS = ["zombies", "space", "castles"]
 
 
+# Штат (2026-11-17): покупки `cap` в планах ниже это наём людей. Цены и надбавки прежних
+# возможностей в `economy.tres` равны найму: manager = менеджер-мидл, qa = тестировщик-мидл,
+# replay = тимлид-джуниор, replay + replay2 = тимлид-мидл, sequels = продюсер-джуниор,
+# sequels + remakes = продюсер-мидл, insider = аналитик-мидл. Специалистов по аспектам модель
+# не нанимает: их эффект в руках игрока (сложность мини-игр), а не в формулах.
 def load_tres(path):
     """Поля `[resource]` текстового .tres: числа, Array[...]([...]) и Dictionary[...]({...})."""
     text = path.read_text(encoding="utf-8")

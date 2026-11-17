@@ -12,7 +12,21 @@ const CELL_GAP := 4.0
 const MAX_ERRORS := 2
 const FOUND_SECONDS := 0.6
 const BOT_STEP := 0.08
-const PALETTE: Array[Color] = [Color("#ECE8E1"), Color("#1C1B19"), Color("#E0457B"), Color("#2F5BFF"), Color("#D99A0B")]
+## Фон, чернила и три акцента палитры игрока (a1..a3): пять цветов клеток.
+const PALETTE_SIZE := 5
+
+
+static func palette_color(i: int) -> Color:
+	match i:
+		0:
+			return Style.SURFACE_2
+		1:
+			return Style.INK
+		2:
+			return Style.accent(0)
+		3:
+			return Style.accent(1)
+	return Style.accent(2)
 ## Доля клеток фона (первый цвет палитры).
 const BACK_SHARE := 0.4
 
@@ -48,10 +62,10 @@ func _on_start() -> void:
 func _new_pair() -> void:
 	cells.clear()
 	for i in n * n:
-		cells.append(0 if rng.randf() < BACK_SHARE else rng.randi_range(1, PALETTE.size() - 1))
+		cells.append(0 if rng.randf() < BACK_SHARE else rng.randi_range(1, PALETTE_SIZE - 1))
 	diff = Vector2i(rng.randi_range(0, n - 1), rng.randi_range(0, n - 1))
 	var at := diff.y * n + diff.x
-	diff_color = PALETTE[(cells[at] + rng.randi_range(1, PALETTE.size() - 1)) % PALETTE.size()]
+	diff_color = palette_color((cells[at] + rng.randi_range(1, PALETTE_SIZE - 1)) % PALETTE_SIZE)
 	queue_redraw()
 
 
@@ -201,7 +215,7 @@ func _draw() -> void:
 			for x in n:
 				var shown := Vector2i(x, y)
 				var cell := shown if which == 0 else _picture_cell(shown)
-				var col := PALETTE[cells[cell.y * n + cell.x]]
+				var col := palette_color(cells[cell.y * n + cell.x])
 				if which == 1 and cell == diff:
 					col = diff_color
 				var rect := _cell_rect(which, shown)

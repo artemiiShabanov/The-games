@@ -45,6 +45,16 @@ func _check() -> void:
 	screen.change(OptionsScreen.Row.GLYPHS, 1)
 	_expect(GameInput.device == GameInput.Device.GAMEPAD, "подписи: геймпад")
 	screen.change(OptionsScreen.Row.GLYPHS, 1)
+	# Палитра (2026-11-17): по кругу через все, смысловые цвета и акценты меняются сразу.
+	var pal := Options.palette
+	var focus := Style.FOCUS
+	screen.change(OptionsScreen.Row.PALETTE, 1)
+	_expect(Options.palette != pal and Style.palette.id == Options.palette and Style.FOCUS != focus,
+			"палитра переключилась: %s" % Options.palette)
+	_expect(Style.accents.size() == 5 and Style.accent_name(2) != "", "у палитры пять акцентов с именами")
+	for k in Style.PALETTE_IDS.size() - 1:
+		screen.change(OptionsScreen.Row.PALETTE, 1)
+	_expect(Options.palette == pal and Style.FOCUS == focus, "палитры по кругу")
 	# Чувствительность обзора (#109): шагом 10 %, полосой по месту, в границах 0..1.
 	var look := Options.mouse_look
 	screen.change(OptionsScreen.Row.MOUSE_LOOK, 1)
@@ -57,7 +67,7 @@ func _check() -> void:
 	_expect(_closed, "«Готово» закрывает")
 	_expect(not FileAccess.file_exists(Options.PATH) or FileAccess.get_modified_time(Options.PATH) < Time.get_unix_time_from_system() - 5,
 			"файл настроек под автотестом не тронут")
-	AutoTest.note("options: шины, громкость, тишина, движение, подписи, обзор мышью и стиком, закрытие")
+	AutoTest.note("options: шины, громкость, тишина, движение, палитра, подписи, обзор мышью и стиком, закрытие")
 	AutoTest.fulfill("options checks")
 
 

@@ -13,7 +13,6 @@ signal closed
 const WIDTH := 1480.0
 const CELL_HEIGHT := 124.0
 const FACE := 80.0
-const OPEN_COLOR := Color("#1F8A4C")
 
 var profile: Profile
 var run: RunState
@@ -150,7 +149,7 @@ func _cell(s: Game.Setting, entry: CatalogEntry) -> PanelContainer:
 		status = "Скоро"
 	elif earned:
 		status = "Открыт · достижение «%s»" % ach.title
-		status_color = OPEN_COLOR
+		status_color = Style.MONEY
 	elif ach != null:
 		status = "«%s»: %s" % [ach.title, ach.text.substr(0, 1).to_lower() + ach.text.substr(1)]
 		var p := Achievements.progress(ach, run)

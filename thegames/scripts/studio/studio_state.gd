@@ -1,8 +1,9 @@
 class_name StudioState
 extends Resource
-## Состояние студии на забег, спека `docs/specs/studio.md`: купленные прокачки, число
-## человечков (предметы и люди на сцене в M5), было ли спасение издателя (второго нет, спека
-## экономики). Эффекты возможностей читаются через `has(id)`, без разбросанных флагов (#29).
+## Состояние студии на забег, спеки `docs/specs/studio.md` и `staff.md`: купленные жанры и
+## технологии, штат (люди с ролью и грейдом, 2026-11-17), число человечков на сцене, было ли
+## спасение издателя (второго нет, спека экономики). Эффекты читаются методами ниже: считаются
+## от штата; прежние возможности (`manager`, `qa`, ...) в старых сохранениях работают как были.
 
 const MAX_PEOPLE := 12
 
@@ -10,6 +11,8 @@ const MAX_PEOPLE := 12
 ## Релиз покупки для каждой прокачки в `upgrade_ids` (#78, список купленного по порядку).
 @export var bought_release: Array[int] = []
 @export var people := 1
+## Штат: нанятые с доски соискателей, по порядку найма.
+@export var staff: Array[StaffMember] = []
 @export var rescued := false
 
 
@@ -21,36 +24,70 @@ func buy(def: UpgradeDef, release := 0) -> void:
 	if not has(def.id):
 		upgrade_ids.append(def.id)
 		bought_release.append(release)
-	people = mini(people + 1, MAX_PEOPLE)
 
 
-## Скидка «Менеджера» на цену спринта.
+func hire(m: StaffMember, release := 0) -> void:
+	m.hired = release
+	staff.append(m)
+
+
+## Человечков на сцене: основатель, по разработчику каждые `developer_every` релизов (для
+## картинки) и весь штат.
+func refresh_people(release: int) -> void:
+	var t := StaffTuning.load_default()
+	people = mini(1 + (release - 1) / maxi(t.developer_every, 1) + staff.size(), MAX_PEOPLE)
+
+
+## Скидка менеджеров на цену спринта, сложным процентом.
 func discount(economy: EconomyTuning) -> float:
-	return economy.manager_discount if has(&"manager") else 0.0
+	var keep := 1.0 - Staff.share(staff, Staff.Role.MANAGER, StaffTuning.load_default())
+	if has(&"manager"):
+		keep *= 1.0 - economy.manager_discount
+	return 1.0 - keep
 
 
-## Эффекты возможностей (#29), читаются хозяевами систем.
-## Переигровок за релиз: «Переигровка» одна, «Вторая переигровка» ещё одна.
+## Скидка тестировщиков на спринт багфикса.
+func bugfix_discount() -> float:
+	return Staff.share(staff, Staff.Role.TESTER, StaffTuning.load_default())
+
+
+## Скидка сеньора-продюсера на разработку сиквелов и ремейков.
+func producer_discount() -> float:
+	var t := StaffTuning.load_default()
+	return t.producer_discount if Staff.best_grade(staff, Staff.Role.PRODUCER) >= Staff.Grade.SENIOR else 0.0
+
+
+## Насколько проще мини-игры аспекта: доля, на которую падает их сложность.
+func ease(aspect: int) -> float:
+	return Staff.ease(staff, aspect, StaffTuning.load_default())
+
+
+## Повторов проваленного спринта за релиз: от тимлидов.
 func replays() -> int:
-	return int(has(&"replay")) + int(has(&"replay2"))
+	var t := StaffTuning.load_default()
+	return mini(Staff.replays(staff, t) + int(has(&"replay")) + int(has(&"replay2")), t.max_replays)
 
 
-## Предложений багфикса за релиз: с «Отделом QA» два.
+## Предложений багфикса за релиз: с тестировщиком два.
 func bugfix_offers() -> int:
-	return 2 if has(&"qa") else 1
+	return 2 if has(&"qa") or Staff.count(staff, Staff.Role.TESTER) > 0 else 1
 
 
-## «Инсайдер»: в конструкторе видно тренд.
+## Что видит аналитик: 0 ничего, 1 жанр в тренде, 2 ещё и сеттинг, 3 ещё и высокий спрос.
+func insider_level() -> int:
+	return maxi(Staff.best_grade(staff, Staff.Role.ANALYST) + 1, 2 if has(&"insider") else 0)
+
+
 func insider() -> bool:
-	return has(&"insider")
+	return insider_level() > 0
 
 
 func sequels_unlocked() -> bool:
-	return has(&"sequels")
+	return has(&"sequels") or Staff.best_grade(staff, Staff.Role.PRODUCER) >= Staff.Grade.JUNIOR
 
 
 func remakes_unlocked() -> bool:
-	return has(&"remakes")
+	return has(&"remakes") or Staff.best_grade(staff, Staff.Role.PRODUCER) >= Staff.Grade.MIDDLE
 
 
 ## Релиз покупки прокачки номер `i` (0, если неизвестно: старое сохранение, дебаг).
@@ -59,4 +96,4 @@ func release_of(i: int) -> int:
 
 
 func _to_string() -> String:
-	return "прокачки %s, людей %d%s" % [upgrade_ids, people, ", спасены" if rescued else ""]
+	return "прокачки %s, штат %s, людей %d%s" % [upgrade_ids, staff, people, ", спасены" if rescued else ""]

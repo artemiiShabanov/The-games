@@ -14,7 +14,22 @@ func _ready() -> void:
 	get_tree().root.window_input.connect(GameInput.note)
 	# Ручки мармелада общие для всех сцен; Debug готов только после своего `_ready`.
 	Jelly.register_debug.call_deferred()
+	_register_debug.call_deferred()
 
 
 func apply() -> void:
 	get_tree().root.theme = Style.make_theme()
+
+
+## Палитра в дебаг-меню (раздел «Оболочка»): то же, что строка «Палитра» в настройках.
+func _register_debug() -> void:
+	var ids: Array = []
+	for id in Style.PALETTE_IDS:
+		ids.append(String(id))
+	Debug.add_choice(&"Оболочка", "Палитра", ids, func() -> String: return String(Options.palette),
+			_set_palette, true)
+
+
+func _set_palette(v: String) -> void:
+	Options.palette = StringName(v)
+	Options.apply()

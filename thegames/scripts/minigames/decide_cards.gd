@@ -44,9 +44,9 @@ class Card:
 	var landed := false
 
 
-const COLORS: Array[Color] = [Color("#E0457B"), Color("#2F5BFF"), Color("#2BB37A")]
-## Цвета словами в правиле: средний род, как «чётное» (первый цвет акцентный розовый).
-const COLOR_NAMES: Array[String] = ["розовое", "синее", "зелёное"]
+## Цвета карточек это акценты a1..a3 палитры игрока; в правиле они словами из той же палитры
+## (средний род, как «чётное»).
+const COLOR_COUNT := 3
 const CARD_W := 220.0
 const CARD_H := 280.0
 const FAIL_AT := 2
@@ -130,7 +130,7 @@ func _make_cond(avoid: int) -> Cond:
 		Kind.NUMBER_LE, Kind.NUMBER_GE:
 			c.value = rng.randi_range(2, 5) * 10
 		Kind.COLOR:
-			c.value = rng.randi_range(0, COLORS.size() - 1)
+			c.value = rng.randi_range(0, COLOR_COUNT - 1)
 	return c
 
 
@@ -171,7 +171,7 @@ func _spawn() -> void:
 	var want_fit: bool = fit_plan[spawned] if spawned < fit_plan.size() else rng.randf() < 0.5
 	for attempt in 40:
 		c.number = rng.randi_range(1, 60)
-		c.color = rng.randi_range(0, COLORS.size() - 1)
+		c.color = rng.randi_range(0, COLOR_COUNT - 1)
 		c.sides = rng.randi_range(3, 8)
 		if _fits(c) == want_fit:
 			break
@@ -416,7 +416,7 @@ func _draw() -> void:
 		# Бортик вместо тени; у решённой его нет: вдавлена и гаснет.
 		c.body.draw_lifted(self, Color(card_color, alpha), lift if not c.decided else 0.0)
 		# Фигура по центру карточки, число внутри фигуры: едет и наклоняется с ней, не гнётся.
-		c.figure.draw(self, Color(COLORS[c.color], alpha))
+		c.figure.draw(self, Color(Style.accent(c.color), alpha))
 		var center := _shape_center(c.figure)
 		var txt := str(c.number)
 		var fs := 40
@@ -459,7 +459,7 @@ func _draw_rule(font: Font) -> void:
 			parts.append(" и ")
 			colors.append(Style.INK_3)
 		parts.append(_cond_text(rule[i]))
-		colors.append(COLORS[rule[i].value] if rule[i].kind == Kind.COLOR else ink)
+		colors.append(Style.accent(rule[i].value) if rule[i].kind == Kind.COLOR else ink)
 	var fs := RULE_FONT
 	var total := 0.0
 	while true:
@@ -487,5 +487,5 @@ static func _cond_text(c: Cond) -> String:
 		Kind.ODD:
 			return "нечётное"
 		Kind.COLOR:
-			return COLOR_NAMES[c.value]
+			return Style.accent_name(c.value)
 	return ""

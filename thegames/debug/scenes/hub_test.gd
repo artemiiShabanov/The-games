@@ -4,7 +4,7 @@ extends Control
 ## прокачки), затем `RunHub` на пиксельной студии. Раздел «Главный экран» дебаг-меню: «Заново», окна. Под ботом:
 ## окно денег сходится с кошельком, окно прокачки по порядку покупки, панель релиза с лентой,
 ## «Новая игра» шлёт сигнал, отложенное предложение покупается с главного экрана один раз.
-## `--no-checks [--pop=money|upgrades|release|offer|game|stream|box]` держит экран для скриншота
+## `--no-checks [--pop=money|upgrades|release|offer|game|stream|box|board|staff]` держит экран для скриншота
 ## (`stream` окно стрима последнего релиза, `box` фокус на статуэтке с пилюлей названия).
 ## После релиза (#133): `--after` открывает экран со свежим релизом и волнами отклика
 ## (`--after=all` все волны сразу, `--pop=bet` окно ставки, `--pop=wave` лента пришедшего);
@@ -131,6 +131,10 @@ func _show_pop() -> void:
 			hub.open_wave(RunHub.Wave.CRITICS if hub.waves_left() == 0 else RunHub.Wave.TWEETS)
 		"game":
 			hub.open_record(0)
+		"board":
+			hub.open_board()
+		"staff":
+			hub.open_upgrades()
 		"stream":
 			if hub.after:
 				hub.show_all_waves()
@@ -278,6 +282,9 @@ static func _make_run(n: int) -> RunState:
 				r.pending_offer.append(d.id)
 		elif not report.offer.is_empty():
 			StudioPhase.buy(report.offer[0], r.wallet, r.upkeep, r.studio, r.economy)
+		# Штат: после первого релиза нанят первый соискатель с доски.
+		if i == 0 and not r.board.is_empty():
+			r.hire(r.board[0])
 		r.close_release(record, report)
 	r.prepare_release()
 	return r
@@ -315,6 +322,28 @@ func _check() -> void:
 		_expect(hub.buy_offer(pick), "покупка из предложения")
 		_expect(run.studio.upgrade_ids.size() == owned + 1 and run.wallet.cash == cash - price, "куплено и списано")
 		_expect(run.pending_offer.is_empty() and hub._offer_index < 0 and hub.window == RunHub.Pop.NONE, "предложение сгорело")
+	# Доска соискателей: строка на человека, наём списывает цену и переводит в штат.
+	var hires: Array = []
+	hub.staff_hired.connect(func(m: StaffMember) -> void: hires.append(m))
+	_expect(hub._board_index >= 0 and not run.board.is_empty(), "пилюля соискателей на месте")
+	hub.open_board()
+	_expect(hub.window == RunHub.Pop.BOARD and hub._offer_rows.size() == run.board.size(), "доска открыта: строк %d" % hub._offer_rows.size())
+	var who := -1
+	for i in run.board.size():
+		if run.can_hire(run.board[i]):
+			who = i
+			break
+	if who >= 0:
+		var m: StaffMember = run.board[who]
+		var staff_before := run.studio.staff.size()
+		var cash_before := run.wallet.cash
+		_expect(hub.hire_staff(who), "наём с доски")
+		_expect(run.studio.staff.size() == staff_before + 1 and run.wallet.cash == cash_before - run.hire_price(m)
+				and hires == [m] and not run.board.has(m), "нанят и списан: %s" % [hires])
+	hub._close_window(false)
+	hub.open_upgrades()
+	_expect(hub.window == RunHub.Pop.UPGRADES, "окно штата открыто")
+	hub._close_window(false)
 	hub.open_release(0)
 	_expect(hub.window == RunHub.Pop.RELEASE and hub._feed != null, "панель релиза открыта")
 	# Лента прошлого релиза собирается заново той же.

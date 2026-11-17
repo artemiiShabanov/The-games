@@ -294,7 +294,8 @@ func _run_checks() -> void:
 			_expect(d != c3, "c3 без c1 (сид %d)" % s)
 			_expect(offer.count(d) == 1, "повтор %s (сид %d)" % [d.id, s])
 		seen_tech = seen_tech or techs > 0
-		_expect(offer.size() == 3 and techs <= 1 and genres <= 1 and caps >= 1,
+		# Жанр и технология есть в каждом предложении (2026-11-17, улучшения студии ушли в штат).
+		_expect(offer.size() == 3 and techs >= 1 and genres >= 1 and techs + genres + caps == 3,
 				"состав %s (сид %d)" % [offer, s])
 	_expect(seen_tech, "технологии не выпадают")
 	st.buy(c1)
@@ -309,7 +310,7 @@ func _run_checks() -> void:
 	_expect(with_c3, "c3 после c1 не выпадает")
 	st.buy(c3)
 	var two := StudioOffer.compose(synth, st, unlocked_genres, unlocked_techs, rng)
-	_expect(two.size() == 2, "исчерпание: %s" % [two])
+	_expect(two.size() == 3, "исчерпание: %s" % [two])
 	var open_techs: Array[Game.Tech] = [T.BIT16, T.LOWPOLY]
 	var open_genres: Array[Game.Genre] = [G.RACING, G.SPORT]
 	_expect(StudioOffer.compose(synth, st, open_genres, open_techs, rng).is_empty(), "открытое предложено")
@@ -338,14 +339,10 @@ func _run_checks() -> void:
 		_expect(d.kind != UpgradeDef.Kind.TECH or d.tech != Game.Tech.BIT8, "предложена стартовая технология %s" % d.id)
 		genres_offered += 1 if d.kind == UpgradeDef.Kind.GENRE else 0
 		techs_offered += 1 if d.kind == UpgradeDef.Kind.TECH else 0
-	_expect(genres_offered <= 1 and techs_offered <= 1, "жанров в предложении %d, технологий %d" % [genres_offered, techs_offered])
-	# Пул M4 (#127): семь возможностей, четыре жанра и четыре технологии (все, кроме стартовой
-	# 8-bit) и семь карточек «нового сеттинга» (#139).
-	_expect(pool.size() == 22, "пул из %d" % pool.size())
-	# Ремейки не предлагаются, пока открыта одна технология.
-	var one_tech: Array[Game.Tech] = [Game.Tech.BIT8]
-	var avail := StudioOffer.available(pool, StudioState.new(), unlocked_genres, one_tech)
-	_expect(not avail.any(func(d: UpgradeDef) -> bool: return d.id == &"remakes"), "ремейки при одной технологии")
+	_expect(genres_offered >= 1 and techs_offered >= 1, "жанров в предложении %d, технологий %d" % [genres_offered, techs_offered])
+	# Пул (2026-11-17): четыре жанра и четыре технологии (все, кроме стартовой 8-bit); улучшения
+	# студии ушли в штат, сеттинги не покупаются.
+	_expect(pool.size() == 8, "пул из %d" % pool.size())
 
 	# Спасение (#67) и конец забега: денег в минусе, доход фазы не вытягивает до дешёвого релиза.
 	# Первое банкротство ждёт вставку «Спасение», денег фаза не даёт.
@@ -389,11 +386,11 @@ func _run_checks() -> void:
 	var w := Wallet.new(20000)
 	var up := Upkeep.new(800)
 	var st3 := StudioState.new()
-	var manager := UpgradePool.find(pool, &"manager")
-	_expect(StudioPhase.buy(manager, w, up, st3, economy), "покупка менеджера")
-	_expect(w.cash == 12000 and up.total() == 950 and st3.has(&"manager") and is_equal_approx(st3.discount(economy), 0.1),
+	var vector := UpgradePool.find(pool, &"tech_vector")
+	_expect(StudioPhase.buy(vector, w, up, st3, economy), "покупка технологии")
+	_expect(w.cash == 20000 - vector.price(economy) and up.total() == 800 + vector.upkeep(economy) and st3.has(&"tech_vector"),
 			"после покупки: %s, %s, %s" % [w, up, st3])
-	_expect(not StudioPhase.buy(manager, Wallet.new(100), up, st3, economy), "покупка без денег")
+	_expect(not StudioPhase.buy(vector, Wallet.new(100), up, st3, economy), "покупка без денег")
 
 	# Экран: WIN покупает первое доступное.
 	_phase = 2
