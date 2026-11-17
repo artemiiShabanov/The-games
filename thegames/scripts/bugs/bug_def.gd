@@ -36,6 +36,9 @@ enum Kind { ASPECT, GENRE, TECH }
 @export var tweet_by_pair: Dictionary[int, String] = {}
 @export var clip_by_pair: Dictionary[int, String] = {}
 ## Зрелищный баг: чаще попадает в клипы и даёт вирусность.
+## Ещё твиты про баг без привязки к жанру и сеттингу (#141): чередуются с основным, чтобы один
+## баг в разных релизах не писал одно и то же.
+@export var tweet_alts: PackedStringArray = []
 @export var spectacular := false
 ## Вес при выборе среди подходящих багов, которых ещё нет в записи (#38).
 @export var weight := 1.0
@@ -60,6 +63,13 @@ func manifestation_for(genre: Game.Genre, tech := -1) -> String:
 
 func tweet_for(genre: Game.Genre, tech := -1) -> String:
 	return tweet_by_pair.get(pair_key(genre, tech), tweet_by_genre.get(int(genre), tweet))
+
+
+## Твит про баг для релиза номер `turn` в забеге: каждый третий основной, остальные из запасных.
+func tweet_at(genre: Game.Genre, tech: int, turn: int) -> String:
+	if tweet_alts.is_empty() or turn % 3 == 0:
+		return tweet_for(genre, tech)
+	return tweet_alts[turn % tweet_alts.size()]
 
 
 func clip_for(genre: Game.Genre, tech := -1) -> String:

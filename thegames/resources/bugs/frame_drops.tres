@@ -8,6 +8,7 @@ id = &"frame_drops"
 stamp = "15 FPS"
 manifestation = "Кадры проседают: фризы по 200-400 мс в движении"
 tweet = "Играл бы, если бы не слайд-шоу. 15 FPS, серьёзно?"
+tweet_alts = PackedStringArray("Игра замирает каждые пять секунд, будто задумывается", "Считал кадры вместо очков. Кадров меньше")
 clip = "Картинка замирает на полсекунды и дёргается"
 params = Dictionary[StringName, float]({
 &"freeze_ms_max": 400.0,

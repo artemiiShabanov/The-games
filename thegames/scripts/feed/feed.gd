@@ -115,7 +115,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var tone_key := "tw_good" if good else "tw_bad"
 	var tweets: Array[String] = []
 	if bug != null and bug.tweet_for(record.genre, record.tech) != "":
-		tweets.append(bug.tweet_for(record.genre, record.tech))
+		tweets.append(bug.tweet_at(record.genre, record.tech, release_index))
 	tweets.append(_take(tone_pool, tone_key, take, 2))
 	tweets.append(_take(texts.tweets_viral if score.viral else texts.tweets_quiet, "tw_viral" if score.viral else "tw_quiet", take))
 	var context := _context_tweet(texts, record, take)

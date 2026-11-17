@@ -19,6 +19,11 @@ enum Kind { RANDOM, ENDING, RESCUE }
 @export_multiline var line := ""
 @export_multiline var line_warm := ""
 @export_multiline var line_cold := ""
+## Ещё варианты той же реплики (#141): вставка приходит не раз за забег и не должна повторяться
+## слово в слово. Вариант выбирается по числу выпущенных игр.
+@export var lines_alt: PackedStringArray = []
+@export var lines_warm_alt: PackedStringArray = []
+@export var lines_cold_alt: PackedStringArray = []
 @export var choices: Array[ChoiceDef] = []
 ## Не чаще раза в столько релизов (0 без ограничения); у концовки это повтор после отказа.
 @export var cooldown := 0
@@ -28,9 +33,13 @@ enum Kind { RANDOM, ENDING, RESCUE }
 @export var priority := 0
 
 
-func line_for(mood: int) -> String:
+func line_for(mood: int, turn := 0) -> String:
+	var pool: PackedStringArray = [line]
+	pool.append_array(lines_alt)
 	if mood > 0 and line_warm != "":
-		return line_warm
-	if mood < 0 and line_cold != "":
-		return line_cold
-	return line
+		pool = [line_warm]
+		pool.append_array(lines_warm_alt)
+	elif mood < 0 and line_cold != "":
+		pool = [line_cold]
+		pool.append_array(lines_cold_alt)
+	return pool[posmod(turn, pool.size())]

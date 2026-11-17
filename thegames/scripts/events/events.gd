@@ -125,7 +125,7 @@ static func resolve(def: EventDef, mood: int, ctx: Context, meta: MetaTuning, wh
 	for i in o.choices.size():
 		o.choices[i].text = _fill(texts[i], vars)
 		o.choices[i].pills = _pills(o.choices[i], o.character)
-	o.line = _fill(def.line_for(mood), vars)
+	o.line = _fill(def.line_for(mood, ctx.records.size() if ctx != null else 0), vars)
 	return o
 
 

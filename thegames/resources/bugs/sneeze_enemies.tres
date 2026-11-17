@@ -9,6 +9,7 @@ aspect = 4
 stamp = "ЧИХ"
 manifestation = "Враги гибнут от любого касания"
 tweet = "Враги рассыпаются, если на них дыхнуть. Сложность: ноль"
+tweet_alts = PackedStringArray("Враги умирают, когда я прохожу мимо. Я даже не пытался", "Прошёл уровень, ни разу не напав. Враги справились сами")
 clip = "Враг исчезает от лёгкого касания"
 spectacular = true
 params = Dictionary[StringName, float]({

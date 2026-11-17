@@ -9,6 +9,7 @@ aspect = 4
 stamp = "НЕ ДОСТАТЬ"
 manifestation = "Цель видно, а не достать"
 tweet = "Награду видно, а не взять. Кто это тестировал?"
+tweet_alts = PackedStringArray("Приз висит там, куда не допрыгнуть. Полчаса пытался", "Игра показывает награду и не отдаёт. Жестоко")
 clip = "Награда висит там, куда не добраться"
 params = Dictionary[StringName, float]({
 &"soccer_goal_mult": 0.5,
