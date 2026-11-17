@@ -543,7 +543,7 @@ func _make_buttons() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.GAP_CARDS)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for text in (["Играть демку", "Закрыть"] if archive else ["В демо", "Дальше"]):
+	for text in (["Играть", "Закрыть"] if archive else ["Играть", "Дальше"]):
 		var b := PanelContainer.new()
 		b.custom_minimum_size = Vector2(240, Style.BUTTON_HEIGHT)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE

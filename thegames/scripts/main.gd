@@ -181,7 +181,7 @@ func _ready() -> void:
 		ids.append(String(d.id))
 	if not ids.is_empty():
 		_debug_upgrade = ids[0]
-	Debug.add_choice(SECTION, "Прокачка", ids, func() -> String: return _debug_upgrade,
+	Debug.add_choice(SECTION, "Улучшения", ids, func() -> String: return _debug_upgrade,
 			func(v: String) -> void: _debug_upgrade = v)
 	Debug.add_action(SECTION, "Купить прокачку бесплатно", _debug_buy)
 	Debug.add_action(SECTION, "Пропустить этап", _skip_stage)
@@ -457,20 +457,20 @@ func _begin_playtest() -> void:
 		_runner.queue_free()
 		_runner = null
 	# Число багов не показываем (плейтест 2026-11-11): игрок ищет их в демке сам.
-	_show_card("Плейтест", ["%s собралась. Пробуем, пока не передумала" % record.title, "Баги ищи сам: списка никто не составит"], "")
+	_show_card("Проверка игры", ["«%s» собрана." % record.title, "Список багов не показывается."], "")
 	ShellSounds.play(&"intro")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	if stage != Stage.PLAYTEST:
 		return
 	_clear_card()
-	_run_demo(&"playtest", "Плейтест")
+	_run_demo(&"playtest", "Проверка игры")
 
 
 func _run_demo(source: StringName, caption: String) -> void:
 	_demo = DemoCatalog.create(record)
 	if _demo == null:
 		# Демки пары ещё нет (#45): петля идёт дальше без неё.
-		AutoTest.note("нет демки для %s × %s, этап пропущен" % [Game.genre_name(record.genre), Game.tech_name(record.tech)])
+		AutoTest.note("нет игры для %s × %s, этап пропущен" % [Game.genre_name(record.genre), Game.tech_name(record.tech)])
 		_on_demo_finished.call_deferred(record, false)
 		return
 	_demo_header = HintPill.header(ShellHeader.release(run.release, "%s · %s" % [caption, record.title]))
@@ -571,8 +571,8 @@ func _on_bugfix_sprint(_def: MinigameDef, success: bool) -> void:
 		_runner = null
 	# Что починено и сколько осталось, не говорим: игрок узнаёт по отзывам.
 	AutoTest.note("bugfix: %s, починено %s, осталось %d" % [success, fixed, record.bug_ids.size()])
-	_show_card("Багфикс", ["Спринт удался. Если баги были, их стало меньше" if success
-			else "Спринт не задался. Баги, если были, на месте"], "")
+	_show_card("Багфикс", ["Успех. Багов стало меньше, если они были." if success
+			else "Провал. Баги остались."], "")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	_clear_card()
 	_offer_bugfix()

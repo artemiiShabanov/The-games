@@ -403,8 +403,8 @@ func _fill() -> void:
 		for d in studios:
 			_add_row(_studio_row(d, w))
 	_empty.visible = count() == 0
-	_empty.text = "Пока пусто. Выпусти игру, и она поселится здесь навсегда, со всеми своими багами." if games \
-			else "Ни одной студии. Самое время основать первую."
+	_empty.text = "Игр нет. Выпущенные игры остаются здесь." if games \
+			else "Студий нет."
 	MouseUi.pass_through(_list)
 	if _fade != null:
 		_fade.refresh()
@@ -552,7 +552,7 @@ func _studio_row(d: Dictionary, w: float) -> PanelContainer:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_child(col)
-	var name_ := str(d["studio"]) if str(d["studio"]) != "" else "Студия без вывески"
+	var name_ := str(d["studio"]) if str(d["studio"]) != "" else "Студия без названия"
 	var title := _label(name_, Style.FONT_H2, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
 	col.add_child(title)
@@ -579,7 +579,7 @@ func _studio_row(d: Dictionary, w: float) -> PanelContainer:
 	else:
 		# Без концовки: последний забег ещё идёт, более ранний брошен.
 		var latest := studios.is_empty() or int(d["run"]) >= int(studios[0]["run"])
-		right.add_child(_pill("в пути" if latest else "не закончен", Style.SURFACE_SOLID, Style.INK_2, 0.0, Style.FONT_BODY))
+		right.add_child(_pill("идёт" if latest else "не закончен", Style.SURFACE_SOLID, Style.INK_2, 0.0, Style.FONT_BODY))
 	return c
 
 

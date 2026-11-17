@@ -283,7 +283,7 @@ static func _effect_pills(effects: Array[Effect]) -> Array[Pill]:
 				next.append("сиквел")
 			EffectDef.Kind.TAIL_SHARE:
 				var games := "" if e.games <= 1 else " %s игр" % (["двух", "трёх", "четырёх"][e.games - 2] if e.games <= 4 else str(e.games))
-				out.append(Pill.of("−%d %% с хвоста%s" % [roundi(e.share * 100.0), games], Tone.MINUS))
+				out.append(Pill.of("−%d %% с продаж%s" % [roundi(e.share * 100.0), games], Tone.MINUS))
 			EffectDef.Kind.NEXT_BONUS:
 				var what: String = ["критики", "стримеры", "продажи"][e.stat]
 				var v := ("%+.1f" % e.bonus) if e.stat == EffectDef.Stat.CRITICS else ("%+d %%" % roundi(e.bonus * 100.0) if e.stat == EffectDef.Stat.SALES else "%+d" % roundi(e.bonus))
@@ -292,7 +292,7 @@ static func _effect_pills(effects: Array[Effect]) -> Array[Pill]:
 				out.append(Pill.of("концовка", Tone.ENDING))
 			EffectDef.Kind.SELL_TAIL:
 				out.append(Pill.of("+" + Style.format_money(e.amount), Tone.PLUS))
-				out.append(Pill.of("хвост перестанет платить", Tone.MINUS))
+				out.append(Pill.of("игра перестанет продаваться", Tone.MINUS))
 	if not next.is_empty():
 		out.insert(mini(1, out.size()), Pill.of("следующая игра: " + " · ".join(next), Tone.LOCK))
 	return out

@@ -272,13 +272,13 @@ func _run() -> void:
 		if shown < MAX_TAIL_ROWS:
 			shown += 1
 			money += t.tick
-			await _add_row("Хвост · %s" % t.record.title, t.tick, Style.MONEY, money)
+			await _add_row("Продажи · %s" % t.record.title, t.tick, Style.MONEY, money)
 		else:
 			rest += 1
 			rest_sum += t.tick
 	if rest > 0:
 		money += rest_sum
-		await _add_row("Ещё хвостов: %d" % rest, rest_sum, Style.MONEY, money)
+		await _add_row("Ещё игр: %d" % rest, rest_sum, Style.MONEY, money)
 	# Доли по договорам вставок (#66): отдельной строкой на игру.
 	for t in report.tails:
 		if t.share > 0:
@@ -287,9 +287,9 @@ func _run() -> void:
 	money -= report.upkeep
 	await _add_row("Содержание студии", -report.upkeep, Style.INK, money)
 	if report.bankrupt:
-		await _add_row("Меньше, чем дешёвый релиз (%s)" % Style.format_money(report.cheapest), 0, Style.DANGER, money)
+		await _add_row("Меньше цены самого дешёвого релиза (%s)" % Style.format_money(report.cheapest), 0, Style.DANGER, money)
 		if report.game_over:
-			await _add_row("Второго спасения нет: банкротство", 0, Style.DANGER, money)
+			await _add_row("Повторного спасения нет. Банкротство.", 0, Style.DANGER, money)
 	_fade_in(_valuation_block)
 	var valuation := float(report.stats.valuation if report.stats else report.cash)
 	_roll_label(_valuation_label, float(report.cash), valuation)
@@ -355,26 +355,26 @@ func _show_offer() -> void:
 		_offer_title.text = "Студия закрывается"
 		_offer_title.add_theme_color_override("font_color", Style.DANGER)
 		_offer_caption.text = report.close_reason if report.close_reason != "" \
-				else "Денег не хватит даже на самую скромную игру, а второго спасителя не нашлось."
+				else "Денег не хватает на самый дешёвый релиз. Спасение уже использовано."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	if report.offer.is_empty():
-		_offer_title.text = "Больше нечего купить"
-		_offer_caption.text = "Деньги впервые в безопасности."
+		_offer_title.text = "Все улучшения куплены"
+		_offer_caption.text = "Предложений больше не будет."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
 	if defer_offer:
-		_offer_title.text = "В студию привезли посылку"
-		_offer_caption.text = "Предложение прокачки ждёт на главном экране. Никуда не денется, пока не начата новая игра."
+		_offer_title.text = "Улучшение доставлено"
+		_offer_caption.text = "Предложение доступно на главном экране до начала новой игры."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
 		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
 		return
-	_offer_title.text = "На что потратим?"
+	_offer_title.text = "Улучшение студии"
 	_fade_in(_offer_title)
 	index = 0
 	for i in report.offer.size():
@@ -439,7 +439,7 @@ func _build() -> void:
 	_valuation_label.add_theme_font_override("font", Style.mono_font())
 	_valuation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_valuation_block.add_child(_valuation_label)
-	var vd := _label("деньги, хвосты, репутация, франшизы", Style.FONT_CAPTION, Style.INK_2)
+	var vd := _label("деньги, продажи, репутация, франшизы", Style.FONT_CAPTION, Style.INK_2)
 	vd.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_valuation_block.add_child(vd)
 

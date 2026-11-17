@@ -41,7 +41,7 @@ kind = 10
 
 [sub_resource type="Resource" id="Res_7"]
 script = ExtResource("3_choice")
-text = "Продать хвост «{tail_game}»"
+text = "Продать права на «{tail_game}»"
 effects = Array[ExtResource("2_eff")]([SubResource("Res_6")])
 
 [sub_resource type="Resource" id="Res_8"]
@@ -63,9 +63,9 @@ kind = 2
 character = ExtResource("4_char")
 alt_character = ExtResource("5_alt")
 condition = &"rescue"
-line = "Денег у студии «{studio}» не осталось, я знаю. Дам аванс, но следующая игра будет моя: {genre}, сеттинг «{setting}», и долю с неё я заберу. Или продайте хвост «{tail_game}», это ваше дело."
-line_warm = "Не люблю, когда хорошие студии закрываются. Аванс, следующая игра: {genre}, сеттинг «{setting}», доля с её хвоста. Или продайте хвост «{tail_game}»."
-line_cold = "Вы мне не раз отказывали, но закрываться из-за гордости глупо. Аванс за следующую игру: {genre}, «{setting}», доля моя. Или продайте хвост «{tail_game}»."
+line = "Денег у студии «{studio}» не осталось, я знаю. Дам аванс, но следующая игра будет моя: {genre}, сеттинг «{setting}», и долю с неё я заберу. Или продайте права на «{tail_game}», это ваше дело."
+line_warm = "Не люблю, когда хорошие студии закрываются. Аванс, следующая игра: {genre}, сеттинг «{setting}», доля с её продаж. Или продайте права на «{tail_game}»."
+line_cold = "Вы мне не раз отказывали, но закрываться из-за гордости глупо. Аванс за следующую игру: {genre}, «{setting}», доля моя. Или продайте права на «{tail_game}»."
 choices = Array[ExtResource("3_choice")]([SubResource("Res_5"), SubResource("Res_7"), SubResource("Res_9")])
 cooldown = 0
 once = true

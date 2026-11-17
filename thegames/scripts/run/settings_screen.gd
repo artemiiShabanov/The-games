@@ -56,7 +56,7 @@ func _ready() -> void:
 	var title := _label("Сеттинги", Style.FONT_H1, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
 	column.add_child(title)
-	column.add_child(_label("Открыто %d из %d. Достижение открывает сеттинг навсегда, для всех студий." % [
+	column.add_child(_label("Открыто %d из %d. Достижение открывает сеттинг во всех забегах." % [
 			open_count(profile, run), Game.Setting.size()], Style.FONT_BODY, Style.INK_2))
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 8)

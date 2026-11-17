@@ -122,7 +122,7 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 16)
 	panel.add_child(column)
 	column.add_child(_label("Спринт багфикса", Style.FONT_H1, Style.INK, true))
-	column.add_child(_label("Что-то в демке показалось кривым? Удачный спринт прихлопнет половину того, что там есть. Если там что-то есть.",
+	column.add_child(_label("Успех спринта чинит половину багов игры.",
 			Style.FONT_BODY, Style.INK_2, true))
 	column.add_child(_label("Цена обычного спринта: %s · у вас %s" % [Style.format_money(cost), Style.format_money(cash)],
 			Style.FONT_BODY, Style.INK_2, true))

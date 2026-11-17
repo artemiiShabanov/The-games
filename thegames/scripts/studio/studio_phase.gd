@@ -60,8 +60,8 @@ static func after_rescue(r: Report, wallet: Wallet, state: StudioState, closed: 
 	if closed or wallet.cash < r.cheapest:
 		r.game_over = true
 		r.offer.clear()
-		r.close_reason = "Студию закрыли сами. Забег окончен." if closed \
-				else "Даже после спасения денег на самый дешёвый релиз нет. Забег окончен."
+		r.close_reason = "Студия закрыта. Забег окончен." if closed \
+				else "После спасения денег на самый дешёвый релиз нет. Забег окончен."
 	return r.game_over
 
 

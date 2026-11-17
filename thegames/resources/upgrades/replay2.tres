@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_in3lb")
 id = &"replay2"
-title = "Вторая переигровка"
-effect_line = "Ещё одна переигровка за релиз"
+title = "Второй повтор спринта"
+effect_line = "Ещё один повтор спринта за релиз"
 requires = Array[StringName]([&"replay"])
 prop = "третий монитор"

@@ -20,7 +20,7 @@ const ROW_GAP := 14
 
 enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
 
-const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Мармелад и суета", "Подписи клавиш",
+const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Анимация интерфейса", "Подписи клавиш",
 		"Обзор мышью", "Обзор стиком", "Готово"]
 ## Строки с полосой: громкости и чувствительность обзора.
 const BARS: Array[int] = [Row.MASTER, Row.MUSIC, Row.SFX, Row.MOUSE_LOOK, Row.STICK_LOOK]
@@ -152,11 +152,11 @@ func _value_text(row: int) -> String:
 	match row:
 		Row.MASTER, Row.MUSIC, Row.SFX:
 			var v := _volume_of(row)
-			return "тишина" if v <= 0.001 else "%d %%" % roundi(v * 100.0)
+			return "выкл." if v <= 0.001 else "%d %%" % roundi(v * 100.0)
 		Row.FULLSCREEN:
 			return "да" if Options.fullscreen else "окно"
 		Row.MOTION:
-			return "всё пружинит" if Options.motion else "спокойно"
+			return "полная" if Options.motion else "сокращённая"
 		Row.GLYPHS:
 			return Options.GLYPH_NAMES[Options.glyphs]
 		Row.MOUSE_LOOK, Row.STICK_LOOK:

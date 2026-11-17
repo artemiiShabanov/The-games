@@ -63,14 +63,14 @@ const GAME_BUTTON := Vector2(280, 72)
 const WAVE_CARD := Vector2(400, 96)
 const WAVES_TOP := 196.0
 const WAVE_NAMES: Array[String] = ["Ставка", "Твиты", "Стрим", "Критики", "Первая неделя"]
-const BET_NAMES: Array[String] = ["Разнесут", "Сойдёт", "Полюбят"]
+const BET_NAMES: Array[String] = ["Низкая", "Средняя", "Высокая"]
 ## Как вышло на деле, теми же тремя ступенями.
-const VERDICTS: Array[String] = ["разнесли", "сойдёт", "полюбили"]
+const VERDICTS: Array[String] = ["низкая", "средняя", "высокая"]
 
 ## Подписи строк истории денег по причине `Wallet`.
 const REASONS := {
-	"release": "Разработка", "bugfix": "Багфикс", "sales": "Первая неделя", "tail": "Хвосты",
-	"share": "Доли по договорам", "upkeep": "Содержание", "upgrade": "Прокачка", "event": "Вставка",
+	"release": "Разработка", "bugfix": "Багфикс", "sales": "Первая неделя", "tail": "Продажи прошлых игр",
+	"share": "Доли по договорам", "upkeep": "Содержание", "upgrade": "Улучшения", "event": "Вставка",
 	"bet": "Ставка на критиков",
 	"rescue": "Аванс издателя",
 }
@@ -428,7 +428,7 @@ func _open_game(index: int) -> void:
 	_game_buttons.clear()
 	_game_lifts.clear()
 	_game_focus = 0
-	for text in ["Играть демку", "Закрыть"]:
+	for text in ["Играть", "Закрыть"]:
 		var b := PanelContainer.new()
 		b.custom_minimum_size = GAME_BUTTON
 		var l := _label(text, Style.FONT_H2, Style.INK)
@@ -706,14 +706,14 @@ func _toggle_window(w: Pop) -> void:
 		Pop.UPGRADES:
 			pill = _focusables[_upgrades_index]
 			rows = _upgrade_rows()
-			title = "Прокачка студии"
+			title = "Улучшения студии"
 		Pop.OFFER:
 			pill = _focusables[_offer_index]
 			rows = _offer_window_rows()
 			title = "Предложение ещё в силе"
 		Pop.BET:
 			rows = _bet_window_rows()
-			title = "Что скажут критики?"
+			title = "Оценка критиков"
 	_window_node = _make_window(rows, title)
 	add_child(_window_node)
 	if w == Pop.OFFER:
@@ -829,7 +829,7 @@ func _money_rows() -> Array[Control]:
 	releases.sort()
 	releases.reverse()
 	if releases.is_empty():
-		rows.append(_wrap_label("Денег пока никто не трогал. Это ненадолго.", Style.FONT_BODY, Style.INK_2))
+		rows.append(_wrap_label("Расходов ещё не было.", Style.FONT_BODY, Style.INK_2))
 		return rows
 	for r in releases:
 		var net := 0
@@ -875,7 +875,7 @@ func _upgrade_rows() -> Array[Control]:
 	var rows: Array[Control] = []
 	var ids := run.studio.upgrade_ids
 	if ids.is_empty():
-		rows.append(_wrap_label("Пока ничего не куплено. Студия держится на энтузиазме и одной кофеварке.", Style.FONT_BODY, Style.INK_2))
+		rows.append(_wrap_label("Улучшений нет.", Style.FONT_BODY, Style.INK_2))
 		return rows
 	for i in ids.size():
 		var def := UpgradePool.find(run.upgrades, ids[i])
@@ -924,7 +924,7 @@ func _offer_window_rows() -> Array[Control]:
 		if _offer_affordable(i):
 			_offer_focus = i
 			break
-	rows.append(_wrap_label("Отложено в фазе студии. Пока новая игра не начата, одно из этого можно купить.",
+	rows.append(_wrap_label("Отложенное предложение. Одно улучшение можно купить до начала новой игры.",
 			Style.FONT_CAPTION, Style.INK_2))
 	for def in _offer_defs:
 		var row := PanelContainer.new()
@@ -964,7 +964,7 @@ func _bet_window_rows() -> Array[Control]:
 	_bet_lifts.clear()
 	_bet_focus = 1
 	var t := run.tuning
-	rows.append(_wrap_label("Пока рецензии не открыты, можно угадать их тон. Угадаешь: %s в кассу. Не угадаешь: ничего не теряешь." % Style.format_money(t.bet_bonus),
+	rows.append(_wrap_label("Ставка на оценку критиков. Угадано: +%s. Не угадано: 0." % Style.format_money(t.bet_bonus),
 			Style.FONT_CAPTION, Style.INK_2))
 	var ranges: Array[String] = ["ниже %s" % _score(t.bet_low), "от %s до %s" % [_score(t.bet_low), _score(t.bet_high)],
 			"от %s и выше" % _score(t.bet_high)]
@@ -1193,7 +1193,7 @@ func _build() -> void:
 	_money_index = _focusables.size()
 	_pill_button(_pills, Style.format_money(run.wallet.cash), true)
 	_upgrades_index = _focusables.size()
-	_pill_button(_pills, "Прокачка · %d" % run.studio.upgrade_ids.size(), false)
+	_pill_button(_pills, "Улучшения · %d" % run.studio.upgrade_ids.size(), false)
 	_settings_index = _focusables.size()
 	_pill_button(_pills, "Сеттинги · %d из %d" % [SettingsScreen.open_count(run.profile, run), Game.Setting.size()], false)
 	if not run.pending_defs().is_empty():
@@ -1267,17 +1267,17 @@ func _wave_card(kind: Wave) -> PanelContainer:
 	match kind:
 		Wave.BET:
 			if after_record.bet < 0:
-				text = "Что скажут критики?"
+				text = "Оценка критиков"
 			elif not after_record.bet_done:
 				caption = "Ставка сделана"
 				text = BET_NAMES[after_record.bet]
 			elif bet_won():
-				caption = "Ставка сыграла"
+				caption = "Ставка угадана"
 				text = "+ " + Style.format_money(run.tuning.bet_bonus)
 				color = Style.MONEY
 			else:
-				caption = "Ставка не сыграла"
-				text = "%s, а вышло «%s»" % [BET_NAMES[after_record.bet], VERDICTS[bet_class()]]
+				caption = "Ставка не угадана"
+				text = "Ставка: %s. Оценка: %s" % [BET_NAMES[after_record.bet], VERDICTS[bet_class()]]
 		Wave.TWEETS:
 			caption = "Твиты · " + after_content.tag
 			for it in after_content.items:
@@ -1286,7 +1286,7 @@ func _wave_card(kind: Wave) -> PanelContainer:
 					break
 		Wave.STREAM:
 			caption = "Стрим · " + after_content.clip_person.name
-			text = FeedContent.format_count(after_content.online) + " онлайн" + (" · разлетается" if after_content.viral else "")
+			text = FeedContent.format_count(after_content.online) + " онлайн" + (" · вирусный" if after_content.viral else "")
 		Wave.CRITICS:
 			if after_record.bet_done:
 				text = _score(after_content.critics_avg) + " · " + VERDICTS[bet_class()]
@@ -1314,7 +1314,7 @@ func _wave_card(kind: Wave) -> PanelContainer:
 func _offer_button(parent: Control) -> void:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(0, Style.PILL_HEIGHT + 16)
-	var l := _label("Прокачаться", Style.FONT_BODY, Style.SURFACE_SOLID)
+	var l := _label("Выбрать улучшение", Style.FONT_BODY, Style.SURFACE_SOLID)
 	l.add_theme_font_override("font", Jelly.fun_font(800))
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	p.add_child(l)

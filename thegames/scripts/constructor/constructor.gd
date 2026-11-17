@@ -452,9 +452,9 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	var c := entry_card(e)
 	var inner := CardColumns.inner_of(c)
 	# Закрытый сеттинг (#139) открывает достижение; на один забег его даёт и прокачка.
-	inner.add_child(CardColumns.center_pill("откроет достижение" if e.kind == CatalogEntry.Kind.SETTING else "придёт с прокачкой", &"upgrade"))
+	inner.add_child(CardColumns.center_pill("откроет достижение" if e.kind == CatalogEntry.Kind.SETTING else "откроется улучшением", &"upgrade"))
 	inner.add_child(CardColumns.center_pill("недоступно", &"franchise"))
-	inner.add_child(CardColumns.center_pill("демка в работе", &"demo"))
+	inner.add_child(CardColumns.center_pill("недоступно", &"demo"))
 	inner.add_child(CardColumns.center_pill("по договору", &"contract"))
 	if with_origin_pill:
 		inner.add_child(CardColumns.center_pill("как у оригинала", &"origin"))
@@ -590,9 +590,9 @@ func _refresh(animate: bool) -> void:
 			_button_label.text = "Нужна другая технология"
 		elif unlocked[0].has(selected_entry(0).value) and unlocked[1].has(selected_entry(1).value) \
 				and not DemoCatalog.has_demo(selected_entry(0).value as Game.Genre, selected_entry(1).value as Game.Tech):
-			_button_label.text = "Демка в работе"
+			_button_label.text = "Недоступно"
 		else:
-			_button_label.text = "Придёт с прокачкой"
+			_button_label.text = "Откроется улучшением"
 	elif danger:
 		_button_label.text = "Не хватает " + Style.format_money(estimate.shortfall())
 	else:

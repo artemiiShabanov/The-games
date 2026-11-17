@@ -381,7 +381,7 @@ func _check_demo_lock() -> void:
 		_expect(not constructor.is_unlocked(0, closed_genre), "пара без демки открыта")
 		constructor.focus(0)
 		constructor.select(0, closed_genre)
-		_expect(not constructor.selection_open() and constructor._button_label.text == "Демка в работе",
+		_expect(not constructor.selection_open() and constructor._button_label.text == "Недоступно",
 				"кнопка без демки: «%s»" % constructor._button_label.text)
 	all_open = false
 

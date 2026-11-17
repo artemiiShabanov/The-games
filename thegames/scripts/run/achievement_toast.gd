@@ -45,7 +45,7 @@ func _next() -> void:
 	var head := _label("Достижение «%s»" % d.title, Style.FONT_BODY, Style.SURFACE_SOLID)
 	head.add_theme_font_override("font", Jelly.fun_font(800))
 	col.add_child(head)
-	col.add_child(_label("Открыт сеттинг: %s. Теперь во всех забегах." % Game.setting_name(d.setting), Style.FONT_CAPTION, Style.INK_3))
+	col.add_child(_label("Открыт сеттинг: %s. Действует во всех забегах." % Game.setting_name(d.setting), Style.FONT_CAPTION, Style.INK_3))
 	add_child(pill)
 	pill.reset_size()
 	var w := pill.get_combined_minimum_size()

@@ -299,14 +299,14 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		column.add_child(_label("провал", Style.FONT_VERB, Style.BUG))
 	if replays > 0:
 		column.add_child(_spacer(16))
-		column.add_child(_label("ещё попытка? осталось %d" % replays, Style.FONT_H2, Style.INK_2))
+		column.add_child(_label("Повторить спринт? Осталось: %d" % replays, Style.FONT_H2, Style.INK_2))
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 16)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, "переиграть"))
+		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, "повторить"))
 		row.add_child(_offer_pill)
-		row.add_child(HintPill.make("любая другая клавиша дальше"))
+		row.add_child(HintPill.make("другая клавиша: дальше"))
 		card.add_child(HintPill.bottom_bar(row))
 		# Полоса таймера по верхнему краю, как у мини-игр: убывает, пока карточка ждёт ответа.
 		var bar := ColorRect.new()
