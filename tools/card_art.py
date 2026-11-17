@@ -2,7 +2,8 @@
 """Фоны карточек конструктора (полировка 2026-11-17): жанр, технология, сеттинг.
 
 Картинки собираются из готовых ассетов игры, своего арта здесь нет:
-- сеттинг: окно в улицу битемапа 16/32 (`brawl_street`) с героем и врагом этого сеттинга;
+- сеттинг: коллаж его ассетов из разных технологий (спрайты 8-bit и 16/32, модели low poly)
+  наклейками на поле цвета сеттинга;
 - технология: кадр одного и того же платформера (замки) в рендере этой технологии;
 - жанр: кадр игры этого жанра в 16/32, сведённый к двум тонам цвета жанра, чтобы карточка
   читалась жанром, а не сеттингом.
@@ -30,7 +31,7 @@ SIZE = (780, 570)
 RADIUS = 72
 ASPECT = SIZE[0] / SIZE[1]
 
-# Сеттинг: левый край окна в улицу (пиксели арта). Окно берёт фасад, тротуар и край мостовой.
+# Улица битемапа (карточка жанра «Файтинг»): левый край окна, пиксели арта.
 STREET_TOP = 34
 STREET_H = 330
 STREET_X = {
@@ -113,6 +114,82 @@ def street_scene(setting, hero_frame=0, foe_frame=0, hit=False):
     return scene.resize((scene.width * 2, scene.height * 2), Image.NEAREST).resize(SIZE, Image.LANCZOS)
 
 
+def setting_color(setting):
+    """Цвет сеттинга из каталога конструктора."""
+    import re
+    text = open(os.path.join(ROOT, "thegames", "resources", "catalog", "settings.tres"), encoding="utf-8").read()
+    m = re.search(r'id = &"%s".*?color = Color\(([^)]*)\)' % setting, text, re.S)
+    return tuple(round(float(v) * 255) for v in m.group(1).split(",")[:3])
+
+
+def sprite8(setting, name):
+    return Image.open(os.path.join(SETTINGS_DIR, setting, "8bit", name + ".png")).convert("RGBA")
+
+
+def model3d(setting, name, size, yaw=0.6, pitch=0.3):
+    """Модель low poly сеттинга грубым рендером без Godot (`mesh_preview`), фон прозрачный."""
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import numpy as np
+    import lowpoly_meshes as lm
+    import mesh_preview
+    import setting_sets
+    if setting == "pirates":
+        make = getattr(lm, "pirate_" + name)
+    else:
+        make = next(f for f in setting_sets.mesh_set(setting)["models"] if f.__name__.endswith("_" + name))
+    m = make()
+    tris = [([(-v[0], v[1], -v[2]) for v in t[0]], t[1]) for part in m.parts for t in part[3]]
+    img = mesh_preview.render(tris, m.atlas.im, size, yaw, pitch).convert("RGBA")
+    px = np.asarray(img).copy()
+    px[(px[..., :3] == np.array(mesh_preview.BACK)).all(axis=-1), 3] = 0
+    return Image.fromarray(px)
+
+
+def stick(canvas, img, center, scale=1.0, angle=0.0, flip=False):
+    """Наклейка на коллаж: пиксели ближайшим соседом, поворот, мягкая тень."""
+    from PIL import ImageFilter
+    if flip:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    img = img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.NEAREST)
+    if angle:
+        img = img.rotate(angle, Image.BICUBIC, expand=True)
+    x, y = round(center[0] - img.width / 2), round(center[1] - img.height / 2)
+    shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    dark = Image.new("RGBA", img.size, (0, 0, 0, 255))
+    dark.putalpha(img.getchannel("A").point(lambda v: v * 90 // 255))
+    shadow.paste(dark, (x + 8, y + 12), dark)
+    canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(7)))
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    layer.paste(img, (x, y), img)
+    canvas.alpha_composite(layer)
+
+
+def collage(setting):
+    """Коллаж сеттинга: его ассеты из разных технологий наклейками на поле цвета сеттинга.
+    Ретро (8-bit) крупными пикселями, 2D (16/32) спрайтами, 3D моделями low poly."""
+    color = setting_color(setting)
+    canvas = Image.new("RGBA", SIZE, color + (255,))
+    glow = Image.new("L", SIZE, 0)
+    ImageDraw.Draw(glow).ellipse((120, -60, 900, 520), fill=70)
+    from PIL import ImageFilter
+    light = Image.new("RGBA", SIZE, (255, 255, 255, 255))
+    light.putalpha(glow.filter(ImageFilter.GaussianBlur(120)))
+    canvas.alpha_composite(light)
+    frame = lambda sheet, w, h, i=0: sheet.crop((i * w, 0, (i + 1) * w, h))
+    stick(canvas, sprite(setting, "palm"), (96, 250), 1.9, 6)
+    stick(canvas, model3d(setting, "cart", 300, 0.9), (300, 190), 1.0, -6)
+    stick(canvas, frame(sprite(setting, "brawl_boss"), 144, 136), (668, 268), 2.4, -4, True)
+    stick(canvas, model3d(setting, "hero", 250), (236, 400), 1.0, 5)
+    stick(canvas, frame(sprite(setting, "brawl_hero"), 96, 112), (478, 322), 3.2, 3)
+    stick(canvas, sprite8(setting, "hero_run_0"), (430, 96), 6, -10)
+    stick(canvas, sprite8(setting, "enemy_0"), (566, 92), 5, 8)
+    stick(canvas, sprite8(setting, "coin"), (176, 84), 5, -8)
+    stick(canvas, frame(sprite(setting, "coin"), 32, 32), (724, 86), 2.6, 10)
+    stick(canvas, sprite(setting, "chest"), (716, 492), 3.2, -5)
+    stick(canvas, sprite8(setting, "flag"), (88, 476), 5, 8)
+    return canvas
+
+
 def shot(name, x, y, w):
     path = os.path.join(FRAMES, name + ".png")
     if not os.path.exists(path):
@@ -160,7 +237,7 @@ def finish(img):
 def build():
     cards = {}
     for setting in STREET_X:
-        cards["setting_" + setting] = finish(street_scene(setting))
+        cards["setting_" + setting] = finish(collage(setting))
     for tech, (name, x, y, w) in TECH_SHOTS.items():
         cards["tech_" + tech] = finish(shot(name, x, y, w))
     for genre, (name, x, y, w) in GENRE_SHOTS.items():
