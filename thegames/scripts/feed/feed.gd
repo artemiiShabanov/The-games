@@ -115,7 +115,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var tone_key := "tw_good" if good else "tw_bad"
 	var tweets: Array[String] = []
 	if bug != null and bug.tweet_for(record.genre, record.tech) != "":
-		tweets.append(bug.tweet_at(record.genre, record.tech, release_index))
+		tweets.append(_setting_words(bug.tweet_at(record.genre, record.tech, release_index), record.setting))
 	tweets.append(_take(tone_pool, tone_key, take, 2))
 	tweets.append(_take(texts.tweets_viral if score.viral else texts.tweets_quiet, "tw_viral" if score.viral else "tw_quiet", take))
 	var context := _context_tweet(texts, record, take)
@@ -226,6 +226,20 @@ static func _tweet(text: String, handles: Array[String], i: int) -> FeedContent.
 	item.text = text
 	item.handle = handles[i % handles.size()] if not handles.is_empty() else "@anon"
 	return item
+
+
+## Слова сеттинга в тексте бага (#141): «{enemies} носятся» даёт «Зомби носятся» или «Пришельцы
+## носятся». Слова в именительном падеже, строчными; первая буква текста заглавная.
+static func _setting_words(text: String, setting: Game.Setting) -> String:
+	if not text.contains("{"):
+		return text
+	var def := SettingDef.of(setting)
+	var out := text
+	for key: StringName in SettingDef.WORD_KEYS:
+		var mark := "{%s}" % key
+		if out.contains(mark):
+			out = out.replace(mark, def.word(key).to_lower())
+	return out.substr(0, 1).to_upper() + out.substr(1)
 
 
 ## Твит про жанр, сеттинг или технологию: вид меняется от релиза к релизу.
