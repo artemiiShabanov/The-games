@@ -29,7 +29,8 @@ const SECTION_DEMOS: StringName = &"Демки"
 const DEMO_SCENE := "demo_test"
 const INK := Style.STUDIO_INK
 const BG := Style.BG
-const FOCUS := Style.FOCUS
+## Своя синяя, не из палитры игрока: дебаг-меню не меняется вместе с ней.
+const FOCUS := Color("#2F5BFF")
 
 
 class Entry:
