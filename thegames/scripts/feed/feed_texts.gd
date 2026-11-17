@@ -1,8 +1,9 @@
 class_name FeedTexts
 extends Resource
-## Шаблоны ленты, ресурс `res://resources/texts/feed.tres`: твиты по тону, реплики критиков
-## по тону и характеру, подписи клипов, ники. Подстановки: {title}, {genre}, {setting},
-## {tech}, {bug}, {tag}, {studio}. Черновые тексты до M5.
+## Шаблоны ленты (#141), ресурс `res://resources/texts/feed.tres`: твиты по тону, жанру,
+## сеттингу и технологии, рецензии и реплики со своим голосом у каждого критика и стримера,
+## ники. Подстановки: {title}, {genre}, {setting}, {tech}, {bug}, {tag}, {studio}. Твит без
+## {tag} получает тег в конце. Ресурс собирается из списков, руками его лучше не править.
 
 const PATH := "res://resources/texts/feed.tres"
 
@@ -11,6 +12,15 @@ const PATH := "res://resources/texts/feed.tres"
 @export var tweets_bad: Array[String] = []
 @export var tweets_viral: Array[String] = []
 @export var tweets_quiet: Array[String] = []
+## Твиты про жанр, сеттинг и технологию: индекс = `Game.Genre`, `Game.Setting`, `Game.Tech`.
+@export var tweets_genre: Array[PackedStringArray] = []
+@export var tweets_setting: Array[PackedStringArray] = []
+@export var tweets_tech: Array[PackedStringArray] = []
+## Голос критика по `PersonDef.id`: списки `warm`, `neutral`, `sour` и `nature` (фраза, когда
+## сработал характер). Без голоса берутся общие списки ниже.
+@export var critics: Dictionary = {}
+## Голос стримера по `PersonDef.id`: списки `bug` и `clean`.
+@export var streamers: Dictionary = {}
 @export var critic_warm: Array[String] = []
 @export var critic_neutral: Array[String] = []
 @export var critic_sour: Array[String] = []

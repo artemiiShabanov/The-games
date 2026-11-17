@@ -325,7 +325,18 @@ func build_feed(record: GameRecord) -> FeedContent:
 	var feed_rng := RandomNumberGenerator.new()
 	feed_rng.seed = hash([record.seed, "feed"])
 	return Feed.build(record, record.score, critics, streamers, texts, success, catalog, feed_rng,
-			record.feed_rep, record.feed_veteran, studio_name)
+			record.feed_rep, record.feed_veteran, studio_name, _feed_run_key(record), _feed_index(record))
+
+
+## Ключ забега для текстов ленты без повторов (#141): от первой игры и номера забега.
+func _feed_run_key(record: GameRecord) -> int:
+	return hash([records[0].seed if not records.is_empty() else record.seed, run_number])
+
+
+## Номер релиза записи в забеге с нуля; ещё не выпущенная встаёт в конец.
+func _feed_index(record: GameRecord) -> int:
+	var i := records.find(record)
+	return i if i >= 0 else records.size()
 
 
 func bugfix_price(record: GameRecord) -> int:
