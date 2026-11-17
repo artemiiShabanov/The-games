@@ -18,9 +18,6 @@ extends Demo
 ## зовёт хуки. Баги жанра и баланса для этой демки включит #126.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["hero", "enemy", "prop"]
-const MELODY := [0, 3, 5, 7, 10, 7, 5, 3, 0, 3, 5, 8, 7, 5, 3, null,
-	0, 3, 5, 7, 10, 12, 10, 7, 8, 7, 5, 3, 2, 3, 0, null]
-const BASS := [-12, -12, -5, -5, -9, -9, -5, -5, -4, -4, -9, -9, -7, -7, -5, -5]
 
 var tuning: FightingThreedTuning
 var plan: FrayPlan
@@ -82,7 +79,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 148.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.FIGHTING, Game.Tech.THREED, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

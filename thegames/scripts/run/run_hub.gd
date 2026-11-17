@@ -79,6 +79,8 @@ var run: RunState
 var focus := 0
 var window := Pop.NONE
 var playing := false
+## Тема последней выпущенной игры фоном (#87).
+var _bed: MusicBed
 
 var _focusables: Array[Control] = []
 var _lifts: Array[JellyLift] = []
@@ -157,6 +159,9 @@ func _ready() -> void:
 		_catalogs.append(Catalog.load_kind(k))
 	_build()
 	_refresh_focus()
+	if run != null and not run.records.is_empty():
+		_bed = MusicBed.new(run.records[-1], Music.tuning().hub_db)
+		add_child(_bed)
 	if not Debug.skip_cards:
 		_chrome.modulate.a = 0.0
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
@@ -208,6 +213,8 @@ func waves_left() -> int:
 
 
 func _process(delta: float) -> void:
+	if _bed != null:
+		_bed.active = not playing and _feed == null
 	if not after or _wave_plan.is_empty() or window != Pop.NONE or playing or get_tree().paused:
 		return
 	_wave_timer -= delta

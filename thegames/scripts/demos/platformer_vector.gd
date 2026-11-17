@@ -33,8 +33,6 @@ const INK_HERO := 2
 const INK_DANGER := 3
 const FLASH_SECONDS := 0.3
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "bonus", "finish"]
-const MELODY := [0, null, 7, null, 12, null, 7, null, 3, null, 10, null, 15, null, 10, null,
-	5, null, 12, null, 17, null, 12, 10, 7, null, 5, null, 3, 2, 0, null]
 
 var tuning: PlatformerVectorTuning
 var tower: TowerLevel
@@ -65,7 +63,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.beeper_loop(MELODY), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.PLATFORMER, Game.Tech.VECTOR, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

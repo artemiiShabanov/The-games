@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MusicTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/audio/music_tuning.gd" id="1_music"]
+
+[resource]
+script = ExtResource("1_music")
+genre_rate = Array[float]([1.0, 1.12, 1.06, 0.92, 1.04])
+hub_db = -24.0
+feed_db = -16.0
+hub_fade = 1.5

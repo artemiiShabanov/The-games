@@ -40,8 +40,6 @@ const BURST_SHORT := 96.0
 const BURST_OPEN := 0.07
 const WHIFF_SECONDS := 0.3
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "prop_a", "prop_b"]
-const MELODY := [0, null, null, null, null, null, 3, null, null, null, null, null, -2, null, null, null,
-	0, null, null, null, null, null, 5, null, null, null, 3, null, -2, null, null, null]
 
 var tuning: FightingVectorTuning
 var plan: DuelPlan
@@ -84,7 +82,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.beeper_loop(MELODY, 120.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.FIGHTING, Game.Tech.VECTOR, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

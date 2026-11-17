@@ -73,9 +73,6 @@ const MINIMAP_BOX := Vector2(56.0, 38.0)
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "barrel", "rock", "buoy", "finish"]
 const SPRITES: Array[String] = ["race_water", "race_water_1", "race_shallow", "race_sand", "race_sand_1",
 	"race_rock", "race_barrel", "race_buoy", "race_finish"]
-const MELODY := [0, null, 7, 5, 7, null, 12, null, 10, null, 7, 5, 3, null, 5, null,
-	0, null, 7, 5, 7, null, 12, 14, 15, null, 14, 12, 10, null, 7, null]
-const BASS := [-12, -12, -5, -5, -9, -9, -7, -7, -12, -12, -5, -5, -4, -4, -7, -7]
 
 var tuning: RacingDemoTuning
 var track: RacingTrack
@@ -209,7 +206,7 @@ func _spawn_cars() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS, 168.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.RACING, Game.Tech.BIT8, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

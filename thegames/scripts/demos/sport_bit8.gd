@@ -53,9 +53,6 @@ const PROP_SPRITES: Array[String] = ["golf_cannon", "golf_chest"]
 const PROP_SLOTS: Array[String] = ["cannon", "chest"]
 ## Флажок лунки в HUD, 5×7.
 const FLAG_ICON: Array[String] = ["11111", "11110", "11100", "10000", "10000", "10000", "10000"]
-const MELODY := [0, null, 4, 7, 9, null, 7, 4, 5, null, 9, null, 7, null, null, null,
-	0, null, 4, 7, 12, null, 11, 9, 7, 5, 4, 2, 0, null, null, null]
-const BASS := [-12, -12, -5, -5, -7, -7, -5, -5, -12, -12, -8, -8, -10, -10, -5, -5]
 
 var tuning: GolfDemoTuning
 var course: GolfCourse
@@ -276,7 +273,7 @@ func _raise_peak(h: GolfCourse.Hole) -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS, 132.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.SPORT, Game.Tech.BIT8, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

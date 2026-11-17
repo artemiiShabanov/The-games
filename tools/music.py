@@ -2,12 +2,13 @@
 """Музыка демок (#87): одна тема на сеттинг, одна аранжировка на технологию, жанр даёт темп
 и рисунок ударных. Синтез без сэмплов, петля бесшовная (эхо и реверберация заворачиваются).
 
+    python3 tools/music.py --write            # дорожки игры в thegames/assets/music/*.ogg
     python3 tools/music.py --pilot            # тема зомби на пяти технологиях и жанры в
                                               # thegames/debug/playtest/music/*.mp3
     python3 tools/music.py --themes bit16     # десять тем на одной технологии
     python3 tools/music.py --one zombies bit16 racing out.mp3
 
-Пока пилот на прослушивание: в игру файлы не идут.
+Игра складывает тему и ударные сама (`Music`), темп жанра это скорость проигрывания.
 """
 import os
 import subprocess
@@ -451,9 +452,9 @@ def bass_line(theme, pattern):
     return out
 
 
-def arrange_vector(theme, genre):
+def arrange_vector(theme):
     """Пищалка: один однобитный голос. Мелодия чередуется с басом, в паузах арпеджио аккорда,
-    вместо ударных короткие трески на том же голосе."""
+    ударные это короткие трески отдельной дорожкой."""
     tr = Track(theme.steps)
     six = STEP / 2
     n16 = int(six * SR)
@@ -463,7 +464,6 @@ def arrange_vector(theme, genre):
         onset.add(start)
         for s in range(start, start + length):
             sounding[s] = m
-    pat = GENRES[genre]
     for k in range(theme.steps * 2):
         step = k // 2
         root, triad = theme.chord(step)
@@ -474,19 +474,20 @@ def arrange_vector(theme, genre):
         else:
             m = triad[k % 3] + 12
         seg = pulse(phase(hz(m), n16), 0.5)
-        in_bar = k % 16
-        if in_bar in pat["kick"]:
-            c = int(0.03 * SR)
-            seg[:c] = pulse(phase(70, c), 0.5)
-        elif in_bar in pat["snare"]:
-            c = int(0.025 * SR)
-            seg[:c] = crush(np.sign(np.random.default_rng(k).standard_normal(c)), 5000)
         seg[-int(0.004 * SR):] = 0.0
         tr.add(k * six, seg, 0.3)
-    return crush(tr.buf, 22050), None
+    return crush(tr.buf, 22050)
 
 
-def arrange_bit8(theme, genre):
+def drums_vector(theme, genre):
+    c = int(0.03 * SR)
+    k = pulse(phase(70, c), 0.5)
+    sn = crush(np.sign(np.random.default_rng(4).standard_normal(int(0.025 * SR))), 5000)
+    kit = dict(kick=(k, 0.3), snare=(sn, 0.3), hat=(np.zeros(1), 0.0))
+    return crush(drums(theme, genre, kit), 22050)
+
+
+def arrange_bit8(theme):
     """Чиптюн: два пульса (ведущий и его эхо), треугольный бас, шумовые ударные."""
     tr = Track(theme.steps)
     for start, length, m in theme.notes:
@@ -499,13 +500,17 @@ def arrange_bit8(theme, genre):
         n = int(length * STEP * SR * 0.85)
         b = np.round(tri(phase(hz(m), n)) * 7.5) / 7.5
         tr.add(start * STEP, b * adsr(n, 0.002, 0.0, 1.0, 0.01), 0.32)
+    return crush(tr.buf, 32000)
+
+
+def drums_bit8(theme, genre):
     t = tt(0.07)
     k8 = np.round(tri(np.cumsum(50 + 140 * np.exp(-t * 40)) / SR) * 7.5) / 7.5 * np.exp(-t * 20)
     rng = np.random.default_rng(8)
     s8 = lowpass_note(crush(np.sign(rng.standard_normal(int(0.1 * SR))), 4000), 5000) * np.exp(-tt(0.1) * 28)
     h8 = lowpass_note(crush(np.sign(rng.standard_normal(int(0.025 * SR))), 9000), 8000) * np.exp(-tt(0.025) * 120)
     kit = dict(kick=(k8, 0.5), snare=(s8, 0.15), hat=(h8, 0.035))
-    return crush(tr.buf + drums(theme, genre, kit), 32000), None
+    return crush(drums(theme, genre, kit), 32000)
 
 
 def fm(freq, n, ratio, index, decay, vib=0.0):
@@ -514,7 +519,7 @@ def fm(freq, n, ratio, index, decay, vib=0.0):
     return np.sin(TAU * ph + index * np.exp(-t * decay) * np.sin(TAU * ph * ratio))
 
 
-def arrange_bit16(theme, genre):
+def arrange_bit16(theme):
     """Трекер: FM-голос, колокольчик, бас, пэд, арпеджио, ударные и эхо."""
     tr = Track(theme.steps)
     for start, length, m in theme.notes:
@@ -535,9 +540,12 @@ def arrange_bit16(theme, genre):
             na = int(0.11 * SR)
             m = triad[k % 3] + 12 + (12 if k % 6 >= 3 else 0)
             tr.add(bar * BAR * STEP + k * STEP / 2, tri(phase(hz(m), na)) * np.exp(-tt(0.11) * 22), 0.05)
-    mix = echo(tr.buf, STEP * 3, 0.32, 3)
+    return crush(echo(tr.buf, STEP * 3, 0.32, 3), 22050)
+
+
+def drums_bit16(theme, genre):
     kit = dict(kick=(kick(), 0.5), snare=(snare(0.18), 0.26), hat=(hat(0.04), 0.08))
-    return crush(mix, 22050) + drums(theme, genre, kit), None
+    return drums(theme, genre, kit)
 
 
 def lowpass_note(sig, cutoff):
@@ -554,7 +562,7 @@ def supersaw(freq, n, voices=3, spread=0.008, vib=0.0):
     return out / voices
 
 
-def arrange_lowpoly(theme, genre):
+def arrange_lowpoly(theme):
     """Синтезаторы PS1: расстроенные пилы, электропиано, струнный пэд, суб-бас, реверберация."""
     tr = Track(theme.steps)
     for start, length, m in theme.notes:
@@ -576,7 +584,10 @@ def arrange_lowpoly(theme, genre):
             ne = int(0.45 * SR)
             for m in triad:
                 tr.add((bar * BAR + step) * STEP, fm(hz(m + 12), ne, 1.0, 2.2, 10.0) * np.exp(-tt(0.45) * 6), 0.045)
-    pitched = reverb(tr.buf, 1.3, 0.28, 4)
+    return reverb(tr.buf, 1.3, 0.28, 4)
+
+
+def drums_lowpoly(theme, genre):
     sn = reverb_one(snare(0.22, 170.0, 1.0), 0.35, 0.5)
     rng = np.random.default_rng(5)
     shaker = lowpass_note(rng.standard_normal(int(0.03 * SR)), 5000) * np.exp(-tt(0.03) * 80) * 0.2
@@ -585,7 +596,7 @@ def arrange_lowpoly(theme, genre):
     sh = Track(theme.steps)
     for k in range(theme.steps * 2):
         sh.add(k * STEP / 2, shaker, 0.025 if k % 2 else 0.01)
-    return pitched + d + sh.buf, None
+    return d + sh.buf
 
 
 def reverb_one(sig, seconds, wet):
@@ -601,7 +612,7 @@ def flute(freq, n):
     return (np.sin(TAU * ph) + 0.3 * np.sin(2 * TAU * ph) + 0.1 * np.sin(3 * TAU * ph) + breath) * adsr(n, 0.05, 0.1, 0.85, 0.08) * (1 - 0.2 * np.exp(-t * 3))
 
 
-def arrange_threed(theme, genre):
+def arrange_threed(theme):
     """Почти живой состав: щипковая мелодия, флейта во второй половине, струнные, перебор
     аккордов, бас, ударные с перебивкой, зал. Играют неровно, как люди."""
     tr = Track(theme.steps)
@@ -630,13 +641,16 @@ def arrange_threed(theme, genre):
             for j, m in enumerate(triad):
                 dt, vel = human()
                 tr.add((bar * BAR + step) * STEP + j * 0.018 + dt, pluck(hz(m), 0.9, 0.45, 4 + j), 0.1 * vel)
-    pitched = reverb(tr.buf, 2.1, 0.33, 6, 4500.0)
+    return reverb(tr.buf, 2.1, 0.33, 6, 4500.0)
+
+
+def drums_threed(theme, genre):
     rngd = np.random.default_rng(11)
     brush = lowpass_note(rngd.standard_normal(int(0.09 * SR)), 5000) * np.exp(-tt(0.09) * 35) * 0.6
     sn = reverb_one(snare(0.24, 200.0, 1.2, 12), 0.6, 0.7)
     toms = [np.sin(TAU * np.cumsum(f + 40 * np.exp(-tt(0.25) * 20)) / SR) * np.exp(-tt(0.25) * 12) for f in (190, 160, 130, 100)]
     kit = dict(kick=(kick(1.1, 0.3) * 0.9, 0.5), snare=(sn, 0.22), hat=(brush, 0.07), fill=(toms, 0.3))
-    return pitched + reverb(drums(theme, genre, kit), 0.9, 0.18, 13), None
+    return reverb(drums(theme, genre, kit), 0.9, 0.18, 13)
 
 
 # Прямоугольники без огибающей звучат громче при том же пике.
@@ -645,11 +659,36 @@ ARRANGERS = dict(vector=arrange_vector, bit8=arrange_bit8, bit16=arrange_bit16,
                  lowpoly=arrange_lowpoly, threed=arrange_threed)
 
 
+DRUMMERS = dict(vector=drums_vector, bit8=drums_bit8, bit16=drums_bit16,
+                lowpoly=drums_lowpoly, threed=drums_threed)
+_GAIN = {}
+
+
+def gain(tech):
+    """Громкость технологии одна на все темы и жанры: по теме зомби с ударными платформера,
+    чтобы баланс мелодии и ударных не зависел от сеттинга."""
+    if tech not in _GAIN:
+        ref = ARRANGERS[tech](THEMES["zombies"]) + DRUMMERS[tech](THEMES["zombies"], "platformer")
+        _GAIN[tech] = 0.85 * LEVEL.get(tech, 1.0) / (np.max(np.abs(ref)) + 1e-9)
+    return _GAIN[tech]
+
+
+def limit(x):
+    return np.tanh(x * 1.2) / 1.2
+
+
+def theme_stem(setting, tech):
+    mix = ARRANGERS[tech](THEMES[setting])
+    return limit((mix - np.mean(mix)) * gain(tech))
+
+
+def drum_stem(genre, tech):
+    return limit(DRUMMERS[tech](THEMES["zombies"], genre) * gain(tech))
+
+
 def render(setting, tech, genre):
-    mix, _ = ARRANGERS[tech](THEMES[setting], genre)
-    mix = mix - np.mean(mix)
-    mix = np.tanh(mix / (np.max(np.abs(mix)) + 1e-9) * 1.4) / np.tanh(1.4)
-    return mix * 0.85 * LEVEL.get(tech, 1.0)
+    """Тема и ударные вместе, как их сложит игра."""
+    return np.clip(theme_stem(setting, tech) + drum_stem(genre, tech), -1, 1)
 
 
 def save(mix, path, rate=1.0, loops=1):
@@ -665,7 +704,11 @@ def save(mix, path, rate=1.0, loops=1):
     if path.endswith(".wav"):
         os.replace(tmp, path)
         return
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", tmp, "-ar", "44100", "-b:a", "160k", path], check=True)
+    if path.endswith(".ogg"):
+        # Vorbis через sox: длина до отсчёта, петля без шва (у ffmpeg свой кодировщик слабый).
+        subprocess.run(["sox", tmp, "-C", "4", path], check=True)
+    else:
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", tmp, "-ar", "44100", "-b:a", "160k", path], check=True)
     os.remove(tmp)
 
 
@@ -698,9 +741,22 @@ def themes(tech):
         print(setting, stats(mix))
 
 
+def write():
+    """Дорожки игры: 50 тем (сеттинг × технология) и 25 ударных (жанр × технология)."""
+    out = os.path.join(os.path.dirname(__file__), "..", "thegames", "assets", "music")
+    for tech in TECHS:
+        for setting in SETTINGS:
+            save(theme_stem(setting, tech), os.path.join(out, "theme_%s_%s.ogg" % (setting, tech)))
+        for genre in GENRES:
+            save(drum_stem(genre, tech), os.path.join(out, "drums_%s_%s.ogg" % (genre, tech)))
+        print(tech, "готово")
+
+
 if __name__ == "__main__":
     if "--pilot" in sys.argv:
         pilot()
+    elif "--write" in sys.argv:
+        write()
     elif "--themes" in sys.argv:
         themes(sys.argv[sys.argv.index("--themes") + 1])
     elif "--one" in sys.argv:

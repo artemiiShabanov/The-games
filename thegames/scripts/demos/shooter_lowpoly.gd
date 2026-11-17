@@ -17,9 +17,6 @@ extends Demo
 ## врагов, укрытий и флага. Баги жанра и баланса для этой демки включит #117.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "prop", "finish"]
-const MELODY := [0, null, 3, 0, 7, null, 5, 3, 0, null, 3, 0, 10, 8, 7, null,
-	0, null, 3, 0, 7, null, 5, 3, 12, 10, 8, 7, 5, 3, 2, null]
-const BASS := [-12, -12, -12, -12, -9, -9, -9, -9, -7, -7, -7, -7, -5, -5, -7, -7]
 const DECOR := ["palm", "palm", "rock", "rock", "chest"]
 const WHITE := Color(0.95, 0.93, 0.86)
 const DUST := Color(0.78, 0.66, 0.44)
@@ -97,7 +94,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 138.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.SHOOTER, Game.Tech.LOWPOLY, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

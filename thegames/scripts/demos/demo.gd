@@ -338,6 +338,12 @@ func bug_play(p: AudioStreamPlayer) -> void:
 		p.play()
 
 
+## Музыка демки (#87): тема сеттинга записи в аранжировке технологии, темп и ударные жанра.
+func demo_music(genre: Game.Genre, tech: Game.Tech, volume_db: float) -> AudioStreamPlayer:
+	var setting := record.setting if record != null else Game.Setting.PIRATES
+	return Music.player(setting, tech, genre, volume_db)
+
+
 ## Заикание музыки `bug_music`: раз в несколько секунд кусок повторяется. Звать каждый кадр.
 func bug_audio_tick(delta: float) -> void:
 	if not has_bug(&"audio_stutter") or bug_music == null or not bug_music.playing:

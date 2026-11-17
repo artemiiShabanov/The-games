@@ -70,9 +70,6 @@ void fragment() {
 	COLOR = vec4(c.rgb * light, 1.0);
 }
 """
-const MELODY := [0, null, 0, 3, null, 0, 6, 5, 0, null, 0, 3, null, 0, 8, 7,
-	0, null, 0, 3, null, 0, 6, 5, 3, null, 2, null, 0, null, -2, null]
-const BASS := [-12, -12, -12, -12, -9, -9, -6, -6, -12, -12, -12, -12, -4, -4, -5, -5]
 
 var tuning: ShooterBit16Tuning
 var map: HoldMap
@@ -152,7 +149,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 112.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.SHOOTER, Game.Tech.BIT16, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

@@ -15,9 +15,6 @@ extends Demo
 ## зовёт хуки. Баги жанра и баланса для этой демки включит #126.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["hero", "prop", "finish"]
-const MELODY := [7, null, 12, 14, 16, null, 14, 12, 9, null, 12, 14, 16, 19, 16, null,
-	7, null, 12, 14, 16, null, 14, 12, 17, 16, 14, 12, 11, 12, 7, null]
-const BASS := [-5, -5, -5, -5, -8, -8, -8, -8, -3, -3, -3, -3, -5, -5, -7, -7]
 const SIDE := 36.0
 const PUFFS := 26
 const LEFT_FLAG := Color(0.9, 0.24, 0.2)
@@ -90,7 +87,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 144.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.SPORT, Game.Tech.THREED, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

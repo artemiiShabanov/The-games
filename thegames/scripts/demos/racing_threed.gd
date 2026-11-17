@@ -13,9 +13,6 @@ extends Demo
 ## зовёт хуки. Баги жанра и баланса для этой демки включит #126.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["hero", "rival", "prop", "finish"]
-const MELODY := [0, null, 7, 5, 3, null, 5, 7, 10, null, 7, 5, 3, 5, 0, null,
-	0, null, 7, 5, 3, null, 5, 7, 12, 10, 7, 5, 3, 2, 0, null]
-const BASS := [-12, -12, -12, -5, -9, -9, -9, -5, -14, -14, -14, -7, -12, -12, -10, -10]
 const SCALE := 1.25
 const WHEEL := 0.32 * SCALE
 const BEACH := 15.0
@@ -78,7 +75,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 148.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.RACING, Game.Tech.THREED, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

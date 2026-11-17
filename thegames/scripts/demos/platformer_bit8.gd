@@ -58,9 +58,6 @@ const HUD_INK := Color("#F4EFE6")
 const HUD_SHADOW := Color("#161412")
 ## Что может стать розовой заглушкой; герой и земля никогда.
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "coin", "platform", "checkpoint", "flag", "cloud"]
-const MELODY := [0, null, 3, null, 7, 7, 5, 3, 2, null, 5, null, 3, 2, 0, null,
-	-2, null, 2, null, 5, 5, 3, 2, 0, null, 3, null, 2, 0, -2, null]
-const BASS := [-12, -12, -9, -9, -14, -14, -12, -12, -14, -14, -10, -10, -12, -12, -14, -14]
 
 var tuning: PlatformerDemoTuning
 var level: PlatformerLevel
@@ -181,7 +178,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.PLATFORMER, Game.Tech.BIT8, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

@@ -38,9 +38,6 @@ const RED_RAMP: Array[Color] = [Color("#5a1018"), Color("#a8242a"), Color("#e248
 const BRASS: Array[Color] = [Color("#3a240c"), Color("#8a5a1c"), Color("#d8a440"), Color("#fff0a0")]
 const WELL := Color("#140e1c")
 const INK := Color("#1a1218")
-const MELODY := [0, null, 0, 3, 5, null, 3, 0, -2, null, 0, null, 3, 5, 7, null,
-	0, null, 0, 3, 5, null, 7, 8, 7, null, 5, 3, 0, null, null, null]
-const BASS := [-12, -12, -12, -9, -7, -7, -9, -12, -14, -14, -12, -12, -9, -9, -5, -5]
 
 var tuning: FightingBit16Tuning
 var waves: BrawlWaves
@@ -96,7 +93,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 116.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.FIGHTING, Game.Tech.BIT16, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

@@ -16,9 +16,6 @@ extends Demo
 ## бочонка, реквизита и кольца. Баги жанра и баланса для этой демки включит #117.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["ball", "prop", "finish"]
-const MELODY := [0, 4, 7, null, 9, 7, 4, null, 5, 9, 12, null, 11, 9, 7, null,
-	0, 4, 7, 12, 9, null, 7, 4, 5, 7, 9, 5, 7, null, 0, null]
-const BASS := [-12, -12, -5, -5, -7, -7, -5, -5, -12, -12, -3, -3, -7, -7, -5, -5]
 const DECOR := ["palm", "palm", "rock", "barrel", "crate", "chest"]
 const WHITE := Color(0.95, 0.93, 0.86)
 const HOT := Color(1.0, 0.6, 0.2)
@@ -85,7 +82,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 126.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.SPORT, Game.Tech.LOWPOLY, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

@@ -161,6 +161,9 @@
   их те же три генератора. Номера `--setting=N`: 0 пираты, 1 космос, 2 замки, 3 зомби, 4
   супергерои, 5 фэнтези, 6 сладости, 7 ниндзя, 8 динозавры, 9 офис. Листы кадров сеттинга (шесть
   на технологию, `debug/playtest/shots/<id>_<tech>.jpg`): `sh tools/setting_shots.sh <n> [tech]`.
+- Музыка (#87): `python3 tools/music.py --write` пишет темы и ударные в `assets/music/`
+  (нужен sox), на слух вне игры `--themes <tech>` и `--pilot` (mp3 в `debug/playtest/music/`),
+  `--one <сеттинг> <tech> <жанр> out.mp3`; в игре дебаг-меню «Музыка».
 - Портреты внешних персонажей (#140): `python3 tools/portraits.py` пишет листы 24×24 в
   `assets/portraits/`, лист всех настроений `--preview out.png`; в игре вставка
   `--scene=event_test --no-checks --event=<id> [--mood=N]` и лента `--scene=feed_test`.

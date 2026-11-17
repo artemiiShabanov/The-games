@@ -37,9 +37,6 @@ const EDGE := {"pirates": [Color(0.42, 0.3, 0.16, 0.45), Color("#f4fbff")],
 ## Цвета формы соперника для табло (как ленты `soccer_rival_*`) и HUD в духе битемапа.
 const BRASS: Array[Color] = [Color("#3a240c"), Color("#8a5a1c"), Color("#d8a440"), Color("#fff0a0")]
 const INK := Color("#1a1218")
-const MELODY := [0, 4, 7, 4, 9, 7, 4, 2, 0, 4, 7, 12, 11, 7, 9, null,
-	5, 9, 12, 9, 14, 12, 9, 7, 5, 4, 2, 4, 7, null, 0, null]
-const BASS := [-12, -12, -5, -5, -7, -7, -8, -8, -12, -12, -5, -5, -7, -7, -10, -10]
 
 var tuning: SportBit16Tuning
 var plan: SoccerPlan
@@ -83,7 +80,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 132.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.SPORT, Game.Tech.BIT16, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

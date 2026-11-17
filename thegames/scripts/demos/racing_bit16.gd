@@ -25,9 +25,6 @@ const BACKDROP: Array[String] = ["road_sky", "road_islands", "road_sea"]
 const BACKDROP_FACTORS: Array[float] = [0.4, 0.8, 1.0]
 const PROP_SPRITES: Array[String] = ["palm", "road_rock", "road_barrel", "sign_left", "sign_right", "road_hut"]
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "palm", "coin", "sign"]
-const MELODY := [0, null, 4, 7, 12, null, 11, 7, 9, null, 7, 4, 5, 7, 4, 2,
-	0, null, 4, 7, 12, 14, 12, 11, 9, 7, 9, 11, 12, null, 7, null]
-const BASS := [-12, -12, -5, -5, -7, -7, -3, -3, -10, -10, -5, -5, -7, -7, -5, -5]
 
 ## Ложные финиши бага «финиш на пляже» (#103): первый на этом сегменте, дальше через столько;
 ## 0 без бага.
@@ -127,7 +124,7 @@ static func _road_ink(t: Texture2D) -> Array[Color]:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 140.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.RACING, Game.Tech.BIT16, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

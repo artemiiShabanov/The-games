@@ -28,8 +28,6 @@ const TRAIL := 10
 const FLASH_SECONDS := 0.35
 const STICK_SECONDS := 0.25
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "ball"]
-const MELODY := [0, null, null, 7, null, null, 3, null, 0, null, null, 7, null, 5, 3, null,
-	-2, null, null, 5, null, null, 2, null, -2, null, null, 5, null, 3, 2, null]
 
 var tuning: SportVectorTuning
 var game: PongMatch
@@ -73,7 +71,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.beeper_loop(MELODY, 150.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.SPORT, Game.Tech.VECTOR, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

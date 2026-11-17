@@ -25,6 +25,7 @@ const STAGGER_SECONDS := 0.08
 
 var content: FeedContent
 var record: GameRecord
+var _bed: MusicBed
 var release := 1
 var cash := 0
 ## Индекс карточки по центру; последняя это ряд кнопок.
@@ -489,6 +490,10 @@ func _make_stream(item: FeedContent.Item) -> Control:
 func _start_stream() -> void:
 	if record == null or _stream_holder == null:
 		return
+	# Тема игры под клипом (#87): встроенная демка свою музыку не играет.
+	if _bed == null:
+		_bed = MusicBed.new(record, Music.tuning().feed_db, true)
+		add_child(_bed)
 	# Демка записи из каталога (#45); без неё кадр стрима остаётся фоном.
 	_demo = DemoCatalog.create(record)
 	if _demo == null:

@@ -140,6 +140,14 @@ func _finish() -> void:
 		print("END ok")
 	else:
 		print("END fail: " + "; ".join(failures))
+	# Музыка из файлов (#87): играющий плеер на выходе держит дорожку, Godot пишет ошибку.
+	Music.closing = true
+	for node in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
+		(node as AudioStreamPlayer).stop()
+	# Звуковой поток живёт по настоящим часам, а кадры под `--fixed-fps` нет: ждём его.
+	await get_tree().process_frame
+	OS.delay_msec(250)
+	await get_tree().process_frame
 	get_tree().quit(0 if failures.is_empty() else 1)
 
 

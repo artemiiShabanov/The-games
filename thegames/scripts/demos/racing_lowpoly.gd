@@ -18,9 +18,6 @@ extends Demo
 ## соперников, пальм и маяка. Баги жанра и баланса для этой демки включит #117.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "prop", "finish"]
-const MELODY := [0, 0, 7, null, 5, 5, 3, null, 0, 0, 7, 10, 12, null, 10, 7,
-	5, 5, 12, null, 10, 10, 8, null, 7, 5, 3, 5, 7, null, 0, null]
-const BASS := [-12, -12, -12, -5, -7, -7, -7, 0, -12, -12, -12, -5, -9, -9, -7, -7]
 const DECOR := ["palm", "palm", "rock", "barrel", "crate"]
 ## Борт: высота и ширина верха. Откос за ним: ширина до воды.
 const WALL_HEIGHT := 0.6
@@ -97,7 +94,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 150.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.RACING, Game.Tech.LOWPOLY, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

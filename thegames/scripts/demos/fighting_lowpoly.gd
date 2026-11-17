@@ -17,9 +17,6 @@ extends Demo
 ## соперника и реквизита. Баги жанра и баланса для этой демки включит #117.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "prop", "finish"]
-const MELODY := [0, 0, 3, null, 5, 3, 0, null, 7, 7, 10, null, 8, 7, 5, null,
-	0, 0, 3, 5, 7, null, 5, 3, 8, 7, 5, 3, 2, null, 0, null]
-const BASS := [-12, -12, -12, -12, -7, -7, -7, -7, -9, -9, -9, -9, -5, -5, -7, -7]
 const WHITE := Color(0.95, 0.93, 0.86)
 const HOT := Color(1.0, 0.6, 0.2)
 const PUFFS := 24
@@ -91,7 +88,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 144.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.FIGHTING, Game.Tech.LOWPOLY, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

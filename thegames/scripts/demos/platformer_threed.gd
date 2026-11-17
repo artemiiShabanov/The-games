@@ -16,9 +16,6 @@ extends Demo
 ## зовёт хуки. Баги жанра и баланса для этой демки включит #126.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["hero", "prop", "finish"]
-const MELODY := [0, 4, 7, 12, 11, 7, 4, null, 5, 9, 12, 16, 14, 12, 9, null,
-	0, 4, 7, 12, 14, 12, 11, 7, 5, 4, 2, 4, 5, 7, 0, null]
-const BASS := [-12, -12, -5, -5, -7, -7, -3, -3, -12, -12, -5, -5, -7, -7, -5, -5]
 ## Высота поднятой кисти над ступнями и вынос плеча.
 const GRIP := 2.02
 const SHOULDER := 0.2
@@ -82,7 +79,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 132.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.PLATFORMER, Game.Tech.THREED, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

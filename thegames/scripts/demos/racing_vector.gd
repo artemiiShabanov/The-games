@@ -36,8 +36,6 @@ const DASH := 56.0
 const POST_EVERY := 208.0
 const FLASH_SECONDS := 0.25
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "obstacle", "finish"]
-const MELODY := [0, 0, 12, null, 7, 7, 12, null, 3, 3, 15, null, 10, 10, 15, null,
-	5, 5, 17, null, 12, 12, 17, 15, 12, null, 10, null, 7, 5, 3, null]
 
 var tuning: RacingVectorTuning
 var race: LaneRace
@@ -75,7 +73,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.beeper_loop(MELODY, 168.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.RACING, Game.Tech.VECTOR, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

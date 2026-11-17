@@ -70,9 +70,6 @@ const SPRITES: Array[String] = ["enemy_0", "enemy_1", "shoot_gunner_0", "shoot_g
 	"shoot_barrel", "shoot_chest", "shoot_cannon", "shoot_puff"]
 const PROP_SPRITES: Array[String] = ["shoot_barrel", "shoot_chest", "shoot_cannon"]
 const PROP_SLOTS: Array[String] = ["barrel", "chest", "cannon"]
-const MELODY := [0, null, 3, null, 7, null, 3, 5, 7, null, 10, null, 7, 5, 3, null,
-	0, null, 3, null, 7, null, 12, 10, 7, null, 5, null, 3, 2, 0, null]
-const BASS := [-12, -12, -9, -9, -5, -5, -7, -7, -12, -12, -9, -9, -14, -14, -7, -7]
 
 var tuning: ShooterDemoTuning
 var arena: ShooterArena
@@ -223,7 +220,7 @@ func _setup_bugs() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS, 150.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.SHOOTER, Game.Tech.BIT8, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

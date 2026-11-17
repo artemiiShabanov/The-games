@@ -14,9 +14,6 @@ extends Demo
 ## зовёт хуки. Баги жанра и баланса для этой демки включит #126.
 
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "prop", "gun"]
-const MELODY := [0, 3, 7, 3, 0, 3, 7, 10, 8, 7, 3, 7, 8, 7, 3, null,
-	0, 3, 7, 3, 0, 3, 7, 12, 10, 8, 7, 3, 2, 3, 0, null]
-const BASS := [-12, -12, -12, -12, -9, -9, -9, -9, -4, -4, -4, -4, -5, -5, -7, -7]
 const ISLAND := 58.0
 const KIND_NAMES := ["БЕГУН", "ЩИТ", "МЕТАТЕЛЬ", "ВЕЛИКАН"]
 
@@ -81,7 +78,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 140.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.SHOOTER, Game.Tech.THREED, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

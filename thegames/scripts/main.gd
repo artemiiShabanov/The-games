@@ -69,6 +69,11 @@ var _profile: Profile
 ## Пилюля достижений (#139) поверх любого экрана и выбранное в дебаг-меню достижение.
 var _toast: AchievementToast
 var _debug_achievement := ""
+## Прослушивание тем в дебаг-меню (#87).
+var _jukebox: AudioStreamPlayer
+var _juke_setting := 0
+var _juke_tech := 0
+var _juke_genre := 0
 ## Автотест `--broke-at=N`: перед фазой студии релиза N денег −10 000 (банкротство, #67).
 var _broke_at := -1
 ## Сколько раз этот забег продолжали из слота: сдвиг сида мини-игр.
@@ -195,6 +200,7 @@ func _ready() -> void:
 	run.profile = _profile
 	_toast = AchievementToast.new()
 	add_child(_toast)
+	_debug_music_handles()
 	var ach_ids: Array[String] = []
 	for a in Achievements.load_all():
 		ach_ids.append(String(a.id))
@@ -1090,3 +1096,36 @@ func _clear_card() -> void:
 	if _card != null:
 		_card.queue_free()
 		_card = null
+
+
+## Дебаг-меню «Музыка» (#87): любая тема сеттинг × технология × жанр на слух.
+func _debug_music_handles() -> void:
+	var section: StringName = &"Музыка"
+	var settings: Array[String] = []
+	settings.assign(Game.SETTING_NAMES)
+	var techs: Array[String] = []
+	techs.assign(Game.TECH_NAMES)
+	var genres: Array[String] = []
+	genres.assign(Game.GENRE_NAMES)
+	Debug.add_choice(section, "Сеттинг", settings, func() -> String: return settings[_juke_setting],
+			func(v: String) -> void: _juke_setting = maxi(settings.find(v), 0))
+	Debug.add_choice(section, "Технология", techs, func() -> String: return techs[_juke_tech],
+			func(v: String) -> void: _juke_tech = maxi(techs.find(v), 0))
+	Debug.add_choice(section, "Жанр", genres, func() -> String: return genres[_juke_genre],
+			func(v: String) -> void: _juke_genre = maxi(genres.find(v), 0))
+	Debug.add_action(section, "Играть тему", _juke_play)
+	Debug.add_action(section, "Стоп", _juke_stop)
+
+
+func _juke_play() -> void:
+	_juke_stop()
+	_jukebox = Music.player(_juke_setting as Game.Setting, _juke_tech as Game.Tech, _juke_genre as Game.Genre, -8.0)
+	_jukebox.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_jukebox)
+	_jukebox.play()
+
+
+func _juke_stop() -> void:
+	if _jukebox != null:
+		_jukebox.queue_free()
+		_jukebox = null

@@ -33,9 +33,6 @@ const SPRITES: Array[String] = ["hero_run", "hero_idle", "hero_leap", "hero_slid
 		"crab_walk", "parrot_fly", "heart", "coin", "flag", "trail_soil", "trail_edge", "arch_bark",
 		"dec_grass", "dec_tuft", "dec_fern", "dec_bush", "dec_rock", "dec_flowers", "dec_mush", "canopy_front"]
 const DECOR_NAMES: Array[String] = ["dec_grass", "dec_tuft", "dec_bush", "dec_fern", "dec_rock", "dec_flowers", "dec_mush"]
-const MELODY := [0, null, 3, 5, 7, null, 5, 3, 0, null, 3, 5, 7, 10, 7, null,
-	-2, null, 2, 3, 5, null, 3, 2, -2, null, 2, 3, 5, 7, 5, null]
-const BASS := [-12, -12, -12, -12, -9, -9, -9, -9, -14, -14, -14, -14, -10, -10, -7, -7]
 
 var tuning: PlatformerBit16Tuning
 var level: TrailLevel
@@ -107,7 +104,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 126.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.PLATFORMER, Game.Tech.BIT16, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

@@ -32,8 +32,6 @@ const SHOT_LEN := 24.0
 const BLAST_SECONDS := 0.4
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "enemy_2", "obstacle"]
 const SLOTS: Array[StringName] = [&"enemy", &"obstacle", &"obstacle", &"enemy_2"]
-const MELODY := [0, null, 0, 3, null, 3, 7, null, 5, null, 5, 8, null, 8, 12, null,
-	10, null, 10, 7, null, 7, 3, null, 2, null, 2, 5, null, 3, 0, null]
 
 var tuning: ShooterVectorTuning
 var waves: TurretWaves
@@ -70,7 +68,7 @@ func _on_start() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.beeper_loop(MELODY, 160.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.SHOOTER, Game.Tech.VECTOR, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:

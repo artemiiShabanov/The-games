@@ -20,9 +20,6 @@ extends Demo
 ## пальм и маяка. Баги жанра и баланса для этой демки включит #117 (`SpitSim` их уже умеет).
 
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "bonus", "obstacle", "prop", "finish"]
-const MELODY := [0, null, 4, 7, 12, null, 7, 4, 5, null, 9, 12, 17, null, 12, 9,
-	7, null, 11, 14, 19, null, 14, 11, 12, null, 7, null, 4, 2, 0, null]
-const BASS := [-12, -12, -5, -5, -7, -7, 0, 0, -5, -5, 2, 2, -12, -12, -5, -5]
 const HEART := [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."]
 const DECOR := ["palm", "palm", "palm", "rock", "barrel", "chest"]
 const DEBRIS_LIFE := 0.7
@@ -89,7 +86,7 @@ func _on_start() -> void:
 
 func _setup_audio() -> void:
 	var quiet := embedded
-	_music = Sfx.music(Sfx.tracker_loop(MELODY, BASS, 132.0), tuning.music_db if not quiet else -80.0)
+	_music = demo_music(Game.Genre.PLATFORMER, Game.Tech.LOWPOLY, tuning.music_db if not quiet else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not quiet:

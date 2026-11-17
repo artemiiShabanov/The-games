@@ -51,9 +51,6 @@ const FLASH_LIFE := 0.25
 const PLACEHOLDER_SLOTS: Array[String] = ["rival", "cannon", "chest", "spark"]
 const FRAMES: Array[String] = ["idle_0", "idle_1", "walk", "high_0", "high_1", "crouch", "low_1", "block", "hit", "ko"]
 const SPRITES: Array[String] = ["fight_spark", "fight_guard", "golf_deck", "golf_hull", "golf_cannon", "golf_chest"]
-const MELODY := [0, null, 0, 3, null, 5, null, 7, 6, null, 5, 3, 0, null, null, null,
-	0, null, 0, 3, null, 5, null, 10, 9, null, 7, 5, 7, null, null, null]
-const BASS := [-12, -12, -9, -9, -7, -7, -6, -6, -12, -12, -9, -9, -5, -5, -7, -7]
 
 var tuning: FightDemoTuning
 var gen: FightGenTuning
@@ -159,7 +156,7 @@ func _setup_bugs() -> void:
 
 
 func _setup_audio() -> void:
-	_music = Sfx.music(Sfx.chiptune_loop(MELODY, BASS, 160.0), tuning.music_db if not embedded else -80.0)
+	_music = demo_music(Game.Genre.FIGHTING, Game.Tech.BIT8, tuning.music_db if not embedded else -80.0)
 	add_child(_music)
 	bug_music = _music
 	if not embedded:
