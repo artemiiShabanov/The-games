@@ -467,21 +467,41 @@ func _make_card(e: CatalogEntry, with_origin_pill: bool) -> Control:
 	return c
 
 
-## Карточка каталога без пилюль: цветной фон, крупная буква, название внизу. Её же крутит
+## Карточка каталога без пилюль: фон картинкой из ассетов (без неё цвет и крупная буква),
+## название внизу. Её же крутит
 ## «Новая студия» (#61).
 static func entry_card(e: CatalogEntry) -> Control:
 	var c := CardColumns.make_card(e.color)
 	var inner := CardColumns.inner_of(c)
-	var glyph := CardColumns.label(e.title.substr(0, 1).to_upper(), 96, Color(1, 1, 1, 0.35))
-	glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	glyph.offset_bottom = -24
-	inner.add_child(glyph)
+	var art := card_art(e)
+	if art != null:
+		# Фон из ассетов игры (`tools/card_art.py`): углы скруглены и низ притемнён в картинке.
+		var picture := TextureRect.new()
+		picture.texture = art
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_SCALE
+		picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		picture.size = Style.CARD_SIZE
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(picture)
+	else:
+		var glyph := CardColumns.label(e.title.substr(0, 1).to_upper(), 96, Color(1, 1, 1, 0.35))
+		glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		glyph.offset_bottom = -24
+		inner.add_child(glyph)
 	var caption := CardColumns.label(e.title, CARD_LABEL_SIZE, Style.SURFACE_SOLID)
 	caption.position = Vector2(24, Style.CARD_SIZE.y - 24 - 44)
 	inner.add_child(caption)
 	return c
+
+
+## Картинка фона карточки: `assets/cards/<вид>_<id>.png`; без файла `null`, карточка цветом.
+static func card_art(e: CatalogEntry) -> Texture2D:
+	var kinds: Array[String] = ["genre", "tech", "setting"]
+	var path := "res://assets/cards/%s_%s.png" % [kinds[e.kind], e.id]
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 
 func _build_estimate(content: Control) -> void:
