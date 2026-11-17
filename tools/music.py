@@ -228,7 +228,7 @@ def kick(deep=1.0, seconds=0.22):
 def snare(seconds=0.2, body=190.0, noise=0.8, seed=2):
     t = tt(seconds)
     rng = np.random.default_rng(seed)
-    n = lowpass(rng.standard_normal(len(t)), 1800, 2, high=True) * np.exp(-t * 22)
+    n = lowpass(lowpass(rng.standard_normal(len(t)), 1800, 2, high=True), 6000, 2) * np.exp(-t * 22)
     tone = np.sin(TAU * body * t) * np.exp(-t * 30)
     return n * noise * 0.5 + tone * 0.6
 
@@ -236,7 +236,8 @@ def snare(seconds=0.2, body=190.0, noise=0.8, seed=2):
 def hat(seconds=0.05, seed=3):
     t = tt(seconds)
     rng = np.random.default_rng(seed)
-    return lowpass(rng.standard_normal(len(t)), 7000, 3, high=True) * np.exp(-t * 90) * 0.5
+    n = lowpass(lowpass(rng.standard_normal(len(t)), 5000, 3, high=True), 9000, 3)
+    return n * np.exp(-t * 90) * 0.4
 
 
 def drums(theme, genre, kit):
@@ -297,8 +298,8 @@ def arrange_vector(theme, genre):
             c = int(0.03 * SR)
             seg[:c] = pulse(phase(70, c), 0.5)
         elif in_bar in pat["snare"]:
-            c = int(0.035 * SR)
-            seg[:c] = np.sign(np.random.default_rng(k).standard_normal(c))
+            c = int(0.025 * SR)
+            seg[:c] = crush(np.sign(np.random.default_rng(k).standard_normal(c)), 5000)
         seg[-int(0.004 * SR):] = 0.0
         tr.add(k * six, seg, 0.3)
     return crush(tr.buf, 22050), None
@@ -320,9 +321,9 @@ def arrange_bit8(theme, genre):
     t = tt(0.07)
     k8 = np.round(tri(np.cumsum(50 + 140 * np.exp(-t * 40)) / SR) * 7.5) / 7.5 * np.exp(-t * 20)
     rng = np.random.default_rng(8)
-    s8 = crush(np.sign(rng.standard_normal(int(0.1 * SR))), 7000) * np.exp(-tt(0.1) * 28)
-    h8 = np.sign(rng.standard_normal(int(0.025 * SR))) * np.exp(-tt(0.025) * 120)
-    kit = dict(kick=(k8, 0.5), snare=(s8, 0.2), hat=(h8, 0.07))
+    s8 = lowpass_note(crush(np.sign(rng.standard_normal(int(0.1 * SR))), 4000), 5000) * np.exp(-tt(0.1) * 28)
+    h8 = lowpass_note(crush(np.sign(rng.standard_normal(int(0.025 * SR))), 9000), 8000) * np.exp(-tt(0.025) * 120)
+    kit = dict(kick=(k8, 0.5), snare=(s8, 0.15), hat=(h8, 0.035))
     return crush(tr.buf + drums(theme, genre, kit), 32000), None
 
 
@@ -354,8 +355,8 @@ def arrange_bit16(theme, genre):
             m = triad[k % 3] + 12 + (12 if k % 6 >= 3 else 0)
             tr.add(bar * BAR * STEP + k * STEP / 2, tri(phase(hz(m), na)) * np.exp(-tt(0.11) * 22), 0.05)
     mix = echo(tr.buf, STEP * 3, 0.32, 3)
-    kit = dict(kick=(kick(), 0.5), snare=(snare(0.18), 0.32), hat=(hat(0.04), 0.14))
-    return crush(mix + drums(theme, genre, kit), 22050), None
+    kit = dict(kick=(kick(), 0.5), snare=(snare(0.18), 0.26), hat=(hat(0.04), 0.08))
+    return crush(mix, 22050) + drums(theme, genre, kit), None
 
 
 def lowpass_note(sig, cutoff):
@@ -398,11 +399,11 @@ def arrange_lowpoly(theme, genre):
     sn = reverb_one(snare(0.22, 170.0, 1.0), 0.35, 0.5)
     rng = np.random.default_rng(5)
     shaker = lowpass_note(rng.standard_normal(int(0.03 * SR)), 5000) * np.exp(-tt(0.03) * 80) * 0.2
-    kit = dict(kick=(kick(0.9, 0.26), 0.55), snare=(sn, 0.3), hat=(hat(0.045) + 0.0, 0.12))
+    kit = dict(kick=(kick(0.9, 0.26), 0.55), snare=(sn, 0.24), hat=(hat(0.045), 0.07))
     d = drums(theme, genre, kit)
     sh = Track(theme.steps)
     for k in range(theme.steps * 2):
-        sh.add(k * STEP / 2, shaker, 0.05 if k % 2 else 0.02)
+        sh.add(k * STEP / 2, shaker, 0.025 if k % 2 else 0.01)
     return pitched + d + sh.buf, None
 
 
@@ -450,10 +451,10 @@ def arrange_threed(theme, genre):
                 tr.add((bar * BAR + step) * STEP + j * 0.018 + dt, pluck(hz(m), 0.9, 0.45, 4 + j), 0.1 * vel)
     pitched = reverb(tr.buf, 2.1, 0.33, 6, 4500.0)
     rngd = np.random.default_rng(11)
-    brush = lowpass_note(lowpass_note(rngd.standard_normal(int(0.09 * SR)), 3000) - 0, 9000) * np.exp(-tt(0.09) * 35) * 0.6
+    brush = lowpass_note(rngd.standard_normal(int(0.09 * SR)), 5000) * np.exp(-tt(0.09) * 35) * 0.6
     sn = reverb_one(snare(0.24, 200.0, 1.2, 12), 0.6, 0.7)
     toms = [np.sin(TAU * np.cumsum(f + 40 * np.exp(-tt(0.25) * 20)) / SR) * np.exp(-tt(0.25) * 12) for f in (190, 160, 130, 100)]
-    kit = dict(kick=(kick(1.1, 0.3) * 0.9, 0.5), snare=(sn, 0.26), hat=(brush, 0.11), fill=(toms, 0.3))
+    kit = dict(kick=(kick(1.1, 0.3) * 0.9, 0.5), snare=(sn, 0.22), hat=(brush, 0.07), fill=(toms, 0.3))
     return pitched + reverb(drums(theme, genre, kit), 0.9, 0.18, 13), None
 
 
