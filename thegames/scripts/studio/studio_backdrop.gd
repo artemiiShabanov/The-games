@@ -1531,6 +1531,14 @@ var _coins: Array = []
 var _parcel := false
 
 
+## Цвет статуэтки игры на полке: случайный (полировка 2026-11-17, раньше цвет жанра), но свой у
+## каждой игры и тот же после загрузки слота: от сида и названия записи.
+static func box_color(record: GameRecord) -> Color:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([record.seed, record.title])
+	return Color.from_hsv(rng.randf(), rng.randf_range(0.5, 0.8), rng.randf_range(0.75, 0.95))
+
+
 ## Коробки на полке: цвет на каждую выпущенную игру, по порядку релизов. Новая коробка
 ## встаёт на полку с небольшого падения.
 func set_shelf(colors_: Array[Color]) -> void:

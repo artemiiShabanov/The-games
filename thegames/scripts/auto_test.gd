@@ -210,7 +210,7 @@ func _inject(what: String) -> void:
 			vp.push_input(g, true)
 		"key":
 			var codes := {"space": KEY_SPACE, "esc": KEY_ESCAPE, "up": KEY_UP, "down": KEY_DOWN, "left": KEY_LEFT,
-					"right": KEY_RIGHT, "r": KEY_R, "ctrl": KEY_CTRL, "enter": KEY_ENTER}
+					"right": KEY_RIGHT, "r": KEY_R, "ctrl": KEY_CTRL, "enter": KEY_ENTER, "del": KEY_DELETE}
 			for pressed in [true, false]:
 				var k := InputEventKey.new()
 				k.keycode = codes.get(arg, KEY_SPACE)

@@ -235,6 +235,11 @@ func _run_checks() -> void:
 	f.set_focus_demo(false)
 	f.confirm()
 	_expect(got == ["demo", "next"], "сигналы кнопок %s" % [got])
-	_expect(f._demo != null and f._demo.embedded and f._demo.running, "встроенная демка стрима не запущена")
+	var stream: StreamView = null
+	for n in f._items:
+		if n is StreamView:
+			stream = n
+	_expect(stream != null and stream._demo != null and stream._demo.embedded and stream._demo.running,
+			"встроенная демка стрима не запущена")
 	AutoTest.fulfill("feed checks")
 	AutoTest.note("feed checks done")

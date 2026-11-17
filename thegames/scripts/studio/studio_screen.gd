@@ -3,7 +3,8 @@ extends Control
 ## Экран фазы студии (#28), спека `docs/specs/studio.md`. В большой карточке `CardFrame`
 ## поверх студии: слева ведомость, строки появляются по одной (продажи первой недели нового
 ## релиза, тики хвостов, содержание, банкротство и аванс), деньги в пилюле над карточкой
-## прокручиваются за каждой строкой; справа оценка студии; внизу «На что потратим?» с карточками
+## прокручиваются за каждой строкой; справа оценка студии и под ней карточки критиков этого
+## релиза с оценками (полировка 2026-11-17, `set_critics`); внизу «На что потратим?» с карточками
 ## прокачки по правилу состава. Влево-вправо фокус, A купить, B и Esc отказ. Недоступное по
 ## деньгам красным с нехваткой, фокус на него встаёт, A трясёт карточку. Пул пуст: «студия
 ## укомплектована». Забег окончен банкротством: вместо предложения «студия закрывается», A
@@ -26,6 +27,10 @@ const OFFER_CARD := Vector2(520, 336)
 const KIND_STRIP := 8.0
 const MAX_TAIL_ROWS := 4
 const LIFT_PX := 6
+## Карточки критиков справа под оценкой студии: размер, зазор и верх ряда.
+const CRITIC_CARD := Vector2(272, 196)
+const CRITIC_GAP := 16
+const CRITICS_Y := 188
 
 var report: StudioPhase.Report
 ## Шаг 5: вставка этого релиза (#64) и как её применить (хозяин: `(index) -> String`).
@@ -44,6 +49,8 @@ var ready_for_input := false
 var bought: UpgradeDef
 ## Предложение прокачки не показывается здесь, а ждёт на главном экране посылкой (#133).
 var defer_offer := false
+## Рецензии этого релиза: карточками с портретом, именем и оценкой.
+var critics: Array[FeedContent.Item] = []
 
 var card: CardFrame
 var _money_label: Label
@@ -57,6 +64,7 @@ var _cards: Array[PanelContainer] = []
 var _kind_pills: Array[PanelContainer] = []
 var _kind_labels: Array[Label] = []
 var _lifts: Array[JellyLift] = []
+var _critic_cards: Array[PanelContainer] = []
 var _hints: Control
 var _closing := false
 var _bot_timer := 0.0
@@ -75,6 +83,11 @@ func setup(report_: StudioPhase.Report, wallet_: Wallet, upkeep_: Upkeep, state_
 func set_event(offer_: Events.Offer, apply_: Callable) -> void:
 	event_offer = offer_
 	event_apply = apply_
+
+
+## Рецензии релиза (элементы ленты вида `CRITIC`): по карточке на критика.
+func set_critics(items: Array[FeedContent.Item]) -> void:
+	critics = items
 
 
 func _ready() -> void:
@@ -256,6 +269,8 @@ func _process(delta: float) -> void:
 
 func _run() -> void:
 	_set_money(report.cash_start)
+	for i in _critic_cards.size():
+		_fade_in(_critic_cards[i], i * 0.08)
 	await _step()
 	var money := report.cash_start
 	if report.current != null:
@@ -443,6 +458,14 @@ func _build() -> void:
 	vd.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_valuation_block.add_child(vd)
 
+	var critics_x := inner.x - critics.size() * CRITIC_CARD.x - maxi(critics.size() - 1, 0) * CRITIC_GAP
+	for i in critics.size():
+		var cc := _critic_card(critics[i])
+		cc.position = Vector2(critics_x + i * (CRITIC_CARD.x + CRITIC_GAP), CRITICS_Y)
+		cc.modulate.a = 0.0
+		content.add_child(cc)
+		_critic_cards.append(cc)
+
 	_offer_title = _label("", Style.FONT_H2, Style.INK)
 	_offer_title.position = Vector2(0, OFFER_Y)
 	_offer_title.size = Vector2(inner.x, 44)
@@ -518,6 +541,45 @@ func _make_card(def: UpgradeDef) -> PanelContainer:
 	var note := _label("", Style.FONT_CAPTION, Style.INK_2)
 	note.name = "Note"
 	column.add_child(note)
+	return c
+
+
+## Карточка критика: портрет и оценка, под ними имя цветом акцента и издание. Как в ленте:
+## серая, слева полоса акцента; бортика нет, она не нажимается.
+func _critic_card(item: FeedContent.Item) -> PanelContainer:
+	var c := PanelContainer.new()
+	var sb := Style.flat(Style.SURFACE_2, Style.R_CARD, Color.TRANSPARENT, 20)
+	sb.border_width_left = 6
+	sb.border_color = item.person.accent
+	sb.content_margin_left = 14
+	c.add_theme_stylebox_override("panel", sb)
+	c.custom_minimum_size = CRITIC_CARD
+	c.size = CRITIC_CARD
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	c.add_child(col)
+	var top := HBoxContainer.new()
+	col.add_child(top)
+	var face := PanelContainer.new()
+	face.add_theme_stylebox_override("panel", Style.flat(Style.SURFACE_SOLID, Style.R_CTL, Color.TRANSPARENT, 4))
+	face.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	face.add_child(Portrait.new(item.person.id, 3, item.mood))
+	top.add_child(face)
+	var gap := Control.new()
+	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(gap)
+	var score := _label("%d" % int(item.score) if is_equal_approx(item.score, roundf(item.score)) else "%.1f" % item.score, 52, Style.INK)
+	score.add_theme_font_override("font", Style.mono_font())
+	top.add_child(score)
+	var denom := _label("/10", Style.FONT_CAPTION, Style.INK_3)
+	denom.size_flags_vertical = Control.SIZE_SHRINK_END
+	top.add_child(denom)
+	col.add_child(_spacer(4))
+	var name_label := _label(item.person.name, Style.FONT_BODY, item.person.accent)
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.clip_text = true
+	col.add_child(name_label)
+	col.add_child(_label(item.person.subtitle, Style.FONT_CAPTION, Style.INK_3))
 	return c
 
 

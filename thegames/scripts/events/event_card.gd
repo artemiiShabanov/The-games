@@ -174,6 +174,7 @@ func _build() -> void:
 		shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(shade)
+		Jelly.cover(self)
 	var header := HintPill.header(ShellHeader.release(release, "Вставка"))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)

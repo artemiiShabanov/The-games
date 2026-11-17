@@ -4,7 +4,8 @@ extends Control
 ## прокачки), затем `RunHub` на пиксельной студии. Раздел «Главный экран» дебаг-меню: «Заново», окна. Под ботом:
 ## окно денег сходится с кошельком, окно прокачки по порядку покупки, панель релиза с лентой,
 ## «Новая игра» шлёт сигнал, отложенное предложение покупается с главного экрана один раз.
-## `--no-checks [--pop=money|upgrades|release|offer]` держит экран для скриншота.
+## `--no-checks [--pop=money|upgrades|release|offer|game|stream|box]` держит экран для скриншота
+## (`stream` окно стрима последнего релиза, `box` фокус на статуэтке с пилюлей названия).
 ## После релиза (#133): `--after` открывает экран со свежим релизом и волнами отклика
 ## (`--after=all` все волны сразу, `--pop=bet` окно ставки, `--pop=wave` лента пришедшего);
 ## под ботом после обычных проверок идут проверки волн, ставки и вещей в студии.
@@ -99,6 +100,11 @@ func _open() -> void:
 		_open_after_hub()
 	else:
 		hub.setup(run)
+	hub.shelf_rects = func() -> Array[Rect2]:
+		var out: Array[Rect2] = []
+		for i in run.records.size():
+			out.append(_bg.get_global_transform_with_canvas() * _bg.thing_local_rect(&"box", i))
+		return out
 	hub.new_game.connect(func() -> void: _started = true)
 	hub.overlay_changed.connect(func(on: bool) -> void:
 		create_tween().tween_property(_dim, "modulate:a", 1.0 if on else 0.0, Style.STUDIO_DIM_SECONDS))
@@ -125,6 +131,15 @@ func _show_pop() -> void:
 			hub.open_wave(RunHub.Wave.CRITICS if hub.waves_left() == 0 else RunHub.Wave.TWEETS)
 		"game":
 			hub.open_record(0)
+		"stream":
+			if hub.after:
+				hub.show_all_waves()
+				hub.open_wave(RunHub.Wave.STREAM)
+			else:
+				hub._open_stream(run.records[-1], run.build_feed(run.records[-1]))
+		"box":
+			hub.focus = hub._box_focus.find_key(0)
+			hub._refresh_focus()
 		"settings":
 			hub.open_settings()
 		"toast":
@@ -149,11 +164,9 @@ func _open_after_hub() -> void:
 
 
 func _shelf_colors() -> Array[Color]:
-	var genres := Catalog.load_kind(0)
 	var out: Array[Color] = []
 	for r in run.records:
-		var entry := genres.by_value(int(r.genre))
-		out.append(entry.color if entry != null else Style.INK_3)
+		out.append(StudioBackdrop.box_color(r))
 	return out
 
 
@@ -206,8 +219,17 @@ func _check_after() -> void:
 	hub._close_window(false)
 	_expect(_bets == [true] and _record.bet_done, "после рецензий верная ставка сыграла: %s" % [_bets])
 	hub.open_wave(RunHub.Wave.SALES)
-	_expect(hub._feed != null and hub._feed.content.items.size() == run.build_feed(_record).items.size(), "лента после рецензий целая")
+	var whole := run.build_feed(_record)
+	var has_clip := StreamScreen.clip_of(whole) != null
+	_expect(hub._feed != null and hub._feed.content.items.size() == whole.items.size() - int(has_clip)
+			and StreamScreen.clip_of(hub._feed.content) == null, "лента после рецензий целая, стрима в ней нет")
 	hub._close_window(false)
+	# Стрим отдельным окном, а не посреди ленты.
+	if has_clip:
+		hub.open_wave(RunHub.Wave.STREAM)
+		_expect(hub.window == RunHub.Pop.STREAM and hub._stream != null and hub._feed == null, "карточка «Стрим» открывает окно стрима")
+		hub._close_window(false)
+		_expect(hub.window == RunHub.Pop.NONE and hub._stream == null, "окно стрима закрыто")
 	# Вещи в студии: коробка на игру, клик шлёт сигнал с номером.
 	var got: Array = []
 	_bg.thing_clicked.connect(func(kind: StringName, index: int) -> void: got.append([kind, index]))
@@ -217,8 +239,15 @@ func _check_after() -> void:
 			"коробка нажимается")
 	_expect(got == [[&"box", 1]], "клик по коробке: %s" % [got])
 	hub.open_record(1)
-	_expect(hub.window == RunHub.Pop.GAME and hub._feed_record == run.records[1] and hub._game_buttons.size() == 2,
-			"коробка открывает карточку своей игры")
+	_expect(hub.window == RunHub.Pop.GAME and hub._feed_record == run.records[1] and hub._game_actions.has(&"feed")
+			and hub._game_buttons.size() == hub._game_actions.size(), "коробка открывает карточку своей игры: %s" % [hub._game_actions])
+	# Карточка игры это вход в ленту релиза: столбика релизов на экране больше нет.
+	hub._press_game(hub._game_actions.find(&"feed"))
+	_expect(hub.window == RunHub.Pop.RELEASE and hub._feed != null and hub._feed.record == run.records[1], "«Отклик» открывает ленту игры")
+	hub._close_window(false)
+	_expect(hub._box_focus.size() == run.records.size(), "статуэтки в списке фокуса: %d" % hub._box_focus.size())
+	hub.activate(hub._box_focus.find_key(0))
+	_expect(hub.window == RunHub.Pop.GAME and hub._feed_record == run.records[0], "статуэтка в фокусе открывает карточку игры")
 	hub._close_window(false)
 	_expect(_bg.prop_info().has("tv_channel") and _bg.poke(&"tv"), "телевизор на месте и нажимается")
 	_bg.pay_tails([0, 1])

@@ -24,7 +24,8 @@
   --screenshot=debug/playtest/x.png`; автолоад `AutoTest`, бот `AutoTest.bot_mode` (OFF, WIN, LOSE),
   `AutoTest.fail(reason)` из любой системы. Дебаг-меню F1, `--debug`, `--scene=<id>`.
   Ввод как от игрока (#82): `--bot=off "--input=200:key=space,300:move=960x936,310:click=960x936,
-  320:wheel=2@300x500,330:pan=40@1500x500"` (кадр:действие, координаты экрана 1920×1080; заметка
+  320:wheel=2@300x500,330:pan=40@1500x500"` (кадр:действие, клавиши
+  `key=space|esc|up|down|left|right|r|ctrl|enter|del`, координаты экрана 1920×1080; заметка
   пишет Control под курсором: если там корень сцены, он съедает клики, нужен `MOUSE_FILTER_IGNORE`).
 - Одна мини-игра ботом (WIN, затем LOSE): `sh tools/autotest.sh --scene=sprint_runner_test
   --minigame=<id> --frames=3500` (часть мини-игр не укладывается в 1500). Под автотестом `t` и сид
@@ -68,7 +69,7 @@
   [wild,sneeze,walls,finish,nonitro]`. Шутер × 16/32-bit «до выхода» (#100):
   `--scene=demo_test --genre=shooter --tech=bit16 --frames=5000`, карта по сиду и боты без окна
   текстом `debug/tools/dump_hold.gd -- <seed> [count] [wild,sneeze,pass,endless,walls]`. Футбол ×
-  16/32-bit (#101): `--scene=demo_test --genre=sport --tech=bit16 --frames=7000`, план по сиду и
+  16/32-bit (#101): `--scene=demo_test --genre=sport --tech=bit16 --frames=9000`, план по сиду и
   боты без окна текстом `debug/tools/dump_soccer.gd -- <seed> [count] [wild,narrow,sneeze,space]`.
   Битемап × 16/32-bit (#102): `--scene=demo_test --genre=fighting --tech=bit16 --frames=10000`, волны
   по сиду и боты без окна текстом `debug/tools/dump_brawl.gd -- <seed> [count] [wild,immortal,sneeze,ghost]`. Основа low poly
@@ -111,7 +112,7 @@
   --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`). Мышь в мини-играх:
   `--scene=mouse_test --frames=1500`.
   Главный экран забега: `--scene=hub_test --frames=60`, кадр `--no-checks
-  [--past=N] [--pop=money|upgrades|release|offer]`; экран после релиза (#133) `--after`
+  [--past=N] [--pop=money|upgrades|release|offer|stream|box]`; экран после релиза (#133) `--after`
   (`--after=all` все волны отклика сразу, `--pop=bet|wave`; `--pop=game` карточка игры с полки). Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
   кадр `--no-checks [--empty] [--studios]`; профиль `--scene=profile_test --frames=30`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop
   --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--remake` студия с вектором и «Ремейками», бот берёт ремейк (`--remake=lowpoly` с 3D вместо вектора), `--techs` студия со всеми четырьмя купленными технологиями, `--start-tech=N` старт с технологии N, `--refuse-events`

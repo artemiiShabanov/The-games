@@ -4,7 +4,8 @@ extends Control
 ## главного экрана забега: десять плашек в два столбца, у каждой портрет героя, название и
 ## состояние. Открытый со старта, открытый достижением, купленный на этот забег или закрытый:
 ## у закрытого силуэт, название достижения, условие и прогресс в идущем забеге. Сеттинг без
-## готового набора помечен «скоро». Экран только показывает: Esc, ␣ или клик закрывают.
+## готового набора помечен «скоро». Экран только показывает: Esc или ␣ закрывают, клик только
+## мимо карточки (полировка 2026-11-17: клик по самой карточке её не закрывает).
 ## Работает и на паузе дерева.
 
 signal closed
@@ -16,6 +17,7 @@ const OPEN_COLOR := Color("#1F8A4C")
 
 var profile: Profile
 var run: RunState
+var _panel: PanelContainer
 
 
 func setup(profile_: Profile, run_: RunState = null) -> void:
@@ -49,7 +51,9 @@ func _ready() -> void:
 	panel.add_theme_stylebox_override("panel", Style.card(true))
 	panel.custom_minimum_size = Vector2(WIDTH, 0)
 	center.add_child(panel)
+	_panel = panel
 	Jelly.panel(panel)
+	Jelly.cover(self)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	panel.add_child(column)
@@ -173,7 +177,7 @@ func _input(event: InputEvent) -> void:
 	if MouseUi.is_motion(event):
 		return
 	var key := event as InputEventKey
-	if MouseUi.is_click(event) or (key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE) \
+	if (MouseUi.is_click(event) and not MouseUi.hit(_panel, event)) or (key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE) \
 			or (not event.is_echo() and (GameInput.is_a(event) or GameInput.is_b(event))):
 		close()
 	if viewport != null and (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton

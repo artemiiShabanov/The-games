@@ -48,6 +48,7 @@ static func button(c: Control, radius := float(Style.R_CTL)) -> JellyLift:
 ## фокус не реагирует. Числа в `ui_frame_motion`.
 static func attach_frame(c: Control) -> void:
 	ui().attach(c, Style.R_CARD, 40.0, false, 0.0, false, 0.0, tuning().ui_frame_motion)
+	ui().add_cover(c)
 
 
 ## Модальная карточка поверх экрана (пауза, предложение, итог): пружинит при появлении,
@@ -56,7 +57,15 @@ static func attach_frame(c: Control) -> void:
 ## каждый раз вздрагивала целиком, и кнопки с текстом разъезжались.
 static func panel(c: Control, radius := float(Style.R_CARD)) -> JellyLift:
 	ui().attach(c, radius, 32.0, false, 0.0, false, 0.0)
+	ui().add_cover(c)
 	return JellyLift.add_to(c, radius, Style.CARD_THICKNESS)
+
+
+## Экран или окно во весь экран (настройки, сеттинги, пауза): пока `root` виден, элементы под
+## ним на курсор и нажатие не реагируют. Карточки `panel` и `attach_frame` закрывают то, что под
+## их прямоугольником, сами (полировка 2026-11-17: вмятина проходила сквозь открытое окно).
+static func cover(root: Control) -> void:
+	ui().add_cover(root)
 
 
 ## Вздрог элемента: фокус, выбор, подтверждение.

@@ -38,6 +38,9 @@ signal demo_started(record: GameRecord, source: StringName)
 signal demo_finished(record: GameRecord, reached_goal: bool)
 
 const RESULT_SECONDS := 1.8
+## Стоп-кадр последнего момента перед экраном итога (полировка 2026-11-17: итог обрывал
+## концовку на полуслове).
+const END_HOLD_SECONDS := 1.0
 ## Розовая заглушка вместо спрайта (`pink_placeholders`).
 const PINK := Color("#FF2BD6")
 ## Заикание музыки: длина залипания и кусок, который повторяется.
@@ -109,6 +112,7 @@ var embedded := false
 var embed_size := Vector2.ZERO
 var bot_mode := AutoTest.BotMode.WIN
 var _result_left := 0.0
+var _hold_left := 0.0
 var _closing := false
 var _menu_index := 0
 var _overlay: Control
@@ -739,7 +743,8 @@ func draw_pixel_text(canvas: CanvasItem, pos: Vector2, text: String, ink: Color,
 					canvas.draw_rect(r, ink)
 
 
-## Итог: по цели (true) или по условию провала демки (false). Экран итога, потом сигнал.
+## Итог: по цели (true) или по условию провала демки (false). Секунда стоп-кадра, экран
+## итога, потом сигнал.
 func end_demo(goal: bool) -> void:
 	if not running:
 		return
@@ -748,9 +753,10 @@ func end_demo(goal: bool) -> void:
 	_look_capture()
 	reached = goal
 	_on_end(goal)
-	if not embedded:
-		_show_overlay(_result_title(goal), _result_caption(), Style.SUCCESS if goal else Style.INK)
-	_result_left = RESULT_SECONDS
+	if embedded:
+		_result_left = RESULT_SECONDS
+	else:
+		_hold_left = END_HOLD_SECONDS
 
 
 ## Пропустить: без экрана итога, сразу наружу.
@@ -789,6 +795,12 @@ func _process(delta: float) -> void:
 	if _loading != null:
 		_loading_time += delta
 		_loading.queue_redraw()
+	if _hold_left > 0.0:
+		_hold_left -= delta
+		if _hold_left <= 0.0 and not finished and not _closing:
+			_show_overlay(_result_title(reached), _result_caption(), Style.SUCCESS if reached else Style.INK)
+			_result_left = RESULT_SECONDS
+		return
 	if _result_left > 0.0:
 		_result_left -= delta
 		if _result_left <= 0.0 and not finished and not _closing:

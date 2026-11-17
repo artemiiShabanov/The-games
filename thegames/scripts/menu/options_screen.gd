@@ -49,6 +49,7 @@ func _ready() -> void:
 	panel.custom_minimum_size = Vector2(WIDTH, 0)
 	center.add_child(panel)
 	Jelly.panel(panel)
+	Jelly.cover(self)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", ROW_GAP)
 	panel.add_child(column)

@@ -4,7 +4,9 @@ extends Control
 ## забегов (логотип и название студии, «Релиз N · $ X» или «пусто») и кнопки «Галерея» и
 ## «Выход». ← → по слотам, ↓ к кнопкам, ␣ или клик: пустой слот начинает забег, занятый
 ## продолжает с сохранённой фазы. R на занятом слоте: новый забег в нём, с подтверждением
-## (␣ подтвердить, Esc отмена). Галерея профиля поверх, по Esc назад в меню.
+## (␣ подтвердить, Esc отмена). Del на занятом слоте или клик по его пилюле «Удалить» удаляет
+## сохранение, тоже с подтверждением (полировка 2026-11-17); игры забега остаются в галерее.
+## Галерея профиля поверх, по Esc назад в меню.
 ## Под автотестом без `--menu` меню сразу открывает игру без слота, как раньше.
 
 const GAME_PATH := "res://scenes/main.tscn"
@@ -14,6 +16,8 @@ const LOGO := 96.0
 var focus := 0
 var saves: Array[RunSave] = []
 var confirming := -1
+## Подтверждение на экране про удаление сохранения, а не про новый забег в слоте.
+var deleting := false
 
 var card: CardFrame
 var _slots: Array[PanelContainer] = []
@@ -21,6 +25,11 @@ var _slot_lifts: Array[JellyLift] = []
 var _buttons: Array[PanelContainer] = []
 var _button_lifts: Array[JellyLift] = []
 var _confirm: Control
+## Пилюля «да» в подтверждении: удаление мышью подтверждает только клик по ней.
+var _confirm_yes: Control
+## Пилюли «Удалить» занятых слотов; у пустого слота `null`.
+var _delete_pills: Array[Control] = []
+var _slot_row: HBoxContainer
 var _gallery: GalleryScreen
 ## Нижние пилюли меню: прячутся вместе с карточкой, иначе лежат под пилюлями галереи.
 var _hints: HBoxContainer
@@ -83,8 +92,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if MouseUi.is_click(event):
 		var at := _item_at(event)
+		var del := _delete_at(event)
 		if confirming >= 0:
-			_confirm_new(true)
+			_confirm_new(not deleting or MouseUi.hit(_confirm_yes, event))
+		elif del >= 0:
+			focus = del
+			_refresh()
+			ask_delete(del)
 		elif at >= 0:
 			focus = at
 			activate()
@@ -103,6 +117,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key != null and key.pressed and key.keycode == KEY_R:
 		ask_new(focus)
+	elif key != null and key.pressed and key.keycode in [KEY_DELETE, KEY_BACKSPACE]:
+		ask_delete(focus)
 	elif event.is_action_pressed(GameInput.LEFT):
 		move(-1)
 	elif event.is_action_pressed(GameInput.RIGHT):
@@ -116,6 +132,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		return
 	MouseUi.consume(viewport)
+
+
+## Слот, по пилюле «Удалить» которого пришёлся клик, или -1.
+func _delete_at(event: InputEvent) -> int:
+	for i in _delete_pills.size():
+		if _delete_pills[i] != null and MouseUi.hit(_delete_pills[i], event):
+			return i
+	return -1
 
 
 func _item_at(event: InputEvent) -> int:
@@ -170,6 +194,18 @@ func ask_new(i: int) -> void:
 		activate()
 		return
 	confirming = i
+	deleting = false
+	_confirm = _make_confirm(i)
+	add_child(_confirm)
+	ShellSounds.play(&"intro")
+
+
+## Del или пилюля «Удалить»: стереть сохранение слота, с подтверждением. Пустой слот не трогает.
+func ask_delete(i: int) -> void:
+	if i < 0 or i >= RunSave.SLOTS or saves[i] == null:
+		return
+	confirming = i
+	deleting = true
 	_confirm = _make_confirm(i)
 	add_child(_confirm)
 	ShellSounds.play(&"intro")
@@ -177,18 +213,40 @@ func ask_new(i: int) -> void:
 
 func _confirm_new(yes: bool) -> void:
 	var i := confirming
+	var delete_only := deleting
 	confirming = -1
+	deleting = false
 	if _confirm != null:
 		_confirm.queue_free()
 		_confirm = null
+		_confirm_yes = null
 	if not yes:
 		ShellSounds.play(&"tick")
 		return
 	RunSave.delete_slot(i + 1)
 	saves[i] = null
-	_refresh()
 	focus = i
+	if delete_only:
+		AutoTest.note("menu: сохранение слота %d удалено, файл %s" % [i + 1, "остался" if RunSave.exists(i + 1) else "стёрт"])
+		ShellSounds.play(&"done")
+		_rebuild_slot(i)
+		_refresh()
+		return
+	_refresh()
 	activate()
+
+
+## Слот заново после удаления сохранения: на месте занятого встаёт пустой.
+func _rebuild_slot(i: int) -> void:
+	var old := _slots[i]
+	var fresh := _make_slot(i)
+	_slot_row.add_child(fresh)
+	_slot_row.move_child(fresh, old.get_index())
+	_slot_row.remove_child(old)
+	old.queue_free()
+	_slots[i] = fresh
+	_slot_lifts[i] = Jelly.button(fresh, float(Style.R_CARD))
+	MouseUi.pass_through(fresh)
 
 
 func _open_gallery() -> void:
@@ -255,6 +313,8 @@ func _build() -> void:
 	row.add_theme_constant_override("separation", Style.GAP_CARDS)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(row)
+	_slot_row = row
+	_delete_pills.resize(RunSave.SLOTS)
 	for i in RunSave.SLOTS:
 		var s := _make_slot(i)
 		row.add_child(s)
@@ -286,6 +346,7 @@ func _build() -> void:
 	hints.add_child(HintPill.make("← → ↑ ↓ выбрать"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "открыть")))
 	hints.add_child(HintPill.make("R новый забег в слоте"))
+	hints.add_child(HintPill.make("Del удалить сохранение"))
 	add_child(hints)
 	_hints = hints
 	MouseUi.pass_through(self)
@@ -308,7 +369,25 @@ func _make_slot(i: int) -> PanelContainer:
 	col.add_theme_constant_override("separation", 10)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(col)
-	col.add_child(_label("Слот %d" % (i + 1), Style.FONT_CAPTION, Style.INK_3))
+	var top := HBoxContainer.new()
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(top)
+	var slot_label := _label("Слот %d" % (i + 1), Style.FONT_CAPTION, Style.INK_3)
+	slot_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(slot_label)
+	_delete_pills[i] = null
+	if s != null:
+		var del := PanelContainer.new()
+		var dsb := Style.flat(Style.SURFACE_SOLID, Style.R_PILL, Color.TRANSPARENT, 0)
+		dsb.content_margin_left = 14
+		dsb.content_margin_right = 14
+		dsb.content_margin_top = 2
+		dsb.content_margin_bottom = 2
+		del.add_theme_stylebox_override("panel", dsb)
+		del.add_child(_label("Удалить", Style.FONT_CAPTION, Style.INK_2))
+		top.add_child(del)
+		Jelly.attach_pill(del)
+		_delete_pills[i] = del
 	if s == null:
 		var f := Control.new()
 		f.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -363,18 +442,22 @@ func _make_confirm(i: int) -> Control:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.add_child(panel)
 	Jelly.panel(panel)
+	Jelly.cover(root)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 16)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(col)
-	col.add_child(_label("Новый забег в слоте %d?" % (i + 1), Style.FONT_H1, Style.INK))
-	var text := _label("Студия «%s» будет закрыта. Игры останутся в галерее." % saves[i].studio_name,
+	col.add_child(_label(("Удалить сохранение в слоте %d?" if deleting else "Новый забег в слоте %d?") % (i + 1),
+			Style.FONT_H1, Style.INK))
+	var text := _label(("Сохранение студии «%s» будет удалено. Игры останутся в галерее." if deleting
+			else "Студия «%s» будет закрыта. Игры останутся в галерее.") % saves[i].studio_name,
 			Style.FONT_BODY, Style.INK_2)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(text)
 	var hint := HBoxContainer.new()
 	hint.add_theme_constant_override("separation", 16)
-	hint.add_child(HintPill.make(GameInput.hint(GameInput.A, "начать заново")))
+	_confirm_yes = HintPill.make(GameInput.hint(GameInput.A, "удалить" if deleting else "начать заново"))
+	hint.add_child(_confirm_yes)
 	hint.add_child(HintPill.make("Esc отмена"))
 	col.add_child(hint)
 	return root

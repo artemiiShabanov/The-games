@@ -4,26 +4,28 @@ extends Control
 ## релизами игрок стоит здесь, новый релиз начинается кнопкой «Новая игра», а не сам. Фоном
 ## студия (её рисует хозяин под экраном), поверх только хром: слева сверху логотип и название,
 ## под ними пилюли денег и «Прокачка» (и «Прокачаться», если от предложения фазы студии
-## отказались), справа столбик карточек релизов, снизу по центру «Новая игра» (плейтест
-## 2026-11-11: деньги и прокачка слева, релизы справа).
+## отказались), снизу по центру «Новая игра». Столбика карточек релизов справа нет (полировка
+## 2026-11-17): выпущенные игры открываются со статуэток на полке студии.
 ## - Пилюля денег раскрывает мармеладом окно с историей денег по релизам (`Wallet.history`).
 ## - «Прокачка» раскрывает окно купленной прокачки по порядку покупки с цветом вида (#79).
 ## - «Прокачаться» раскрывает отложенное предложение прокачки (`RunState.pending_offer`): одна
 ##   покупка до старта новой игры, с тем же запасом на следующий релиз, что и в фазе студии.
-## - Карточка релиза выдвигает слева на полэкрана ленту этого релиза (`FeedScreen` архивом)
-##   с «Играть демку»; демка идёт на весь экран, по её концу панель снова на месте.
+## - Статуэтка на полке открывает карточку игры как в галерее: «Играть» (демка на весь экран),
+##   «Отклик» (лента этого релиза панелью слева, `FeedScreen` архивом, без стрима), «Стрим»
+##   (запись стримера отдельным окном, `StreamScreen`) и «Закрыть». Статуэтки в фокус берут и
+##   стрелки: хозяин даёт их прямоугольники (`shelf_rects`), под выбранной пилюля с названием.
 ## После релиза (#133, `setup_after`): тот же экран, но вместо «Новой игры» кнопка «Итоги
 ## релиза», а слева под пилюлями столбик карточек отклика. Отклик приходит волнами с небольшим
 ## перерывом: твиты, стример, критики, продажи; карточка волны открывает ленту релиза с тем, что
-## уже пришло. Первой стоит карточка ставки: до прихода критиков можно угадать их оценку
+## уже пришло, карточка «Стрим» окно стрима. Первой стоит карточка ставки: до прихода критиков можно угадать их оценку
 ## (`RunTuning.bet_*`). Кнопка внизу, пока волны идут, показывает всё сразу, потом ведёт к
 ## итогам (`after_finished`). Клик по предмету в студии это второй вход в те же действия:
 ## хозяин зовёт `open_offer` (посылка) и `open_record` (коробка на полке).
 ## Оценки критиков не показываются, пока игрок не нажал на их карточку: тогда рецензии
 ## открываются по одной с паузой и только после этого попадают в общую ленту; ставка
-## принимается, пока они закрыты. Коробка на полке студии открывает карточку игры как в галерее.
+## принимается, пока они закрыты.
 ## Стрелки ходят по экрану (`FocusNav`), наведение мыши переносит фокус, ␣ или клик нажимают,
-## колесо и тачпад листают релизы и окна. Esc, Ctrl или клик мимо закрывают окно; без окна Esc
+## колесо и тачпад листают окна. Esc, Ctrl или клик мимо закрывают окно; без окна Esc
 ## уходит хозяину (пауза).
 
 signal new_game
@@ -37,12 +39,8 @@ signal bet_resolved(won: bool)
 signal critics_revealed
 signal after_finished
 
-const RELEASE_CARD := Vector2(400, 116)
-const RELEASES_TOP := 12.0
-const RELEASES_BOTTOM := 120.0
 ## Ряд пилюль денег и прокачки под названием студии.
 const PILLS_Y := 104.0
-const STRIPE := 6.0
 const WINDOW_WIDTH := 640.0
 const WINDOW_TOP := 176.0
 const WINDOW_MAX_HEIGHT := 760.0
@@ -54,12 +52,15 @@ const ROW_GAP := 12
 const OFFER_COLOR := Color("#2BB37A")
 const OFFER_PULSE_SECONDS := 2.4
 
-enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME }
+enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME, STREAM }
 ## Волны отклика после релиза по порядку прихода; ставка стоит первой и не приходит.
 enum Wave { BET, TWEETS, STREAM, CRITICS, SALES }
 
 const GAME_CARD_WIDTH := 840.0
-const GAME_BUTTON := Vector2(280, 72)
+const GAME_BUTTON := Vector2(200, 72)
+## Поле вокруг статуэтки на полке, в котором она берёт курсор: сама она мелкая.
+const BOX_GROW := Vector2(2, 8)
+const BOX_TIP_GAP := 4.0
 const WAVE_CARD := Vector2(400, 96)
 const WAVES_TOP := 196.0
 const WAVE_NAMES: Array[String] = ["Ставка", "Твиты", "Стрим", "Критики", "Первая неделя"]
@@ -85,7 +86,11 @@ var _bed: MusicBed
 var _focusables: Array[Control] = []
 var _lifts: Array[JellyLift] = []
 var _labels: Array[Label] = []
-var _release_count := 0
+## Прямоугольники статуэток на полке студии по номеру игры в забеге, на экране: даёт хозяин.
+var shelf_rects: Callable
+## Статуэтки в списке фокуса: индекс фокуса в номер игры; пилюля с названием над выбранной.
+var _box_focus: Dictionary[int, int] = {}
+var _box_tip: PanelContainer
 var _new_index := 0
 var _upgrades_index := 0
 var _money_index := 0
@@ -100,11 +105,11 @@ var _offer_halo: Panel
 var _pills: HBoxContainer
 var _chrome: Control
 var _hints: HBoxContainer
-var _releases_scroll: ScrollContainer
 var _window_node: PanelContainer
 var _window_scroll: ScrollContainer
 var _feed: FeedScreen
 var _feed_record: GameRecord
+var _stream: StreamScreen
 var _demo: Demo
 var _catalogs: Array[Catalog] = []
 ## После релиза (#133): запись и лента свежего релиза, волны, которые ещё придут, и пришедшие.
@@ -121,7 +126,8 @@ var _bet_lifts: Array[JellyLift] = []
 var _bet_focus := 1
 ## Открыта панель рецензий: с её закрытием оценки считаются увиденными.
 var _revealing := false
-## Карточка игры (коробка с полки): кнопки «Играть демку» и «Закрыть».
+## Карточка игры (статуэтка с полки): кнопки и что каждая делает.
+var _game_actions: Array[StringName] = []
 var _game_buttons: Array[PanelContainer] = []
 var _game_lifts: Array[JellyLift] = []
 var _game_focus := 0
@@ -214,7 +220,7 @@ func waves_left() -> int:
 
 func _process(delta: float) -> void:
 	if _bed != null:
-		_bed.active = not playing and _feed == null
+		_bed.active = not playing and _feed == null and _stream == null
 	if not after or _wave_plan.is_empty() or window != Pop.NONE or playing or get_tree().paused:
 		return
 	_wave_timer -= delta
@@ -282,6 +288,9 @@ func open_wave(kind: Wave) -> void:
 		elif _wave_nodes.has(kind):
 			Jelly.poke(_wave_nodes[kind], 1.0)
 		return
+	if kind == Wave.STREAM:
+		_open_stream(after_record, after_content)
+		return
 	if kind == Wave.CRITICS and not after_record.bet_done:
 		# Первый раз: только рецензии, по одной с паузой.
 		_open_feed(after_record, after_content.only([FeedContent.Kind.CRITIC]), -1, run.tuning.after_critic_seconds)
@@ -295,8 +304,6 @@ func open_wave(kind: Wave) -> void:
 		match w:
 			Wave.TWEETS:
 				kinds.append(FeedContent.Kind.TWEET)
-			Wave.STREAM:
-				kinds.append(FeedContent.Kind.CLIP)
 			Wave.CRITICS:
 				if seen:
 					kinds.append(FeedContent.Kind.CRITIC)
@@ -305,8 +312,6 @@ func open_wave(kind: Wave) -> void:
 				if seen:
 					kinds.append(FeedContent.Kind.NUMBERS)
 	match kind:
-		Wave.STREAM:
-			want = FeedContent.Kind.CLIP
 		Wave.CRITICS:
 			want = FeedContent.Kind.CRITIC
 		Wave.SALES:
@@ -322,8 +327,8 @@ func open_wave(kind: Wave) -> void:
 func activate(i: int) -> void:
 	focus = i
 	_refresh_focus()
-	if i < _release_count:
-		_open_release(i)
+	if _box_focus.has(i):
+		open_record(_box_focus[i])
 	elif i == _new_index:
 		start_new_game()
 	elif i == _upgrades_index:
@@ -396,18 +401,19 @@ func _offer_affordable(i: int) -> bool:
 	return run.wallet.can_afford(_offer_defs[i].price(run.economy) + run.cheapest_next())
 
 
+## Лента релиза `i` с конца (0 последний).
 func open_release(i: int) -> void:
 	_open_release(i)
 
 
-## Релиз по номеру в забеге с нуля (коробка на полке студии, #133).
+## Релиз по номеру в забеге с нуля (статуэтка на полке студии, #133).
 func open_record(index: int) -> void:
 	if index >= 0 and index < run.records.size() and not playing:
 		_open_game(index)
 
 
 ## Карточка игры по центру, как строка галереи: тройка, название, критики, штампы багов, кадр
-## демки; под ней «Играть демку» и «Закрыть».
+## демки; под ней «Играть», «Отклик», «Стрим» (если стример игру показывал) и «Закрыть».
 func _open_game(index: int) -> void:
 	_close_window(false)
 	window = Pop.GAME
@@ -428,7 +434,17 @@ func _open_game(index: int) -> void:
 	_game_buttons.clear()
 	_game_lifts.clear()
 	_game_focus = 0
-	for text in ["Играть", "Закрыть"]:
+	_game_actions = [&"play"]
+	var names: Array[String] = ["Играть"]
+	if record.score != null:
+		_game_actions.append(&"feed")
+		names.append("Отклик")
+		if run.build_feed(record).clip_person != null:
+			_game_actions.append(&"stream")
+			names.append("Стрим")
+	_game_actions.append(&"close")
+	names.append("Закрыть")
+	for text in names:
 		var b := PanelContainer.new()
 		b.custom_minimum_size = GAME_BUTTON
 		var l := _label(text, Style.FONT_H2, Style.INK)
@@ -441,6 +457,7 @@ func _open_game(index: int) -> void:
 	_window_node = panel
 	add_child(panel)
 	MouseUi.pass_through(panel)
+	Jelly.panel(panel)
 	_refresh_game()
 	panel.reset_size()
 	panel.position = ((Vector2(Style.SCREEN) - panel.size) / 2.0).floor()
@@ -470,11 +487,17 @@ func _refresh_game() -> void:
 
 func _press_game(i: int) -> void:
 	_game_lifts[i].press()
-	if i == 0:
-		ShellSounds.play(&"done")
-		_play_demo()
-	else:
-		_close_window()
+	var record := _feed_record
+	match _game_actions[i]:
+		&"play":
+			ShellSounds.play(&"done")
+			_play_demo()
+		&"feed":
+			_open_feed(record, _feed_of(record), -1)
+		&"stream":
+			_open_stream(record, run.build_feed(record))
+		_:
+			_close_window()
 
 
 ## Карточка игры: ← → или наведение выбирают кнопку, ␣ или клик нажимают, Esc и клик мимо
@@ -502,7 +525,8 @@ func _game_input(event: InputEvent, viewport: Viewport) -> void:
 	elif esc or GameInput.is_b(event):
 		_close_window()
 	elif event.is_action_pressed(GameInput.LEFT, true) or event.is_action_pressed(GameInput.RIGHT, true):
-		var next := 0 if event.is_action_pressed(GameInput.LEFT, true) else 1
+		var step := -1 if event.is_action_pressed(GameInput.LEFT, true) else 1
+		var next := clampi(_game_focus + step, 0, _game_buttons.size() - 1)
 		if next != _game_focus:
 			_game_focus = next
 			ShellSounds.play(&"tick")
@@ -524,6 +548,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_window()
 			MouseUi.consume(viewport)
 		return
+	if window == Pop.STREAM:
+		# Окно стрима разбирает ввод само.
+		return
 	if window == Pop.GAME:
 		_game_input(event, viewport)
 		return
@@ -536,11 +563,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			focus = over
 			ShellSounds.play(&"tick")
 			_refresh_focus()
-		return
-	var px := MouseUi.scroll_px(event)
-	if px != 0.0:
-		_releases_scroll.scroll_vertical += int(px)
-		MouseUi.consume(viewport)
 		return
 	if MouseUi.is_click(event):
 		var at := _focus_at(event)
@@ -555,7 +577,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			focus = next
 			ShellSounds.play(&"tick")
 			_refresh_focus()
-			_scroll_to_focus()
 		MouseUi.consume(viewport)
 	elif not event.is_echo() and GameInput.is_a(event):
 		activate(focus)
@@ -675,16 +696,9 @@ func _focus_at(event: InputEvent) -> int:
 		var c := _focusables[i]
 		if not c.is_visible_in_tree():
 			continue
-		if i < _release_count and not MouseUi.rect_of(_releases_scroll).has_point(m.position):
-			continue
 		if MouseUi.rect_of(c).has_point(m.position):
 			return i
 	return -1
-
-
-func _scroll_to_focus() -> void:
-	if focus < _release_count:
-		_releases_scroll.ensure_control_visible(_focusables[focus])
 
 
 # --- Окна --------------------------------------------------------------------------------------
@@ -747,6 +761,11 @@ func _close_window(sound := true) -> void:
 			else:
 				f.card.drop_card()
 				get_tree().create_timer(Style.CARD_DROP_SECONDS + 0.05).timeout.connect(f.queue_free)
+	elif window == Pop.STREAM:
+		if _stream != null:
+			_stream.queue_free()
+			_stream = null
+		_feed_record = null
 	elif _window_node != null:
 		var w := _window_node
 		_window_node = null
@@ -767,6 +786,7 @@ func _close_window(sound := true) -> void:
 	window = Pop.NONE
 	overlay_changed.emit(false)
 	_set_new_game_shown(true)
+	_refresh_tip()
 	if _revealing:
 		_revealing = false
 		_reveal_critics()
@@ -1046,14 +1066,37 @@ func _kind_pill(kind: int, text: String) -> PanelContainer:
 	return p
 
 
-## Лента релиза справа на полэкрана.
+## Лента релиза слева на полэкрана.
 func _open_release(i: int) -> void:
 	var record := run.records[run.records.size() - 1 - i]
 	if record.score == null:
 		ShellSounds.play(&"miss")
 		return
-	_lifts[i].press()
-	_open_feed(record, run.build_feed(record), -1)
+	_open_feed(record, _feed_of(record), -1)
+
+
+## Лента прошлого релиза без стрима: он открывается отдельным окном.
+func _feed_of(record: GameRecord) -> FeedContent:
+	return run.build_feed(record).only([FeedContent.Kind.TWEET, FeedContent.Kind.CRITIC, FeedContent.Kind.NUMBERS])
+
+
+## Стрим релиза отдельным окном по центру.
+func _open_stream(record: GameRecord, content: FeedContent) -> void:
+	var screen := StreamScreen.new()
+	if not screen.setup(record, content):
+		screen.free()
+		ShellSounds.play(&"miss")
+		return
+	_close_window(false)
+	window = Pop.STREAM
+	overlay_changed.emit(true)
+	ShellSounds.play(&"intro")
+	_feed_record = record
+	_stream = screen
+	_stream.finished.connect(_close_window.bind(true))
+	add_child(_stream)
+	_set_new_game_shown(false)
+	_refresh_tip()
 
 
 ## Панель ленты слева; `at` элемент, на котором она открывается (-1 с начала).
@@ -1072,6 +1115,7 @@ func _open_feed(record: GameRecord, content: FeedContent, at: int, stagger := -1
 	if at > 0:
 		_feed.open_at.call_deferred(at)
 	_set_new_game_shown(false)
+	_refresh_tip()
 
 
 func _play_demo() -> void:
@@ -1118,6 +1162,8 @@ func _rebuild() -> void:
 	_offer_halo = null
 	_wave_focus.clear()
 	_wave_nodes.clear()
+	_box_focus.clear()
+	_box_tip = null
 	_build()
 
 
@@ -1125,14 +1171,14 @@ func _rebuild() -> void:
 func _rebuild_keeping_focus(fresh: Wave = Wave.BET) -> void:
 	var kept: Wave = _wave_focus.get(focus, Wave.BET)
 	var on_wave := _wave_focus.has(focus)
-	var release := focus if focus < _release_count else -1
+	var box: int = _box_focus.get(focus, -1)
 	var on_money := focus == _money_index
 	var on_upgrades := focus == _upgrades_index
 	_rebuild()
 	if on_wave and _wave_nodes.has(kept):
 		focus = _wave_focus.find_key(kept)
-	elif release >= 0:
-		focus = release
+	elif box >= 0 and _box_focus.find_key(box) != null:
+		focus = _box_focus.find_key(box)
 	elif on_money:
 		focus = _money_index
 	elif on_upgrades:
@@ -1165,25 +1211,31 @@ func _build() -> void:
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(title)
 
-	# Справа: релизы этого забега, свежие сверху.
-	_releases_scroll = ScrollContainer.new()
-	_releases_scroll.position = Vector2(Style.SCREEN.x - Style.EDGE - RELEASE_CARD.x - 24, RELEASES_TOP)
-	_releases_scroll.size = Vector2(RELEASE_CARD.x + 48, Style.SCREEN.y - RELEASES_TOP - RELEASES_BOTTOM)
-	_releases_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_releases_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	_chrome.add_child(_releases_scroll)
-	var margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 24)
-	_releases_scroll.add_child(margin)
-	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 16)
-	margin.add_child(list)
-	for i in run.records.size():
-		var c := _release_card(run.records[run.records.size() - 1 - i], run.records.size() - i)
-		list.add_child(c)
-		_add_focusable(c, Jelly.button(c, Style.R_CARD), null)
-	_release_count = run.records.size()
+	# Статуэтки на полке студии: невидимые области фокуса поверх них и пилюля с названием.
+	var boxes: Array = shelf_rects.call() if shelf_rects.is_valid() else []
+	for i in mini(boxes.size(), run.records.size()):
+		var r: Rect2 = boxes[i]
+		if not r.has_area():
+			continue
+		var spot := Control.new()
+		spot.position = r.position - BOX_GROW
+		spot.size = r.size + 2.0 * BOX_GROW
+		_chrome.add_child(spot)
+		_box_focus[_focusables.size()] = i
+		_add_focusable(spot, null, null)
+	if not _box_focus.is_empty():
+		_box_tip = HintPill.make("")
+		var tip_sb := Style.flat(Style.INK, Style.R_PILL, Color.TRANSPARENT, 0)
+		tip_sb.content_margin_left = 20
+		tip_sb.content_margin_right = 20
+		tip_sb.content_margin_top = 6
+		tip_sb.content_margin_bottom = 6
+		_box_tip.add_theme_stylebox_override("panel", tip_sb)
+		var tip := _box_tip.get_child(0) as Label
+		tip.add_theme_color_override("font_color", Style.SURFACE_SOLID)
+		tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_box_tip.visible = false
+		_chrome.add_child(_box_tip)
 
 	# Под названием: деньги, «Прокачка» и, если предложение отложено, «Прокачаться».
 	_pills = HBoxContainer.new()
@@ -1370,53 +1422,15 @@ func _pill_button(parent: Control, text: String, money: bool) -> void:
 	_add_focusable(p, Jelly.button(p, Style.R_PILL), l)
 
 
-func _release_card(r: GameRecord, number: int) -> PanelContainer:
-	var c := PanelContainer.new()
-	c.custom_minimum_size = RELEASE_CARD
-	var sb := Style.flat(Style.SURFACE_SOLID, Style.R_CARD, Color.TRANSPARENT, 0)
-	sb.content_margin_left = 20
-	sb.content_margin_right = 20
-	sb.content_margin_top = 16
-	sb.content_margin_bottom = 14
-	c.add_theme_stylebox_override("panel", sb)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 6)
-	c.add_child(col)
-	var stripes := HBoxContainer.new()
-	stripes.add_theme_constant_override("separation", 6)
-	col.add_child(stripes)
-	var values := [int(r.genre), int(r.tech), int(r.setting)]
-	for k in 3:
-		var entry := _catalogs[k].by_value(values[k])
-		var bar := Panel.new()
-		bar.custom_minimum_size = Vector2(0, STRIPE)
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.add_theme_stylebox_override("panel", Style.flat(entry.color if entry != null else Style.INK_3, Style.R_PILL, Color.TRANSPARENT, 0))
-		stripes.add_child(bar)
-	var t := _label(r.title, Style.FONT_BODY, Style.INK)
-	t.add_theme_font_override("font", Jelly.fun_font(800))
-	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	t.clip_text = true
-	col.add_child(t)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	col.add_child(row)
-	var critics := _label("%.1f" % r.score.critics if r.score != null else "—", Style.FONT_BODY, Style.INK)
-	critics.add_theme_font_override("font", Style.mono_font())
-	row.add_child(critics)
-	var meta := _label("релиз %d%s" % [number, " · багов %d" % r.bug_ids.size() if not r.bug_ids.is_empty() else ""],
-			Style.FONT_CAPTION, Style.INK_3)
-	meta.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(meta)
-	return c
-
-
-## Фокус: кнопки и пилюли тёмные с белым текстом, карточки релизов на бортике.
+## Фокус: кнопки и пилюли тёмные с белым текстом, карточки волн на бортике, под статуэткой
+## пилюля с названием игры.
 func _refresh_focus() -> void:
+	_refresh_tip()
 	for i in _focusables.size():
 		var on := i == focus
-		_lifts[i].focused = on
-		if i < _release_count or _wave_focus.has(i):
+		if _lifts[i] != null:
+			_lifts[i].focused = on
+		if _box_focus.has(i) or _wave_focus.has(i):
 			continue
 		var c := _focusables[i] as PanelContainer
 		var radius := Style.R_PILL if i != _new_index else Style.R_CTL
@@ -1434,6 +1448,25 @@ func _refresh_focus() -> void:
 		elif i == _offer_index:
 			base = Style.SURFACE_SOLID
 		l.add_theme_color_override("font_color", Style.SURFACE_SOLID if on else base)
+
+
+## Пилюля с названием игры под статуэткой в фокусе; под окном её нет.
+func _refresh_tip() -> void:
+	if _box_tip == null or not is_instance_valid(_box_tip):
+		return
+	var on := _box_focus.has(focus) and window == Pop.NONE
+	_box_tip.visible = on
+	if not on:
+		return
+	var record := run.records[_box_focus[focus]]
+	var text := record.title
+	if record.score != null:
+		text += " · " + _score(record.score.critics)
+	(_box_tip.get_child(0) as Label).text = text
+	_box_tip.reset_size()
+	var box := MouseUi.rect_of(_focusables[focus])
+	# Под полкой: над ней ряд пилюль шапки.
+	_box_tip.position = Vector2(box.get_center().x - _box_tip.size.x / 2.0, box.end.y + BOX_TIP_GAP).floor()
 
 
 func _label(text: String, font_size: int, color: Color) -> Label:

@@ -138,6 +138,9 @@ class Body:
 
 
 var bodies: Array[Body] = []
+## Окна и экраны поверх остального по порядку открытия: под верхним из них, в его
+## прямоугольнике, элементы на курсор не реагируют (`Jelly.cover`, `Jelly.panel`).
+var _covers: Array[WeakRef] = []
 var _rect: ColorRect
 var _material: ShaderMaterial
 var _pressed: Body
@@ -176,6 +179,24 @@ func attach(c: Control, radius: float, margin: float, ring: bool, expand := 0.0,
 		if child is JellyLift:
 			b.lift = weakref(child)
 	bodies.append(b)
+
+
+func add_cover(c: Control) -> void:
+	for w in _covers:
+		if w.get_ref() == c:
+			return
+	_covers.append(weakref(c))
+
+
+## Верхнее окно под точкой: открытое позже лежит выше. `null`, если точка не под окном.
+func _cover_at(pos: Vector2) -> Control:
+	for i in range(_covers.size() - 1, -1, -1):
+		var c := _covers[i].get_ref() as Control
+		if c == null or not c.is_inside_tree() or not c.is_visible_in_tree():
+			continue
+		if (c.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, c.size)).has_point(pos):
+			return c
+	return null
 
 
 func poke(c: Control, strength: float) -> void:
@@ -226,9 +247,13 @@ func _input(event: InputEvent) -> void:
 
 func _top_at(pos: Vector2) -> Body:
 	var best: Body = null
+	var cover := _cover_at(pos)
 	for b in bodies:
 		var c := b.control()
 		if c == null or not c.is_visible_in_tree() or b.ring or not b.hover:
+			continue
+		# Элемент под открытым окном курсора не чувствует: только само окно и то, что в нём.
+		if cover != null and c != cover and not cover.is_ancestor_of(c):
 			continue
 		if Rect2(b.center - b.half, b.half * 2.0).has_point(pos) and (best == null or b.depth >= best.depth):
 			best = b
@@ -243,6 +268,7 @@ func _process(delta: float) -> void:
 		if b.control() != null:
 			alive.append(b)
 	bodies = alive
+	_covers = _covers.filter(func(w: WeakRef) -> bool: return w.get_ref() != null)
 	if not Jelly.on():
 		_rect.visible = false
 		return

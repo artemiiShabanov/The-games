@@ -35,6 +35,7 @@ func _ready() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.add_child(panel)
 	Jelly.panel(panel)
+	Jelly.cover(self)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE

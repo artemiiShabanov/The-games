@@ -180,6 +180,16 @@ func _launch() -> void:
 func _show_screen() -> void:
 	screen = (load(SCREEN_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, wallet, upkeep, state, economy)
+	# Карточки критиков релиза, как их даёт лента: оценка с характером критика.
+	var reviews: Array[FeedContent.Item] = []
+	if current != null and current.score != null:
+		for p in PeopleSet.load_critics().people:
+			var it := FeedContent.Item.new()
+			it.kind = FeedContent.Kind.CRITIC
+			it.person = p
+			it.score = snappedf(Feed.critic_score(p, current.score, current, success), 0.1)
+			reviews.append(it)
+	screen.set_critics(reviews)
 	var def := Events.find(Events.load_all(), StringName(event_id)) if event_id != "" else null
 	if def != null:
 		var meta := MetaTuning.load_default()

@@ -89,7 +89,6 @@ var _hub_overlay := false
 ## главном экране вылетят монеты хвоста.
 var _defer_offer := true
 var _tail_boxes: Array[int] = []
-var _genres: Catalog
 var _after_content: FeedContent
 
 
@@ -254,14 +253,20 @@ func _sync_studio() -> void:
 		_bg.set_parcel(stage == Stage.HUB and not run.pending_defs().is_empty())
 
 
-## Цвета коробок на полке студии: жанр каждой выпущенной игры забега.
+## Цвета статуэток на полке студии: случайный на каждую выпущенную игру забега.
 func _shelf_colors() -> Array[Color]:
-	if _genres == null:
-		_genres = Catalog.load_kind(0)
 	var out: Array[Color] = []
 	for r in run.records:
-		var entry := _genres.by_value(int(r.genre))
-		out.append(entry.color if entry != null else Style.INK_3)
+		out.append(StudioBackdrop.box_color(r))
+	return out
+
+
+## Где статуэтки на экране, по номеру игры: главный экран берёт их в фокус.
+func _shelf_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _bg != null:
+		for i in run.records.size():
+			out.append(_bg.get_global_transform_with_canvas() * _bg.thing_local_rect(&"box", i))
 	return out
 
 
@@ -283,6 +288,7 @@ func _open_hub() -> void:
 	_sync_studio()
 	var hub := RunHub.new()
 	hub.setup(run)
+	hub.shelf_rects = _shelf_rects
 	hub.new_game.connect(_begin_next_game)
 	_hub_overlay = false
 	hub.overlay_changed.connect(func(on: bool) -> void: _hub_overlay = on)
@@ -329,6 +335,7 @@ func _open_after() -> void:
 	var hub := RunHub.new()
 	var content := run.build_feed(record)
 	hub.setup_after(run, record, content)
+	hub.shelf_rects = _shelf_rects
 	_hub_overlay = false
 	hub.overlay_changed.connect(func(on: bool) -> void: _hub_overlay = on)
 	_after_content = content
@@ -600,6 +607,8 @@ func _open_studio() -> void:
 	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
 	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
 	screen.reserve_fn = run.cheapest_next
+	if record.score != null:
+		screen.set_critics(run.build_feed(record).only([FeedContent.Kind.CRITIC]).items)
 	screen.defer_offer = _defer_offer
 	var offer := run.plan_event(report)
 	if report.rescue_due and (offer == null or offer.def.kind != EventDef.Kind.RESCUE):
