@@ -4,6 +4,7 @@
 
     python3 tools/music.py --pilot            # тема зомби на пяти технологиях и жанры в
                                               # thegames/debug/playtest/music/*.mp3
+    python3 tools/music.py --themes bit16     # десять тем на одной технологии
     python3 tools/music.py --one zombies bit16 racing out.mp3
 
 Пока пилот на прослушивание: в игру файлы не идут.
@@ -38,10 +39,18 @@ def hz(m):
     return 440.0 * 2.0 ** ((m - 69) / 12.0)
 
 
-CHORDS = {  # бас (MIDI) и трезвучие
-    "Am": (45, [57, 60, 64]), "Dm": (38, [57, 62, 65]), "E": (40, [56, 59, 64]),
-    "F": (41, [57, 60, 65]), "G": (43, [55, 59, 62]), "C": (36, [55, 60, 64]),
-}
+def chord(name):
+    """«Am», «F#m», «Bb» в бас (MIDI 36-47) и трезвучие, уложенное в 55-66."""
+    pc = NOTE[name[0]]
+    rest = name[1:]
+    if rest[:1] == "#":
+        pc, rest = pc + 1, rest[1:]
+    elif rest[:1] == "b":
+        pc, rest = pc - 1, rest[1:]
+    pc %= 12
+    third = 3 if rest == "m" else 4
+    triad = sorted(55 + ((pc + k - 55) % 12) for k in (0, third, 7))
+    return 36 + pc, triad
 
 
 class Theme:
@@ -51,7 +60,7 @@ class Theme:
         assert len(bars) == len(chords)
         self.bars = len(bars)
         self.steps = self.bars * BAR
-        self.chords = [CHORDS[c] for c in chords]
+        self.chords = [chord(c) for c in chords]
         self.notes = []  # (шаг, длина в шагах, midi)
         for b, text in enumerate(bars):
             cells = text.split()
@@ -87,6 +96,178 @@ THEMES = {
         "E5 . D5 . B4 . G#4 .",
         "E4 . G#4 B4 E5 . _ .",
     ], ["Am", "Am", "F", "E", "Am", "Am", "Dm", "E", "F", "G", "Am", "Am", "Dm", "F", "E", "E"]),
+
+    # Пираты: ре минор, матросская плясовая.
+    "pirates": Theme([
+        "D5 . A4 D5 F5 . E5 D5",
+        "E5 . C5 E5 G5 . E5 C5",
+        "D5 . F5 A5 G5 F5 E5 D5",
+        "E5 . C#5 . A4 . _ .",
+        "D5 . A4 D5 F5 . E5 D5",
+        "E5 . C5 E5 G5 . A5 G5",
+        "F5 . A5 . C6 . A5 F5",
+        "E5 . C#5 E5 A5 . . _",
+        "A5 A5 . F5 C5 . F5 .",
+        "G5 G5 . E5 C5 . E5 .",
+        "F5 F5 . D5 A#4 . D5 F5",
+        "E5 . . . C#5 . E5 .",
+        "D5 F5 A5 . G5 F5 E5 .",
+        "D5 F5 A#5 . A5 G5 F5 .",
+        "E5 . C#5 . A4 . C#5 E5",
+        "D5 . . . D4 . _ .",
+    ], ["Dm", "C", "Dm", "A", "Dm", "C", "F", "A", "F", "C", "Bb", "A", "Dm", "Bb", "A", "Dm"]),
+    # Космос: до мажор, широкие интервалы, лидийский ре мажор перед концом.
+    "space": Theme([
+        "G4 . C5 . E5 . G5 .",
+        "B5 . . G5 E5 . B4 .",
+        "A4 . C5 . F5 . A5 .",
+        "G5 . . D5 B4 . D5 .",
+        "E5 . A5 . C6 . B5 A5",
+        "G5 . . E5 B4 . E5 .",
+        "F5 . A5 . G5 . F5 E5",
+        "D5 . . . G5 . _ .",
+        "C6 . A5 . F5 . A5 .",
+        "B5 . G5 . D5 . G5 .",
+        "B5 . G5 E5 . G5 B5 .",
+        "A5 . . . E5 . C5 .",
+        "F5 . C5 F5 A5 . C6 .",
+        "F#5 . D5 F#5 A5 . D6 .",
+        "B5 . A5 . G5 . D5 .",
+        "G5 . . . . . _ .",
+    ], ["C", "Em", "F", "G", "Am", "Em", "F", "G", "F", "G", "Em", "Am", "F", "D", "G", "G"]),
+    # Замки: соль мажор, фанфара.
+    "castles": Theme([
+        "G4 . G4 B4 D5 . D5 .",
+        "F#5 . E5 D5 A4 . . .",
+        "E5 . E5 G5 B5 . A5 G5",
+        "E5 . . D5 C5 . _ .",
+        "G4 . G4 B4 D5 . G5 .",
+        "A5 . G5 F#5 D5 . . .",
+        "E5 . G5 . C6 . B5 A5",
+        "A5 . . . F#5 . D5 .",
+        "B5 . B5 A5 G5 . E5 .",
+        "C6 . C6 B5 G5 . E5 .",
+        "D5 . G5 . B5 . D6 .",
+        "A5 . . . F#5 . A5 .",
+        "G5 F#5 E5 . B4 . E5 .",
+        "G5 F#5 E5 . C5 . E5 .",
+        "F#5 . A5 . D6 . C6 A5",
+        "G5 . . . G4 . _ .",
+    ], ["G", "D", "Em", "C", "G", "D", "C", "D", "Em", "C", "G", "D", "Em", "C", "D", "G"]),
+    # Супергерои: до мажор, широкий героический ход.
+    "superheroes": Theme([
+        "C5 . . G4 C5 . E5 .",
+        "G5 . . . E5 . C5 .",
+        "A5 . . F5 A5 . C6 .",
+        "B5 . . . G5 . D5 .",
+        "C5 . . G4 C5 . E5 .",
+        "A5 . . . E5 . A5 .",
+        "C6 . A5 . F5 . A5 C6",
+        "D6 . . . B5 . _ .",
+        "E5 E5 . A5 . E5 . C5",
+        "F5 F5 . A5 . F5 . C5",
+        "G5 G5 . C6 . G5 . E5",
+        "D5 . . . G5 . B5 .",
+        "C6 B5 A5 . E5 . A5 .",
+        "C6 B5 A5 . F5 . A5 .",
+        "B5 . G5 B5 D6 . . .",
+        "C6 . . . C5 . _ .",
+    ], ["C", "C", "F", "G", "C", "Am", "F", "G", "Am", "F", "C", "G", "Am", "F", "G", "C"]),
+    # Фэнтези: ми минор, напевная баллада.
+    "fantasy": Theme([
+        "E5 . G5 . B5 . A5 G5",
+        "E5 . . G5 C5 . . .",
+        "D5 . G5 . B5 . A5 G5",
+        "F#5 . . A5 D5 . . .",
+        "E5 . G5 . B5 . D6 B5",
+        "C6 . B5 G5 E5 . G5 .",
+        "A5 . F#5 . D5 . F#5 A5",
+        "B5 . . . F#5 . D#5 .",
+        "D6 . B5 . G5 . B5 .",
+        "A5 . F#5 . D5 . F#5 .",
+        "G5 . E5 G5 B5 . . G5",
+        "E5 . . . C5 . E5 .",
+        "A5 G5 E5 . C5 . E5 .",
+        "B5 A5 G5 . E5 . G5 .",
+        "F#5 . D#5 . B4 . D#5 F#5",
+        "E5 . . . E4 . _ .",
+    ], ["Em", "C", "G", "D", "Em", "C", "D", "B", "G", "D", "Em", "C", "Am", "Em", "B", "Em"]),
+    # Сладости: фа мажор, прыгучие арпеджио.
+    "sweets": Theme([
+        "C5 F5 A5 F5 C5 F5 A5 .",
+        "D5 F5 A#5 F5 D5 . F5 .",
+        "E5 G5 C6 G5 E5 . G5 .",
+        "F5 . A5 . C6 . _ .",
+        "C5 F5 A5 F5 C5 F5 A5 .",
+        "D5 F5 A5 F5 D5 . A5 .",
+        "G5 A#5 D6 A#5 G5 . A#5 .",
+        "C6 . G5 . E5 . _ .",
+        "D6 . A#5 . F5 . A#5 .",
+        "C6 . G5 . E5 . G5 .",
+        "A5 . E5 A5 C6 . A5 .",
+        "F5 . . . D5 . F5 .",
+        "A#5 A5 G5 . F5 . D5 .",
+        "C6 A#5 G5 . E5 . C5 .",
+        "F5 A5 C6 . A5 F5 C5 .",
+        "F5 . . . F5 . _ .",
+    ], ["F", "Bb", "C", "F", "F", "Dm", "Gm", "C", "Bb", "C", "Am", "Dm", "Bb", "C", "F", "F"]),
+    # Ниндзя: ре минор, японский лад (ре, ми-бемоль, соль, ля, си-бемоль).
+    "ninja": Theme([
+        "D5 . A5 . G5 A5 A#5 A5",
+        "G5 . D#5 . D5 . _ .",
+        "G5 . A#5 . D6 . A#5 A5",
+        "A5 . . G5 E5 . C#5 .",
+        "D5 . A5 . G5 A5 A#5 A5",
+        "D6 . A#5 . F5 . A#5 .",
+        "G5 A#5 A5 G5 D#5 . D5 .",
+        "E5 . . . A5 . _ .",
+        "A#5 . . A5 G5 . D5 .",
+        "C6 . . A#5 G5 . E5 .",
+        "D6 . A5 D6 . A5 G5 A5",
+        "D5 . . . A4 . D5 .",
+        "D#5 D5 . G5 . A#5 . .",
+        "A5 A#5 . D6 . A#5 . .",
+        "A5 . G5 . E5 . C#5 .",
+        "D5 . . . D4 . _ .",
+    ], ["Dm", "Dm", "Gm", "A", "Dm", "Bb", "Gm", "A", "Bb", "C", "Dm", "Dm", "Gm", "Bb", "A", "Dm"]),
+    # Динозавры: ми минор, тяжёлая поступь в низком регистре.
+    "dinosaurs": Theme([
+        "E4 . E4 . G4 . B4 .",
+        "A4 . G4 . E4 . . .",
+        "G4 . G4 . B4 . D5 .",
+        "C5 . A4 . F#4 . . .",
+        "E4 . E4 . G4 . B4 .",
+        "E5 . D5 . B4 . . .",
+        "C5 . E5 . G5 . E5 .",
+        "F#5 . D#5 . B4 . _ .",
+        "G5 . . E5 C5 . E5 .",
+        "A5 . . F#5 D5 . F#5 .",
+        "B5 . . G5 E5 . G5 B5",
+        "E5 . . . B4 . . .",
+        "A4 . C5 . E5 . C5 .",
+        "G4 . C5 . E5 . C5 .",
+        "F#4 . B4 . D#5 . F#5 .",
+        "E5 . . . E4 . _ .",
+    ], ["Em", "Em", "G", "D", "Em", "Em", "C", "B", "C", "D", "Em", "Em", "Am", "C", "B", "Em"]),
+    # Офис: ля мажор, лёгкая музыка для лифта.
+    "office": Theme([
+        "E5 . C#5 . A4 . C#5 E5",
+        "F#5 . . C#5 A4 . . .",
+        "D5 . B4 . F#4 . B4 D5",
+        "E5 . . B4 G#4 . . .",
+        "E5 . C#5 . A4 . C#5 E5",
+        "A5 . . F#5 C#5 . . .",
+        "F#5 . A5 . D6 . A5 .",
+        "B5 . G#5 . E5 . _ .",
+        "A5 . F#5 . D5 . F#5 .",
+        "G#5 . E5 . B4 . E5 .",
+        "E5 . G#5 . C#6 . G#5 .",
+        "A5 . . . F#5 . C#5 .",
+        "D5 . F#5 B5 . F#5 D5 .",
+        "D5 . F#5 A5 . F#5 D5 .",
+        "E5 . G#5 B5 . G#5 E5 .",
+        "A5 . . . A4 . _ .",
+    ], ["A", "F#m", "Bm", "E", "A", "F#m", "D", "E", "D", "E", "C#m", "F#m", "Bm", "D", "E", "A"]),
 }
 
 # Жанр: множитель темпа и рисунок ударных в шестнадцатых такта.
@@ -505,9 +686,23 @@ def pilot():
         print("bit16", genre, stats(mix))
 
 
+SETTINGS = ["pirates", "space", "castles", "zombies", "superheroes", "fantasy", "sweets", "ninja", "dinosaurs", "office"]
+
+
+def themes(tech):
+    """Все десять тем на одной технологии, жанр платформер."""
+    out = os.path.join(os.path.dirname(__file__), "..", "thegames", "debug", "playtest", "music")
+    for i, setting in enumerate(SETTINGS):
+        mix = render(setting, tech, "platformer")
+        save(mix, os.path.join(out, "theme_%02d_%s_%s.mp3" % (i, setting, tech)), 1.0, 2)
+        print(setting, stats(mix))
+
+
 if __name__ == "__main__":
     if "--pilot" in sys.argv:
         pilot()
+    elif "--themes" in sys.argv:
+        themes(sys.argv[sys.argv.index("--themes") + 1])
     elif "--one" in sys.argv:
         i = sys.argv.index("--one")
         setting, tech, genre, path = sys.argv[i + 1:i + 5]
