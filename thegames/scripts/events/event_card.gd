@@ -1,7 +1,7 @@
 class_name EventCard
 extends Control
 ## Карточка мета-вставки (#63), спека `docs/specs/meta.md`, концепт `06-meta-event`: модальная
-## карточка поверх студии. Сверху портрет (живое `PixelFace` ленты в скруглённом квадрате
+## карточка поверх студии. Сверху портрет (живой `Portrait` в скруглённом квадрате
 ## `surface-2`, говорит, пока карточка ждёт ответа), над
 ## именем роль и фирма (и настроение, если не 0), имя, реплика; ниже два-три варианта строками
 ## `surface-2` с пилюлями последствий справа (`Events.Pill`: плюс зелёным, минус красным,
@@ -15,7 +15,7 @@ signal finished(index: int)
 
 const CARD_WIDTH := 1120
 const FACE_BOX := 160.0
-const FACE_SCALE := 8
+const FACE_SCALE := 6
 const ROW_HEIGHT := 88
 const NAME_FONT := 40
 const LINE_FONT := 26
@@ -40,7 +40,7 @@ var dim := false
 var _bot_timer := 0.0
 
 var _panel: PanelContainer
-var _face: PixelFace
+var _face: Portrait
 var _rows: Array[PanelContainer] = []
 var _lifts: Array[JellyLift] = []
 var _outcome: Label
@@ -280,7 +280,7 @@ func _face_box() -> Control:
 	var center := CenterContainer.new()
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(center)
-	_face = PixelFace.new(offer.character.accent if offer.character != null else Style.INK_3, FACE_SCALE)
+	_face = Portrait.new(offer.character.portrait_id() if offer.character != null else &"", FACE_SCALE, offer.mood)
 	center.add_child(_face)
 	return box
 

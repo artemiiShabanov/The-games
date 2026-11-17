@@ -1,7 +1,7 @@
 class_name CharacterDef
 extends Resource
 ## Персонаж мета-вставок, спека `docs/specs/meta.md` (#63): имя, роль, издание или фирма,
-## акцент пиксельного лица (`PixelFace` ленты, портреты в M5). Восемь лиц на забег: три критика и три
+## акцент и портрет (`Portrait`, #140). Восемь лиц на забег: три критика и три
 ## стримера из ленты, издатель, инвестор; журналист это первый критик в другой роли
 ## (`person_id` связывает с `PersonDef` ленты). Ресурсы `res://resources/characters/*.tres`.
 
@@ -11,7 +11,7 @@ extends Resource
 @export var role := ""
 ## Фирма, издание или канал.
 @export var subtitle := ""
-## Акцент пиксельного лица (`PixelFace` из ленты до портретов M5).
+## Акцент персонажа: цвет лица на портрете (`tools/portraits.py`) и имени в ленте.
 @export var accent := Color("#2F5BFF")
 ## Персонаж ленты, если это он же (журналист = критик).
 @export var person_id: StringName = &""
@@ -21,6 +21,11 @@ extends Resource
 @export var name_with := ""
 ## Уходит до конца забега после стольких отказов подряд (ответ с `mood_delta` < 0); 0 никогда.
 @export var leaves_after_refusals := 0
+
+
+## Лист портрета: персонаж ленты, если это он же, иначе свой.
+func portrait_id() -> StringName:
+	return person_id if person_id != &"" else id
 
 
 func short() -> String:

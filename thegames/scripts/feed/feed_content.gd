@@ -15,6 +15,8 @@ class Item:
 	var reach := 0
 	var stamp := ""
 	var caption := ""
+	## Настроение портрета: −1 кислый, 0 ровный, +1 тёплый (#140).
+	var mood := 0
 
 
 var items: Array[Item] = []

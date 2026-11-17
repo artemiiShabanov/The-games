@@ -161,6 +161,9 @@
   их те же три генератора. Номера `--setting=N`: 0 пираты, 1 космос, 2 замки, 3 зомби, 4
   супергерои, 5 фэнтези, 6 сладости, 7 ниндзя, 8 динозавры, 9 офис. Листы кадров сеттинга (шесть
   на технологию, `debug/playtest/shots/<id>_<tech>.jpg`): `sh tools/setting_shots.sh <n> [tech]`.
+- Портреты внешних персонажей (#140): `python3 tools/portraits.py` пишет листы 24×24 в
+  `assets/portraits/`, лист всех настроений `--preview out.png`; в игре вставка
+  `--scene=event_test --no-checks --event=<id> [--mood=N]` и лента `--scene=feed_test`.
 - Окружение сеттинга в 3D (#147): свет, небо, туман и основание мира лежат в ресурсе сеттинга
   (`SettingEnv`), не в `lowpoly.tres` и `threed.tres`. Вид основания под кадр: `--base=liquid|void|solid`
   у любой 3D-демки (`--scene=demo_test --tech=threed --setting=1 --base=liquid --no-checks

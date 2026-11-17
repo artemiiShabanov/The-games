@@ -396,7 +396,7 @@ func _make_critic(item: FeedContent.Item) -> Control:
 	var parts := _post(item.person.accent)
 	var panel: PanelContainer = parts[0]
 	var row: HBoxContainer = parts[1]
-	row.add_child(_face(item.person.accent, item.person.name.substr(0, 1), 64))
+	row.add_child(_portrait(item.person, 3, item.mood, false))
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 4)
@@ -469,11 +469,11 @@ func _make_stream(item: FeedContent.Item) -> Control:
 	top.add_child(online)
 	# Лицо стримера в левом нижнем углу, на плашке.
 	var cam := PanelContainer.new()
-	cam.add_theme_stylebox_override("panel", Style.flat(Color(Style.INK, 0.75), Style.R_CTL, Color.TRANSPARENT, 8))
+	cam.add_theme_stylebox_override("panel", Style.flat(Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 8))
 	cam.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cam.add_child(PixelFace.new(item.person.accent, 6))
+	cam.add_child(Portrait.new(item.person.id, 4, item.mood))
 	_stream_holder.add_child(cam)
-	cam.position = Vector2(20, STREAM_HEIGHT - 16 - 96 - 16)
+	cam.position = Vector2(20, STREAM_HEIGHT - 16 - Portrait.GRID * 4 - 16)
 	var quote := _label(item.text, Style.FONT_BODY, Style.INK)
 	quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var quote_margin := MarginContainer.new()
@@ -564,6 +564,18 @@ func _refresh_buttons() -> void:
 
 func _score_text(v: float) -> String:
 	return "%d" % int(v) if is_equal_approx(v, roundf(v)) else "%.1f" % v
+
+
+## Портрет персонажа ленты в скруглённом квадрате (#140).
+func _portrait(person: PersonDef, scale_px: int, mood: int, talking: bool) -> Control:
+	var box := PanelContainer.new()
+	box.add_theme_stylebox_override("panel", Style.flat(Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 4))
+	box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var face := Portrait.new(person.id, scale_px, mood)
+	face.talking = talking
+	box.add_child(face)
+	return box
 
 
 func _face(color: Color, letter: String, size_px: int) -> Control:

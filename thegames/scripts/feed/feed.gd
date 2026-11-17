@@ -142,6 +142,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 			tone = mini(tone + 1, 2)
 		elif rep_delta < -0.5:
 			tone = maxi(tone - 1, 0)
+		item.mood = tone - 1
 		var pool: Array[String] = [texts.critic_sour, texts.critic_neutral, texts.critic_warm][tone]
 		var line := _pick(pool, rng)
 		for attempt in 4:
@@ -171,6 +172,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		var clip := FeedContent.Item.new()
 		clip.kind = FeedContent.Kind.CLIP
 		clip.person = streamer
+		clip.mood = 1 if c.viral else 0
 		clip.reach = streamer_reach(streamer, score, record, t)
 		clip.stamp = bug.stamp_for(record.genre, record.tech, record.setting) if bug != null else ""
 		clip.text = _fill(_pick(texts.clip_bug if bug != null else texts.clip_clean, rng), vars)
