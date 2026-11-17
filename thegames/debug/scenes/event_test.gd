@@ -240,6 +240,9 @@ func _condition_checks() -> void:
 					ctx.records[i].score.last_tick = run_tuning.corp_tick / run_tuning.corp_live_tails + 100
 					ctx.records[i].part = 2 if i < run_tuning.corp_sequels else 1
 			&"legend":
+				# Легенда не раньше `legend_min_games` игр.
+				while ctx.records.size() < run_tuning.legend_min_games:
+					ctx.records.append(ctx.records[0])
 				for r in ctx.records:
 					r.score.critics = run_tuning.legend_critics + 0.5
 			_:

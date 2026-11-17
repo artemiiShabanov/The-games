@@ -47,8 +47,8 @@ func _achievements() -> void:
 	var prof := Profile.load_saved()
 	var run := RunState.start(7, true)
 	run.profile = prof
-	_expect(run.unlocked_settings() == ([S.ZOMBIES, S.SPACE, S.CASTLES] as Array[Game.Setting]), "старт %s" % [run.unlocked_settings()])
-	_expect(Achievements.load_all().size() == 7, "достижений %d" % Achievements.load_all().size())
+	_expect(run.unlocked_settings() == ([S.CASTLES] as Array[Game.Setting]), "старт %s" % [run.unlocked_settings()])
+	_expect(Achievements.load_all().size() == 9, "достижений %d" % Achievements.load_all().size())
 	_expect(run.check_achievements().is_empty(), "достижение на пустом забеге")
 	run.wallet.cash = 199999
 	_expect(run.check_achievements().is_empty(), "сокровище до порога")
@@ -71,7 +71,11 @@ func _achievements() -> void:
 		r.score.sales_first = 999 if i == 0 else 1000
 		run.records.append(r)
 		var ids := run.check_achievements().map(func(a: AchievementDef) -> StringName: return a.id)
-		_expect(ids == ([&"no_trace"] if i == 4 else []), "релиз %d: %s" % [i + 1, ids])
+		# Первая игра открывает космос, третья зомби (полировка 2026-11-17).
+		var want: Array = {0: [&"first_game"], 2: [&"three_games"], 4: [&"no_trace"]}.get(i, [])
+		_expect(ids == want, "релиз %d: %s" % [i + 1, ids])
+		if i == 0:
+			_expect(run.unlocked_settings().has(S.SPACE) and not run.unlocked_settings().has(S.ZOMBIES), "космос после первой игры")
 	_expect(run.check_achievements().is_empty(), "сладкая жизнь без окупаемости")
 	run.records[0].score.sales_first = 1000
 	_expect(_ids(run.check_achievements()) == [&"sweet_life"], "сладкая жизнь")

@@ -156,7 +156,8 @@ static func corporation(records: Array[GameRecord], t: RunTuning) -> bool:
 	return sequels >= t.corp_sequels and live >= t.corp_live_tails and tick >= t.corp_tick
 
 
-## Условие легенды: средняя критиков трёх лучших или число вирусных.
+## Условие легенды: средняя критиков трёх лучших или число вирусных, и не раньше
+## `legend_min_games` выпущенных игр.
 static func legend(records: Array[GameRecord], t: RunTuning) -> bool:
 	if t == null:
 		return false
@@ -167,9 +168,9 @@ static func legend(records: Array[GameRecord], t: RunTuning) -> bool:
 			cs.append(r.score.critics)
 			if r.score.viral:
 				viral += 1
+	if cs.size() < maxi(t.legend_min_games, 3):
+		return false
 	if viral >= t.legend_viral:
 		return true
-	if cs.size() < 3:
-		return false
 	cs.sort()
 	return (cs[-1] + cs[-2] + cs[-3]) / 3.0 >= t.legend_critics

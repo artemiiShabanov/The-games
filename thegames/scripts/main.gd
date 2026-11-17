@@ -935,6 +935,13 @@ func _bot_vary(c: Constructor) -> void:
 				c.select(1, i)
 				if c.estimate != null and c.estimate.affordable:
 					break
+	# Сеттинги тоже стоят по-разному: не хватает на выбранный, бот берёт первый по карману.
+	if c.estimate != null and not c.estimate.affordable and not c.is_locked_column(2):
+		for i in c.catalogs[2].entries.size():
+			if c.is_unlocked(2, i):
+				c.select(2, i)
+				if c.estimate != null and c.estimate.affordable:
+					break
 
 
 ## Строка ведомости релиза для сверки с моделью: тройка, руки, отклик, все движения денег

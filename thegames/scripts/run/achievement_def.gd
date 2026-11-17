@@ -11,6 +11,7 @@ enum Condition {
 	CLEAN_STREAK,    ## `threshold` релизов подряд без багов
 	TECHS_IN_RUN,    ## игры на `threshold` разных технологиях за забег
 	ENDING,          ## забег закончился концовкой `ending`
+	RELEASES,        ## выпущено `threshold` игр за забег
 }
 
 @export var id: StringName = &""

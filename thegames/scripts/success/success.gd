@@ -46,8 +46,9 @@ static func score_release(record: GameRecord, past: Array[GameRecord], market: M
 	s.novelty = novelty(record, past, t)
 	s.synergy = synergy(record.genre, record.tech, record.setting, market, t)
 	var fatigue := t.critics_fatigue if record.part >= t.fatigue_from_part else 0.0
-	var c := t.critics_base + t.critics_quality * s.quality + t.critics_novelty * s.novelty \
-			+ t.tech_critics[record.tech] + t.critics_synergy * (s.synergy - 1.0) - t.critics_bug * s.bugs - fatigue
+	var c := t.critics_base + t.quality_points(s.quality) + t.critics_novelty * s.novelty \
+			+ t.tech_critics[record.tech] + t.critics_synergy * (s.synergy - t.critics_synergy_center) \
+			- t.critics_bug * s.bugs - fatigue
 	if noise:
 		c += rng.randf_range(-t.critics_noise, t.critics_noise)
 	c += record.bonus_critics

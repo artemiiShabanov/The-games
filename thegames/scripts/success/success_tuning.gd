@@ -37,9 +37,22 @@ const PATH := "res://resources/success.tres"
 @export var critics_quality := 6.0
 @export var critics_novelty := 1.5
 @export var critics_synergy := 5.0
+## Синергия, при которой вклад сочетания нулевой: ниже критики снимают, выше добавляют
+## (полировка 2026-11-17: сочетание жанра с технологией и сеттингом весит больше).
+@export var critics_synergy_center := 1.0
+## Качество выше `critics_quality_knee` прибавляет критикам уже по `critics_quality_top` за
+## единицу: одной чистой игрой 10 не взять, нужно удачное сочетание или везение.
+@export var critics_quality_knee := 1.0
+@export var critics_quality_top := 6.0
 @export var critics_bug := 0.4
 @export var critics_fatigue := 1.0
 @export var critics_noise := 0.5
+
+
+## Вклад качества в оценку критиков: до колена по `critics_quality`, выше по `critics_quality_top`.
+func quality_points(q: float) -> float:
+	return critics_quality * minf(q, critics_quality_knee) + critics_quality_top * maxf(q - critics_quality_knee, 0.0)
+
 
 @export_group("Новизна")
 @export var novelty_new := 1.0

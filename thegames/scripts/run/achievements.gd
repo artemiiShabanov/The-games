@@ -108,6 +108,12 @@ static func value(d: AchievementDef, run: RunState, records: Array[GameRecord]) 
 			for r in records:
 				techs[r.tech] = true
 			return techs.size()
+		AchievementDef.Condition.RELEASES:
+			var out := 0
+			for r in records:
+				if r.score != null:
+					out += 1
+			return out
 	return 0
 
 

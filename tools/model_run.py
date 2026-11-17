@@ -32,7 +32,8 @@ RES = ROOT / "thegames" / "resources"
 
 GENRES = ["platformer", "racing", "shooter", "sport", "fighting"]
 TECHS = ["vector", "8bit", "16bit", "lowpoly", "3d"]
-# Все сеттинги в порядке `Game.Setting` (индексы тюнинга) и стартовая тройка забега (#139).
+# Все сеттинги в порядке `Game.Setting` (индексы тюнинга) и тройка, под которую настроен забег:
+# замки со старта, космос и зомби открываются первой и третьей игрой первого забега (2026-11-17).
 ALL_SETTINGS = ["pirates", "space", "castles", "zombies", "superheroes", "fantasy", "sweets", "ninja", "dinosaurs", "office"]
 SETTINGS = ["zombies", "space", "castles"]
 
@@ -99,6 +100,12 @@ def synergy(g, t, s):
     return S["syn_tech_genre"][TECHS.index(t) * 5 + GENRES.index(g)] * S["syn_genre_setting"][ALL_SETTINGS.index(s) * 5 + GENRES.index(g)]
 
 
+def quality_points(q):
+    """Вклад качества в критиков: до колена по `critics_quality`, выше по `critics_quality_top`."""
+    knee = S["critics_quality_knee"]
+    return S["critics_quality"] * min(q, knee) + S["critics_quality_top"] * max(q - knee, 0.0)
+
+
 def novelty(g, t, s, part, past):
     if part > 1:
         return S["novelty_repeat"]
@@ -153,8 +160,8 @@ def simulate(mid=False, plan=None, events=0):
         n = novelty(g, t, s, part, games)
         sy = synergy(g, t, s)
         fatigue = S["critics_fatigue"] if part >= S["fatigue_from_part"] else 0.0
-        C = S["critics_base"] + S["critics_quality"] * q + S["critics_novelty"] * n + S["tech_critics"][ti] \
-            + S["critics_synergy"] * (sy - 1.0) - S["critics_bug"] * b - fatigue
+        C = S["critics_base"] + quality_points(q) + S["critics_novelty"] * n + S["tech_critics"][ti] \
+            + S["critics_synergy"] * (sy - S["critics_synergy_center"]) - S["critics_bug"] * b - fatigue
         C = max(0.0, min(10.0, C))
         sat = max(sat_g[g], sat_s[s])
         P0 = S["p_base"] * S["tech_sales"][ti] * sy * (S["sales_critics_base"] + S["sales_critics"] * C) \
@@ -348,8 +355,8 @@ def outcome(g, t, s, q, b, bs, part, games, R, sat_g, sat_s):
     n = novelty(g, t, s, part, games)
     sy = synergy(g, t, s)
     fatigue = S["critics_fatigue"] if part >= S["fatigue_from_part"] else 0.0
-    C = S["critics_base"] + S["critics_quality"] * q + S["critics_novelty"] * n + S["tech_critics"][ti] \
-        + S["critics_synergy"] * (sy - 1.0) - S["critics_bug"] * b - fatigue
+    C = S["critics_base"] + quality_points(q) + S["critics_novelty"] * n + S["tech_critics"][ti] \
+        + S["critics_synergy"] * (sy - S["critics_synergy_center"]) - S["critics_bug"] * b - fatigue
     C = max(0.0, min(10.0, C))
     sat = max(sat_g[g], sat_s[s])
     P0 = S["p_base"] * S["tech_sales"][ti] * sy * (S["sales_critics_base"] + S["sales_critics"] * C) \
@@ -656,8 +663,8 @@ def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
             C, P0, V, viral, d = outcome(g, t, x, q, bugs, 0, 1, games, R, sat_g, sat_s)
             # Шум критиков и их характеры, как в `Feed.critic_score`.
             ti = TECHS.index(t)
-            raw = S["critics_base"] + S["critics_quality"] * q + S["critics_novelty"] * nov + S["tech_critics"][ti] \
-                + S["critics_synergy"] * (synergy(g, t, x) - 1.0) - S["critics_bug"] * bugs
+            raw = S["critics_base"] + quality_points(q) + S["critics_novelty"] * nov + S["tech_critics"][ti] \
+                + S["critics_synergy"] * (synergy(g, t, x) - S["critics_synergy_center"]) - S["critics_bug"] * bugs
             c = max(0.0, min(10.0, raw + rnd_.uniform(-S["critics_noise"], S["critics_noise"])))
             retro = c + (S["critic_retro_bonus"] if t in ("vector", "8bit") else -S["critic_retro_penalty"])
             hater = c + (S["critic_bug_hater_clean"] if bugs == 0 else -S["critic_bug_hater_per_bug"] * bugs)
@@ -765,8 +772,8 @@ def replay(path):
             n = novelty(g, t, s, part, games)
         sy = synergy(g, t, s)
         fatigue = S["critics_fatigue"] if part >= S["fatigue_from_part"] else 0.0
-        C = S["critics_base"] + S["critics_quality"] * q + S["critics_novelty"] * n + S["tech_critics"][ti] \
-            + S["critics_synergy"] * (sy - 1.0) - S["critics_bug"] * b - fatigue + e["bonus_critics"]
+        C = S["critics_base"] + quality_points(q) + S["critics_novelty"] * n + S["tech_critics"][ti] \
+            + S["critics_synergy"] * (sy - S["critics_synergy_center"]) - S["critics_bug"] * b - fatigue + e["bonus_critics"]
         C = max(0.0, min(10.0, C))
         expect(i, "критики", round(C, 3), round(e["critics"], 3), 0.01)
         franchise = franchise_boost(part)

@@ -6,7 +6,8 @@ extends RefCounted
 enum Aspect { OPTIMIZATION, SOUND, CONTROLS, GRAPHICS, BALANCE }
 enum Genre { PLATFORMER, RACING, SHOOTER, SPORT, FIGHTING }
 enum Tech { VECTOR, BIT8, BIT16, LOWPOLY, THREED }
-## Десять сеттингов (#139): забег стартует с трёх из `RunTuning.start_settings`, остальные
+## Десять сеттингов (#139): забег стартует с замков (`RunTuning.start_settings`), космос и зомби открывают
+## первая и третья игра, остальные
 ## открываются достижениями (`Achievements`) или возможностью «новый сеттинг» на один забег.
 enum Setting { PIRATES, SPACE, CASTLES, ZOMBIES, SUPERHEROES, FANTASY, SWEETS, NINJA, DINOSAURS, OFFICE }
 

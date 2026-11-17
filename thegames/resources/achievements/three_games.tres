@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/run/achievement_def.gd" id="1_ach"]
+
+[resource]
+script = ExtResource("1_ach")
+id = &"three_games"
+title = "Три игры"
+text = "Выпустить три игры за забег"
+setting = 3
+condition = 7
+threshold = 3
+ending = &""

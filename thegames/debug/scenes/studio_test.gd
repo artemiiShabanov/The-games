@@ -27,8 +27,8 @@ const RUN := [
 	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1],
 ]
 ## Хвосты и P0 по таблице модели для релизов 2 и 3 (округлены до сотен).
-const MODEL_TAILS := [0, 3200, 4500]
-const MODEL_P0 := [6300, 4800, 5900]
+const MODEL_TAILS := [0, 3286, 4549]
+const MODEL_P0 := [6573, 4843, 6177]
 
 var past_count := 2
 var cash := 20000
