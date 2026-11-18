@@ -169,6 +169,7 @@
 - Музыка (#87): `python3 tools/music.py --write` пишет темы и ударные в `assets/music/`
   (нужен sox), на слух вне игры `--themes <tech>` и `--pilot` (mp3 в `debug/playtest/music/`),
   `--one <сеттинг> <tech> <жанр> out.mp3`; в игре дебаг-меню «Музыка». Заглавная тема меню и главного экрана забега: `python3 tools/main_theme.py [--preview]` (`assets/music/main_theme.ogg`, с `--preview` mp3 на две петли в `debug/playtest/music/`).
+- Иконка окна и приложения: `python3 tools/app_icon.py [--preview out.png]` пишет `thegames/icon.png`.
 - Портреты внешних персонажей (#140): `python3 tools/portraits.py` пишет листы 24×24 в
   `assets/portraits/`, лист всех настроений `--preview out.png`; в игре вставка
   `--scene=event_test --no-checks --event=<id> [--mood=N]` и лента `--scene=feed_test` (`--summary` лента итогов релиза с первой неделей и оценкой студии).

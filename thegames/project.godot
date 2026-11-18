@@ -10,10 +10,10 @@ config_version=5
 
 [application]
 
-config/name="The Games"
+config/name="Studio Running"
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
 
 [autoload]
 
