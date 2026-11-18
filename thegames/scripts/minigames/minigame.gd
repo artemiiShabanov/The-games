@@ -212,6 +212,11 @@ func _on_tick(_delta: float) -> void:
 	pass
 
 
+## Счётчики сыгранного одной строкой (промахи, ошибки, сделано): пишутся в оценку мини-игр.
+func summary() -> String:
+	return ""
+
+
 ## Время вышло: счёт 0..1 по сыгранному. По умолчанию из старого `_on_timeout`.
 func _score() -> float:
 	return 1.0 if _on_timeout() else 0.0

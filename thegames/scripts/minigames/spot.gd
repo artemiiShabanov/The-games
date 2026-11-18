@@ -152,6 +152,11 @@ func _on_tick(delta: float) -> void:
 
 
 ## Счёт: найденные пары минус неверные отметки.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "пар %d из %d, неверных %d" % [found, pairs_total, errors]  # i18n: skip
+
+
 func _score() -> float:
 	return clampf(float(found) / pairs_total - ERROR_PENALTY * errors, 0.0, 1.0)
 

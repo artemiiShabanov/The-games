@@ -269,6 +269,11 @@ func _hold_steps(held: float) -> int:
 
 
 ## Счёт: совпавшие волны и доля пути текущей минус шаги прочь.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "волн %d из %d, шагов прочь %d" % [matches, WAVES, wrong]  # i18n: skip
+
+
 func _score() -> float:
 	var part := 0.0
 	if wave_index < WAVES and not done_this:

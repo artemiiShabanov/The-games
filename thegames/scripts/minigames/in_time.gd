@@ -190,6 +190,11 @@ func _on_tick(delta: float) -> void:
 
 
 ## Счёт: доля попаданий минус ложные нажатия; нерешённые к таймеру ноты не попадания.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "попаданий %d из %d, лишних нажатий %d" % [hits, TOTAL_NOTES, false_presses]  # i18n: skip
+
+
 func _score() -> float:
 	return clampf(float(hits) / TOTAL_NOTES - FALSE_PRESS_PENALTY * false_presses, 0.0, 1.0)
 

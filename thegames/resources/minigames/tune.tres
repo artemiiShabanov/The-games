@@ -4,17 +4,17 @@
 [ext_resource type="PackedScene" path="res://scenes/minigames/tune.tscn" id="1_xbiec"]
 
 [sub_resource type="Curve" id="Curve_jpbfp"]
-_limits = [0.99, 6.0, 0.0, 1.0]
-_data = [Vector2(0, 4), 0.0, 0.0, 0, 0, Vector2(1, 6), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.99, 6.4, 0.0, 1.0]
+_data = [Vector2(0, 4.4), 0.0, 0.0, 0, 0, Vector2(0.8, 6), 0.0, 0.0, 0, 0, Vector2(1, 6.4), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_s2fsc"]
-_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(0.8, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_1e8e7"]
-_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(0.8, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_ohabf")

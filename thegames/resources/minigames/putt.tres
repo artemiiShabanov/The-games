@@ -4,29 +4,29 @@
 [ext_resource type="PackedScene" path="res://scenes/minigames/putt.tscn" id="2_putt"]
 
 [sub_resource type="Curve" id="Curve_speed"]
-_limits = [0.5, 0.65, 0.0, 1.0]
-_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0.65), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.5, 0.68, 0.0, 1.0]
+_data = [Vector2(0, 0.53), 0.0, 0.0, 0, 0, Vector2(0.8, 0.65), 0.0, 0.0, 0, 0, Vector2(1, 0.68), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_near"]
-_limits = [0.25, 0.4, 0.0, 1.0]
-_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 0.25), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.22, 0.4, 0.0, 1.0]
+_data = [Vector2(0, 0.37), 0.0, 0.0, 0, 0, Vector2(0.8, 0.25), 0.0, 0.0, 0, 0, Vector2(1, 0.22), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_far"]
-_limits = [0.7, 0.95, 0.0, 1.0]
-_data = [Vector2(0, 0.7), 0.0, 0.0, 0, 0, Vector2(1, 0.95), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.7, 1, 0.0, 1.0]
+_data = [Vector2(0, 0.75), 0.0, 0.0, 0, 0, Vector2(0.8, 0.95), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_cup"]
-_limits = [100.0, 170.0, 0.0, 1.0]
-_data = [Vector2(0, 170), 0.0, 0.0, 0, 0, Vector2(1, 100), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [86, 170, 0.0, 1.0]
+_data = [Vector2(0, 156), 0.0, 0.0, 0, 0, Vector2(0.8, 100), 0.0, 0.0, 0, 0, Vector2(1, 86), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_drift"]
-_limits = [0.0, 130.0, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.3, 0), 0.0, 0.0, 0, 0, Vector2(0.35, 50), 0.0, 0.0, 0, 0, Vector2(1, 130), 0.0, 0.0, 0, 0]
-point_count = 4
+_limits = [0, 154.615, 0.0, 1.0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.1, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 50), 0.0, 0.0, 0, 0, Vector2(0.8, 130), 0.0, 0.0, 0, 0, Vector2(1, 154.615), 0.0, 0.0, 0, 0]
+point_count = 5
 
 [resource]
 script = ExtResource("1_33w65")

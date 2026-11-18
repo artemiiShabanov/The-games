@@ -39,6 +39,7 @@ var _retries := 0
 var _score := 0.0
 var _elapsed := 0.0
 var _limit := 0.0
+var _summary := ""
 ## Выбранное деление каждой шкалы (0..4) и строка в фокусе (0, 1, 2 это «дальше»).
 var _values: Array[int] = [MIDDLE, MIDDLE]
 var _row := 0
@@ -206,6 +207,7 @@ func _play() -> void:
 	_score = s
 	_elapsed = _minigame.elapsed
 	_limit = _minigame.time_limit
+	_summary = _minigame.summary()
 	_minigame = null
 	_show_rate()
 
@@ -250,8 +252,9 @@ func _show_rate() -> void:
 	var card := _card()
 	var column := _column(card)
 	column.add_child(_label(def.verb, Style.FONT_H1, Style.INK))
-	column.add_child(_label("счёт %.2f · время %.1f из %.0f с%s" % [_score, _elapsed, _limit,
-			" · повтор %d" % _retries if _retries > 0 else ""], Style.FONT_BODY, Style.INK_3))
+	column.add_child(_label("счёт %.2f · время %.1f из %.0f с%s%s" % [_score, _elapsed, _limit,
+			" · повтор %d" % _retries if _retries > 0 else "", " · " + _summary if _summary != "" else ""],
+			Style.FONT_BODY, Style.INK_3))
 	column.add_child(_spacer(24))
 	_chips = [[], []]
 	for r in 2:
@@ -354,6 +357,7 @@ func _save_rating() -> void:
 		"elapsed": snappedf(_elapsed, 0.1),
 		"time_limit": _limit,
 		"retries": _retries,
+		"summary": _summary,
 	})
 	var dir := ProjectSettings.globalize_path(path).get_base_dir()
 	DirAccess.make_dir_recursive_absolute(dir)

@@ -5,18 +5,18 @@
 
 [sub_resource type="Curve" id="Curve_size"]
 _limits = [0, 8, 0.0, 1.0]
-_data = [Vector2(0, 6), 0.0, 0.0, 0, 0, Vector2(1, 8), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 5.6), 0.0, 0.0, 0, 0, Vector2(0.2, 6), 0.0, 0.0, 0, 0, Vector2(1, 7.6), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_pairs"]
 _limits = [0, 4, 0.0, 1.0]
-_data = [Vector2(0, 3), 0.0, 0.0, 0, 0, Vector2(1, 3), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 3), 0.0, 0.0, 0, 0, Vector2(0.2, 3), 0.0, 0.0, 0, 0, Vector2(1, 3), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_mirror"]
 _limits = [0, 1, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.2, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.8), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_def")

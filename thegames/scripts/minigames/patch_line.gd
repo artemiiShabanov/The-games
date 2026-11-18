@@ -241,6 +241,11 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "поправлено %d, проехало %d, неверных %d" % [fixed_count, misses, wrongs]  # i18n: skip
+
+
 func _score() -> float:
 	return 1.0 - MISS_COST * misses - WRONG_COST * wrongs
 

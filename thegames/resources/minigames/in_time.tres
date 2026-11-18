@@ -4,34 +4,34 @@
 [ext_resource type="PackedScene" path="res://scenes/minigames/in_time.tscn" id="1_e1mjj"]
 
 [sub_resource type="Curve" id="Curve_j8pgh"]
-_limits = [0.75, 1.0, 0.0, 1.0]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.75), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.7, 1, 0.0, 1.0]
+_data = [Vector2(0, 0.95), 0.0, 0.0, 0, 0, Vector2(0.8, 0.75), 0.0, 0.0, 0, 0, Vector2(1, 0.7), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_iobv8"]
-_limits = [0.0, 0.3, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0, 0.36, 0.0, 1.0]
+_data = [Vector2(0, 0.06), 0.0, 0.0, 0, 0, Vector2(0.8, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 0.36), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_hqqee"]
-_limits = [0.0, 0.45, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0, 0.54, 0.0, 1.0]
+_data = [Vector2(0, 0.09), 0.0, 0.0, 0, 0, Vector2(0.8, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 0.54), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_e8e68"]
 _limits = [0.99, 1.6, 0.0, 1.0]
-_data = [Vector2(0, 1.6), 0.0, 0.0, 0, 0, Vector2(1, 1.2), 0.0, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 1.52), 0.0, 0.0, 0, 0, Vector2(0.8, 1.2), 0.0, 0.0, 0, 0, Vector2(1, 1.12), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_7rr11"]
-_limits = [0.1, 0.14, 0.0, 1.0]
-_data = [Vector2(0, 0.14), 0.0, 0.0, 0, 0, Vector2(1, 0.1), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.092, 0.14, 0.0, 1.0]
+_data = [Vector2(0, 0.132), 0.0, 0.0, 0, 0, Vector2(0.8, 0.1), 0.0, 0.0, 0, 0, Vector2(1, 0.092), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_e1mjj"]
-_limits = [0.0, 0.35, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.35), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0, 0.42, 0.0, 1.0]
+_data = [Vector2(0, 0.07), 0.0, 0.0, 0, 0, Vector2(0.8, 0.35), 0.0, 0.0, 0, 0, Vector2(1, 0.42), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_1jqlk")

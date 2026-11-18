@@ -216,6 +216,11 @@ func _next_round() -> void:
 
 ## Счёт: каждый фальстарт и медленный раунд снимают `MISTAKE_PENALTY`; таймер страховочный,
 ## несыгранные раунды не штрафуются.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "фальстартов %d, медленных %d" % [false_starts, slows]  # i18n: skip
+
+
 func _score() -> float:
 	return clampf(1.0 - MISTAKE_PENALTY * (false_starts + slows), 0.0, 1.0)
 

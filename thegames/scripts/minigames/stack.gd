@@ -21,7 +21,8 @@ extends Minigame
 
 enum Phase { RIDE, FALL }
 
-const FLOORS := 8
+## Этажей башни: 12 с оценки 2026-11-18 («коротко»: 8 этажей ставились за 6 секунд).
+const FLOORS := 12
 const BLOCK_H := 44.0
 const RADIUS := 12.0
 ## Блок ездит на столько в обе стороны от середины и висит на столько над башней.
@@ -34,7 +35,7 @@ const MIN_OVERLAP := 6.0
 ## Разворот на лету: не раньше дальнего края основания, не дальше этой доли пути от края до края.
 const FLIP_TO := 0.8
 ## Полутоны шлепка посадки по этажам: пентатоника вверх.
-const STEP_NOTES: Array[int] = [0, 2, 4, 7, 9, 12, 14, 16]
+const STEP_NOTES: Array[int] = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26]
 const STEP_BASE_HZ := 196.0
 const BASE_BOTTOM := 132.0
 const DOT_R := 9.0
@@ -139,6 +140,11 @@ func _on_tick(delta: float) -> void:
 
 
 ## Счёт: этажи по доле минус промахи и потерянная ширина.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "этажей %d, промахов %d, ширина %.0f из %.0f" % [placed, misses, floors_w[floors_w.size() - 1], start_width]  # i18n: skip
+
+
 func _score() -> float:
 	var narrow := 1.0 - floors_w[floors_w.size() - 1] / start_width
 	return clampf(float(placed) / FLOORS - MISS_PENALTY * misses - NARROW_PENALTY * narrow, 0.0, 1.0)

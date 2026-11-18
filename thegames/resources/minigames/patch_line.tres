@@ -4,24 +4,24 @@
 [ext_resource type="PackedScene" path="res://scenes/minigames/patch_line.tscn" id="1_m2iuy"]
 
 [sub_resource type="Curve" id="Curve_hmct7"]
-_limits = [0.0, 0.45, 0.0, 1.0]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0.45), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0, 0.63, 0.0, 1.0]
+_data = [Vector2(0, 0.18), 0.0, 0.0, 0, 0, Vector2(0.6, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_m2iuy"]
-_limits = [0.3, 0.65, 0.0, 1.0]
-_data = [Vector2(0, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 0.65), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.3, 0.79, 0.0, 1.0]
+_data = [Vector2(0, 0.44), 0.0, 0.0, 0, 0, Vector2(0.6, 0.65), 0.0, 0.0, 0, 0, Vector2(1, 0.7), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_8c7i3"]
-_limits = [0.6, 1.0, 0.0, 1.0]
-_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.6, 1, 0.0, 1.0]
+_data = [Vector2(0, 0.76), 0.0, 0.0, 0, 0, Vector2(0.6, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_ewcte"]
-_limits = [0.99, 460.0, 0.0, 1.0]
-_data = [Vector2(0, 300), 0.0, 0.0, 0, 0, Vector2(1, 460), 0.0, 0.0, 0, 0]
-point_count = 2
+_limits = [0.99, 524, 0.0, 1.0]
+_data = [Vector2(0, 364), 0.0, 0.0, 0, 0, Vector2(0.6, 460), 0.0, 0.0, 0, 0, Vector2(1, 480), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [resource]
 script = ExtResource("1_as8un")
@@ -29,7 +29,7 @@ id = &"patch_line"
 verb = "Поправь"
 hint = "Сдвинутый блок под курсором: стрелка ставит его на место"
 mouse_hint = "клик выше или ниже ленты · колесо"
-time_seconds = 18.0
+time_seconds = 14.0
 scene = ExtResource("1_m2iuy")
 inputs = Array[StringName]([&"move_up", &"move_down"])
 params = Dictionary[StringName, Curve]({

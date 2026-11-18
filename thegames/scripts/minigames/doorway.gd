@@ -267,6 +267,11 @@ func _arrive() -> void:
 
 
 ## Счёт: 1 за все стены, каждая непройденная (и не дошедшая к концу времени) `MISS_COST`.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "стен пройдено %d из %d" % [passed, WALLS]  # i18n: skip
+
+
 func _score() -> float:
 	return 1.0 - MISS_COST * (WALLS - passed)
 

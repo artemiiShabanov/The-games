@@ -1,0 +1,224 @@
+{
+	"runs": [
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 10.9,
+			"id": "decide_cards",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 24.0
+		},
+		{
+			"difficulty": 1.0,
+			"duration": 3.0,
+			"elapsed": 14.0,
+			"id": "mole",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 14.0
+		},
+		{
+			"difficulty": 1.0,
+			"duration": 2.0,
+			"elapsed": 6.1,
+			"id": "stack",
+			"retries": 0.0,
+			"score": 0.86,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 15.6,
+			"id": "fishing",
+			"retries": 0.0,
+			"score": 0.81,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 20.0,
+			"id": "rings",
+			"retries": 0.0,
+			"score": 0.07,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 4.0,
+			"duration": 3.0,
+			"elapsed": 16.9,
+			"id": "runner",
+			"retries": 0.0,
+			"score": 0.4,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 1.0,
+			"duration": 4.0,
+			"elapsed": 18.0,
+			"id": "patch_line",
+			"retries": 0.0,
+			"score": 0.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 18.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 6.7,
+			"id": "mash",
+			"retries": 0.0,
+			"score": 0.02,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 6.7
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 23.2,
+			"id": "flood_fill",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 30.0
+		},
+		{
+			"difficulty": 2.0,
+			"duration": 3.0,
+			"elapsed": 20.0,
+			"id": "putt",
+			"retries": 0.0,
+			"score": 0.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 19.0,
+			"id": "pairs",
+			"retries": 0.0,
+			"score": 0.8,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 25.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 14.2,
+			"id": "fit_frame",
+			"retries": 0.0,
+			"score": 0.5,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 7.3,
+			"id": "inflate",
+			"retries": 0.0,
+			"score": 0.4,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 2.0,
+			"duration": 3.0,
+			"elapsed": 20.2,
+			"id": "lights_out",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 24.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 11.8,
+			"id": "inverted",
+			"retries": 0.0,
+			"score": 0.88,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 2.0,
+			"duration": 3.0,
+			"elapsed": 13.1,
+			"id": "tune",
+			"retries": 0.0,
+			"score": 0.88,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 4.0,
+			"duration": 3.0,
+			"elapsed": 24.0,
+			"id": "spot",
+			"retries": 0.0,
+			"score": 0.33,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 24.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 24.9,
+			"id": "repeat",
+			"retries": 0.0,
+			"score": 0.8,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 28.0
+		},
+		{
+			"difficulty": 2.0,
+			"duration": 3.0,
+			"elapsed": 12.8,
+			"id": "doorway",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 2,
+			"duration": 3,
+			"elapsed": 13.4,
+			"id": "in_time",
+			"retries": 0,
+			"score": 1.0,
+			"session": "2026-11-18 14:01:57",
+			"t": 0.5,
+			"time_limit": 20.0
+		}
+	]
+}

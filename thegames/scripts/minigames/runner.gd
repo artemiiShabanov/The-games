@@ -204,6 +204,11 @@ func _on_tick(delta: float) -> void:
 
 
 ## Счёт: доля дорожки минус падения.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "дорожка %.0f %%, падений %d" % [100.0 * clampf(world_x / track_length, 0.0, 1.0), falls]  # i18n: skip
+
+
 func _score() -> float:
 	var progress := 1.0 if reached else clampf(world_x / track_length, 0.0, 1.0)
 	return clampf(progress - FALL_PENALTY * falls, 0.0, 1.0)

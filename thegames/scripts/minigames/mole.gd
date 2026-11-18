@@ -221,6 +221,11 @@ func _pop() -> void:
 	next_pop = interval * (PAIR_GAP if n == 2 else 1.0) * rng.randf_range(1.0 - JITTER, 1.0 + JITTER)
 
 
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "выскоков %d, попаданий %d, упущено %d, мимо %d" % [pops, hits, missed, whiffs]  # i18n: skip
+
+
 func _score() -> float:
 	return 1.0 - MISS_COST * missed - WHIFF_COST * whiffs
 

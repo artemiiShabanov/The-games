@@ -248,6 +248,11 @@ func _land() -> void:
 
 ## Счёт: доля лунок минус промахи. По таймеру шар в полёте считается, куда летит: в лунку
 ## лункой, мимо промахом.
+## Итог для сцены оценки мини-игр (`minigame_rating_test`).
+func summary() -> String:
+	return "лунок %d, промахов %d, ударов %d" % [holes, misses, shots]  # i18n: skip
+
+
 func _score() -> float:
 	var h := holes
 	var m := misses
