@@ -121,7 +121,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "счёт %d:%d · %d с" % [sim.score[0], sim.score[1], int(round(elapsed))]
+	return Lang.t("счёт %d:%d · %d с") % [sim.score[0], sim.score[1], int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -389,7 +389,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	_chip(canvas, Vector2(box.position.x + 8.0, 13.0), bit16_set.tone(&"hero_ink"), bit16_set.tone(&"hero_stripe"))
 	_chip(canvas, Vector2(box.end.x - 20.0, 13.0), rival_ink, rival_ink.darkened(0.35))
 	PixelFont16.draw(canvas, Vector2(box.position.x + 26.0, 15.0), bit16_set.word(&"team"), Color.WHITE, Color("#b8c8e0"), INK, 1.0)
-	PixelFont16.draw(canvas, Vector2(box.end.x - 26.0 - PixelFont16.width("ГОСТИ"), 15.0), "ГОСТИ", Color.WHITE,
+	PixelFont16.draw(canvas, Vector2(box.end.x - 26.0 - PixelFont16.width(Lang.t("ГОСТИ")), 15.0), Lang.t("ГОСТИ"), Color.WHITE,
 			Color("#b8c8e0"), INK, 1.0)
 	var score := "%d:%d" % [sim.score[0], sim.score[1]]
 	var cell := 2.0
@@ -397,7 +397,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 			INK, cell)
 	if _goal_t < 1.6:
 		var big := 4.0
-		var t := "ГОЛ!"
+		var t := Lang.t("ГОЛ!")
 		var k := minf(_goal_t * 5.0, 1.0)
 		var y := roundf(lerpf(-40.0, bit16.view.y * 0.35, k))
 		PixelFont16.draw(canvas, Vector2(cx - roundf(PixelFont16.width(t, big) * 0.5), y), t, Color.WHITE, BRASS[2], INK, big)
@@ -426,4 +426,4 @@ func _frame_box(canvas: CanvasItem, r: Rect2, bright: bool) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "бег"], [GameInput.key(GameInput.A), "пас, держать: удар"], [GameInput.key(GameInput.B), "подкат"]]
+	return [["← → ↑ ↓", Lang.t("бег")], [GameInput.key(GameInput.A), Lang.t("пас, держать: удар")], [GameInput.key(GameInput.B), Lang.t("подкат")]]

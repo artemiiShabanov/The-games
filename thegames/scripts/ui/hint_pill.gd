@@ -77,7 +77,7 @@ static func for_inputs(inputs: Array[StringName], _mouse_text := "") -> HintPill
 	var parts: PackedStringArray = []
 	for action in inputs:
 		parts.append(GameInput.key(action))
-	return make(" ".join(parts) if not parts.is_empty() else "любая клавиша")
+	return make(" ".join(parts) if not parts.is_empty() else Lang.t("любая клавиша"))
 
 
 ## Подпись пилюли.

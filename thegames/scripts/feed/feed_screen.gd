@@ -229,8 +229,8 @@ func _build() -> void:
 		var top := HBoxContainer.new()
 		top.add_theme_constant_override("separation", Style.GAP_CARDS)
 		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		top.add_child(_number_card("Продажи первой недели", Style.format_money(int(summary.get("first_week", 0))), Style.MONEY))
-		top.add_child(_number_card("Оценка студии", Style.format_money(int(summary.get("valuation", 0))), Style.INK))
+		top.add_child(_number_card(tr("Продажи первой недели"), Style.format_money(int(summary.get("first_week", 0))), Style.MONEY))
+		top.add_child(_number_card(tr("Оценка студии"), Style.format_money(int(summary.get("valuation", 0))), Style.INK))
 		_column.add_child(top)
 		_items.append(top)
 		_item_lifts.append([])
@@ -269,16 +269,16 @@ func _build() -> void:
 	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
 	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hints.add_child(HintPill.make("↑ ↓ листать"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "вниз, внизу выбрать")))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.B, "дальше")))
+	hints.add_child(HintPill.make(tr("↑ ↓ листать")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("вниз, внизу выбрать"))))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.B, tr("дальше"))))
 	MouseUi.pass_through(self)
 	add_child(hints)
 
 
 ## Шапка над карточкой: релиз и тег слева, деньги справа.
 func _build_header() -> void:
-	var header := HintPill.header(ShellHeader.release(release, ("Итоги релиза · %s" if not summary.is_empty() else "Отклик · %s") % content.tag))
+	var header := HintPill.header(ShellHeader.release(release, (tr("Итоги релиза · %s") if not summary.is_empty() else tr("Отклик · %s")) % content.tag))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
@@ -411,8 +411,8 @@ func _make_critic(item: FeedContent.Item) -> Control:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 4)
 	row.add_child(col)
-	col.add_child(_label("Критик · " + item.person.subtitle, Style.FONT_CAPTION, Style.INK_3))
-	col.add_child(_label(item.person.name, Style.FONT_BODY, item.person.accent))
+	col.add_child(_label(tr("Критик · %s") % tr(item.person.subtitle), Style.FONT_CAPTION, Style.INK_3))
+	col.add_child(_label(tr(item.person.name), Style.FONT_BODY, item.person.accent))
 	var quote := _label(item.text, Style.FONT_BODY, Style.INK)
 	quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(quote)
@@ -441,8 +441,8 @@ func _make_numbers(item: FeedContent.Item) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Style.GAP_CARDS)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_number_card("Критики", _score_text(item.score), Style.INK))
-	row.add_child(_number_card("Просмотры клипов", item.text, Style.INK))
+	row.add_child(_number_card(tr("Критики"), _score_text(item.score), Style.INK))
+	row.add_child(_number_card(tr("Просмотры клипов"), item.text, Style.INK))
 	return row
 
 
@@ -469,7 +469,7 @@ func _make_buttons() -> Control:
 		var b := PanelContainer.new()
 		b.custom_minimum_size = Vector2(240, Style.BUTTON_HEIGHT)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var l := _label(text, Style.FONT_H2, Style.INK)
+		var l := _label(tr(text), Style.FONT_H2, Style.INK)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		b.add_child(l)

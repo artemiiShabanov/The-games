@@ -61,7 +61,7 @@ func press() -> void:
 
 
 func _build() -> void:
-	var header := HintPill.header(ShellHeader.text("Конец забега"))
+	var header := HintPill.header(ShellHeader.text(tr("Конец забега")))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	card = CardFrame.new()
@@ -82,7 +82,7 @@ func _build() -> void:
 		score.add_theme_font_override("font", Style.mono_font())
 		column.add_child(score)
 	column.add_child(_label(result.caption(), Style.FONT_BODY, Style.INK_2))
-	column.add_child(_label("%s · %s" % [_releases_text(result.releases), "студия «%s»" % result.studio if result.studio != "" else ""],
+	column.add_child(_label("%s · %s" % [_releases_text(result.releases), tr("студия «%s»") % result.studio if result.studio != "" else ""],
 			Style.FONT_BODY, Style.INK_2))
 
 	if result.id != Endings.Id.BANKRUPTCY and not result.top.is_empty():
@@ -124,7 +124,7 @@ func _build() -> void:
 	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
 	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в галерею")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("в галерею"))))
 	add_child(hints)
 	MouseUi.pass_through(self)
 
@@ -152,6 +152,8 @@ func _game(g: GameRecord, frame: Vector2) -> Control:
 
 
 static func _releases_text(n: int) -> String:
+	if Lang.english():
+		return "%d release" % n if n == 1 else "%d releases" % n
 	var m10 := n % 10
 	var m100 := n % 100
 	var word := "релизов"

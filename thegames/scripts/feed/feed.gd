@@ -7,9 +7,47 @@ extends RefCounted
 
 static func hashtag(title: String) -> String:
 	var out := ""
+	if Lang.english():
+		# Английский тег (2026-11-18): из английского названия, CamelCase без пробелов и знаков.
+		for word in title_shown(title).split(" ", false):
+			var clean := ""
+			for ch in word:
+				if ch.is_valid_identifier() or ch.is_valid_int():
+					clean += ch
+			out += clean.substr(0, 1).to_upper() + clean.substr(1)
+		return "#" + out
 	for word in title.split(" ", false):
 		out += word.substr(0, 1).to_upper() + word.substr(1)
 	return "#" + out
+
+
+## Название игры на языке интерфейса. Название хранится на языке, на котором игру создали
+## (`TitleGen`: тег сеттинга и хвост жанра); русское под английским интерфейсом переводится
+## целиком или по частям тем же правилом, что в `TitleGen`.
+static func title_shown(title: String) -> String:
+	if not Lang.english() or not _has_cyrillic(title):
+		return title
+	var whole := Lang.t(title)
+	if whole != title:
+		return whole
+	var genres := Catalog.load_kind(CatalogEntry.Kind.GENRE)
+	if genres != null:
+		for e in genres.entries:
+			for tail: String in e.title_tags:
+				if tail != "" and title.ends_with(" " + tail):
+					var noun := Lang.t(title.substr(0, title.length() - tail.length() - 1))
+					# Хвост жанра по-английски шаблон с `%s` на месте существительного (`TitleGen`).
+					var pattern := Lang.t(tail)
+					return pattern % noun if pattern.contains("%s") else "%s %s" % [noun, pattern]
+	return title
+
+
+static func _has_cyrillic(text: String) -> bool:
+	for ch in text:
+		var c := ch.unicode_at(0)
+		if c >= 0x400 and c <= 0x4FF:
+			return true
+	return false
 
 
 ## Оценка критика: общая `C` плюс сдвиг характера, 0..10.
@@ -96,10 +134,12 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	c.viral = score.viral
 	c.streamers_word = score.streamers_word(t)
 	var bug := clip_bug(record, catalog)
+	# Проявление бага в реплике стоит в начале фразы: в английском с заглавной.
+	var bug_text := Lang.t(bug.manifestation_for(record.genre, record.tech)) if bug != null else ""
 	var vars := {
-		"title": record.title, "genre": Game.genre_name(record.genre), "setting": Game.setting_name(record.setting),
-		"tech": Game.tech_name(record.tech), "bug": bug.manifestation_for(record.genre, record.tech).to_lower() if bug != null else "", "tag": c.tag,
-		"studio": studio if studio != "" else "студия"}
+		"title": title_shown(record.title), "genre": Game.genre_name(record.genre), "setting": Game.setting_name(record.setting),
+		"tech": Game.tech_name(record.tech), "bug": bug_text if Lang.english() else bug_text.to_lower(), "tag": c.tag,
+		"studio": studio if studio != "" else Lang.t("студия")}
 	# Без повторов за забег (#141): строка списка выбирается по номеру релиза в порядке,
 	# перемешанном от ключа забега, а не случайно. Лента при этом собирается заново одинаково.
 	var take := {"run": run_key, "rel": release_index, "n": {}}
@@ -115,7 +155,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 	var tone_key := "tw_good" if good else "tw_bad"
 	var tweets: Array[String] = []
 	if bug != null and bug.tweet_for(record.genre, record.tech) != "":
-		tweets.append(_setting_words(bug.tweet_at(record.genre, record.tech, release_index), record.setting))
+		tweets.append(_setting_words(Lang.t(bug.tweet_at(record.genre, record.tech, release_index)), record.setting))
 	tweets.append(_take(tone_pool, tone_key, take, 2))
 	tweets.append(_take(texts.tweets_viral if score.viral else texts.tweets_quiet, "tw_viral" if score.viral else "tw_quiet", take))
 	var context := _context_tweet(texts, record, take)
@@ -160,7 +200,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		if critic_nature_fired(p, score, record, t):
 			var remark := _take(voice.get("nature", []), "crn_%s" % p.id, take)
 			if remark == "" and p.nature < texts.critic_nature_remarks.size():
-				remark = texts.critic_nature_remarks[p.nature]
+				remark = Lang.t(texts.critic_nature_remarks[p.nature])
 			if remark != "":
 				item.text += " " + _fill(remark, vars)
 		mixed.append(item)
@@ -184,7 +224,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		clip.person = streamer
 		clip.mood = 1 if c.viral else 0
 		clip.reach = streamer_reach(streamer, score, record, t)
-		clip.stamp = bug.stamp_for(record.genre, record.tech, record.setting) if bug != null else ""
+		clip.stamp = _bug_stamp(bug, record) if bug != null else ""
 		var stream_voice: Dictionary = texts.streamers.get(String(streamer.id), {})
 		var clip_kind := "bug" if bug != null else "clean"
 		var clip_line := _take(stream_voice.get(clip_kind, []), "cl_%s_%s" % [streamer.id, clip_kind], take)
@@ -193,7 +233,7 @@ static func build(record: GameRecord, score: ReleaseScore, critics: PeopleSet, s
 		clip.text = _fill(clip_line, vars)
 		c.views = views_for(score.streamers, t, rng)
 		c.online = int(round(c.views / t.online_divisor / 100.0)) * 100
-		clip.caption = FeedContent.format_count(c.online) + " онлайн"
+		clip.caption = Lang.t("%s онлайн") % FeedContent.format_count(c.online)
 		mixed.append(clip)
 		c.clip_person = streamer
 
@@ -226,6 +266,14 @@ static func _tweet(text: String, handles: Array[String], i: int) -> FeedContent.
 	item.text = text
 	item.handle = handles[i % handles.size()] if not handles.is_empty() else "@anon"
 	return item
+
+
+## Штамп бага на языке интерфейса: перевод шаблона до подстановки слов сеттинга
+## («БЕССМЕРТНЫЙ {boss}»), поэтому не `BugDef.stamp_for`, где слова уже подставлены.
+static func _bug_stamp(bug: BugDef, record: GameRecord) -> String:
+	var key := BugDef.pair_key(record.genre, record.tech)
+	var raw: String = bug.stamp_by_pair.get(key, bug.stamp_by_genre.get(int(record.genre), bug.stamp))
+	return SettingDef.of(record.setting).fill(Lang.t(raw))
 
 
 ## Слова сеттинга в тексте бага (#141): «{enemies} носятся» даёт «Зомби носятся» или «Пришельцы
@@ -274,7 +322,7 @@ static func _take(pool: Variant, key: String, take: Dictionary, stride := 1) -> 
 		var tmp: int = order[i]
 		order[i] = order[k]
 		order[k] = tmp
-	return str(pool[order[(int(take["rel"]) * stride + j) % size]])
+	return Lang.t(str(pool[order[(int(take["rel"]) * stride + j) % size]]))
 
 
 static func _fill(template: String, vars: Dictionary) -> String:

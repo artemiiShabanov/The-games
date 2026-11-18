@@ -4,7 +4,7 @@ extends Resource
 ## (плотный, мало брызг, по умолчанию) и `resources/jelly_soft.tres` желе. Числа мягкого тела, брызг, следа, волн по поверхности и
 ## пружин мелких объектов. Ресурс `resources/jelly.tres`, ручки в разделе «Желе» дебаг-меню.
 
-@export_group("Тело")
+@export_group("Тело")  # i18n: skip
 ## Точек по контуру.
 @export var blob_points := 28
 ## Жёсткость тяги точки к своему месту в форме, 1/с².
@@ -29,7 +29,7 @@ extends Resource
 ## Дыхание в покое, доля радиуса.
 @export var blob_breathe := 0.02
 
-@export_group("Брызги и след")
+@export_group("Брызги и след")  # i18n: skip
 @export var splash_scale := 1.0
 @export var droplet_gravity := 2600.0
 ## Сколько живёт клякса на поверхности, с.
@@ -39,7 +39,7 @@ extends Resource
 @export var trail_width := 7.0
 @export var trail_alpha := 0.85
 
-@export_group("Поверхность")
+@export_group("Поверхность")  # i18n: skip
 ## Высота волны от удара на 1000 пикселей в секунду скорости падения.
 @export var ripple_amp := 9.0
 @export var ripple_speed := 900.0
@@ -49,11 +49,11 @@ extends Resource
 ## Прогиб поверхности под телом, пиксели.
 @export var dent := 5.0
 
-@export_group("Пружины предметов")
+@export_group("Пружины предметов")  # i18n: skip
 @export var spring_stiffness := 280.0
 @export var spring_damping := 6.0
 
-@export_group("Интерфейс")
+@export_group("Интерфейс")  # i18n: skip
 ## Пружины элементов интерфейса: жёсткость и затухание.
 @export var ui_stiffness := 300.0
 @export var ui_damping := 11.0
@@ -73,7 +73,7 @@ extends Resource
 @export var ui_hover_lens := 0.06
 @export var ui_lean := 0.0
 
-@export_group("Фокус толщиной")
+@export_group("Фокус толщиной")  # i18n: skip
 ## Подъём элемента в фокусе: высота бортика, вдавленный при нажатии, дыхание, затемнение.
 @export var lift_px := 8.0
 @export var lift_press := 1.5

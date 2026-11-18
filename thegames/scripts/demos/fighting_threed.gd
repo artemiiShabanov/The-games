@@ -379,31 +379,31 @@ func _on_event(ev: Array) -> void:
 			_punch_kind = 5
 			_combo_pop = 1.0
 			_impact(int(ev[1]), 1.1, Color(0.7, 0.9, 1.0), 1.6, tuning.hit_stop * 1.6)
-			_say("ЩИТ СБИТ", ThreedHud.GREEN)
+			_say(Lang.t("ЩИТ СБИТ"), ThreedHud.GREEN)
 		&"ghost":
 			_punch = 0.22
 			_punch_kind = sim.blow
-			_say("МИМО", ThreedHud.RED)
+			_say(Lang.t("МИМО"), ThreedHud.RED)
 		&"bounce":
 			_play("clang")
 			_punch = 0.18
 			_punch_kind = sim.blow
 			_shake = maxf(_shake, 0.4)
-			_say("ЩИТ: ДЕРЖИ УДАР", ThreedHud.RED)
+			_say(Lang.t("ЩИТ: ДЕРЖИ УДАР"), ThreedHud.RED)
 		&"ko":
 			_play("ko")
 			_impact(int(ev[1]), 1.2, Color(1.0, 0.7, 0.3), 2.0 if ev[2] else 1.6, tuning.hit_stop * (3.0 if ev[2] else 2.0))
 			if ev[2]:
 				_punch = 0.32
 				_punch_kind = 3
-				_say("ДОБИВАНИЕ", ThreedHud.GOLD)
+				_say(Lang.t("ДОБИВАНИЕ"), ThreedHud.GOLD)
 		&"counter":
 			_play("counter")
 			_punch = 0.26
 			_punch_kind = 6
 			_combo_pop = 1.0
 			_impact(int(ev[1]), 1.15, Color(0.6, 0.9, 1.0), 1.5, tuning.hit_stop * 1.5)
-			_say("ПЕРЕХВАТ", ThreedHud.GREEN)
+			_say(Lang.t("ПЕРЕХВАТ"), ThreedHud.GREEN)
 		&"dodge":
 			_play("dodge")
 		&"windup":
@@ -434,11 +434,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "палуба чиста" if goal else "поражение"
+	return Lang.t("палуба чиста") if goal else Lang.t("поражение")
 
 
 func _result_caption() -> String:
-	return "уложил %d из %d · серия %d · %d с" % [sim.kos, plan.total(), sim.best, int(round(sim.time))]
+	return Lang.t("уложил %d из %d · серия %d · %d с") % [sim.kos, plan.total(), sim.best, int(round(sim.time))]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -702,9 +702,9 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	h.text(Vector2(36.0, 15.5), str(sim.hero_hp), 6.0, ThreedHud.WHITE, -1)
 	# Враги и волна справа сверху.
 	h.panel(Rect2(view.x - 126.0, 9.0, 116.0, 30.0), 7.0)
-	h.text(Vector2(view.x - 118.0, 17.0), "ВРАГОВ", 5.2, ThreedHud.DIM, -1)
+	h.text(Vector2(view.x - 118.0, 17.0), Lang.t("ВРАГОВ"), 5.2, ThreedHud.DIM, -1)
 	h.text(Vector2(view.x - 118.0, 29.0), str(sim.left_total()), 11.5, ThreedHud.WHITE, -1)
-	h.text(Vector2(view.x - 18.0, 17.0), "ВОЛНА", 5.2, ThreedHud.DIM, 1)
+	h.text(Vector2(view.x - 18.0, 17.0), Lang.t("ВОЛНА"), 5.2, ThreedHud.DIM, 1)
 	for w in plan.waves.size():
 		h.circle(Vector2(view.x - 18.0 - (plan.waves.size() - 1 - w) * 6.0, 29.0), 1.9,
 				ThreedHud.GOLD if w < sim.wave else (ThreedHud.WHITE if w == sim.wave else ThreedHud.FAINT))
@@ -718,9 +718,9 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		h.arc(c, 25.0, 0.0, TAU, h.edge, 0.6)
 		h.arc(c, 21.5, -PI / 2.0, -PI / 2.0 + TAU * clampf(sim.combo_left / tuning.combo_seconds, 0.0, 1.0), ThreedHud.GOLD if strong else ThreedHud.WHITE, 2.2)
 		h.text(c + Vector2(0.0, -2.0), str(sim.combo), size * 0.72, ThreedHud.GOLD if strong else ThreedHud.WHITE)
-		h.text(c + Vector2(0.0, 13.0), "УДАР ×2" if strong else "СЕРИЯ", 4.4, ThreedHud.GOLD if strong else ThreedHud.DIM)
+		h.text(c + Vector2(0.0, 13.0), Lang.t("УДАР ×2") if strong else Lang.t("СЕРИЯ"), 4.4, ThreedHud.GOLD if strong else ThreedHud.DIM)
 		if sim.special:
-			h.text(c + Vector2(0.0, 36.0), "ДОБИВАНИЕ", 6.5, ThreedHud.GOLD if int(_time * 6.0) % 2 == 0 else ThreedHud.WHITE, 0, Color(0.0, 0.0, 0.0, 0.6))
+			h.text(c + Vector2(0.0, 36.0), Lang.t("ДОБИВАНИЕ"), 6.5, ThreedHud.GOLD if int(_time * 6.0) % 2 == 0 else ThreedHud.WHITE, 0, Color(0.0, 0.0, 0.0, 0.6))
 	if _note_left > 0.0:
 		h.text(Vector2(mid.x, 58.0), _note, 11.0, Color(_note_color, minf(_note_left * 3.0, 1.0)), 0, Color(0.0, 0.0, 0.0, 0.55))
 	if sim.phase == FraySim.Phase.COUNTDOWN:
@@ -730,4 +730,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "куда бить"], [GameInput.key(GameInput.A), "удар, держать: сильный"], [GameInput.key(GameInput.B), "перекат"]]
+	return [["← → ↑ ↓", Lang.t("куда бить")], [GameInput.key(GameInput.A), Lang.t("удар, держать: сильный")], [GameInput.key(GameInput.B), Lang.t("перекат")]]

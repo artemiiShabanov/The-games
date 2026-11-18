@@ -106,13 +106,13 @@ static func validate(plan: HoopPlan, t: SportLowpolyGenTuning = null, rules: Spo
 	if rules == null:
 		rules = SportLowpolyTuning.load_default()
 	if plan.shots.size() != rules.shots:
-		return "бросков %d" % plan.shots.size()
+		return "бросков %d" % plan.shots.size()  # i18n: skip
 	var near := 0
 	for i in plan.shots.size():
 		var s := plan.shots[i]
 		near += 1 if s.points == 2 else 0
 		if s.v_hi - s.v_lo < 0.02:
-			return "бросок %d: нет чистого диапазона" % i
+			return "бросок %d: нет чистого диапазона" % i  # i18n: skip
 		# Точный бросок входит чисто: в середине зоны и у её краёв, с поправкой на ветер, в любой
 		# момент езды кольца.
 		for at: float in [0.0, 0.9, 1.7, 2.6]:
@@ -126,13 +126,13 @@ static func validate(plan: HoopPlan, t: SportLowpolyGenTuning = null, rules: Spo
 				var scale := HoopSim.reach_of(s, rules, shift)
 				var result := HoopSim.trial(s, rules, yaw, HoopSim.speed_of(s, rules, s.zone + edge * s.zone_half) * scale, at)
 				if not result[0]:
-					return "бросок %d: точный бросок мимо (край зоны %.1f, момент %.1f)" % [i, edge, at]
+					return "бросок %d: точный бросок мимо (край зоны %.1f, момент %.1f)" % [i, edge, at]  # i18n: skip
 			if s.move_amp <= 0.0:
 				break
 	if near < t.near_first:
-		return "ближних бросков %d" % near
+		return "ближних бросков %d" % near  # i18n: skip
 	if plan.count_wind() != t.wind_shots:
-		return "бросков с ветром %d" % plan.count_wind()
+		return "бросков с ветром %d" % plan.count_wind()  # i18n: skip
 	if plan.count_moving() != t.moving_shots:
-		return "бросков с ездящим кольцом %d" % plan.count_moving()
+		return "бросков с ездящим кольцом %d" % plan.count_moving()  # i18n: skip
 	return ""

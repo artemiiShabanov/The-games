@@ -119,16 +119,16 @@ func _on_end(goal: bool) -> void:
 
 func _result_title(goal: bool) -> String:
 	if goal:
-		return "победа"
-	return "ничья" if sim != null and sim.hero_wins == sim.rival_wins else "поражение"
+		return Lang.t("победа")
+	return Lang.t("ничья") if sim != null and sim.hero_wins == sim.rival_wins else Lang.t("поражение")
 
 
 func _result_caption() -> String:
-	return "раунды %d:%d · лучшая реакция %s" % [sim.hero_wins, sim.rival_wins, _reaction_text()]
+	return Lang.t("раунды %d:%d · лучшая реакция %s") % [sim.hero_wins, sim.rival_wins, _reaction_text()]
 
 
 func _reaction_text() -> String:
-	return "%.2f с" % sim.best_reaction if sim.best_reaction < INF else "нет"
+	return Lang.t("%.2f с") % sim.best_reaction if sim.best_reaction < INF else Lang.t("нет")
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -352,4 +352,4 @@ func _draw_frame(v: VectorScreen, size: Vector2, ink_i: int, alpha: float) -> vo
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [[GameInput.key(GameInput.A), "удар после вспышки"]]
+	return [[GameInput.key(GameInput.A), Lang.t("удар после вспышки")]]

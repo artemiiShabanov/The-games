@@ -29,7 +29,7 @@ const ASPECTS: Array[int] = [Game.Aspect.OPTIMIZATION, Game.Aspect.SOUND, Game.A
 
 
 static func title(role: Role) -> String:
-	return TITLES[role]
+	return Lang.t(TITLES[role])
 
 
 static func is_aspect(role: Role) -> bool:
@@ -44,24 +44,28 @@ static func is_unique(role: Role) -> bool:
 ## Строка эффекта на карточке соискателя и в списке штата.
 static func effect_line(role: Role, grade: Grade, t: StaffTuning) -> String:
 	var v := t.value(role, grade)
-	var pct := "%d %%" % roundi(v * 100.0)
+	var pct := ("%d%%" if Lang.english() else "%d %%") % roundi(v * 100.0)
 	if is_aspect(role):
-		return "Мини-игры аспекта «%s» проще на %s" % [Game.aspect_name(ASPECTS[role] as Game.Aspect).to_lower(), pct]
+		var aspect := Game.aspect_name(ASPECTS[role] as Game.Aspect)
+		return Lang.t("Мини-игры аспекта «%s» проще на %s") % [aspect.left(1).to_upper() + aspect.substr(1) if Lang.english() else aspect.to_lower(), pct]
 	match role:
 		Role.MANAGER:
-			return "Цена спринта на %s ниже" % pct
+			return Lang.t("Цена спринта на %s ниже") % pct
 		Role.TESTER:
 			if grade == Grade.SENIOR:
-				return "Багфикс на %s дешевле, второй спринт багфикса за релиз" % pct
-			return "Багфикс на %s дешевле" % pct
+				return Lang.t("Багфикс на %s дешевле, второй спринт багфикса за релиз") % pct
+			return Lang.t("Багфикс на %s дешевле") % pct
 		Role.LEAD:
 			var n := roundi(v)
-			return "Повторов проваленного спринта за релиз: %d" % n
+			return Lang.t("Повторов проваленного спринта за релиз: %d") % n
 		Role.PRODUCER:
-			return ["Сиквелы в конструкторе", "Сиквелы и ремейки в конструкторе",
-					"Сиквелы и ремейки, их разработка на %d %% дешевле" % roundi(t.producer_discount * 100.0)][grade]
+			if grade == Grade.JUNIOR:
+				return Lang.t("Сиквелы в конструкторе")
+			if grade == Grade.MIDDLE:
+				return Lang.t("Сиквелы и ремейки в конструкторе")
+			return Lang.t("Сиквелы и ремейки, их разработка на %d %% дешевле") % roundi(t.producer_discount * 100.0)
 		Role.ANALYST:
-			return "Видны жанр и сеттинг в тренде"
+			return Lang.t("Видны жанр и сеттинг в тренде")
 	return ""
 
 

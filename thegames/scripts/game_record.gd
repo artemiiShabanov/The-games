@@ -84,5 +84,5 @@ func quality() -> float:
 
 
 func _to_string() -> String:
-	return "%s (%s × %s, сид %d, баги %s, качество %.2f)" % [
+	return "%s (%s × %s, сид %d, баги %s, качество %.2f)" % [  # i18n: skip
 		title, Game.genre_name(genre), Game.tech_name(tech), seed, bug_ids, quality()]

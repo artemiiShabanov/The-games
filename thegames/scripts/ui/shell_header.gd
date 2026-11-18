@@ -12,4 +12,4 @@ static func text(rest: String) -> String:
 
 
 static func release(n: int, rest: String) -> String:
-	return text("Релиз %d · %s" % [n, rest])
+	return text(Lang.t("Релиз %d · %s") % [n, rest])

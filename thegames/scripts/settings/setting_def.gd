@@ -124,14 +124,14 @@ func _borrow_path(path: String, format: String, name: String) -> void:
 		_borrow(format, name)
 
 
-## Слово сеттинга по ключу; без своего пиратское, и это подмена.
+## Слово сеттинга по ключу, переведённое (`Lang.t`); без своего пиратское, и это подмена.
 func word(key: StringName) -> String:
 	if words.has(key):
-		return words[key]
+		return Lang.t(words[key])
 	var base := of(Game.Setting.PIRATES)
 	if base != self:
 		_borrow("words", String(key))
-	return base.words.get(key, String(key).to_upper())
+	return Lang.t(base.words.get(key, String(key).to_upper()))
 
 
 ## Цвет рисунка демки по роли; без своего пиратский.
@@ -180,7 +180,7 @@ func sprite16(name: String) -> Texture2D:
 func colors16() -> Array[Color]:
 	if bit16_colors.size() >= 16:
 		return bit16_colors
-	_borrow("16bit", "палитра")
+	_borrow("16bit", "палитра")  # i18n: skip
 	return SettingDef.of(Game.Setting.PIRATES).bit16_colors if setting != Game.Setting.PIRATES else bit16_colors
 
 
@@ -222,7 +222,7 @@ func texture_lowpoly(name: String, threed := false) -> Texture2D:
 func colors_lowpoly() -> Array[Color]:
 	if lowpoly_colors.size() >= LowpolyScreen.ROLES or setting == Game.Setting.PIRATES:
 		return lowpoly_colors
-	_borrow("lowpoly", "палитра")
+	_borrow("lowpoly", "палитра")  # i18n: skip
 	return SettingDef.of(Game.Setting.PIRATES).lowpoly_colors
 
 
@@ -231,7 +231,7 @@ func env(threed := false) -> SettingEnv:
 	var e := env_threed if threed else env_lowpoly
 	if e != null:
 		return e
-	_borrow("threed" if threed else "lowpoly", "окружение")
+	_borrow("threed" if threed else "lowpoly", "окружение")  # i18n: skip
 	var pirates := SettingDef.of(Game.Setting.PIRATES)
 	e = pirates.env_threed if threed else pirates.env_lowpoly
 	return e if e != null else SettingEnv.new()

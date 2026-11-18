@@ -47,7 +47,7 @@ func _ready() -> void:
 	top.add_theme_constant_override("separation", 12)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_holder.add_child(top)
-	top.add_child(_pill("● " + item.person.name, Style.DANGER))
+	top.add_child(_pill("● " + tr(item.person.name), Style.DANGER))
 	top.add_child(_pill(item.caption, Color(Style.INK, 0.7)))
 	# Лицо стримера в левом нижнем углу, на плашке.
 	var cam := PanelContainer.new()

@@ -42,10 +42,10 @@ func _next() -> void:
 	col.add_theme_constant_override("separation", 0)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pill.add_child(col)
-	var head := _label("Достижение «%s»" % d.title, Style.FONT_BODY, Style.SURFACE_SOLID)
+	var head := _label(tr("Достижение «%s»") % tr(d.title), Style.FONT_BODY, Style.SURFACE_SOLID)
 	head.add_theme_font_override("font", Jelly.fun_font(800))
 	col.add_child(head)
-	col.add_child(_label("Открыт сеттинг: %s. Действует во всех забегах." % Game.setting_name(d.setting), Style.FONT_CAPTION, Style.INK_3))
+	col.add_child(_label(tr("Открыт сеттинг: %s. Действует во всех забегах.") % Game.setting_name(d.setting), Style.FONT_CAPTION, Style.INK_3))
 	add_child(pill)
 	pill.reset_size()
 	var w := pill.get_combined_minimum_size()

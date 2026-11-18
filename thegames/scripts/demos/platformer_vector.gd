@@ -100,11 +100,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "забрался" if goal else "не забрался"
+	return Lang.t("забрался") if goal else Lang.t("не забрался")
 
 
 func _result_caption() -> String:
-	return "монеты %d из %d · падений %d · %d с" % [sim.coins_got, tower.coins.size(), sim.falls, int(round(elapsed))]
+	return Lang.t("монеты %d из %d · падений %d · %d с") % [sim.coins_got, tower.coins.size(), sim.falls, int(round(elapsed))]
 
 
 ## Высота над землёй в координату экрана.
@@ -310,4 +310,4 @@ func _draw_vector(v: VectorScreen) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "бег"], [GameInput.key(GameInput.A) + " ↑", "прыжок вверх"]]
+	return [["← →", Lang.t("бег")], [GameInput.key(GameInput.A) + " ↑", Lang.t("прыжок вверх")]]

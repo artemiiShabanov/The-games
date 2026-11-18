@@ -248,7 +248,7 @@ func _on_event(ev: Array) -> void:
 		&"score":
 			var pure: bool = ev[2]
 			_play("clean" if pure else "score")
-			_popup = "+%d%s" % [ev[1], " ЧИСТО" if pure else ""]
+			_popup = "+%d%s" % [ev[1], Lang.t(" ЧИСТО") if pure else ""]
 			_popup_good = true
 			_popup_left = tuning.result_seconds
 			_burst(sim.rim_now() - Vector3(0.0, 0.3, 0.0), 8 if pure else 4, HOT if ev[3] else WHITE, 0.45, 2.2)
@@ -258,7 +258,7 @@ func _on_event(ev: Array) -> void:
 			_play("throw")
 		&"miss":
 			_play("miss")
-			_popup = "МИМО"
+			_popup = Lang.t("МИМО")
 			_popup_good = false
 			_popup_left = tuning.result_seconds
 		&"next":
@@ -280,11 +280,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "%d очков" % sim.score if goal else "мало очков"
+	return Lang.t("%d очков") % sim.score if goal else Lang.t("мало очков")
 
 
 func _result_caption() -> String:
-	return "порог %d · попал %d из %d · чисто %d" % [sim.goal_points(), sim.made, plan.shots.size(), sim.clean]
+	return Lang.t("порог %d · попал %d из %d · чисто %d") % [sim.goal_points(), sim.made, plan.shots.size(), sim.clean]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -416,7 +416,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	if shot.wind != 0 and sim.phase != HoopSim.Phase.DONE:
 		var n := absi(shot.wind)
 		var dir := signf(shot.wind)
-		var text := "ВЕТЕР"
+		var text := Lang.t("ВЕТЕР")
 		var tw := PixelFont16.width(text, 1.0)
 		var total := tw + 8.0 + n * 10.0
 		var left := roundf(view.x / 2.0 - total / 2.0)
@@ -436,7 +436,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	PixelFont16.draw(canvas, Vector2(10.0, 6.0), str(sim.score), white, gold, dark, 3.0)
 	PixelFont16.draw(canvas, Vector2(12.0 + PixelFont16.width(str(sim.score), 3.0), 18.0), "/%d" % sim.goal_points(), white, white, dark, 1.0)
 	if sim.fire() and int(_time * 6.0) % 2 == 0:
-		PixelFont16.draw(canvas, Vector2(10.0, 44.0), "ГОРИТ X%d" % tuning.fire_mult, white, red, dark, 1.0)
+		PixelFont16.draw(canvas, Vector2(10.0, 44.0), Lang.t("ГОРИТ X%d") % tuning.fire_mult, white, red, dark, 1.0)
 	# Броски сверху по центру: кружки итогов.
 	var count := plan.shots.size()
 	for i in count:
@@ -461,7 +461,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		var my := roundf(bar.end.y - sim.power * bar.size.y)
 		canvas.draw_rect(Rect2(bar.position.x - 5.0, my - 3.0, bar.size.x + 10.0, 6.0), dark)
 		canvas.draw_rect(Rect2(bar.position.x - 4.0, my - 2.0, bar.size.x + 8.0, 4.0), white)
-	var worth := "%d ОЧК" % shot.points
+	var worth := Lang.t("%d ОЧК") % shot.points
 	PixelFont16.draw(canvas, Vector2(view.x - 10.0 - PixelFont16.width(worth, 1.0), view.y - 44.0), worth, white, gold, dark, 1.0)
 	# Отсчёт и итог броска.
 	if sim.phase == HoopSim.Phase.COUNTDOWN:
@@ -476,4 +476,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "прицел"], [GameInput.key(GameInput.A), "держать: сила, отпустить: бросок"]]
+	return [["← → ↑ ↓", Lang.t("прицел")], [GameInput.key(GameInput.A), Lang.t("держать: сила, отпустить: бросок")]]

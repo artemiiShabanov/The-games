@@ -422,7 +422,7 @@ func _on_event(ev: Array) -> void:
 		&"gate":
 			var ok: bool = ev[2]
 			_play("gate" if ok else "miss")
-			_note = "ЕСТЬ!" if ok else "МИМО"
+			_note = Lang.t("ЕСТЬ!") if ok else Lang.t("МИМО")
 			_note_good = ok
 			_note_left = 0.8
 			for flag: MeshInstance3D in gate_flags[int(ev[1])]:
@@ -437,7 +437,7 @@ func _on_event(ev: Array) -> void:
 		&"catch":
 			_play("catch")
 			_was_caught = true
-			_note = "СРЫВ КАНТА"
+			_note = Lang.t("СРЫВ КАНТА")
 			_note_good = false
 			_note_left = 0.8
 			_shake = maxf(_shake, 0.5)
@@ -466,11 +466,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "спуск засчитан" if goal else ("мало ворот" if sim.finished else "не доехал")
+	return Lang.t("спуск засчитан") if goal else (Lang.t("мало ворот") if sim.finished else Lang.t("не доехал"))
 
 
 func _result_caption() -> String:
-	return "ворот %d из %d · %d с · падений %d" % [sim.passed, course.gates.size(), int(round(sim.time)), sim.falls]
+	return Lang.t("ворот %d из %d · %d с · падений %d") % [sim.passed, course.gates.size(), int(round(sim.time)), sim.falls]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -670,10 +670,10 @@ func _draw_hud(canvas: CanvasItem) -> void:
 			h.polygon(PackedVector2Array([tip, tip + Vector2(-side * 9.0, -6.0), tip + Vector2(-side * 9.0, 6.0)]), ThreedHud.GOLD)
 	# Ворота: слева сверху счёт и точки по порядку.
 	h.panel(Rect2(10.0, 9.0, 96.0, 44.0), 7.0)
-	h.text(Vector2(17.0, 17.0), "ВОРОТА", 5.2, ThreedHud.DIM, -1)
+	h.text(Vector2(17.0, 17.0), Lang.t("ВОРОТА"), 5.2, ThreedHud.DIM, -1)
 	h.text(Vector2(17.0, 30.5), str(sim.passed), 17.0, ThreedHud.GREEN if sim.passed >= sim.need() else ThreedHud.WHITE, -1)
-	h.text(Vector2(99.0, 27.0), "из %d" % total, 6.5, ThreedHud.DIM, 1)
-	h.text(Vector2(99.0, 35.5), "надо %d" % sim.need(), 5.4, ThreedHud.GOLD, 1)
+	h.text(Vector2(99.0, 27.0), Lang.t("из %d") % total, 6.5, ThreedHud.DIM, 1)
+	h.text(Vector2(99.0, 35.5), Lang.t("надо %d") % sim.need(), 5.4, ThreedHud.GOLD, 1)
 	for i in total:
 		var dot := Vector2(18.0 + i * (80.0 / maxf(total - 1, 1)), 46.0)
 		var color := ThreedHud.FAINT
@@ -684,7 +684,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		h.circle(dot, 1.5, color)
 	# Время справа сверху.
 	h.panel(Rect2(view.x - 88.0, 9.0, 78.0, 36.0), 7.0)
-	h.text(Vector2(view.x - 81.0, 17.0), "ВРЕМЯ", 5.2, ThreedHud.DIM, -1)
+	h.text(Vector2(view.x - 81.0, 17.0), Lang.t("ВРЕМЯ"), 5.2, ThreedHud.DIM, -1)
 	h.text(Vector2(view.x - 81.0, 31.5), "%d:%04.1f" % [int(sim.time) / 60, fmod(sim.time, 60.0)], 15.0, ThreedHud.WHITE, -1)
 	# Путь до пляжа сверху по центру: ворота засечками, трамплины треугольниками.
 	var from := Vector2(mid.x - 84.0, 20.0)
@@ -712,8 +712,8 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var fast := clampf(sim.speed / 50.0, 0.0, 1.0)
 	h.arc(hub, 28.5, a0, a0 + sweep * maxf(fast, 0.01), ThreedHud.GOLD if not sim.crouch else ThreedHud.GREEN, 3.0)
 	h.text(hub + Vector2(0.0, -3.0), "%d" % roundi(sim.speed * 3.6), 17.0)
-	h.text(hub + Vector2(0.0, 10.5), "КМ/Ч", 4.4, ThreedHud.DIM)
-	h.text(hub + Vector2(0.0, 21.0), "ПРИСЕД" if sim.crouch else "", 4.6, ThreedHud.GREEN)
+	h.text(hub + Vector2(0.0, 10.5), Lang.t("КМ/Ч"), 4.4, ThreedHud.DIM)
+	h.text(hub + Vector2(0.0, 21.0), Lang.t("ПРИСЕД") if sim.crouch else "", 4.6, ThreedHud.GREEN)
 	# Заряд прыжка: дуга под райдером, пока держат кнопку.
 	if sim.charge > 0.0:
 		var power := sim.charge / tuning.charge_seconds
@@ -724,7 +724,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		h.text(Vector2(mid.x, mid.y - 46.0), _note, 11.0, Color(ThreedHud.GREEN if _note_good else ThreedHud.RED, minf(_note_left * 3.0, 1.0)), 0,
 				Color(0.0, 0.0, 0.0, 0.55))
 	if sim.fallen_left > 0.0:
-		h.text(Vector2(mid.x, mid.y - 20.0), "УПАЛ", 16.0, ThreedHud.RED, 0, Color(0.0, 0.0, 0.0, 0.6))
+		h.text(Vector2(mid.x, mid.y - 20.0), Lang.t("УПАЛ"), 16.0, ThreedHud.RED, 0, Color(0.0, 0.0, 0.0, 0.6))
 	if sim.countdown > 0.0:
 		h.text(Vector2(mid.x, mid.y - 30.0), str(ceili(sim.countdown)), 46.0, ThreedHud.WHITE, 0, Color(0.05, 0.07, 0.11, 0.8))
 	h.end()
@@ -732,4 +732,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "кант"], [GameInput.key(GameInput.A), "держать и отпустить: прыжок"], [GameInput.key(GameInput.B), "присед"]]
+	return [["← →", Lang.t("кант")], [GameInput.key(GameInput.A), Lang.t("держать и отпустить: прыжок")], [GameInput.key(GameInput.B), Lang.t("присед")]]

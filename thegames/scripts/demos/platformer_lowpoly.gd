@@ -391,11 +391,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "добрался до маяка" if goal else "не добрался"
+	return Lang.t("добрался до маяка") if goal else Lang.t("не добрался")
 
 
 func _result_caption() -> String:
-	return "дублоны %d из %d · %d с" % [sim.coins_got, level.coins.size() + level.crates.size(), int(round(elapsed))]
+	return Lang.t("дублоны %d из %d · %d с") % [sim.coins_got, level.coins.size() + level.crates.size(), int(round(elapsed))]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -546,4 +546,4 @@ func _draw_heart(canvas: CanvasItem, at: Vector2, fill: Color, outline: Color) -
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "прыжок"]]
+	return [["← → ↑ ↓", Lang.t("ход")], [GameInput.key(GameInput.A), Lang.t("прыжок")]]

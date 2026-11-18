@@ -71,4 +71,4 @@ func mark_shown(id: StringName, release: int) -> void:
 func _to_string() -> String:
 	return "вставок %d, настроения %s, ограничения %s, доли %s, бонусы %s, флаги %s%s" % [
 		shown.values().reduce(func(a: int, b: int) -> int: return a + b, 0), moods, restrictions, tail_shares,
-		bonuses, flags.keys(), (", концовка " + String(ending)) if ending != &"" else ""]
+		bonuses, flags.keys(), (", концовка " + String(ending)) if ending != &"" else ""]  # i18n: skip

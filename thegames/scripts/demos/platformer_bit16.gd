@@ -146,7 +146,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "монеты %d из %d · потеряно жизней %d · %d с" % [sim.coins_got, level.coins.size(), sim.deaths, int(round(elapsed))]
+	return Lang.t("монеты %d из %d · потеряно жизней %d · %d с") % [sim.coins_got, level.coins.size(), sim.deaths, int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -604,4 +604,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "бег"], [GameInput.key(GameInput.A), "прыжок"], [GameInput.key(GameInput.B), "слайд"]]
+	return [["← →", Lang.t("бег")], [GameInput.key(GameInput.A), Lang.t("прыжок")], [GameInput.key(GameInput.B), Lang.t("слайд")]]

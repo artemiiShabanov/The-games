@@ -269,14 +269,14 @@ func _on_end(goal: bool) -> void:
 
 ## Итог заезда это место игрока; не доехал за предел времени: так и сказано.
 func _result_title(_goal: bool) -> String:
-	return "%d место" % player.place if player.finished else "не доехал"
+	return Lang.t("%d место") % player.place if player.finished else Lang.t("не доехал")
 
 
 func _result_caption() -> String:
 	var t := int(round(race_time))
 	if player.finished:
-		return "из %d · %d с" % [CARS, t]
-	return "круг не пройден за %d с" % t
+		return Lang.t("из %d · %d с") % [CARS, t]
+	return Lang.t("круг не пройден за %d с") % t
 
 
 # --- Шаг ----------------------------------------------------------------------------------
@@ -306,7 +306,7 @@ func _perf_text() -> String:
 	var parts: PackedStringArray = []
 	for key: String in _perf:
 		var v: Vector3i = _perf[key]
-		parts.append("%s %.0f/%d мкс" % [key, float(v.x) / maxi(v.z, 1), v.y])
+		parts.append("%s %.0f/%d мкс" % [key, float(v.x) / maxi(v.z, 1), v.y])  # i18n: skip
 	return ", ".join(parts)
 
 
@@ -866,4 +866,4 @@ func _draw_minimap() -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "поворот"], [GameInput.key(GameInput.A), "газ"], [GameInput.key(GameInput.B), "тормоз"]]
+	return [["← →", Lang.t("поворот")], [GameInput.key(GameInput.A), Lang.t("газ")], [GameInput.key(GameInput.B), Lang.t("тормоз")]]

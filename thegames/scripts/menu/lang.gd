@@ -9,7 +9,7 @@ extends RefCounted
 
 const IDS: Array[String] = ["ru", "en"]
 ## Название языка на нём самом: так его узнает игрок, который ещё не выбрал язык.
-const NAMES: Array[String] = ["Русский", "English"]
+const NAMES: Array[String] = ["Русский", "English"]  # i18n: skip
 ## Языки системы, на которых по умолчанию предлагается русский.
 const RU_LIKE: Array[String] = ["ru", "uk", "be", "kk"]
 
@@ -28,6 +28,11 @@ static func use(id: String) -> void:
 ## Язык, который экран выбора предлагает первым: по языку системы.
 static func system_default() -> String:
 	return "ru" if RU_LIKE.has(OS.get_locale_language()) else "en"
+
+
+## Английский интерфейс: для ветвей, где языки расходятся грамматикой (числа, падежи, порядок слов).
+static func english() -> bool:
+	return current() == "en"
 
 
 ## Перевод вне нод (статические функции, ресурсы).

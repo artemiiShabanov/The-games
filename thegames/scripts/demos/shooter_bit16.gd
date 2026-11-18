@@ -190,7 +190,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "здоровье %d · скелетов %d · %d с" % [sim.health, sim.kills, int(round(elapsed))]
+	return Lang.t("здоровье %d · скелетов %d · %d с") % [sim.health, sim.kills, int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -533,7 +533,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var blink := low and fmod(_time, 0.5) < 0.25
 	var hr := Rect2(8.0, bar.position.y + 5.0, 150.0, STATUS_H - 9.0)
 	Fx16.frame_box(canvas, hr, blink)
-	PixelFont16.draw(canvas, hr.position + Vector2(6.0, 4.0), "ЗДОРОВЬЕ", Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
+	PixelFont16.draw(canvas, hr.position + Vector2(6.0, 4.0), Lang.t("ЗДОРОВЬЕ"), Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
 	var red: Array[Color] = [Color("#5a1018"), Color("#a8242a"), Color("#e2483a"), Color("#ff9a78")]
 	var gold: Array[Color] = [Color("#7a3a10"), Color("#d0781c"), Color("#f8c040"), Color("#fff2a0")]
 	var ramp := red if low else gold
@@ -553,7 +553,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	bit16.sprite(canvas, tex["face"], face, fc)
 	var kr := Rect2(bit16.view.x - 158.0, bar.position.y + 5.0, 150.0, STATUS_H - 9.0)
 	Fx16.frame_box(canvas, kr, _grin_t < 0.2)
-	PixelFont16.draw(canvas, kr.position + Vector2(6.0, 4.0), "ПОБИТО", Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
+	PixelFont16.draw(canvas, kr.position + Vector2(6.0, 4.0), Lang.t("ПОБИТО"), Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
 	PixelFont16.draw(canvas, kr.position + Vector2(8.0, 13.0), "%02d" % sim.kills, Color.WHITE, Color("#b8c0d0"), Fx16.INK, 2.0)
 	var key_box := Rect2(kr.end.x - 40.0, kr.position.y + 3.0, 34.0, kr.size.y - 6.0)
 	canvas.draw_rect(key_box, Fx16.INK)
@@ -561,10 +561,10 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	if sim.has_key:
 		bit16.sprite(canvas, tex["key"], 0, key_box.get_center() + Vector2(0.0, 14.0))
 	else:
-		PixelFont16.draw(canvas, key_box.position + Vector2(5.0, 9.0), "КЛЮЧ", Color("#6a5a7a"), Color("#4a3e58"), Fx16.INK, 1.0,
+		PixelFont16.draw(canvas, key_box.position + Vector2(5.0, 9.0), Lang.t("КЛЮЧ"), Color("#6a5a7a"), Color("#4a3e58"), Fx16.INK, 1.0,
 				false)
 
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["W A S D", "бег"], ["← →", "обзор"], [GameInput.key(GameInput.A), "выстрел"]]
+	return [["W A S D", Lang.t("бег")], ["← →", Lang.t("обзор")], [GameInput.key(GameInput.A), Lang.t("выстрел")]]

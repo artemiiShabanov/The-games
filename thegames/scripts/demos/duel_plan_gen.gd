@@ -20,13 +20,13 @@ static func generate(seed_: int, t: FightingVectorGenTuning = null) -> DuelPlan:
 ## Проверка плана: "" или причина.
 static func validate(plan: DuelPlan, t: FightingVectorGenTuning) -> String:
 	if plan.rounds() != t.rounds or plan.delays.size() != t.rounds:
-		return "раундов %d" % plan.rounds()
+		return "раундов %d" % plan.rounds()  # i18n: skip
 	for i in plan.rounds():
 		if plan.waits[i] < t.wait_min - 0.001 or plan.waits[i] > t.wait_max + 0.001:
-			return "пауза раунда %d: %.2f с" % [i + 1, plan.waits[i]]
+			return "пауза раунда %d: %.2f с" % [i + 1, plan.waits[i]]  # i18n: skip
 		var k := float(i) / maxf(t.rounds - 1, 1.0)
 		if absf(plan.delays[i] - lerpf(t.delay_first, t.delay_last, k)) > t.delay_jitter + 0.001:
-			return "задержка соперника в раунде %d: %.2f с" % [i + 1, plan.delays[i]]
+			return "задержка соперника в раунде %d: %.2f с" % [i + 1, plan.delays[i]]  # i18n: skip
 	if plan.delays[plan.rounds() - 1] >= plan.delays[0]:
-		return "соперник к концу не быстрее"
+		return "соперник к концу не быстрее"  # i18n: skip
 	return ""

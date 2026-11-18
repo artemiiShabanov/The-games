@@ -1,0 +1,570 @@
+# Studio Running: английский перевод, часть «events». Ключ (msgid) это русский текст.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- characters, people ---
+msgid "Ирма Штерн"
+msgstr "Irma Stern"
+
+msgid "Штерн Капитал"
+msgstr "Stern Capital"
+
+msgid "Ирма"
+msgstr "Irma"
+
+msgid "Ирмой"
+msgstr "Irma"
+
+msgid "Журналист"
+msgstr "Journalist"
+
+msgid "Марта"
+msgstr "Marta"
+
+msgid "Мартой"
+msgstr "Marta"
+
+msgid "Стример"
+msgstr "Streamer"
+
+msgid "Виктор Холл"
+msgstr "Viktor Holl"
+
+msgid "Издатель"
+msgstr "Publisher"
+
+msgid "Виктор"
+msgstr "Viktor"
+
+msgid "Виктором"
+msgstr "Viktor"
+
+msgid "Дедушка"
+msgstr "Grandpa"
+
+msgid "Дедушкой"
+msgstr "Grandpa"
+
+msgid "Марта Гринвуд"
+msgstr "Marta Greenwood"
+
+msgid "Игнат Белый"
+msgstr "Ignat Bely"
+
+msgid "Патчноут"
+msgstr "Patchnote"
+
+msgid "Соль Ахметова"
+msgstr "Sol Akhmetova"
+
+msgid "Новая волна"
+msgstr "New Wave"
+
+msgid "ДедушкаДжойстик"
+msgstr "GrandpaJoystick"
+
+msgid "48 тыс. онлайн"
+msgstr "48K watching"
+
+msgid "21 тыс. онлайн"
+msgstr "21K watching"
+
+msgid "9 тыс. онлайн"
+msgstr "9K watching"
+
+# --- event card, pills ---
+msgid "Вставка"
+msgstr "Event"
+
+msgid "«%s»"
+msgstr "“%s”"
+
+msgid "↑ ↓ выбрать"
+msgstr "↑ ↓ choose"
+
+msgid "решить"
+msgstr "decide"
+
+msgid "в хорошем настроении"
+msgstr "in a good mood"
+
+msgid "помнит прошлый отказ"
+msgstr "remembers your last no"
+
+msgid "или"
+msgstr "or"
+
+msgid "монетка"
+msgstr "coin flip"
+
+msgid "%s обидится"
+msgstr "%s takes offense"
+
+msgid "%s запомнит"
+msgstr "%s will remember"
+
+msgid "репутация %s"
+msgstr "reputation %s"
+
+msgid "сиквел"
+msgstr "sequel"
+
+msgid "−%d %% с продаж%s"
+msgstr "−%d%% of sales%s"
+
+msgid "критики"
+msgstr "critics"
+
+msgid "стримеры"
+msgstr "streamers"
+
+msgid "продажи"
+msgstr "sales"
+
+msgid "%s следующей игры %s"
+msgstr "next game %s %s"
+
+msgid "концовка"
+msgstr "ending"
+
+msgid "игра перестанет продаваться"
+msgstr "game stops selling"
+
+msgid "следующая игра: %s"
+msgstr "next game: %s"
+
+msgid "Монетка: повезло"
+msgstr "Coin flip: lucky"
+
+msgid "Монетка: не повезло"
+msgstr "Coin flip: unlucky"
+
+# --- buyer (Irma) ---
+msgid "Покупатель"
+msgstr "Buyer"
+
+msgid "концовка: продажа"
+msgstr "ending: sale"
+
+msgid "Продать студию"
+msgstr "Sell the studio"
+
+msgid "+10 % к цене"
+msgstr "+10% to price"
+
+msgid "уйдёт на два релиза"
+msgstr "gone for 2 releases"
+
+msgid "Попросить больше"
+msgstr "Ask for more"
+
+msgid "Не продаём"
+msgstr "Not selling"
+
+msgid "Студия «{studio}» стоит денег, и я готова их заплатить. Продадите студию? Предложение хорошее, второй раз может не прозвучать."
+msgstr "There’s real money in ‘{studio}’, and I’m ready to pay it. Will you sell the studio? It’s a good offer, and I may not make it twice."
+
+msgid "Я давно присматриваюсь к студии «{studio}». Хорошая цена, хорошие условия. Продадите?"
+msgstr "I’ve had my eye on ‘{studio}’ for a while. Good price, good terms. Will you sell?"
+
+msgid "Вы мне не доверяете, я знаю. Но цена честная. Продадите «{studio}»?"
+msgstr "You don’t trust me, I know. But the price is fair. Will you sell ‘{studio}’?"
+
+msgid "Я покупаю студии, которые умеют зарабатывать. «{studio}» умеет. Назову цену один раз."
+msgstr "I buy studios that know how to make money. ‘{studio}’ does. I’ll name my price once."
+
+msgid "У студии «{studio}» хорошие цифры и хорошее имя. Я хочу купить и то, и другое. Продаёте?"
+msgstr "Good numbers and a good name, that’s ‘{studio}’. I want to buy both. Selling?"
+
+msgid "Мы давно знакомы, поэтому без торга: цена справедливая, условия мягкие. Продаёте «{studio}»?"
+msgstr "We go back a while, so no haggling: the price is fair, the terms are soft. Selling ‘{studio}’?"
+
+msgid "Я вложила в вас деньги и не пожалела. Теперь хочу купить «{studio}» целиком."
+msgstr "I invested in you and never regretted it. Now I want to buy ‘{studio}’ outright."
+
+msgid "Нравиться друг другу нам не обязательно. Сделка есть сделка. Продаёте «{studio}»?"
+msgstr "We don’t have to like each other. A deal is a deal. Selling ‘{studio}’?"
+
+msgid "Вы отказывали мне в малом. Теперь предлагаю большое: покупаю «{studio}». Ответ?"
+msgstr "You turned me down on small things. Now I’m offering something big: I’m buying ‘{studio}’. Your answer?"
+
+# --- clone scandal (Viktor, or Irma) ---
+msgid "Скандал: клон"
+msgstr "Scandal: clone"
+
+msgid "Нанять юристов"
+msgstr "Hire lawyers"
+
+msgid "Не обращать внимания"
+msgstr "Ignore it"
+
+msgid "Ответить публично"
+msgstr "Respond publicly"
+
+msgid "Видели? Кто-то выпустил клон вашей последней игры, один в один, даже баги. Можно нанять юристов, можно промолчать, можно ответить публично. Что делаем?"
+msgstr "Seen it? Someone put out a clone of your latest game, one to one, bugs included. We can hire lawyers, keep quiet, or go public. What’s the play?"
+
+msgid "Клон вашей последней игры, представляете? Помогу с юристами по старой дружбе, но решать вам."
+msgstr "A clone of your latest game, can you believe it? I’ll help with lawyers for old times’ sake, but it’s your call."
+
+msgid "Ваш хит склонировали. Я бы помог, но мы не в лучших отношениях. Решайте сами."
+msgstr "Your hit got cloned. I’d help, but we’re not on the best of terms. Your call."
+
+msgid "Плохая новость: вашу последнюю игру скопировали целиком, вместе с багами. Юристы, молчание или публичный ответ. Выбирайте."
+msgstr "Bad news: someone copied your latest game wholesale, bugs and all. Lawyers, silence, or a public reply. Pick one."
+
+msgid "На витрине лежит точная копия вашей игры под другим названием. Можно судиться, можно не замечать, можно написать об этом всем."
+msgstr "There’s an exact copy of your game in the store under another name. We can sue, look away, or tell the whole world."
+
+msgid "Вашу игру скопировали. Юристов найду, по старой дружбе недорого. Как поступим?"
+msgstr "Your game got copied. I’ll find lawyers, cheap, for old times’ sake. How do we play it?"
+
+msgid "Неприятная история с клоном, но мы справимся. Скажите, что делать, с юристами помогу."
+msgstr "Nasty business with that clone, but we’ll handle it. Tell me what to do, I’ll help with the lawyers."
+
+msgid "Вашу игру скопировали. Советовать не буду, вы моих советов не слушаете. Решайте."
+msgstr "Your game got copied. I won’t give advice, you never take mine. Your call."
+
+msgid "Клон вашей игры продаётся рядом с оригиналом. Это ваша забота, но молчать было бы некрасиво."
+msgstr "A clone of your game is selling right next to the original. Your problem, but keeping quiet would be rude."
+
+# --- corporation (Irma) ---
+msgid "Корпорация"
+msgstr "Corporation"
+
+msgid "концовка: корпорация"
+msgstr "ending: corporation"
+
+msgid "Стать корпорацией"
+msgstr "Become a corporation"
+
+msgid "вернётся через два релиза"
+msgstr "returns in 2 releases"
+
+msgid "Отложить"
+msgstr "Not yet"
+
+msgid "У студии «{studio}» сиквелы, старые игры продаются, оборот как у взрослых. Предлагаю стать корпорацией: я вкладываю, вы растёте, игры делают другие."
+msgstr "Sequels, a back catalog that sells, grown-up turnover: that’s ‘{studio}’ now. I propose a corporation: I invest, you grow, other people make the games."
+
+msgid "Вы доказали всё, что можно. Корпорация, мои деньги, ваше имя на вывеске. Соглашайтесь."
+msgstr "You’ve proven everything there is to prove. A corporation, my money, your name on the sign. Say yes."
+
+msgid "Не люблю повторять, но цифры говорят сами. Корпорация: да или нет?"
+msgstr "I don’t like repeating myself, but the numbers speak for themselves. Corporation: yes or no?"
+
+msgid "Студия «{studio}» переросла собственные стены. Корпорация: мои деньги, ваш каталог, новые команды. Согласны?"
+msgstr "Your studio ‘{studio}’ has outgrown its own walls. A corporation: my money, your catalog, new teams. Agreed?"
+
+msgid "Сиквелы приносят доход, старые игры продаются. Пора перестать делать игры своими руками. Станете корпорацией?"
+msgstr "The sequels pay, the old games sell. Time to stop making games with your own hands. Will you become a corporation?"
+
+msgid "Мы с вами построили достаточно, чтобы строить крупнее. Корпорация, и вы во главе. Решайтесь!"
+msgstr "Together we’ve built enough to build bigger. A corporation, with you at the top. Take the leap!"
+
+msgid "Я верю в «{studio}» больше, чем в остальные свои вложения. Корпорация?"
+msgstr "I believe in ‘{studio}’ more than in the rest of my portfolio. Corporation?"
+
+msgid "Мы не друзья, но считать умеем оба. Корпорация выгодна и вам, и мне."
+msgstr "We’re not friends, but we can both count. A corporation pays off for you and for me."
+
+msgid "Цифры выросли, вопрос прежний. Станете корпорацией?"
+msgstr "The numbers have grown, the question hasn’t. Will you become a corporation?"
+
+# --- fans want a sequel (Grandpa) ---
+msgid "Фанаты просят сиквел"
+msgstr "Fans want a sequel"
+
+msgid "Делаем сиквел «{game}»"
+msgstr "Make a “{game}” sequel"
+
+msgid "Не сейчас"
+msgstr "Not now"
+
+msgid "Чат третий день пишет одно и то же: где вторая часть «{game}»? Сделаете, я покажу на стриме, обещаю."
+msgstr "Three days now chat’s been asking the same thing: where’s ‘{game}’ part two? Make it and I’ll show it on stream, I promise."
+
+msgid "Мы с чатом прошли «{game}» дважды. Сделайте вторую часть, и я буду первым в очереди."
+msgstr "Chat and I have played through ‘{game}’ twice. Make a part two and I’ll be first in line."
+
+msgid "Ладно, вы не любите просьбы чата. Но про «{game}» спрашивают снова. Вторая часть?"
+msgstr "All right, you don’t care for chat’s requests. But they’re asking about ‘{game}’ again. Part two?"
+
+msgid "Сижу, играю, а чат всё про своё: когда продолжение «{game}»? Сделайте, ребята, порадуйте стариков."
+msgstr "Here I sit, playing, and chat keeps on about one thing: when’s the next ‘{game}’? Make it, kids, give an old man a treat."
+
+msgid "Перепрошёл вчера «{game}». Хорошая вещь, жалко, что одна. Может, вторую часть?"
+msgstr "Played ‘{game}’ through again yesterday. Fine piece of work, shame there’s only one. Maybe a part two?"
+
+msgid "Мы с чатом «{game}» наизусть знаем. Сделайте продолжение, я первый в очереди встану!"
+msgstr "Chat and I know ‘{game}’ by heart. Make a sequel, I’ll be first in line!"
+
+msgid "После вашего прошлого сиквела у меня на канале праздник был. Давайте ещё один, про «{game}»."
+msgstr "After your last sequel my channel had a regular party. Let’s have another one, for ‘{game}’."
+
+msgid "Не хотел надоедать, да чат заставил. Про «{game}» опять спрашивают. Продолжение будет?"
+msgstr "Didn’t mean to pester you, but chat made me. They’re asking about ‘{game}’ again. Will there be a sequel?"
+
+msgid "Вы в прошлый раз отказали, я не в обиде. Но «{game}» без второй части как книга без конца."
+msgstr "You said no last time, no hard feelings. But ‘{game}’ without a part two is like a book without an ending."
+
+# --- festival (Marta) ---
+msgid "Фестиваль"
+msgstr "Festival"
+
+msgid "Поехать"
+msgstr "Go"
+
+msgid "Не ехать"
+msgstr "Stay home"
+
+msgid "Меня позвали в жюри фестиваля инди-игр, и я назвала «{game}». Приедете? Дорога за ваш счёт, зато вас увидят все."
+msgstr "I’ve been asked to sit on an indie festival jury, and I named ‘{game}’. Will you come? Travel is on you, but everyone will see you."
+
+msgid "Фестиваль снова зовёт, и я снова за вас. Приезжайте, без вас там скучно."
+msgstr "The festival calls again, and again I’m on your side. Come, it’s dull without you."
+
+msgid "Фестиваль, жюри, «{game}» в списке. Я знаю, вы не любите публичность. Но вдруг?"
+msgstr "Festival, jury, ‘{game}’ on the list. I know you don’t like the spotlight. But maybe?"
+
+msgid "В программе фестиваля осталось одно место, и я предложила «{game}». Поездка за ваш счёт. Едете?"
+msgstr "There was one slot left in the festival lineup, and I put forward ‘{game}’. Travel is on you. Coming?"
+
+msgid "Жюри фестиваля спросило, кого позвать из небольших студий. Я назвала вас и «{game}». Приедете?"
+msgstr "The festival jury asked which small studios to invite. I named you and ‘{game}’. Will you come?"
+
+msgid "На фестивале вас помнят с прошлого раза. Меня просили передать приглашение лично."
+msgstr "The festival remembers you from last time. I was asked to pass on the invitation in person."
+
+msgid "Опять фестиваль, опять я в жюри и опять называю вас. Привычка. Приедете?"
+msgstr "Another festival, me on the jury again, naming you again. Habit. Coming?"
+
+msgid "Знаю, вы сторонитесь сцены. Но «{game}» в списке, и место пустует. Последнее приглашение."
+msgstr "I know you avoid the stage. But ‘{game}’ is on the list and the slot is empty. Last invitation."
+
+msgid "В прошлый раз вы не приехали, и зал это заметил. Попробуем ещё раз?"
+msgstr "Last time you didn’t come, and the audience noticed. Shall we try again?"
+
+# --- interview (Marta) ---
+msgid "Интервью"
+msgstr "Interview"
+
+msgid "Честно, и про баги тоже"
+msgstr "Be honest, bugs included"
+
+msgid "Похвастаться"
+msgstr "Brag"
+
+msgid "Без интервью"
+msgstr "No interview"
+
+msgid "Пишу материал о небольших студиях. «{studio}» растёт, читателям интересно, как у вас на самом деле. Расскажете?"
+msgstr "I’m writing a piece on small studios. ‘{studio}’ is growing, and readers want to know how things really are. Will you talk?"
+
+msgid "Мои читатели вас полюбили. Ещё одно интервью? Обещаю не вырезать самое интересное."
+msgstr "My readers have taken to you. Another interview? I promise not to cut the best parts."
+
+msgid "В прошлый раз не вышло поговорить. Попробуем ещё? Материал выйдет в любом случае, лучше с вашими словами."
+msgstr "Last time we didn’t get to talk. Try again? The piece runs either way, better with your words in it."
+
+msgid "Готовлю большой разбор года. Без студии «{studio}» он будет неполным. Найдёте час на разговор?"
+msgstr "I’m preparing a big review of the year. It won’t be complete without ‘{studio}’. Can you spare an hour?"
+
+msgid "Читатели спрашивают, кто стоит за играми «{studio}». Я бы хотела ответить вашими словами. Поговорим?"
+msgstr "Readers ask who’s behind the ‘{studio}’ games. I’d like to answer in your words. Shall we talk?"
+
+msgid "Прошлое интервью читали больше, чем мои рецензии. Обидно, но повторим?"
+msgstr "The last interview got more reads than my reviews. Annoying, but shall we do it again?"
+
+msgid "У меня накопились вопросы, а вы отвечаете интереснее прочих. Ещё один разговор?"
+msgstr "My questions have piled up, and you answer better than most. One more conversation?"
+
+msgid "Вы не любите журналистов, я не люблю отказы. Попробуем найти середину?"
+msgstr "You don’t like journalists, I don’t like being turned down. Shall we meet halfway?"
+
+msgid "Материал о студии «{studio}» я напишу и без вас. С вами он будет точнее."
+msgstr "I’ll write the piece on ‘{studio}’ without you. With you it will be more accurate."
+
+# --- investor (Irma) ---
+msgid "Инвестор"
+msgstr "Investor"
+
+msgid "Деньги сейчас, технология ваша"
+msgstr "Money now, you pick the tech"
+
+msgid "Поменьше и без условий"
+msgstr "Less, no strings"
+
+msgid "Справимся сами"
+msgstr "We’ll manage"
+
+msgid "Вижу, с деньгами у студии «{studio}» туго. Вложусь, но технологию следующей игры выберу сама: {tech}. Или дам меньше, но заберу долю с двух следующих игр."
+msgstr "I can see ‘{studio}’ is short on cash. I’ll invest, but I pick the tech for your next game: {tech}. Or I give you less and take a share of your next two games."
+
+msgid "Мне нравится, как вы работаете. Денег дам сейчас, просьба одна: следующая игра на технологии {tech}. Или поменьше, но с долей с двух игр."
+msgstr "I like how you work. Money now, one request: your next game uses {tech} tech. Or a bit less, with a share of two games."
+
+msgid "Вы мне в прошлый раз не обрадовались, но деньги всё ещё нужны, верно? Технология {tech} на следующую игру. Или меньше и доля с двух игр."
+msgstr "You weren’t happy to see me last time, but you still need money, right? Your next game uses {tech} tech. Or less and a share of two games."
+
+msgid "Счета студии «{studio}» я видела. Могу закрыть дыру, условие одно: следующая игра на технологии {tech}. Второй вариант: сумма меньше и доля с двух следующих игр."
+msgstr "I’ve seen the books at ‘{studio}’. I can plug the hole on one condition: your next game uses {tech} tech. Option two: a smaller sum and a share of your next two games."
+
+msgid "Вам нужны деньги, мне нужна игра на технологии {tech}. Если условие не подходит, дам меньше и возьму долю с двух игр."
+msgstr "You need money, I need a game with {tech} tech. If that doesn’t suit you, I’ll give less and take a share of two games."
+
+msgid "Прошлое вложение себя оправдало. Повторим: деньги сейчас, следующая игра на технологии {tech}. Либо меньше, но с долей с двух игр."
+msgstr "The last investment paid off. Let’s repeat: money now, your next game uses {tech} tech. Or less, with a share of two games."
+
+msgid "Я редко возвращаюсь к одной студии дважды. К вам вернулась. Технология {tech} на следующую игру, либо доля с двух."
+msgstr "I rarely come back to the same studio. I came back to you. Your next game uses {tech} tech, or I take a share of two."
+
+msgid "Симпатии между нами нет, и не надо. Деньги за игру на технологии {tech}. Или меньше и доля с двух игр."
+msgstr "There’s no love lost between us, and there needn’t be. Money for a game with {tech} tech. Or less and a share of two games."
+
+msgid "Вы отказались, счёт от этого не вырос. Условия прежние: технология {tech} или доля с двух игр."
+msgstr "You said no, and your balance didn’t grow from it. Same terms: {tech} tech, or a share of two games."
+
+# --- legend (Marta) ---
+msgid "Легенда"
+msgstr "Legend"
+
+msgid "концовка: легенда"
+msgstr "ending: legend"
+
+msgid "Закрыться на пике"
+msgstr "Close at the peak"
+
+msgid "Я пишу о студии «{studio}» книгу. Последняя глава может быть красивой: студия, которая закрылась на пике. Или продолжите, и посмотрим, чем кончится."
+msgstr "I’m writing a book about ‘{studio}’. The last chapter could be a fine one: a studio that closed at its peak. Or keep going, and we’ll see how it ends."
+
+msgid "Ваши игры уже в учебниках. Закрыться на пике или писать ещё одну главу?"
+msgstr "Your games are in the textbooks already. Close at the peak, or write one more chapter?"
+
+msgid "Знаю, вы меня недолюбливаете. Но легенды так и заканчиваются: вовремя. Закроетесь на пике?"
+msgstr "I know you’re not fond of me. But that’s how legends end: on time. Will you close at the peak?"
+
+msgid "У студии «{studio}» редкий шанс: уйти, пока о вас говорят только хорошее. Закроетесь на пике или продолжите?"
+msgstr "You and ‘{studio}’ have a rare chance: to leave while people say only good things. Close at the peak or keep going?"
+
+msgid "Лучшие истории заканчиваются вовремя. История «{studio}» может закончиться сейчас. Ваше слово."
+msgstr "The best stories end on time. The story of ‘{studio}’ can end now. Your call."
+
+msgid "Я писала о вас с первой игры и хочу дописать красиво. Закроетесь на пике?"
+msgstr "I’ve written about you since your first game, and I want to finish well. Will you close at the peak?"
+
+msgid "О «{studio}» будут рассказывать, как бы вы ни решили. Вопрос, какой будет последняя глава."
+msgstr "People will tell stories about ‘{studio}’ whatever you decide. The question is what the last chapter will be."
+
+msgid "Мы редко соглашались, но тут я права: лучше уйти сейчас. Закроетесь?"
+msgstr "We rarely agreed, but here I’m right: better to leave now. Will you close?"
+
+msgid "Вам не понравится мой совет. Уходите на пике, пока он есть."
+msgstr "You won’t like my advice. Leave at the peak while it lasts."
+
+# --- publisher offer (Viktor) ---
+msgid "Оффер издателя"
+msgstr "Publisher’s offer"
+
+msgid "Берём аванс и делаем"
+msgstr "Take the advance, make it"
+
+msgid "Сделаем, но без аванса и без доли"
+msgstr "Make it, no advance, no share"
+
+msgid "Своё нас устраивает"
+msgstr "We’ll make our own"
+
+msgid "Ваши игры заметили. Хочу у вас игру: {genre}, сеттинг «{setting}», к следующему кварталу. Аванс дам сейчас, долю возьму с продаж. Ну или не дам, и делайте дальше что хотите."
+msgstr "Your games got noticed. I want one from you: {genre}, {setting} theme, by next quarter. Advance now, I take a share of sales. Or no advance, and you carry on doing whatever you like."
+
+msgid "Снова я, и снова с деньгами. Хочу {genre}, сеттинг «{setting}». Аванс щедрый, доля с продаж как обычно, мы же друзья."
+msgstr "Me again, and with money again! I want {genre}, {setting} theme. Generous advance, the usual share of sales, we’re friends after all."
+
+msgid "Прошлый раз вы отказали, но я не гордый. {genre}, сеттинг «{setting}». Аванс, доля с продаж. Второй раз спрашивать не буду."
+msgstr "You said no last time, but I’m not proud. The pitch: {genre}, {setting} theme. Advance, share of sales. I won’t ask twice."
+
+msgid "Есть заказ: {genre}, сеттинг «{setting}». Аванс сегодня, моя доля с продаж потом. Берёте?"
+msgstr "I’ve got an order: {genre}, {setting} theme. Advance today, my share of sales later. Deal?"
+
+msgid "У меня на полке не хватает одной игры: {genre}, сеттинг «{setting}». Аванс плачу сразу, с продаж беру долю. По рукам?"
+msgstr "My shelf is one game short: {genre}, {setting} theme. I pay the advance up front and take a share of sales. Shake on it?"
+
+msgid "С вами приятно работать, поэтому я снова здесь. {genre}, сеттинг «{setting}», аванс больше прежнего, доля с продаж та же."
+msgstr "You’re a pleasure to work with, so here I am again: {genre}, {setting} theme, a bigger advance than before, the same share of sales."
+
+msgid "Прошлая наша игра окупилась, давайте повторим! {genre}, сеттинг «{setting}». Аванс на столе."
+msgstr "Our last game paid off, let’s do it again! This time {genre}, {setting} theme. The advance is on the table."
+
+msgid "Знаю, что вы скажете. И всё же: {genre}, сеттинг «{setting}», аванс и доля с продаж. Подумайте хотя бы минуту."
+msgstr "I know what you’ll say. Still: {genre}, {setting} theme, an advance and a share of sales. Think about it for a minute at least."
+
+msgid "Мы не сошлись в прошлый раз, бывает. Предложение новое: {genre}, сеттинг «{setting}». Аванс, доля с продаж."
+msgstr "We didn’t see eye to eye last time, it happens. New offer: {genre}, {setting} theme. Advance, share of sales."
+
+# --- rescue (Viktor, or Irma) ---
+msgid "Спасение"
+msgstr "Rescue"
+
+msgid "Взять аванс"
+msgstr "Take the advance"
+
+msgid "Продать права на «{tail_game}»"
+msgstr "Sell the rights to “{tail_game}”"
+
+msgid "банкротство"
+msgstr "bankruptcy"
+
+msgid "Закрыть студию"
+msgstr "Close the studio"
+
+msgid "Денег у студии «{studio}» не осталось, я знаю. Дам аванс, но следующая игра будет моя: {genre}, сеттинг «{setting}», и долю с неё я заберу. Или продайте права на «{tail_game}», это ваше дело."
+msgstr "There’s no money left at ‘{studio}’, I know. I’ll give you an advance, but your next game is mine: {genre}, {setting} theme, and I take a share of it. Or sell the rights to ‘{tail_game}’, your call."
+
+msgid "Не люблю, когда хорошие студии закрываются. Аванс, следующая игра: {genre}, сеттинг «{setting}», доля с её продаж. Или продайте права на «{tail_game}»."
+msgstr "I hate to see good studios close. An advance, and your next game: {genre}, {setting} theme, with a share of its sales. Or sell the rights to ‘{tail_game}’."
+
+msgid "Вы мне не раз отказывали, но закрываться из-за гордости глупо. Аванс за следующую игру: {genre}, «{setting}», доля моя. Или продайте права на «{tail_game}»."
+msgstr "You’ve turned me down more than once, but closing out of pride is foolish. An advance for your next game: {genre}, {setting} theme, my share. Or sell the rights to ‘{tail_game}’."
+
+# --- streamer collab (Kraken) ---
+msgid "Коллаб со стримером"
+msgstr "Streamer collab"
+
+msgid "Заплатить за эфир"
+msgstr "Pay for the stream"
+
+msgid "Обойдёмся"
+msgstr "We’ll pass"
+
+msgid "Ваша вирусная штука у меня в чате до сих пор. Давайте следующую игру я покажу первым. Эфир стоит денег, но мои зрители того стоят."
+msgstr "Your viral thing is STILL all over my chat. Let me show your next game first. The stream costs money, but my viewers are worth it."
+
+msgid "После прошлого эфира чат требует ещё. Давайте снова: следующую игру первым у меня, цена прежняя."
+msgstr "After the last stream chat wants MORE. Let’s go again: your next game first on my channel, same price."
+
+msgid "Прошлый раз вы мне отказали, но я не злопамятный. Эфир со следующей игрой?"
+msgstr "You turned me down last time, but I don’t hold grudges. A stream with your next game?"
+
+msgid "Клипы с вашей игрой до сих пор приводят мне подписчиков. Следующую покажу первым, если договоримся. Эфир не бесплатный!"
+msgstr "Clips of your game still bring me subscribers. I’ll show the next one first if we make a deal. The stream isn’t free!"
+
+msgid "Мой чат вас запомнил. Давайте так: премьера следующей игры у меня на канале. Цену вы знаете."
+msgstr "My chat remembers you. Here’s the deal: your next game premieres on my channel. You know the price."
+
+msgid "Прошлый эфир побил мой рекорд по онлайну! Повторяем? Следующая игра, премьера у меня, условия те же."
+msgstr "The last stream broke my viewer record! Run it back? Next game, premiere on my channel, same terms."
+
+msgid "Чат каждый день спрашивает, когда снова вы. Давайте не будем его мучить. Эфир?"
+msgstr "Chat asks every day when you’re coming back. Let’s not torture them. Stream?"
+
+msgid "Окей, в прошлый раз не срослось. Спрашиваю ещё раз, последний: премьера следующей игры у меня?"
+msgstr "Okay, it didn’t work out last time. Asking once more, the last time: your next game premieres on my channel?"
+
+msgid "Вы отказали, чат обиделся, я нет. Эфир со следующей игрой, цена прежняя."
+msgstr "You said no, chat got upset, I didn’t. A stream with your next game, same price."

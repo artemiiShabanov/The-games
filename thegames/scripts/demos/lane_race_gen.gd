@@ -57,37 +57,37 @@ static func generate(seed_: int, t: RacingVectorGenTuning = null) -> LaneRace:
 ## Проверка раскладки: "" или причина.
 static func validate(race: LaneRace, t: RacingVectorGenTuning) -> String:
 	if race.lanes != t.lanes or race.lanes < 3:
-		return "полос %d" % race.lanes
+		return "полос %d" % race.lanes  # i18n: skip
 	if race.obstacles.is_empty():
-		return "нет препятствий"
+		return "нет препятствий"  # i18n: skip
 	var row_d := -INF
 	var in_row := 0
 	for o in race.obstacles:
 		if o.x < 0.0 or o.x >= race.lanes:
-			return "препятствие вне дороги"
+			return "препятствие вне дороги"  # i18n: skip
 		if o.y < t.first_row - 0.01 or o.y > race.length - t.last_clear + 0.01:
-			return "препятствие у старта или финиша"
+			return "препятствие у старта или финиша"  # i18n: skip
 		if is_equal_approx(o.y, row_d):
 			in_row += 1
 			if in_row >= race.lanes:
-				return "ряд на %.0f перекрыт целиком" % o.y
+				return "ряд на %.0f перекрыт целиком" % o.y  # i18n: skip
 		else:
 			if o.y - row_d < t.row_gap_min - 0.01:
-				return "ряды на %.0f слишком близко" % o.y
+				return "ряды на %.0f слишком близко" % o.y  # i18n: skip
 			row_d = o.y
 			in_row = 1
 	if race.rivals.size() != t.rivals:
-		return "соперников %d" % race.rivals.size()
+		return "соперников %d" % race.rivals.size()  # i18n: skip
 	for i in race.rivals.size():
 		var r := race.rivals[i]
 		if r.lane < 0 or r.lane >= race.lanes:
-			return "соперник вне дороги"
+			return "соперник вне дороги"  # i18n: skip
 		if r.head < t.rival_head_min - 0.01 or r.head > t.rival_head_max + 0.01:
-			return "фора соперника %.0f" % r.head
+			return "фора соперника %.0f" % r.head  # i18n: skip
 		var lo := t.rival_pace_min * (1.0 - t.rival_pace_jitter) - 0.01
 		var hi := t.rival_pace_max * (1.0 + t.rival_pace_jitter) + 0.01
 		if r.pace < lo or r.pace > hi:
-			return "темп соперника %.0f" % r.pace
+			return "темп соперника %.0f" % r.pace  # i18n: skip
 		if i > 0 and r.lane == race.rivals[i - 1].lane:
-			return "соперники стартуют в затылок"
+			return "соперники стартуют в затылок"  # i18n: skip
 	return ""

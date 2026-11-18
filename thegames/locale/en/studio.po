@@ -1,0 +1,749 @@
+# Studio Running: английский перевод, часть «studio». Ключ (msgid) это русский текст.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+# --- каталог: жанры, технологии, сеттинги ---
+msgid "Платформер"
+msgstr "Platformer"
+
+msgid "Гонки"
+msgstr "Racing"
+
+msgid "Шутер"
+msgstr "Shooter"
+
+msgid "Спорт"
+msgstr "Sports"
+
+msgid "Файтинг"
+msgstr "Fighting"
+
+msgid "Примитив"
+msgstr "Primitive"
+
+msgid "Ретро"
+msgstr "Retro"
+
+msgid "Продвинутые"
+msgstr "Advanced"
+
+msgid "Зомби"
+msgstr "Zombies"
+
+msgid "Космос"
+msgstr "Space"
+
+msgid "Замки"
+msgstr "Castles"
+
+msgid "Пираты"
+msgstr "Pirates"
+
+msgid "Супергерои"
+msgstr "Superheroes"
+
+msgid "Фэнтези"
+msgstr "Fantasy"
+
+msgid "Сладости"
+msgstr "Sweets"
+
+msgid "Ниндзя"
+msgstr "Ninja"
+
+msgid "Динозавры"
+msgstr "Dinosaurs"
+
+msgid "Офис"
+msgstr "Office"
+
+
+# --- генератор названий: существительные сеттингов ---
+msgid "Мертвецы"
+msgstr "The Dead"
+
+msgid "Карантин"
+msgstr "Quarantine"
+
+msgid "Выжившие"
+msgstr "Survivors"
+
+msgid "Последняя ночь"
+msgstr "Last Night"
+
+msgid "Звёзды"
+msgstr "Stars"
+
+msgid "Астронавты"
+msgstr "Astronauts"
+
+msgid "Орбита"
+msgstr "Orbit"
+
+msgid "Пустота"
+msgstr "The Void"
+
+msgid "Созвездие"
+msgstr "Constellation"
+
+msgid "Рыцари"
+msgstr "Knights"
+
+msgid "Осада"
+msgstr "Siege"
+
+msgid "Латники"
+msgstr "Ironclads"
+
+msgid "Турнир"
+msgstr "Tournament"
+
+msgid "Корсары"
+msgstr "Corsairs"
+
+msgid "Флибустьеры"
+msgstr "Buccaneers"
+
+msgid "Абордаж"
+msgstr "Boarding Party"
+
+msgid "Чёрная метка"
+msgstr "The Black Spot"
+
+msgid "Плащи"
+msgstr "Capes"
+
+msgid "Маски"
+msgstr "Masks"
+
+msgid "Лига"
+msgstr "The League"
+
+msgid "Суперсила"
+msgstr "Superpower"
+
+msgid "Драконы"
+msgstr "Dragons"
+
+msgid "Маги"
+msgstr "Wizards"
+
+msgid "Эльфы"
+msgstr "Elves"
+
+msgid "Зелья"
+msgstr "Potions"
+
+msgid "Заклинание"
+msgstr "Spellbound"
+
+msgid "Конфеты"
+msgstr "Candy"
+
+msgid "Пончики"
+msgstr "Donuts"
+
+msgid "Карамель"
+msgstr "Caramel"
+
+msgid "Зефир"
+msgstr "Marshmallow"
+
+msgid "Сахарная лихорадка"
+msgstr "Sugar Rush"
+
+msgid "Сюрикены"
+msgstr "Shuriken"
+
+msgid "Тени"
+msgstr "Shadows"
+
+msgid "Клан"
+msgstr "The Clan"
+
+msgid "Додзё"
+msgstr "Dojo"
+
+msgid "Ящеры"
+msgstr "Thunder Lizards"
+
+msgid "Рапторы"
+msgstr "Raptors"
+
+msgid "Юрский период"
+msgstr "Jurassic"
+
+msgid "Мезозой"
+msgstr "Mesozoic"
+
+msgid "Менеджеры"
+msgstr "Managers"
+
+msgid "Дедлайн"
+msgstr "Deadline"
+
+msgid "Планёрка"
+msgstr "Standup"
+
+msgid "Отчёт"
+msgstr "Quarterly Report"
+
+msgid "Игра"
+msgstr "Game"
+
+
+# --- генератор названий: хвосты жанров, шаблон с %s на месте существительного ---
+msgid "на платформах"
+msgstr "%s: Platform Panic"
+
+msgid "в прыжке"
+msgstr "%s: Leap of Faith"
+
+msgid "над пропастью"
+msgstr "%s: Over the Edge"
+
+msgid "по крышам"
+msgstr "%s on the Rooftops"
+
+msgid "на трассе"
+msgstr "%s Grand Prix"
+
+msgid "на полной скорости"
+msgstr "%s: Full Throttle"
+
+msgid "в большой гонке"
+msgstr "%s: The Big Race"
+
+msgid "до финиша"
+msgstr "%s: Finish Line"
+
+msgid "в прицеле"
+msgstr "%s in the Crosshairs"
+
+msgid "под огнём"
+msgstr "%s: Under Fire"
+
+msgid "и пушки"
+msgstr "%s & Guns"
+
+msgid "на передовой"
+msgstr "%s: Front Line"
+
+msgid "на арене"
+msgstr "%s Arena"
+
+msgid "в финале"
+msgstr "%s: The Final"
+
+msgid "и мяч"
+msgstr "%s: Kickoff"
+
+msgid "на чемпионате"
+msgstr "%s Championship"
+
+msgid "на ринге"
+msgstr "%s in the Ring"
+
+msgid "против всех"
+msgstr "%s vs. Everyone"
+
+msgid "в драке"
+msgstr "%s Brawl"
+
+msgid "один на один"
+msgstr "%s: One on One"
+
+
+# --- слова сеттингов в HUD демок (прописные, коротко) ---
+msgid "МАТРОС"
+msgstr "SAILOR"
+
+msgid "МАТРОСЫ"
+msgstr "SAILORS"
+
+msgid "СКЕЛЕТЫ"
+msgstr "SKELETONS"
+
+msgid "КАПИТАН"
+msgstr "CAPTAIN"
+
+msgid "БОЦМАН"
+msgstr "BOSUN"
+
+msgid "ПИЛОТ"
+msgstr "PILOT"
+
+msgid "ЗЕМЛЯНЕ"
+msgstr "TERRANS"
+
+msgid "ПРИШЕЛЬЦЫ"
+msgstr "ALIENS"
+
+msgid "КОМАНДИР"
+msgstr "COMMANDER"
+
+msgid "ГРОМИЛА"
+msgstr "BRUTE"
+
+msgid "РЫЦАРЬ"
+msgstr "KNIGHT"
+
+msgid "РЫЦАРИ"
+msgstr "KNIGHTS"
+
+msgid "СТРАЖНИКИ"
+msgstr "GUARDS"
+
+msgid "БАРОН"
+msgstr "BARON"
+
+msgid "ВЕРЗИЛА"
+msgstr "GIANT"
+
+msgid "ЗОМБИ"
+msgstr "ZOMBIES"
+
+msgid "ВЫЖИВШИЙ"
+msgstr "SURVIVOR"
+
+msgid "ВЫЖИВШИЕ"
+msgstr "SURVIVORS"
+
+msgid "МЯСНИК"
+msgstr "BUTCHER"
+
+msgid "ТОЛСТЯК"
+msgstr "BLOATER"
+
+msgid "ГЕРОЙ"
+msgstr "HERO"
+
+msgid "ГЕРОИ"
+msgstr "HEROES"
+
+msgid "РОБОТЫ"
+msgstr "ROBOTS"
+
+msgid "ЗЛОДЕЙ"
+msgstr "VILLAIN"
+
+msgid "КРУШИТЕЛЬ"
+msgstr "CRUSHER"
+
+msgid "МАГ"
+msgstr "MAGE"
+
+msgid "МАГИ"
+msgstr "MAGES"
+
+msgid "ГОБЛИНЫ"
+msgstr "GOBLINS"
+
+msgid "ЧАРОДЕЙ"
+msgstr "SORCERER"
+
+msgid "ТРОЛЛЬ"
+msgstr "TROLL"
+
+msgid "ПРЯНИК"
+msgstr "COOKIE"
+
+msgid "ПРЯНИКИ"
+msgstr "COOKIES"
+
+msgid "МИШКИ"
+msgstr "GUMMIES"
+
+msgid "КОРОЛЬ"
+msgstr "KING"
+
+msgid "ПОНЧИК"
+msgstr "DONUT"
+
+msgid "НИНДЗЯ"
+msgstr "NINJA"
+
+msgid "СИНОБИ"
+msgstr "SHINOBI"
+
+msgid "РОНИНЫ"
+msgstr "RONIN"
+
+msgid "СЕГУН"
+msgstr "SHOGUN"
+
+msgid "СУМОИСТ"
+msgstr "SUMO"
+
+msgid "ОХОТНИК"
+msgstr "HUNTER"
+
+msgid "ОХОТНИКИ"
+msgstr "HUNTERS"
+
+msgid "РАПТОРЫ"
+msgstr "RAPTORS"
+
+msgid "ШАМАН"
+msgstr "SHAMAN"
+
+msgid "ДИКАРЬ"
+msgstr "SAVAGE"
+
+msgid "КЛЕРК"
+msgstr "CLERK"
+
+msgid "КЛЕРКИ"
+msgstr "CLERKS"
+
+msgid "КОСТЮМЫ"
+msgstr "SUITS"
+
+msgid "ДИРЕКТОР"
+msgstr "CEO"
+
+msgid "ОХРАННИК"
+msgstr "GUARD"
+
+
+# --- улучшения студии (resources/upgrades) ---
+msgid "Новый жанр в конструкторе, своя мини-игра в каждом релизе"
+msgstr "New genre in the game builder, its own minigame every release"
+
+msgid "Новая технология в конструкторе. Своя графика и своя мини-игра в каждом релизе"
+msgstr "New tech in the game builder. Its own graphics and minigame every release"
+
+msgid "плакат «файтинг» на стене"
+msgstr "\"fighting\" poster on the wall"
+
+msgid "плакат «гонки» на стене"
+msgstr "\"racing\" poster on the wall"
+
+msgid "плакат «шутер» на стене"
+msgstr "\"shooter\" poster on the wall"
+
+msgid "плакат «спорт» на стене"
+msgstr "\"sports\" poster on the wall"
+
+msgid "монитор с колонками"
+msgstr "monitor with speakers"
+
+msgid "рабочая станция"
+msgstr "workstation"
+
+msgid "две станции и мигающий сервер"
+msgstr "two workstations and a blinking server"
+
+msgid "векторный автомат у стены"
+msgstr "vector arcade cabinet by the wall"
+
+msgid "технология"
+msgstr "tech"
+
+msgid "жанр"
+msgstr "genre"
+
+msgid "возможность"
+msgstr "feature"
+
+
+# --- конструктор и выбор основы ---
+msgid "Основа"
+msgstr "Base"
+
+msgid "Сиквел"
+msgstr "Sequel"
+
+msgid "Ремейк"
+msgstr "Remake"
+
+msgid "← → колонка"
+msgstr "← → column"
+
+msgid "выбрать"
+msgstr "choose"
+
+msgid "С нуля"
+msgstr "From scratch"
+
+msgid "%s · часть %d"
+msgstr "%s · part %d"
+
+msgid "%s · критики %.1f"
+msgstr "%s · critics %.1f"
+
+msgid "ремейк ремейка нельзя"
+msgstr "can't remake a remake"
+
+msgid "нужна вторая технология"
+msgstr "needs a second tech"
+
+msgid "%s: ремейк"
+msgstr "%s: Remake"
+
+msgid "новая игра"
+msgstr "new game"
+
+msgid "ремейк"
+msgstr "remake"
+
+msgid "высокий спрос"
+msgstr "high demand"
+
+msgid "в тренде"
+msgstr "trending"
+
+msgid "Сеттинг"
+msgstr "Theme"
+
+msgid "← → колонка и кнопка"
+msgstr "← → column and button"
+
+msgid "в разработку"
+msgstr "develop"
+
+msgid "R название"
+msgstr "R title"
+
+msgid "откроет достижение"
+msgstr "unlocked by an achievement"
+
+msgid "откроется улучшением"
+msgstr "unlocked by an upgrade"
+
+msgid "недоступно"
+msgstr "unavailable"
+
+msgid "по договору"
+msgstr "under contract"
+
+msgid "как у оригинала"
+msgstr "same as original"
+
+msgid "Смета"
+msgstr "Estimate"
+
+msgid "R другое название"
+msgstr "R new title"
+
+msgid "Спринтов"
+msgstr "Sprints"
+
+msgid "Цена спринта"
+msgstr "Sprint price"
+
+msgid "Итого"
+msgstr "Total"
+
+msgid "Останется"
+msgstr "Left after"
+
+msgid "В разработку"
+msgstr "Develop"
+
+msgid "Следующая игра"
+msgstr "Next game"
+
+msgid "название по франшизе"
+msgstr "title from the franchise"
+
+msgid "Нужна другая технология"
+msgstr "Needs another tech"
+
+msgid "Недоступно"
+msgstr "Unavailable"
+
+msgid "Откроется улучшением"
+msgstr "Unlocked by an upgrade"
+
+msgid "%s · по договору с %s"
+msgstr "%s · under contract with %s"
+
+msgid "%s · как у оригинала"
+msgstr "%s · same as original"
+
+msgid "Не хватает %s"
+msgstr "Short by %s"
+
+msgid "↑ ↓ листать"
+msgstr "↑ ↓ scroll"
+
+
+# --- спринты и багфикс ---
+msgid "Спринт багфикса"
+msgstr "Bugfix sprint"
+
+msgid "Успех спринта чинит половину багов игры."
+msgstr "A successful sprint fixes half of the game's bugs."
+
+msgid "Цена обычного спринта: %s · у вас %s"
+msgstr "Regular sprint price: %s · you have %s"
+
+msgid "Купить"
+msgstr "Buy"
+
+msgid "Выпустить так"
+msgstr "Release as is"
+
+msgid "← → выбрать · %s подтвердить · %s выпустить так"
+msgstr "← → choose · %s confirm · %s release as is"
+
+msgid "Спринт %d из %d"
+msgstr "Sprint %d of %d"
+
+msgid "успех"
+msgstr "success"
+
+msgid "провал"
+msgstr "fail"
+
+msgid "Повторить спринт? Осталось: %d"
+msgstr "Sprint retry? %d left"
+
+msgid "повторить"
+msgstr "retry"
+
+msgid "другая клавиша: дальше"
+msgstr "other key: next"
+
+
+# --- штат ---
+msgid "Программист"
+msgstr "Programmer"
+
+msgid "Звукорежиссёр"
+msgstr "Sound Engineer"
+
+msgid "Дизайнер управления"
+msgstr "Controls Designer"
+
+msgid "Художник"
+msgstr "Artist"
+
+msgid "Геймдизайнер"
+msgstr "Game Designer"
+
+msgid "Менеджер"
+msgstr "Manager"
+
+msgid "Тестировщик"
+msgstr "QA Tester"
+
+msgid "Тимлид"
+msgstr "Team Lead"
+
+msgid "Продюсер"
+msgstr "Producer"
+
+msgid "Аналитик"
+msgstr "Analyst"
+
+msgid "Мини-игры аспекта «%s» проще на %s"
+msgstr "%s minigames %s easier"
+
+msgid "Цена спринта на %s ниже"
+msgstr "Sprint price %s lower"
+
+msgid "Багфикс на %s дешевле, второй спринт багфикса за релиз"
+msgstr "Bugfix %s cheaper, a second bugfix sprint per release"
+
+msgid "Багфикс на %s дешевле"
+msgstr "Bugfix %s cheaper"
+
+msgid "Повторов проваленного спринта за релиз: %d"
+msgstr "Failed sprint retries per release: %d"
+
+msgid "Сиквелы в конструкторе"
+msgstr "Sequels in the game builder"
+
+msgid "Сиквелы и ремейки в конструкторе"
+msgstr "Sequels and remakes in the game builder"
+
+msgid "Сиквелы и ремейки, их разработка на %d %% дешевле"
+msgstr "Sequels and remakes, %d%% cheaper to develop"
+
+msgid "Видны жанр и сеттинг в тренде"
+msgstr "Shows the trending genre and theme"
+
+
+# --- фаза студии ---
+msgid "Студия закрыта. Забег окончен."
+msgstr "Studio closed. Run over."
+
+msgid "После спасения денег на самый дешёвый релиз нет. Забег окончен."
+msgstr "After the rescue, not enough money for the cheapest release. Run over."
+
+msgid "Первая неделя · %s"
+msgstr "First week · %s"
+
+msgid "Продажи · %s"
+msgstr "Sales · %s"
+
+msgid "Ещё игр: %d"
+msgstr "Other games: %d"
+
+msgid "Доля %s · %s"
+msgstr "Share %s · %s"
+
+msgid "Содержание студии"
+msgstr "Studio upkeep"
+
+msgid "Меньше цены самого дешёвого релиза (%s)"
+msgstr "Below the cheapest release price (%s)"
+
+msgid "Повторного спасения нет. Банкротство."
+msgstr "No second rescue. Bankruptcy."
+
+msgid "по договору с %s"
+msgstr "under contract with %s"
+
+msgid "Студия закрывается"
+msgstr "Studio is closing"
+
+msgid "Денег не хватает на самый дешёвый релиз. Спасение уже использовано."
+msgstr "Not enough money for the cheapest release. Rescue already used."
+
+msgid "дальше"
+msgstr "next"
+
+msgid "Все жанры и технологии открыты"
+msgstr "All genres and techs unlocked"
+
+msgid "Предложений больше не будет."
+msgstr "No more offers."
+
+msgid "Пришло предложение"
+msgstr "New offer"
+
+msgid "Новый жанр или технология. Доступно на главном экране до начала новой игры."
+msgstr "New genre or tech. Available on the main screen until the next game starts."
+
+msgid "← → выбрать"
+msgstr "← → choose"
+
+msgid "купить"
+msgstr "buy"
+
+msgid "пропустить"
+msgstr "skip"
+
+msgid "Оценка студии"
+msgstr "Studio value"
+
+msgid "деньги, продажи, репутация, франшизы"
+msgstr "money, sales, reputation, franchises"
+
+msgid "+ %s к содержанию за релиз"
+msgstr "+ %s upkeep per release"
+
+msgid "не хватит на игру: нужно ещё %s"
+msgstr "not enough for a game: need %s more"
+
+msgid "куплено"
+msgstr "bought"

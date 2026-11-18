@@ -161,7 +161,7 @@ func set_market(market: MarketState, success: SuccessTuning, insider: Variant) -
 		if level >= 3 and tag == "" and market.demand_genre[g] >= demand_from:
 			tag = "высокий спрос"
 		if level >= 1 and g == market.trend_genre:
-			tag = "в тренде" if tag == "" else "в тренде · " + tag
+			tag = "в тренде" if tag == "" else " · ".join(["в тренде", tag])
 		if tag != "":
 			market_tags[0][g] = tag
 	for st in market.saturation_setting.size():
@@ -169,7 +169,7 @@ func set_market(market: MarketState, success: SuccessTuning, insider: Variant) -
 		if level >= 3 and tag == "" and market.demand_setting[st] >= demand_from:
 			tag = "высокий спрос"
 		if level >= 2 and st == market.trend_setting:
-			tag = "в тренде" if tag == "" else "в тренде · " + tag
+			tag = "в тренде" if tag == "" else " · ".join(["в тренде", tag])
 		if tag != "":
 			market_tags[2][st] = tag
 	if _ready_done:
@@ -446,7 +446,7 @@ func _build() -> void:
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("↑ ↓ листать"))
 	hints.add_child(HintPill.make("← → колонка и кнопка"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в разработку")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("в разработку"))))
 	hints.add_child(HintPill.make("R название"))
 	hints.add_child(HintPill.make("Esc назад"))
 	add_child(hints)
@@ -493,7 +493,7 @@ static func entry_card(e: CatalogEntry) -> Control:
 		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.add_child(picture)
 	else:
-		var glyph := CardColumns.label(e.title.substr(0, 1).to_upper(), 96, Color(1, 1, 1, 0.35))
+		var glyph := CardColumns.label(Lang.t(e.title).substr(0, 1).to_upper(), 96, Color(1, 1, 1, 0.35))
 		glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -598,13 +598,13 @@ func _refresh(animate: bool) -> void:
 	var s := selected_entry(2).value as Game.Setting
 	estimate = Estimate.compute(g, t, s, economy, cash, discount)
 	estimate_changed.emit(estimate)
-	_header_label.text = ShellHeader.release(release, "Следующая игра")
+	_header_label.text = ShellHeader.release(release, tr("Следующая игра"))
 	_money_label.text = Style.format_money(cash)
 	_title_label.text = title
 	# Длинное название (ремейк сиквела) мельче, чтобы уместиться в две строки.
 	_title_label.add_theme_font_size_override("font_size", TITLE_FONT if title.length() <= TITLE_LONG else TITLE_FONT_LONG)
 	var franchise := franchise_parent() != null
-	_title_hint.text = "название по франшизе" if franchise else "R другое название"
+	_title_hint.text = tr("название по франшизе") if franchise else tr("R другое название")
 	_roll(&"sprints", _sprints_value, estimate.sprints, animate, func(v: float) -> String: return str(int(round(v))))
 	_roll(&"price", _price_value, estimate.sprint_price, animate, _money_text)
 	_roll(&"total", _total_value, estimate.total, animate, _money_text)
@@ -622,7 +622,7 @@ func _refresh(animate: bool) -> void:
 		else:
 			_button_label.text = "Откроется улучшением"
 	elif danger:
-		_button_label.text = "Не хватает " + Style.format_money(estimate.shortfall())
+		_button_label.text = tr("Не хватает %s") % Style.format_money(estimate.shortfall())
 	else:
 		_button_label.text = "В разработку"
 	var active := open and not danger
@@ -640,11 +640,11 @@ func _refresh(animate: bool) -> void:
 	_button_lift.focused = on_button
 	_button_label.add_theme_color_override("font_color", ink)
 	for kind in ROWS:
-		var caption := ROW_LABELS[kind]
+		var caption := tr(ROW_LABELS[kind])
 		if contract.has(kind):
-			caption += " · по договору с " + str(contract[kind]["by"])
+			caption = tr("%s · по договору с %s") % [caption, tr(str(contract[kind]["by"]))]
 		elif is_locked_column(kind):
-			caption += " · как у оригинала"
+			caption = tr("%s · как у оригинала") % caption
 		_columns.set_caption(kind, caption)
 		for i in _cards[kind].size():
 			_refresh_card_lock(kind, i, _cards[kind][i])
@@ -658,7 +658,15 @@ func _refresh_market_tag(kind: int, i: int, c: Control) -> void:
 	for child in CardColumns.inner_of(c).get_children():
 		if child.has_meta(&"market"):
 			child.visible = text != ""
-			(child.get_child(0) as Label).text = text
+			(child.get_child(0) as Label).text = _market_text(text)
+
+
+## Метка рынка на экране: части через « · » переводятся по отдельности.
+func _market_text(tag: String) -> String:
+	var parts: PackedStringArray = []
+	for p in tag.split(" · "):
+		parts.append(tr(p))
+	return " · ".join(parts)
 
 
 ## Закрытая карточка затемнена, пилюля говорит почему: прокачка, франшиза, технология

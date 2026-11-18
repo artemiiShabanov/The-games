@@ -13,7 +13,7 @@ enum Base {
 	SOLID,  ## Твердь: плоскость с текстурой до горизонта.
 }
 
-@export_group("Свет")
+@export_group("Свет")  # i18n: skip
 ## Солнце: наклон вниз и поворот, градусы; сила и цвет.
 @export var sun_pitch := -45.0
 @export var sun_yaw := 45.0
@@ -26,7 +26,7 @@ enum Base {
 ## `ambient_color`, и герои читаются ночью.
 @export var ambient_sky := true
 
-@export_group("Небо")
+@export_group("Небо")  # i18n: skip
 ## «Продвинутые»: зенит темнее цвета неба сеттинга, горизонт светлее (доли), когда `sky_colors`
 ## пуст.
 @export var sky_top := 0.5
@@ -36,7 +36,7 @@ enum Base {
 ## Звёзды: сколько точек на небе, 0 нет. У low poly звёздный купол заменяет панораму `tex_sky`.
 @export var stars := 0
 
-@export_group("Туман")
+@export_group("Туман")  # i18n: skip
 ## Low poly: с какого расстояния начинается и где закрывает всё, метры. Цвет это цвет неба.
 @export var fog_begin := 30.0
 @export var fog_end := 90.0
@@ -44,7 +44,7 @@ enum Base {
 @export var fog_density := 0.002
 @export var fog_aerial := 0.5
 
-@export_group("Картинка «продвинутых»")
+@export_group("Картинка «продвинутых»")  # i18n: skip
 @export var glow_intensity := 0.4
 @export var glow_bloom := 0.06
 @export var glow_threshold := 0.95
@@ -52,7 +52,7 @@ enum Base {
 @export var contrast := 1.0
 @export var exposure := 1.0
 
-@export_group("Основание мира")
+@export_group("Основание мира")  # i18n: skip
 @export var base := Base.LIQUID
 ## Текстура уровня для жидкости low poly и для тверди обеих технологий (`tex_<имя>`).
 @export var base_texture := "water"

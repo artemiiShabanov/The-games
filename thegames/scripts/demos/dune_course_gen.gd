@@ -153,16 +153,16 @@ static func validate(course: DuneCourse, t: SportThreedTuning = null) -> String:
 	if t == null:
 		t = SportThreedTuning.load_default()
 	if course.gates.size() < 16:
-		return "ворот %d" % course.gates.size()
+		return "ворот %d" % course.gates.size()  # i18n: skip
 	if course.ramps.size() < 2:
-		return "трамплинов %d" % course.ramps.size()
+		return "трамплинов %d" % course.ramps.size()  # i18n: skip
 	if course.rocks.size() < 18:
-		return "препятствий %d" % course.rocks.size()
+		return "препятствий %d" % course.rocks.size()  # i18n: skip
 	if course.bars.size() < 5:
-		return "барьеров %d" % course.bars.size()
+		return "барьеров %d" % course.bars.size()  # i18n: skip
 	if course.gates[course.gates.size() - 1].half >= course.gates[0].half:
-		return "ворота не сужаются"
+		return "ворота не сужаются"  # i18n: skip
 	for g in course.gates:
 		if absf(g.x) + g.half > course.half_width - 0.5:
-			return "ворота на %.0f м у края" % g.s
+			return "ворота на %.0f м у края" % g.s  # i18n: skip
 	return ""

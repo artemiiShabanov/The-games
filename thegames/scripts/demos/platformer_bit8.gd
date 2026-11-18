@@ -499,7 +499,7 @@ func _die() -> void:
 
 
 func _result_caption() -> String:
-	return "монеты %d из %d · падений %d · %d с" % [coins_got, coins_total, deaths, int(round(elapsed))]
+	return Lang.t("монеты %d из %d · падений %d · %d с") % [coins_got, coins_total, deaths, int(round(elapsed))]
 
 
 ## Бот: WIN бежит вправо, прыгает перед ямой, стеной и врагом, а падая над ямой делает дэш;
@@ -677,4 +677,4 @@ func _draw_number(pos: Vector2, n: int) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "бег"], [GameInput.key(GameInput.A), "прыжок"], [GameInput.key(GameInput.B), "рывок"]]
+	return [["← →", Lang.t("бег")], [GameInput.key(GameInput.A), Lang.t("прыжок")], [GameInput.key(GameInput.B), Lang.t("рывок")]]

@@ -246,24 +246,24 @@ static func _free_spot(m: HoldMap, rng: RandomNumberGenerator, r: Rect2i) -> Vec
 ## Проверка карты; пустая строка, если всё в порядке.
 static func validate(m: HoldMap, t: ShooterBit16GenTuning) -> String:
 	if m.rooms.size() < t.rooms_min:
-		return "залов %d" % m.rooms.size()
+		return "залов %d" % m.rooms.size()  # i18n: skip
 	var s := Vector2i(m.start)
 	if not m.open(s.x, s.y):
-		return "старт в стене"
+		return "старт в стене"  # i18n: skip
 	if m.exit.x < 0:
-		return "нет двери выхода"
+		return "нет двери выхода"  # i18n: skip
 	if m.path(s, Vector2i(m.key)).is_empty():
-		return "к ключу нет пути"
+		return "к ключу нет пути"  # i18n: skip
 	if m.path(s, m.exit).is_empty():
-		return "к выходу нет пути"
+		return "к выходу нет пути"  # i18n: skip
 	for f in m.foes:
 		if not m.open(int(f.x), int(f.y)):
-			return "враг в стене"
+			return "враг в стене"  # i18n: skip
 		if f.distance_to(m.start) < 4.0:
-			return "враг у старта"
+			return "враг у старта"  # i18n: skip
 	var musket := 0
 	for k in m.foe_kinds:
 		musket += 1 if k == HoldMap.Foe.MUSKET else 0
 	if absi(musket * 2 - m.foe_kinds.size()) > 1:
-		return "мушкетов %d из %d" % [musket, m.foe_kinds.size()]
+		return "мушкетов %d из %d" % [musket, m.foe_kinds.size()]  # i18n: skip
 	return ""

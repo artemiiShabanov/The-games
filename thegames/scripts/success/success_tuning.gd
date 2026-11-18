@@ -32,7 +32,7 @@ const PATH := "res://resources/success.tres"
 ## Скрытый шум синергии на пару, разыгрывается на забег.
 @export var syn_jitter := 0.05
 
-@export_group("Критики")
+@export_group("Критики")  # i18n: skip
 @export var critics_base := 2.0
 @export var critics_quality := 6.0
 @export var critics_novelty := 1.5
@@ -54,13 +54,13 @@ func quality_points(q: float) -> float:
 	return critics_quality * minf(q, critics_quality_knee) + critics_quality_top * maxf(q - critics_quality_knee, 0.0)
 
 
-@export_group("Новизна")
+@export_group("Новизна")  # i18n: skip
 @export var novelty_new := 1.0
 @export var novelty_new_setting := 0.6
 @export var novelty_repeat := 0.2
 @export var novelty_remake := 0.3
 
-@export_group("Продажи")
+@export_group("Продажи")  # i18n: skip
 @export var sales_critics_base := 0.6
 @export var sales_critics := 0.08
 @export var sales_reputation := 0.05
@@ -71,7 +71,7 @@ func quality_points(q: float) -> float:
 @export var mood_max := 1.15
 @export var demand_spread := 0.15
 
-@export_group("Стримеры")
+@export_group("Стримеры")  # i18n: skip
 @export var streamers_base := 0.3
 @export var streamers_hype := 0.4
 @export var streamers_quality := 0.3
@@ -81,7 +81,7 @@ func quality_points(q: float) -> float:
 @export var viral_threshold := 70.0
 @export var viral_mult := 1.5
 
-@export_group("Хвост")
+@export_group("Хвост")  # i18n: skip
 @export var tail_base := 0.45
 @export var tail_quality := 0.25
 @export var tail_bug := 0.05
@@ -91,7 +91,7 @@ func quality_points(q: float) -> float:
 ## Хвост «живой» для концовок, пока тик не меньше этой доли от P0.
 @export var tail_alive_share := 0.05
 
-@export_group("Репутация и насыщение")
+@export_group("Репутация и насыщение")  # i18n: skip
 @export var reputation_viral_bonus := 1.0
 @export var saturation_keep := 0.6
 @export var saturation_add := 0.35
@@ -100,13 +100,13 @@ func quality_points(q: float) -> float:
 @export var saturation_recent := 0.3
 @export var saturation_bored := 0.6
 
-@export_group("Франшиза")
+@export_group("Франшиза")  # i18n: skip
 ## Индекс = номер части − 1; дальше последнего значения 1.0.
 @export var sequel_boost: Array[float] = [1.0, 1.3, 1.15]
 @export var fatigue_from_part := 4
 @export var remake_boost := 0.3
 
-@export_group("Критики и стримеры с характером")
+@export_group("Критики и стримеры с характером")  # i18n: skip
 @export var critic_retro_bonus := 0.6
 @export var critic_retro_penalty := 0.3
 @export var critic_bug_hater_per_bug := 0.5
@@ -122,7 +122,7 @@ func quality_points(q: float) -> float:
 @export var views_spread := 0.25
 @export var online_divisor := 40.0
 
-@export_group("Оценка студии")
+@export_group("Оценка студии")  # i18n: skip
 @export var valuation_tail := 4.0
 @export var valuation_reputation := 1500.0
 @export var valuation_franchise := 3000.0

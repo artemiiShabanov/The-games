@@ -47,7 +47,7 @@ class Report:
 		return "релиз %d: неделя %d, хвосты %d, содержание %d, %d → %d%s%s, оценка %d, предложение %s" % [
 			release, first_week, tails_total, upkeep, cash_start, cash,
 			" (банкрот)" if bankrupt else "", ", ждёт спасения" if rescue_due else "",
-			stats.valuation if stats else 0, offer]
+			stats.valuation if stats else 0, offer]  # i18n: skip
 
 
 ## После вставки «Спасение» (#67): спасение использовано; закрыть студию выбрали сами или денег
@@ -88,7 +88,7 @@ static func settle(release: int, past: Array[GameRecord], current: GameRecord, m
 		t.record = p
 		t.tick = Success.tick_tail(p.score, success)
 		t.share = int(roundf(t.tick * p.tail_share))
-		t.to = " и ".join(p.share_to)
+		t.to = " и ".join(p.share_to) # i18n: skip
 		r.tails.append(t)
 		r.tails_total += t.tick
 		r.shares_total += t.share

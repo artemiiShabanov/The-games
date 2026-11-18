@@ -203,28 +203,28 @@ static func validate(track: RingTrack, t: RacingLowpolyGenTuning = null) -> Stri
 		t = RacingLowpolyGenTuning.load_default()
 	var n := track.count()
 	if track.length < t.length_min or track.length > t.length_max:
-		return "длина %.0f" % track.length
+		return "длина %.0f" % track.length  # i18n: skip
 	var tightest := 0.0
 	for c in track.curves:
 		tightest = maxf(tightest, absf(c))
 	if tightest > 1.0 / t.radius_tightest:
-		return "поворот радиусом %.1f" % (1.0 / tightest)
+		return "поворот радиусом %.1f" % (1.0 / tightest)  # i18n: skip
 	# Дальние участки не подходят друг к другу ближе зазора: лента не слипается.
 	var far := int(t.clearance * 2.0 / track.step)
 	for i in range(0, n, 2):
 		for j in range(i + far, n, 2):
 			if n - (j - i) >= far and track.points[i].distance_to(track.points[j]) < t.clearance:
-				return "участки слиплись у точек %d и %d" % [i, j]
+				return "участки слиплись у точек %d и %d" % [i, j]  # i18n: skip
 	if track.open.is_empty():
-		return "нет участков без бортов"
+		return "нет участков без бортов"  # i18n: skip
 	if track.muds.size() < 2:
-		return "грязи %d" % track.muds.size()
+		return "грязи %d" % track.muds.size()  # i18n: skip
 	if track.winds.size() < t.wind_count:
-		return "ветра %d" % track.winds.size()
+		return "ветра %d" % track.winds.size()  # i18n: skip
 	if absf(track.delta(0.0, track.ramp_s)) < 50.0:
-		return "трамплин у старта"
+		return "трамплин у старта"  # i18n: skip
 	if track.curve_ahead(track.ramp_s - t.ramp_run - 20.0, t.ramp_run + t.ramp_gap + 30.0) > 0.03:
-		return "трамплин на повороте"
+		return "трамплин на повороте"  # i18n: skip
 	if track.is_open(track.ramp_s - 10.0) or track.is_open(track.ramp_s + t.ramp_gap + 6.0):
-		return "трамплин на участке без бортов"
+		return "трамплин на участке без бортов"  # i18n: skip
 	return ""

@@ -395,7 +395,7 @@ func _draw() -> void:
 	_jelly_splash.draw_air(self, Vector2.ZERO)
 	# Подписи осей снизу: частота и амплитуда своей волны против эталона не раскрываются.
 	var font := get_theme_default_font()
-	var caption := "частота ← →   амплитуда ↑ ↓"
+	var caption := tr("частота ← →   амплитуда ↑ ↓")
 	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION).x
 	draw_string(font, Vector2(size.x / 2.0 - w / 2.0, size.y - 110.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION, Style.INK_3)
 	# Волны справа сверху: мягкие точки, текущая на бортике.

@@ -210,25 +210,25 @@ static func _place_buoys(track: RacingTrack, t: RacingGenTuning) -> void:
 static func validate(track: RacingTrack, t: RacingGenTuning) -> String:
 	var n := track.count()
 	if n * track.step_px < t.min_length_px:
-		return "короткая петля: %.0f px" % (n * track.step_px)
+		return "короткая петля: %.0f px" % (n * track.step_px)  # i18n: skip
 	# Замкнутость: последняя точка рядом с первой.
 	if track.points[n - 1].distance_to(track.points[0]) > t.sample_step * 1.6:
-		return "петля не сходится"
+		return "петля не сходится"  # i18n: skip
 	# Отступ от краёв карты.
 	var edge := (t.margin + t.road_half + t.side_width) * TILE
 	var size := track.size_px()
 	for p in track.points:
 		if p.x < edge or p.y < edge or p.x > size.x - edge or p.y > size.y - edge:
-			return "трасса у края карты"
+			return "трасса у края карты"  # i18n: skip
 	# Старт на почти горизонтальном участке, решётка старта тоже.
 	for i in range(-12, 4):
 		if absf(track.tangents[posmod(i, n)].x) < t.start_straightness - 0.1:
-			return "старт на повороте"
+			return "старт на повороте"  # i18n: skip
 	# Крутизна поворотов.
 	var max_turn := deg_to_rad(t.max_turn_deg)
 	for i in n:
 		if absf(track.tangents[i].angle_to(track.tangents[(i + t.turn_window) % n])) > max_turn:
-			return "крутой поворот у точки %d" % i
+			return "крутой поворот у точки %d" % i  # i18n: skip
 	# Разные участки петли разделены берегом: срезать нельзя.
 	var apart := (2.0 * (t.road_half + t.side_width) + t.min_wall_between) * TILE
 	var skip := int(ceil(apart * PI / 2.0 / t.sample_step))
@@ -238,16 +238,16 @@ static func validate(track: RacingTrack, t: RacingGenTuning) -> String:
 			if n - (j - i) < skip:
 				break
 			if track.points[i].distance_squared_to(track.points[j]) < apart2:
-				return "участки %d и %d слишком близко" % [i, j]
+				return "участки %d и %d слишком близко" % [i, j]  # i18n: skip
 	# Внутри петли остров: центр карты берег.
 	if track.tile_at(size / 2.0) != RacingTrack.Tile.WALL:
-		return "внутри петли нет острова"
+		return "внутри петли нет острова"  # i18n: skip
 	# Связность: от финиша по воде и отмели доходим до всех точек средней линии.
 	var seen := _flood(track, track.points[0])
 	for p in track.points:
 		var k := int(floor(p.y / TILE)) * track.width + int(floor(p.x / TILE))
 		if not seen[k]:
-			return "вода не связна"
+			return "вода не связна"  # i18n: skip
 	# Ширина: поперёк трассы свободной от препятствий воды не меньше `min_free_width`.
 	var need := t.min_free_width * TILE
 	for i in n:
@@ -266,7 +266,7 @@ static func validate(track: RacingTrack, t: RacingGenTuning) -> String:
 			best = maxf(best, run)
 			x += 2.0
 		if best < need:
-			return "узко у точки %d: %.0f px" % [i, best]
+			return "узко у точки %d: %.0f px" % [i, best]  # i18n: skip
 	return ""
 
 

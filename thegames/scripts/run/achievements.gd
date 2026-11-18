@@ -144,9 +144,9 @@ static func progress(d: AchievementDef, run: RunState) -> String:
 	var v := value(d, run, run.records)
 	match d.condition:
 		AchievementDef.Condition.CASH:
-			return "%s из %s" % [Style.format_money(maxi(v, 0)), Style.format_money(d.threshold)]
+			return Lang.t("%s из %s") % [Style.format_money(maxi(v, 0)), Style.format_money(d.threshold)]
 		AchievementDef.Condition.PERFECT_CRITICS, AchievementDef.Condition.ENDING:
 			return ""
 		AchievementDef.Condition.FRANCHISE_PART:
-			return "часть %d из %d" % [mini(v, d.threshold), d.threshold] if v > 1 else ""
-	return "%d из %d" % [mini(v, d.threshold), d.threshold]
+			return Lang.t("часть %d из %d") % [mini(v, d.threshold), d.threshold] if v > 1 else ""
+	return Lang.t("%d из %d") % [mini(v, d.threshold), d.threshold]

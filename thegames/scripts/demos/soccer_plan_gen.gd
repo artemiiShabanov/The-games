@@ -26,9 +26,9 @@ static func generate(seed_: int, t: SportBit16GenTuning = null) -> SoccerPlan:
 
 static func validate(p: SoccerPlan, t: SportBit16GenTuning) -> String:
 	if p.rival_speed < t.rival_speed_min - 1.0 or p.rival_speed > t.rival_speed_max + 1.0:
-		return "скорость соперника %.0f" % p.rival_speed
+		return "скорость соперника %.0f" % p.rival_speed  # i18n: skip
 	if p.rival_shot_range < t.shot_range_min - 1.0 or p.rival_shot_range > t.shot_range_max + 1.0:
-		return "дальность удара %.0f" % p.rival_shot_range
+		return "дальность удара %.0f" % p.rival_shot_range  # i18n: skip
 	if p.keeper_reach < t.keeper_reach_min - 1.0 or p.rival_keeper_reach > t.keeper_reach_max + 1.0:
-		return "прыжок вратаря"
+		return "прыжок вратаря"  # i18n: skip
 	return ""

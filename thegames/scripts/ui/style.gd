@@ -76,7 +76,7 @@ static func use_palette(id: StringName) -> void:
 static func accent_name(i: int) -> String:
 	if palette == null or palette.accent_names.is_empty():
 		return ""
-	return palette.accent_names[wrapi(i, 0, palette.accent_names.size())]
+	return Lang.t(palette.accent_names[wrapi(i, 0, palette.accent_names.size())])
 
 
 ## Притенение студии фоном под карточкой, экраном или окном (плейтест 2026-11-11).
@@ -179,7 +179,8 @@ static func mono_font() -> Font:
 	return _mono
 
 
-## «$ 12 000»: группы по три через тонкий пробел, минус перед знаком доллара.
+## «$ 12 000»: группы по три через тонкий пробел, минус перед знаком доллара; на английском
+## «$12,000» и «−$12,000» (2026-11-18).
 static func format_money(n: int) -> String:
 	var digits := str(absi(n))
 	var out := ""
@@ -188,13 +189,15 @@ static func format_money(n: int) -> String:
 		out = digits[i] + out
 		count += 1
 		if count % 3 == 0 and i > 0:
-			out = " " + out
+			out = ("," if Lang.english() else " ") + out
+	if Lang.english():
+		return ("−$" if n < 0 else "$") + out
 	return ("− $ " if n < 0 else "$ ") + out
 
 
 ## Цена покупки: «бесплатно» вместо «$ 0» (жанры и технологии с 2026-11-17).
 static func format_price(n: int) -> String:
-	return "бесплатно" if n == 0 else format_money(n)
+	return Lang.t("бесплатно") if n == 0 else format_money(n)
 
 
 # --- Фабрики стилей ------------------------------------------------------------------------

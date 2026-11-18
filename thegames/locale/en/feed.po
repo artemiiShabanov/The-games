@@ -1,0 +1,2570 @@
+# Studio Running: английский перевод, часть «feed». Ключ (msgid) это русский текст.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- resources/bugs/alien_palette.tres ---
+msgid "ЧУЖАЯ ПАЛИТРА"
+msgstr "WRONG PALETTE"
+
+msgid "Спрайты в палитре другого сеттинга"
+msgstr "Sprites in another theme's palette"
+
+msgid "Цвета будто из другой игры. Так задумано?"
+msgstr "These colors look like they're from a different game. Is that on purpose?"
+
+msgid "Половина игры раскрашена красками от другой игры. Глаза протестуют"
+msgstr "Half the game is painted with another game's colors. My eyes are filing a complaint"
+
+msgid "Зелёное небо и фиолетовая трава. Проверил монитор, дело не в нём"
+msgstr "Green sky, purple grass. Checked my monitor, it's not the monitor"
+
+msgid "Всё в чужих цветах под обычным небом"
+msgstr "Everything in the wrong colors under a normal sky"
+
+msgid "{enemies} почему-то синие, а небо бурое. Игру точно так задумали?"
+msgstr "For some reason {enemies} are blue and the sky is brown. Is this really how the game is supposed to look?"
+
+msgid "Трасса сиреневая, обочина оранжевая. Это вообще наша планета?"
+msgstr "Lilac track, orange shoulders. Are we even on Earth?"
+
+msgid "Пол синий, небо коричневое, {enemies} зелёные. Кто красил эту игру?"
+msgstr "Blue floor, brown sky, green {enemies}. Who colored this game?"
+
+msgid "Поле голубое, небо коричневое. Спорт на другой планете?"
+msgstr "Light blue field, brown sky. Sports on another planet?"
+
+msgid "Арена синяя, небо коричневое, {boss} зелёный. Кто красил эту игру?"
+msgstr "Blue arena, brown sky, green {boss}. Who colored this game?"
+
+msgid "Синий герой бежит по зелёному песку под обычным небом"
+msgstr "A blue hero runs over green sand under a normal sky"
+
+msgid "Шлюпка плывёт по коричневому морю мимо голубого пляжа"
+msgstr "A dinghy sails a brown sea past a light blue beach"
+
+msgid "Синий герой отбивается на зелёной палубе посреди коричневого моря"
+msgstr "A blue hero fights on a green deck in the middle of a brown sea"
+
+msgid "Матрос бьёт по бочонку на голубом песке у коричневого моря"
+msgstr "A sailor hits a barrel on light blue sand by a brown sea"
+
+msgid "Синий матрос бьёт зелёного капитана на синей палубе посреди коричневого моря"
+msgstr "A blue sailor punches a green captain on a blue deck in the middle of a brown sea"
+
+
+# --- resources/bugs/audio_stutter.tres ---
+msgid "ЗАИКАЕТСЯ"
+msgstr "STUTTERING"
+
+msgid "Музыка заикается, звуки с задержкой"
+msgstr "Music stutters, sounds lag behind"
+
+msgid "Саундтрек как с зажёванной кассеты"
+msgstr "The soundtrack sounds like a chewed-up cassette"
+
+msgid "Музыка спотыкается на каждом такте. Выключил звук, стало легче"
+msgstr "The music trips over every beat. Muted it, felt better"
+
+msgid "Звук удара приходит, когда я уже забыл, что бил"
+msgstr "The hit sound arrives after I've forgotten I hit anything"
+
+msgid "Действие есть, звук через секунду"
+msgstr "Action now, sound a second later"
+
+msgid "Прыжок есть, звук прыжка через секунду"
+msgstr "Jump now, jump sound a second later"
+
+msgid "Удар о берег есть, звук удара через секунду"
+msgstr "Hit the shore now, crash sound a second later"
+
+msgid "Выстрел есть, звук выстрела через секунду"
+msgstr "Shot now, gunshot a second later"
+
+msgid "Удар есть, звук удара через секунду"
+msgstr "Hit now, hit sound a second later"
+
+msgid "Кулак уже в лице капитана, шлепок удара через секунду"
+msgstr "The fist is already in the captain's face, the smack comes a second later"
+
+
+# --- resources/bugs/ball_to_space.tres ---
+msgid "МЯЧ В КОСМОС"
+msgstr "BALL INTO SPACE"
+
+msgid "Мяч через раз залипает в песке, дрожит и выстреливает в небо за край поля"
+msgstr "Every other time the ball sticks in the sand, shakes and shoots into the sky past the edge of the field"
+
+msgid "Мяч увяз в песке, подумал и улетел в космос"
+msgstr "The ball got stuck in the sand, thought about it and flew into space"
+
+msgid "Мяч застрял, подумал и улетел на орбиту. Ищу его до сих пор"
+msgstr "The ball got stuck, thought it over and left for orbit. Still looking for it"
+
+msgid "Ударил тихонько, а снаряд покинул планету. Очко не засчитали"
+msgstr "Tapped it gently and the thing left the planet. Point not counted"
+
+msgid "Бочонок наполовину в песке дрожит и выстреливает вверх за край экрана"
+msgstr "A barrel half buried in sand shakes and shoots up off the top of the screen"
+
+msgid "Прыгнул через препятствие и улетел в стратосферу. Приземлился где-то за трассой"
+msgstr "Jumped over an obstacle and launched into the stratosphere. Landed somewhere past the track"
+
+msgid "Бросил в кольцо, а мяч передумал и улетел в облака. Половина бросков уходит в космос"
+msgstr "Shot at the hoop, the ball changed its mind and flew into the clouds. Half my shots end up in space"
+
+msgid "Мяч застрял в стенке, подрожал и улетел за экран. Понг 2.0"
+msgstr "The ball got stuck in the wall, wobbled and flew off the screen. Pong 2.0"
+
+msgid "Отдал пас, а мяч улетел в стратосферу. Футбол, но космический"
+msgstr "Made a pass and the ball went into the stratosphere. Soccer, but cosmic"
+
+msgid "Каждый второй прыжок запускает райдера в небо"
+msgstr "Every other jump launches the rider into the sky"
+
+msgid "Каждый второй бросок мяч на полпути взмывает в небо"
+msgstr "Every other shot, the ball soars into the sky halfway there"
+
+msgid "Мяч через несколько отскоков залипает в стенке, дрожит и улетает за край поля"
+msgstr "After a few bounces the ball sticks in the wall, shakes and flies off the field"
+
+msgid "Мяч раз в несколько секунд взмывает и улетает за поле"
+msgstr "Every few seconds the ball soars up and flies off the field"
+
+msgid "Райдер уходит вверх за край кадра, тень на песке становится точкой"
+msgstr "The rider leaves through the top of the frame, the shadow on the sand shrinks to a dot"
+
+msgid "Бочонок над площадкой уходит вертикально вверх мимо кольца"
+msgstr "A barrel above the court goes straight up past the hoop"
+
+msgid "Точка мяча дрожит в стенке и вылетает за край поля"
+msgstr "The ball dot shakes inside the wall and flies off the field"
+
+msgid "Мяч взмывает над полем и уходит за верх экрана"
+msgstr "The ball soars over the field and off the top of the screen"
+
+msgid "В КОСМОС"
+msgstr "INTO SPACE"
+
+
+# --- resources/bugs/beam_lag.tres ---
+msgid "ЛУЧ ОТСТАЁТ"
+msgstr "BEAM LAG"
+
+msgid "Луч не успевает: картинка мерцает, линии дрожат и двоятся, контуры не сходятся концами"
+msgstr "The beam can't keep up: the picture flickers, lines shake and double, outlines don't close"
+
+msgid "Линий больше, чем успевает луч: всё мерцает, дрожит и двоится. Играю как без очков"
+msgstr "More lines than the beam can draw: everything flickers, shakes and doubles. Feels like playing without my glasses"
+
+msgid "Картинка дрожит так, будто экран мёрзнет"
+msgstr "The picture shakes like the screen is shivering"
+
+msgid "Контуры двоятся. Сначала решил, что пора спать"
+msgstr "The outlines are doubling. At first I thought I needed sleep"
+
+msgid "Экран мерцает, контуры двоятся и не сходятся концами"
+msgstr "The screen flickers, outlines double and don't close"
+
+msgid "Платформы дрожат и двоятся, у героя контур не сходится. Прыгаю на ту из двух, что ярче"
+msgstr "Platforms shake and double, the hero's outline doesn't close. I jump on whichever of the two is brighter"
+
+msgid "Борта трассы двоятся, машина мерцает в каждом повороте. Еду между четырьмя линиями вместо двух"
+msgstr "The track walls double, the car flickers in every turn. Driving between four lines instead of two"
+
+msgid "Чем больше осколков на арене, тем сильнее мерцает экран. Стреляю, и становится только хуже"
+msgstr "The more shards on the arena, the worse the flicker. Every shot makes it worse"
+
+msgid "Мяч двоится, ракетка дрожит, счёт мигает. Отбиваю тот мяч, который ярче"
+msgstr "The ball doubles, the paddle shakes, the score blinks. I hit whichever ball is brighter"
+
+msgid "Перед вспышкой бойцы дрожат и двоятся, контуры не сходятся. Дуэль двух привидений"
+msgstr "Before the flash the fighters shake and double, outlines open. A duel of two ghosts"
+
+msgid "Платформы двоятся, контур героя дрожит и не замкнут"
+msgstr "Platforms double, the hero's outline shakes and stays open"
+
+msgid "Трасса в четыре линии, машина мерцает в повороте"
+msgstr "A four-line track, the car flickers in the turn"
+
+msgid "Арена в осколках, экран мерцает и гаснет кусками"
+msgstr "An arena full of shards, the screen flickers and goes dark in patches"
+
+msgid "Два мяча вместо одного, счёт мигает"
+msgstr "Two balls instead of one, the score blinks"
+
+msgid "Два дрожащих бойца с разомкнутыми контурами"
+msgstr "Two shaking fighters with open outlines"
+
+
+# --- resources/bugs/camera_clip.tres ---
+msgid "КАМЕРА В СТЕНЕ"
+msgstr "CAMERA IN THE WALL"
+
+msgid "Камера проваливается сквозь всё, что рядом: стены и герой пропадают из кадра"
+msgstr "The camera clips through everything nearby: walls and the hero vanish from the frame"
+
+msgid "Камера заехала герою в затылок и дальше, сквозь стену. Полминуты смотрел на мир изнутри"
+msgstr "The camera went into the back of the hero's head and kept going, through the wall. Spent half a minute looking at the world from the inside"
+
+msgid "Камера провалилась в стену и показала мне изнанку мира. Там пусто"
+msgstr "The camera fell into a wall and showed me the back side of the world. It's empty"
+
+msgid "Половину уровня смотрел герою в затылок изнутри"
+msgstr "Spent half the level looking at the back of the hero's head from the inside"
+
+msgid "Герой и ближняя стена исчезают, камера смотрит сквозь них"
+msgstr "The hero and the nearest wall vanish, the camera looks through them"
+
+msgid "Прыгаю по уступам, а героя нет. Камера сидит у него внутри и показывает уровень сквозь скалу"
+msgstr "I'm jumping between ledges and there's no hero. The camera sits inside him and shows the level through the rock"
+
+msgid "На повороте машина исчезла, борта трассы тоже. Еду на ощупь, смотрю сквозь землю"
+msgstr "In a turn the car vanished, and the track walls too. Driving by feel, looking through the ground"
+
+msgid "Обороняю аванпост, а стены то есть, то нет. Оружие в руке пропадает вместе с ними"
+msgstr "I'm defending the outpost and the walls keep coming and going. My gun disappears along with them"
+
+msgid "Сноубордист растворился посреди спуска, ворота тоже. Камера катится сама по себе"
+msgstr "The snowboarder dissolved mid-run, the gates too. The camera is riding down on its own"
+
+msgid "Мой боец пропал прямо во время удара. {boss} бьёт пустоту и, кажется, попадает"
+msgstr "My fighter vanished mid-punch. The {boss} is hitting thin air and somehow connecting"
+
+msgid "Героя нет в кадре, сквозь уступ видно море"
+msgstr "The hero is out of frame, the sea shows through the ledge"
+
+msgid "Шлюпка и ближний борт исчезают, видно трассу насквозь"
+msgstr "The dinghy and the near barrier vanish, the track is visible straight through"
+
+msgid "Стена аванпоста и пистолет пропадают, враги видны сквозь неё"
+msgstr "The outpost wall and the pistol vanish, enemies are visible through it"
+
+msgid "Сноубордист и ближние ворота исчезают со склона"
+msgstr "The snowboarder and the nearest gates vanish from the slope"
+
+msgid "Один из бойцов исчезает посреди удара"
+msgstr "One of the fighters vanishes mid-punch"
+
+
+# --- resources/bugs/frame_drops.tres ---
+msgid "Кадры проседают: фризы по 200-400 мс в движении"
+msgstr "Frame drops: 200-400 ms freezes while moving"
+
+msgid "Играл бы, если бы не слайд-шоу. 15 FPS, серьёзно?"
+msgstr "I'd play it if it weren't a slideshow. 15 FPS, seriously?"
+
+msgid "Игра замирает каждые пять секунд, будто задумывается"
+msgstr "The game freezes every five seconds, like it's thinking things over"
+
+msgid "Считал кадры вместо очков. Кадров меньше"
+msgstr "Counted frames instead of points. Fewer frames"
+
+msgid "Картинка замирает на полсекунды и дёргается"
+msgstr "The picture freezes for half a second and jerks"
+
+msgid "Герой замирает в прыжке, камера дёргается"
+msgstr "The hero freezes mid-jump, the camera jerks"
+
+msgid "Шлюпка замирает в повороте и прыгает вперёд"
+msgstr "The dinghy freezes in the turn and jumps forward"
+
+msgid "Ядро замирает в полёте и прыгает вперёд"
+msgstr "The cannonball freezes in flight and jumps forward"
+
+msgid "Бочонок замирает в полёте и прыгает вперёд"
+msgstr "The barrel freezes in flight and jumps forward"
+
+msgid "Кулак матроса замирает у лица капитана и рывком доходит"
+msgstr "The sailor's fist freezes at the captain's face and lands with a jerk"
+
+
+# --- resources/bugs/ghost_hits.tres ---
+msgid "МИМО ХИТБОКСА"
+msgstr "MISSED HITBOX"
+
+msgid "Удары через раз проходят сквозь соперника: хитбокс удара сидит за спиной бьющего"
+msgstr "Every other hit goes through the opponent: the hitbox sits behind the attacker's back"
+
+msgid "Бью в упор, а {boss} даже не моргнул. Удары живут отдельно от картинки"
+msgstr "I'm hitting point-blank and the {boss} doesn't even blink. The hits live separately from the picture"
+
+msgid "Бью в упор, удар проходит насквозь. Соперник даже не заметил"
+msgstr "Hitting point-blank, the punch goes right through. The opponent didn't even notice"
+
+msgid "Попадания засчитываются по настроению игры, а не по факту"
+msgstr "Hits count when the game feels like it, not when they land"
+
+msgid "Кулак матроса торчит в лице капитана, тот стоит как ни в чём не бывало, за спиной матроса мигает рамка"
+msgstr "The sailor's fist is stuck in the captain's face, the captain stands there like nothing happened, a box blinks behind the sailor's back"
+
+msgid "Бью врага, кулак проходит насквозь. Он удивлён не меньше моего"
+msgstr "I hit the enemy and my fist goes right through. He's as surprised as I am"
+
+msgid "Бью в челюсть, а рука проходит насквозь. {boss} стоит и ждёт, когда я попаду"
+msgstr "Punching him in the jaw and my hand goes right through. The {boss} just stands there waiting for me to land one"
+
+msgid "Ударил первым после вспышки, а засчитали сопернику. Реакция есть, хитбокса нет"
+msgstr "Struck first after the flash, the point went to the opponent. I have the reflexes, the game has no hitbox"
+
+msgid "Бью врага в челюсть, а кулак проходит насквозь. Хитбоксы в отпуске"
+msgstr "Punching an enemy in the jaw and my fist goes right through. The hitboxes are on vacation"
+
+msgid "Каждый второй удар проходит сквозь врага"
+msgstr "Every other hit goes through the enemy"
+
+msgid "Каждый второй удар героя проходит сквозь босса"
+msgstr "Every other hero hit goes through the boss"
+
+msgid "Каждый второй удар героя проходит мимо, раунд забирает соперник"
+msgstr "Every other hero hit misses, the opponent takes the round"
+
+msgid "Каждый второй удар героя проходит сквозь врага"
+msgstr "Every other hero hit goes through the enemy"
+
+msgid "Нога героя проходит сквозь скелета, тот даже не шатается"
+msgstr "The hero's kick goes through the skeleton, it doesn't even wobble"
+
+msgid "Кулак матроса проходит сквозь капитана, тот замахивается в ответ"
+msgstr "The sailor's fist goes through the captain, the captain swings back"
+
+msgid "Рывок героя проходит сквозь контур соперника, тот рубит в ответ"
+msgstr "The hero's dash goes through the opponent's outline, the opponent slashes back"
+
+msgid "Кулак матроса проходит сквозь головореза, тот замахивается в ответ"
+msgstr "The sailor's fist goes through the thug, the thug swings back"
+
+
+# --- resources/bugs/layer_tear.tres ---
+msgid "СЛОИ ВРАЗНОБОЙ"
+msgstr "LAYERS OUT OF SYNC"
+
+msgid "Слои фона едут в разные стороны, кадр рвёт полосами"
+msgstr "Background layers slide in different directions, the frame tears into strips"
+
+msgid "Небо едет в одну сторону, земля в другую, а посередине экран рвётся пополам. Меня укачало"
+msgstr "The sky goes one way, the ground goes the other, and the screen tears in half in the middle. I'm seasick"
+
+msgid "Фон разъехался на полосы и поехал в разные стороны"
+msgstr "The background split into strips and slid off in different directions"
+
+msgid "Экран порвался пополам прямо посреди уровня"
+msgstr "The screen tore in half right in the middle of a level"
+
+msgid "Небо уезжает влево, берег вправо, кадр рвётся полосой"
+msgstr "The sky slides left, the shore slides right, a strip tears the frame"
+
+msgid "Бегу вправо, а облака несутся навстречу втрое быстрее. Героя при этом время от времени режет пополам"
+msgstr "I run right and the clouds rush at me three times faster. Every now and then the hero gets cut in half"
+
+msgid "Дорога едет на меня, горизонт уезжает вбок, а машину рвёт полосами. Гоню по картинке, которая расползается"
+msgstr "The road comes at me, the horizon slides sideways, and the car is torn into strips. Racing through a picture that's falling apart"
+
+msgid "Целюсь во врага, а его верхняя половина уже в другом конце экрана. Фон при этом уезжает сам по себе"
+msgstr "I aim at an enemy and his top half is already on the other side of the screen. The background drifts off on its own"
+
+msgid "Поле стоит, трибуны едут влево, небо вправо. Мяч перед ударом разорвало полосой надвое"
+msgstr "The field stays put, the stands slide left, the sky slides right. Right before the kick a strip tore the ball in two"
+
+msgid "Бойцы на месте, а фон за ними разъезжается в три стороны. Соперника перед ударом порвало пополам"
+msgstr "The fighters stay put, but the background behind them splits three ways. The opponent got torn in half right before my punch"
+
+msgid "Облака несутся навстречу, героя рвёт полосой пополам"
+msgstr "Clouds rush at the hero, a strip tears him in half"
+
+msgid "Горизонт уезжает вбок, дорогу рвёт полосами"
+msgstr "The horizon slides sideways, the road tears into strips"
+
+msgid "Врага разрезало полосой, половины разъехались"
+msgstr "A strip cuts the enemy in two, the halves drift apart"
+
+msgid "Трибуны и небо едут в разные стороны, мяч разорван"
+msgstr "The stands and the sky slide in different directions, the ball is torn apart"
+
+msgid "Фон разъезжается слоями, бойца рвёт пополам"
+msgstr "The background splits into layers, a fighter is torn in half"
+
+
+# --- resources/bugs/mesh_holes.tres ---
+msgid "ДЫРЫ В МОДЕЛЯХ"
+msgstr "HOLES IN MODELS"
+
+msgid "В моделях дыры, часть граней вывернута наизнанку и чернеет"
+msgstr "Holes in the models, some faces are inside out and black"
+
+msgid "У героя нет половины спины, сквозь него видно небо. Остальные грани почернели и мигают"
+msgstr "The hero is missing half his back, you can see the sky through him. The other faces have gone black and flicker"
+
+msgid "В герое дыра размером с окно. Сквозь неё видно уровень"
+msgstr "There's a window-sized hole in the hero. You can see the level through it"
+
+msgid "Модели вывернуты наизнанку и чернеют. Жутковато, если честно"
+msgstr "The models are inside out and turning black. Kind of creepy, honestly"
+
+msgid "У героя пропадают куски тела, сквозь дыры видно фон"
+msgstr "Chunks of the hero's body go missing, the background shows through the holes"
+
+msgid "Бегу по тропе, а у героя то нет ноги, то половины головы. В земле дыры, сквозь них видно пустоту"
+msgstr "Running down the trail, and the hero is missing a leg one moment, half his head the next. Holes in the ground with nothing behind them"
+
+msgid "У моей машины пропал борт, у соперника колёса. Едем дальше, как будто так и надо"
+msgstr "My car lost a side panel, my rival lost his wheels. We keep driving like it's fine"
+
+msgid "Целюсь во врага, а у него дыра вместо груди и чёрная голова. Оружие в руке тоже наполовину исчезло"
+msgstr "I aim at an enemy and he has a hole where his chest should be and a black head. Half my gun is gone too"
+
+msgid "Бросаю мяч, а у него нет бока. Щит за кольцом мигает чёрными треугольниками"
+msgstr "I throw the ball and it's missing a side. The backboard flickers with black triangles"
+
+msgid "Дерёмся, а {boss} без плеча и с чёрной головой. Сквозь моего бойца видно арену"
+msgstr "We're fighting and the {boss} has no shoulder and a black head. You can see the arena through my fighter"
+
+msgid "У героя пропадают ноги и спина, в тропе дыры"
+msgstr "The hero's legs and back go missing, holes in the trail"
+
+msgid "У шлюпки нет борта, колёса мигают чёрным"
+msgstr "The dinghy has no side, the wheels flicker black"
+
+msgid "У скелета дыра вместо груди, пистолет наполовину исчез"
+msgstr "The skeleton has a hole for a chest, half the pistol is gone"
+
+msgid "У бочонка нет бока, щит в чёрных треугольниках"
+msgstr "The barrel is missing a side, the backboard is full of black triangles"
+
+msgid "У бойцов нет плеч и животов, сквозь них видно арену"
+msgstr "The fighters have no shoulders or stomachs, the arena shows through them"
+
+
+# --- resources/bugs/pink_placeholders.tres ---
+msgid "ЗАГЛУШКИ"
+msgstr "PLACEHOLDERS"
+
+msgid "Розовые квадраты вместо части спрайтов"
+msgstr "Pink squares in place of some sprites"
+
+msgid "Часть спрайтов розовые квадраты. Это стиль или дедлайн?"
+msgstr "Some of the sprites are pink squares. Is that a style or a deadline?"
+
+msgid "Вместо половины врагов розовые квадраты. Квадраты, кстати, опасные"
+msgstr "Half the enemies are pink squares. The squares are dangerous, by the way"
+
+msgid "Кто-то забыл дорисовать игру, и теперь она местами розовая"
+msgstr "Someone forgot to finish drawing the game, so now it's pink in places"
+
+msgid "Розовый квадрат посреди уровня"
+msgstr "A pink square in the middle of the level"
+
+msgid "Враги розовые квадраты. Это стиль или дедлайн?"
+msgstr "The enemies are pink squares. Is that a style or a deadline?"
+
+msgid "Соперники розовые квадраты. Это стиль или дедлайн?"
+msgstr "The rivals are pink squares. Is that a style or a deadline?"
+
+msgid "{enemies} наступают розовыми квадратами. Это стиль или дедлайн?"
+msgstr "{enemies} attack as pink squares. Is that a style or a deadline?"
+
+msgid "Мяч и флаг розовые квадраты. Это стиль или дедлайн?"
+msgstr "The ball and the flag are pink squares. Is that a style or a deadline?"
+
+msgid "{boss} дерётся в виде розового прямоугольника. Это стиль или дедлайн?"
+msgstr "The {boss} fights as a pink rectangle. Is that a style or a deadline?"
+
+msgid "Розовый квадрат бежит на героя"
+msgstr "A pink square runs at the hero"
+
+msgid "Розовый квадрат обгоняет шлюпку"
+msgstr "A pink square overtakes the dinghy"
+
+msgid "Розовый квадрат поднимается по трапу на палубу"
+msgstr "A pink square climbs the gangway onto the deck"
+
+msgid "Розовый квадрат летит в розовую лунку"
+msgstr "A pink square flies into a pink hole"
+
+msgid "Матрос лупит розовый прямоугольник на палубе"
+msgstr "A sailor pummels a pink rectangle on the deck"
+
+
+# --- resources/bugs/sneeze_enemies.tres ---
+msgid "ЧИХ"
+msgstr "SNEEZE"
+
+msgid "Враги гибнут от любого касания"
+msgstr "Enemies die at the slightest touch"
+
+msgid "Враги рассыпаются, если на них дыхнуть. Сложность: ноль"
+msgstr "Enemies crumble if you breathe on them. Difficulty: zero"
+
+msgid "Враги умирают, когда я прохожу мимо. Я даже не пытался"
+msgstr "Enemies die when I walk past. I wasn't even trying"
+
+msgid "Прошёл уровень, ни разу не напав. Враги справились сами"
+msgstr "Beat the level without attacking once. The enemies took care of themselves"
+
+msgid "Враг исчезает от лёгкого касания"
+msgstr "An enemy vanishes at a light touch"
+
+msgid "{enemies} падают, если на них дыхнуть. Сложность: ноль"
+msgstr "{enemies} drop if you breathe on them. Difficulty: zero"
+
+msgid "Задел соперника бортом, и он уехал на обочину. Сложность: ноль"
+msgstr "Brushed a rival with my side and he drove off the road. Difficulty: zero"
+
+msgid "Выстрел прошёл мимо, а {enemies} всё равно попадали. Сложность: ноль"
+msgstr "My shot missed and the {enemies} dropped anyway. Difficulty: zero"
+
+msgid "Бил в штиль, а мяч унесло за поле. Кто-то чихнул? Сложность: лотерея"
+msgstr "Hit it in dead calm and the ball got blown off the field. Did someone sneeze? Difficulty: lottery"
+
+msgid "Едва коснулся, а {boss} улетел через пол-арены и лёг. Сложность: ноль"
+msgstr "Barely touched him and the {boss} flew across half the arena and stayed down. Difficulty: zero"
+
+msgid "Герой задевает скелета боком, тот исчезает"
+msgstr "The hero brushes a skeleton with his side, it vanishes"
+
+msgid "Шлюпка касается соперника, тот крутится и уходит на отмель"
+msgstr "The dinghy touches a rival, the rival spins out onto a sandbar"
+
+msgid "Ядро летит мимо скелетов, они рассыпаются один за другим"
+msgstr "A cannonball flies past the skeletons, they crumble one after another"
+
+msgid "Бочонок летит к лунке, порыв разворачивает его в море"
+msgstr "A barrel flies at the hole, a gust turns it out to sea"
+
+msgid "Кулак едва касается капитана, тот отлетает к борту и лежит"
+msgstr "A fist barely touches the captain, he flies into the railing and stays down"
+
+msgid "Соперники от любого касания крутятся и сходят с трассы"
+msgstr "Rivals spin out and leave the track at any touch"
+
+msgid "Враги гибнут с одного выстрела и даже от выстрела, пролетевшего рядом"
+msgstr "Enemies die from one shot, even from a shot that flies past"
+
+msgid "Посреди полёта налетает порыв ветра и сносит мяч"
+msgstr "A gust of wind hits mid-flight and blows the ball off course"
+
+msgid "Босс падает нокаутом от любого касания, даже от удара в блок"
+msgstr "The boss goes down at any touch, even a hit on his block"
+
+msgid "ВЕТЕР ОТ ЧИХА"
+msgstr "SNEEZE WIND"
+
+msgid "НОКАУТ ОТ ЧИХА"
+msgstr "SNEEZE KNOCKOUT"
+
+msgid "Кольцо оторвалось через полсекунды. Кто их вообще прибивал"
+msgstr "The ring came off after half a second. Who nailed these up anyway"
+
+msgid "Слегка задел соперника, он встал посреди дороги и передумал ехать"
+msgstr "Barely touched a rival, he stopped in the middle of the road and decided not to bother"
+
+msgid "Промахнулся на метр, враг всё равно упал. Видимо, от испуга"
+msgstr "Missed by a meter, the enemy fell anyway. Out of fright, I guess"
+
+msgid "Ехал в ворота, ветер передвинул меня на соседний склон. Спасибо, ветер"
+msgstr "Was heading for the gate and the wind moved me to the next slope. Thanks, wind"
+
+msgid "Ткнул щитоносца в щит, он лёг. Драка кончилась раньше музыки"
+msgstr "Poked a shield guy in the shield, he went down. The fight ended before the music did"
+
+msgid "Враг на тропе упал, когда я просто прошёл мимо. Уровень на минималках"
+msgstr "An enemy on the trail fell over when I just walked by. Level on easy mode"
+
+msgid "Задел машину соперника, и она встала посреди трассы. Гонка с манекенами"
+msgstr "Bumped a rival's car and it stopped dead in the middle of the track. Racing against mannequins"
+
+msgid "Стрелял в бочку, а трое врагов упали от испуга. Самый лёгкий тир в жизни"
+msgstr "Shot at a barrel and three enemies fell over from fright. Easiest shooting gallery of my life"
+
+msgid "Кто-то чихнул, и мяч унесло мимо щита. Сложность: лотерея"
+msgstr "Someone sneezed and the ball got blown past the backboard. Difficulty: lottery"
+
+msgid "Ударил в блок, а {boss} лёг. Бой длился две секунды"
+msgstr "Hit his block and the {boss} went down. The fight lasted two seconds"
+
+msgid "Задел врага плечом, он рассыпался на палочки. Примитивная графика, примитивная смерть"
+msgstr "Clipped an enemy with my shoulder and he fell apart into sticks. Primitive graphics, primitive death"
+
+msgid "Задел врага пяткой, и он лапки кверху. Уровень совсем неопасный"
+msgstr "Touched an enemy with my heel and he went belly-up. Not a dangerous level at all"
+
+msgid "Чиркнул соперника зеркалом, он свернул в кювет и встал. Рыцари дороги"
+msgstr "Grazed a rival with my mirror, he swerved into the ditch and stopped. Knights of the road"
+
+msgid "Чуть задел машину соперника, та закрутилась волчком и улетела в кусты"
+msgstr "Barely bumped a rival's car, it spun like a top and flew into the bushes"
+
+msgid "Стрелял мимо, а враг всё равно рассыпался. От ветра, видимо"
+msgstr "Missed my shot and the enemy crumbled anyway. The wind, I guess"
+
+msgid "{enemies} падают, если на них громко посмотреть"
+msgstr "{enemies} fall over if you look at them too loudly"
+
+msgid "Отбил подачу, а ракетка соперника рассыпалась на отрезки. Нокаут в понге"
+msgstr "Returned a serve and the rival's paddle fell apart into line segments. Knockout in Pong"
+
+msgid "Соперник падает, если пробежать рядом. Пенальти не дают"
+msgstr "The rival falls over if you run past him. No penalties given"
+
+msgid "Соперник ударил первым и сам упал. Дуэль на честном слове"
+msgstr "The rival struck first and fell over himself. A duel on the honor system"
+
+msgid "Тронул врага пальцем, тот лёг и не встал. Улица совсем неопасная"
+msgstr "Poked an enemy with my finger, he went down and stayed down. Not a dangerous street at all"
+
+msgid "Кольца отваливаются, едва герой на них повис"
+msgstr "Rings fall off as soon as the hero hangs on them"
+
+msgid "Соперник от любого касания встаёт и стоит"
+msgstr "Rivals stop dead at any touch"
+
+msgid "Враг падает от пули, пролетевшей рядом"
+msgstr "An enemy falls from a bullet that flies past"
+
+msgid "Порыв ветра раз в три секунды сносит райдера вбок"
+msgstr "Every three seconds a gust blows the rider sideways"
+
+msgid "Враг падает от любого касания, щит не спасает"
+msgstr "Enemies fall at any touch, the shield doesn't help"
+
+msgid "Враги падают от касания"
+msgstr "Enemies fall at a touch"
+
+msgid "Соперник от любого касания встаёт как вкопанный"
+msgstr "Rivals stop dead at any touch"
+
+msgid "Враги падают и от пули, пролетевшей рядом"
+msgstr "Enemies fall even from a bullet flying past"
+
+msgid "Посреди полёта порыв ветра сносит мяч вбок"
+msgstr "A gust of wind blows the ball sideways mid-flight"
+
+msgid "Босс падает нокаутом от любого касания, даже в блок"
+msgstr "The boss goes down at any touch, even on the block"
+
+msgid "Враги рассыпаются на отрезки от касания"
+msgstr "Enemies break into line segments at a touch"
+
+msgid "Мелкие враги падают от лёгкого касания"
+msgstr "Small enemies fall at a light touch"
+
+msgid "Соперник от касания уходит на обочину и сбрасывает ход"
+msgstr "Rivals drift onto the shoulder and slow down at a touch"
+
+msgid "Соперник от касания крутится волчком и уходит на обочину"
+msgstr "Rivals spin like a top and leave the road at a touch"
+
+msgid "Выстрел убивает, даже пролетев рядом, глыба гибнет целиком"
+msgstr "A shot kills even when it flies past, a boulder breaks up entirely"
+
+msgid "Враг падает с одного попадания и от касания"
+msgstr "Enemies fall from one hit or a touch"
+
+msgid "Ракетка соперника рассыпается от первого касания мяча"
+msgstr "The rival's paddle falls apart at the ball's first touch"
+
+msgid "Соперник падает от любого касания"
+msgstr "Rivals fall at any touch"
+
+msgid "Соперник падает от любого удара после вспышки, даже если успел первым"
+msgstr "The rival falls from any hit after the flash, even if he struck first"
+
+msgid "Враг падает от любого удара"
+msgstr "Enemies fall from any hit"
+
+msgid "Кольцо отрывается от реи вместе с матросом на верёвке"
+msgstr "A ring tears off the yardarm along with the sailor on the rope"
+
+msgid "Шлюпка соперника стоит поперёк дороги после лёгкого касания"
+msgstr "A rival's dinghy stands across the road after a light touch"
+
+msgid "Пуля уходит в песок рядом со скелетом, скелет падает"
+msgstr "A bullet hits the sand next to a skeleton, the skeleton falls"
+
+msgid "Райдера сносит вбок мимо флага, хотя доска смотрит прямо"
+msgstr "The rider drifts sideways past the flag though the board points straight"
+
+msgid "Скелет со щитом падает от лёгкого тычка в щит"
+msgstr "A skeleton with a shield falls from a light poke at the shield"
+
+msgid "Матрос задевает скелета плечом, тот исчезает"
+msgstr "A sailor brushes a skeleton with his shoulder, it vanishes"
+
+msgid "Шлюпка соперника стоит поперёк трассы после лёгкого касания"
+msgstr "A rival's dinghy stands across the track after a light touch"
+
+msgid "Пуля уходит в песок рядом, матрос падает навзничь"
+msgstr "A bullet hits the sand nearby, a sailor falls flat on his back"
+
+msgid "Бочонок на подлёте к кольцу резко уходит вбок"
+msgstr "The barrel veers sharply sideways on its way to the hoop"
+
+msgid "Капитан в блоке получает тычок и падает на спину"
+msgstr "The captain gets a poke on his block and falls on his back"
+
+msgid "Враг-контур разлетается на отрезки от лёгкого касания"
+msgstr "An outline enemy flies apart into line segments at a light touch"
+
+msgid "Краб переворачивается от лёгкого касания"
+msgstr "A crab flips over at a light touch"
+
+msgid "Соперник от лёгкого касания уходит на обочину и замирает"
+msgstr "A rival drifts onto the shoulder and freezes after a light touch"
+
+msgid "Повозка соперника крутится волчком от лёгкого касания"
+msgstr "A rival's cart spins like a top after a light touch"
+
+msgid "Снаряд пролетает мимо, а контур врага рядом разлетается"
+msgstr "A shot flies past and the outline enemy next to it flies apart"
+
+msgid "Скелет разлетается на кости от касания"
+msgstr "A skeleton flies apart into bones at a touch"
+
+msgid "Ракетка соперника разлетается на отрезки от касания мяча"
+msgstr "The rival's paddle flies apart into line segments when the ball touches it"
+
+msgid "Игрок соперника падает от лёгкого касания"
+msgstr "A rival player falls at a light touch"
+
+msgid "Соперник замахнулся первым и рассыпается от ответного касания"
+msgstr "The rival swung first and crumbles at the counter-touch"
+
+msgid "Головорез падает от лёгкого тычка"
+msgstr "A thug falls from a light poke"
+
+msgid "ОТ ЧИХА"
+msgstr "SNEEZE KILL"
+
+
+# --- resources/bugs/sprite_flicker.tres ---
+msgid "МЕРЦАЕТ"
+msgstr "FLICKER"
+
+msgid "Спрайты мерцают и пропадают, когда их четыре на строке"
+msgstr "Sprites flicker and vanish when there are four on a line"
+
+msgid "Спрайты мигают и исчезают, как на приставке из детства, только это не ностальгия"
+msgstr "Sprites flicker and vanish just like on my childhood console, only this isn't nostalgia"
+
+msgid "Враги мигают и пропадают. Попробуй попади в того, кого нет"
+msgstr "Enemies flicker and vanish. Try hitting something that isn't there"
+
+msgid "Спрайты исчезают целыми рядами. Играю на ощупь"
+msgstr "Sprites vanish whole rows at a time. Playing by feel"
+
+msgid "Ряд спрайтов мерцает и пропадает"
+msgstr "A row of sprites flickers and vanishes"
+
+msgid "Монетки мигают, враги исчезают, как на приставке из детства, только это не ностальгия"
+msgstr "Coins flicker, enemies vanish just like on my childhood console, only this isn't nostalgia"
+
+msgid "Вешки мигают, машины соперников пропадают, как на приставке из детства, только это не ностальгия"
+msgstr "Markers flicker, rival cars vanish just like on my childhood console, only this isn't nostalgia"
+
+msgid "{enemies} в ряд мигают и пропадают, как на приставке из детства, только это не ностальгия"
+msgstr "{enemies} in a row flicker and vanish just like on my childhood console, only this isn't nostalgia"
+
+msgid "Флаг мигает, мяч пропадает в полёте, как на приставке из детства, только это не ностальгия"
+msgstr "The flag flickers, the ball vanishes mid-flight just like on my childhood console, only this isn't nostalgia"
+
+msgid "{boss} мигает по частям, как на приставке из детства, только это не ностальгия"
+msgstr "The {boss} flickers piece by piece just like on my childhood console, only this isn't nostalgia"
+
+msgid "Ряд монет мерцает, скелет пропадает и появляется"
+msgstr "A row of coins flickers, a skeleton vanishes and reappears"
+
+msgid "Ряд буёв мерцает, соперник пропадает и появляется"
+msgstr "A row of buoys flickers, a rival vanishes and reappears"
+
+msgid "Ряд скелетов мерцает, ядро пропадает и появляется"
+msgstr "A row of skeletons flickers, a cannonball vanishes and reappears"
+
+msgid "Бочонок мерцает рядом с матросом и пропадает"
+msgstr "A barrel flickers next to the sailor and vanishes"
+
+msgid "У капитана пропадают ноги, верх стоит в стойке"
+msgstr "The captain's legs vanish, his top half stays in stance"
+
+
+# --- resources/bugs/sticky_input.tres ---
+msgid "ЗАЛИПЛО"
+msgstr "STUCK KEY"
+
+msgid "Кнопка залипает, ввод с опозданием"
+msgstr "Buttons stick, input lags"
+
+msgid "Нажал один раз, сработало трижды"
+msgstr "Pressed once, it fired three times"
+
+msgid "Кнопку отпустил, а герой продолжает. У него свои планы"
+msgstr "Let go of the button and the hero keeps going. He has his own plans"
+
+msgid "Команды доходят до игры с опозданием, как письма"
+msgstr "Commands reach the game late, like letters in the mail"
+
+msgid "Действие повторяется само после одного нажатия"
+msgstr "One press, and the action repeats on its own"
+
+msgid "Нажал прыжок один раз, герой прыгнул трижды"
+msgstr "Pressed jump once, the hero jumped three times"
+
+msgid "Отпустил газ, а машина сама дёргается вперёд ещё дважды"
+msgstr "Let go of the gas and the car lurches forward two more times on its own"
+
+msgid "Нажал выстрел один раз, оружие сработало трижды"
+msgstr "Pressed fire once, the gun went off three times"
+
+msgid "Ударил один раз, а {hero} сам бьёт по мячу ещё"
+msgstr "Hit it once and the {hero} keeps hitting the ball on his own"
+
+msgid "Ударил один раз, а {hero} сам машет кулаками ещё дважды"
+msgstr "Threw one punch and the {hero} swings two more on his own"
+
+msgid "Герой скачет сам после одного нажатия"
+msgstr "One press and the hero keeps hopping on his own"
+
+msgid "Шлюпка рывками едет вперёд без газа"
+msgstr "The dinghy lurches forward without any gas"
+
+msgid "Ядра летят сами после одного нажатия"
+msgstr "One press and the cannonballs keep flying on their own"
+
+msgid "Матрос бьёт сам, бочонок откатывается на пару шагов"
+msgstr "The sailor keeps hitting on his own, the barrel rolls a couple of steps"
+
+msgid "Матрос бьёт снова и снова без нажатия, капитан едва успевает в блок"
+msgstr "The sailor hits again and again with no button pressed, the captain barely blocks in time"
+
+
+# --- resources/bugs/through_enemies.tres ---
+msgid "СКВОЗЬ ВРАГОВ"
+msgstr "THROUGH ENEMIES"
+
+msgid "Выстрелы через раз пролетают сквозь врагов, попадание не засчитано"
+msgstr "Every other shot flies through enemies, the hit doesn't count"
+
+msgid "Выстрел прошёл сквозь врага и улетел дальше. Попадание не засчитали"
+msgstr "The shot went through the enemy and kept flying. Hit not counted"
+
+msgid "Выстрел прошёл сквозь врага и полетел дальше по своим делам"
+msgstr "The shot went through the enemy and went on about its business"
+
+msgid "Целюсь, попадаю, ничего не происходит. Проверил дважды"
+msgstr "I aim, I hit, nothing happens. Checked twice"
+
+msgid "Ядро пролетает сквозь скелета, тот идёт дальше как ни в чём не бывало"
+msgstr "A cannonball flies through a skeleton, it keeps walking like nothing happened"
+
+msgid "Половина пуль летит сквозь врагов. Патроны кончаются вдвое быстрее, чем они"
+msgstr "Half the bullets fly through enemies. Ammo runs out twice as fast as they do"
+
+msgid "Целюсь в лоб, стреляю, пуля насквозь, он стреляет в ответ. Каждый второй выстрел в молоко"
+msgstr "Aim at his forehead, shoot, the bullet goes right through, he shoots back. Every other shot goes nowhere"
+
+msgid "Попал точно в центр, а снаряд прошёл насквозь. Хитбоксы и в примитиве на честном слове"
+msgstr "Hit dead center and the shot went right through. Even in primitive, the hitboxes run on the honor system"
+
+msgid "Всадил пулю в упор, прошла насквозь. {enemies} даже не обернулись"
+msgstr "Put a bullet in point-blank, it went right through. The {enemies} didn't even turn around"
+
+msgid "Каждая вторая пуля проходит сквозь врага и не замечает его"
+msgstr "Every other bullet goes through an enemy without noticing him"
+
+msgid "Каждая вторая пуля проходит сквозь врага"
+msgstr "Every other bullet goes through an enemy"
+
+msgid "Каждый второй выстрел башни пролетает сквозь врагов"
+msgstr "Every other turret shot flies through enemies"
+
+msgid "Каждая вторая пуля пролетает сквозь врага"
+msgstr "Every other bullet flies through an enemy"
+
+msgid "След пули проходит через грудь скелета, тот бежит дальше"
+msgstr "A bullet trail goes through a skeleton's chest, it keeps running"
+
+msgid "Пуля проходит сквозь матроса у бочки, кольцо над ним смыкается"
+msgstr "A bullet goes through the sailor by the barrel, the ring around him closes in"
+
+msgid "Снаряд проходит сквозь контур врага, тот ползёт к башне дальше"
+msgstr "A shot goes through an outline enemy, it keeps crawling toward the turret"
+
+msgid "Пуля проходит сквозь скелета в зале, тот целится в ответ"
+msgstr "A bullet goes through a skeleton in the hall, it aims back"
+
+
+# --- resources/bugs/through_walls.tres ---
+msgid "СКВОЗЬ СТЕНЫ"
+msgstr "THROUGH WALLS"
+
+msgid "Ограждение не держит: машина проезжает сквозь него"
+msgstr "Barriers don't hold: the car drives right through them"
+
+msgid "Срезал поворот прямо сквозь ограждение. Физика уровня «и так сойдёт»"
+msgstr "Cut the corner straight through the barrier. Physics on a “good enough” level"
+
+msgid "Проехал сквозь стену и сократил круг вдвое. Рекорд, видимо, мой"
+msgstr "Drove through a wall and cut the lap in half. I guess the record's mine"
+
+msgid "Стены в этой игре нарисованы, но не построены"
+msgstr "The walls in this game are drawn, not built"
+
+msgid "Шлюпка срезает поворот по песку, мимо всех буёв"
+msgstr "The dinghy cuts the corner across the sand, past all the buoys"
+
+msgid "Бортики и камни не держат: можно ехать по обочине мимо трассы"
+msgstr "Barriers and rocks don't hold: you can drive the shoulder and skip the track"
+
+msgid "Борта не держат: машина проезжает сквозь камень и едет по откосу"
+msgstr "The walls don't hold: the car drives through a rock and onto the slope"
+
+msgid "Пули проходят сквозь бочки и ящики: укрытия никого не укрывают"
+msgstr "Bullets go through barrels and crates: cover covers nobody"
+
+msgid "Край дороги не держит: можно ехать по обочине мимо всех препятствий"
+msgstr "The edge of the road doesn't hold: you can drive the shoulder past every obstacle"
+
+msgid "Деревья и камни у дороги не держат, обочина не тормозит"
+msgstr "Trees and rocks by the road don't hold, the shoulder doesn't slow you down"
+
+msgid "Герой проходит сквозь стены"
+msgstr "The hero walks through walls"
+
+msgid "Шлюпка проезжает сквозь камень и уходит с дороги на песок"
+msgstr "The dinghy drives through a rock and off the road onto the sand"
+
+msgid "Шлюпка наполовину в каменном борту, едет дальше по откосу"
+msgstr "The dinghy is half inside the stone wall and keeps going along the slope"
+
+msgid "Пуля проходит сквозь ящик и валит врага за ним"
+msgstr "A bullet goes through a crate and drops the enemy behind it"
+
+msgid "Машина едет за линией края дороги, соперники остаются на трассе"
+msgstr "The car drives past the road's edge line, the rivals stay on the track"
+
+msgid "Повозка проезжает сквозь пальму на обочине и не теряет скорость"
+msgstr "The cart drives through a palm tree on the shoulder without losing speed"
+
+msgid "Вид от первого лица проходит сквозь стену в соседний зал"
+msgstr "The first-person view passes through the wall into the next hall"
+
+msgid "СКВОЗЬ БОРТИК"
+msgstr "THROUGH THE BARRIER"
+
+msgid "СКВОЗЬ БОРТ"
+msgstr "THROUGH THE WALL"
+
+msgid "СКВОЗЬ УКРЫТИЯ"
+msgstr "THROUGH COVER"
+
+msgid "ПО ОБОЧИНЕ"
+msgstr "ON THE SHOULDER"
+
+msgid "СКВОЗЬ ПАЛЬМЫ"
+msgstr "THROUGH PALMS"
+
+msgid "Камень на сужении оказался голограммой. Дальше ехал по обочине, так короче"
+msgstr "The rock at the narrow part turned out to be a hologram. Drove the shoulder from there, it's shorter"
+
+msgid "Проехал сквозь каменный борт и срезал по травке. Стены тут для красоты"
+msgstr "Drove through the stone wall and cut across the grass. The walls here are just decoration"
+
+msgid "Застрелил врага прямо через ящик. Укрытия нарисованы, но не работают"
+msgstr "Shot an enemy right through a crate. The cover is drawn but doesn't work"
+
+msgid "Обочина пустая и быстрая, дорога для слабаков. Весь заезд ехал мимо трассы"
+msgstr "The shoulder is empty and fast, the road is for the weak. Spent the whole race off the track"
+
+msgid "Проехал сквозь дерево и срезал по обочине. Трасса тут скорее совет"
+msgstr "Drove through a tree and cut along the shoulder. The track here is more of a suggestion"
+
+msgid "Упёрся в тупик и шагнул сквозь стену. Карта уровня больше не нужна"
+msgstr "Hit a dead end and stepped through the wall. Don't need the level map anymore"
+
+
+# --- resources/bugs/unreachable_coins.tres ---
+msgid "НЕ ДОСТАТЬ"
+msgstr "OUT OF REACH"
+
+msgid "Цель видно, а не достать"
+msgstr "The goal is in sight but out of reach"
+
+msgid "Награду видно, а не взять. Кто это тестировал?"
+msgstr "You can see the reward but can't get it. Who tested this?"
+
+msgid "Приз висит там, куда не допрыгнуть. Полчаса пытался"
+msgstr "The prize hangs where you can't jump. Tried for half an hour"
+
+msgid "Игра показывает награду и не отдаёт. Жестоко"
+msgstr "The game shows you the reward and won't hand it over. Cruel"
+
+msgid "Награда висит там, куда не добраться"
+msgstr "The reward hangs out of reach"
+
+msgid "Платформы с монетами висят выше прыжка"
+msgstr "Coin platforms hang higher than you can jump"
+
+msgid "Финишная черта нарисована в стороне, засчитывают невидимую"
+msgstr "The finish line is drawn off to the side, an invisible one counts instead"
+
+msgid "Каждый убитый зовёт нового, цель уходит вперёд: 1/31, 2/32"
+msgstr "Every kill calls in a new enemy, the goal keeps moving: 1/31, 2/32"
+
+msgid "Лунка стоит на острой вершине без подхода, мяч скатывается с любой стороны"
+msgstr "The hole sits on a sharp peak with no approach, the ball rolls off every side"
+
+msgid "Босс бессмертен: удары проходят, а полоса здоровья не убывает"
+msgstr "The boss is immortal: hits land but his health bar doesn't drop"
+
+msgid "Монеты видно, монеты не взять. Кто это тестировал?"
+msgstr "You can see the coins, you can't get the coins. Who tested this?"
+
+msgid "Финиш нарисован не там. Доехал, а куда, так и не понял"
+msgstr "The finish is drawn in the wrong place. I got there, still not sure where"
+
+msgid "Убил одного, пришёл ещё один, а до цели всё те же тридцать. Кто это тестировал?"
+msgstr "Killed one, another one came, and the goal is still thirty. Who tested this?"
+
+msgid "Лунка на макушке пика, мяч скатывается с любой стороны. Кто это тестировал?"
+msgstr "The hole is on the tip of a peak, the ball rolls off every side. Who tested this?"
+
+msgid "Минуту бью, а {boss} стоит со своими 100 здоровья. Кто это тестировал?"
+msgstr "Hitting him for a minute and the {boss} is still at 100 health. Who tested this?"
+
+msgid "Герой прыгает под платформой, монеты над головой"
+msgstr "The hero jumps under the platform, the coins are overhead"
+
+msgid "Шахматная полоса финиша лежит на пляже, лодки плывут мимо"
+msgstr "The checkered finish line lies on the beach, the boats sail past"
+
+msgid "Счётчик 12/42, а по трапу лезут всё новые скелеты"
+msgstr "The counter says 12/42 and more skeletons keep climbing the gangway"
+
+msgid "Флаг торчит на пике над палубой, бочонок скатывается к подножию"
+msgstr "The flag sticks out of a peak above the deck, the barrel rolls to the foot"
+
+msgid "Полоса капитана вспыхивает белым и остаётся полной, матрос бьёт снова"
+msgstr "The captain's bar flashes white and stays full, the sailor hits again"
+
+msgid "ФИНИШ НЕ ТАМ"
+msgstr "WRONG FINISH"
+
+msgid "ВРАГИ БЕЗ КОНЦА"
+msgstr "ENDLESS ENEMIES"
+
+msgid "ЛУНКА НА ПИКЕ"
+msgstr "HOLE ON A PEAK"
+
+msgid "БЕССМЕРТНЫЙ {boss}"
+msgstr "IMMORTAL {boss}"
+
+msgid "Кольца перед финишем висят выше, чем достаёт верёвка"
+msgstr "The rings before the finish hang higher than the rope reaches"
+
+msgid "Финиш для игрока почти на километр дальше, чем для соперников"
+msgstr "The player's finish is almost a kilometer farther than the rivals'"
+
+msgid "Врагов не убить: пули попадают, здоровье не убывает"
+msgstr "Enemies can't be killed: bullets hit, health doesn't drop"
+
+msgid "Нужно ворот больше, чем стоит на склоне"
+msgstr "More gates required than there are on the slope"
+
+msgid "Здоровье врагов возвращается: драка идёт до конца времени"
+msgstr "Enemy health comes back: the fight lasts until time runs out"
+
+msgid "Монеты висят слишком высоко: не допрыгнуть"
+msgstr "Coins hang too high: you can't jump to them"
+
+msgid "Финиш уезжает: игроку ехать на круг больше, чем соперникам"
+msgstr "The finish keeps moving: the player drives one lap more than the rivals"
+
+msgid "Врагов не убить: пули попадают, а они стоят"
+msgstr "Enemies can't be killed: bullets hit and they keep standing"
+
+msgid "Порог втрое выше: столько очков десятью бросками не набрать"
+msgstr "The threshold is three times higher: ten shots can't score that many points"
+
+msgid "Здоровье босса тут же возвращается: его не победить"
+msgstr "The boss's health comes right back: he can't be beaten"
+
+msgid "Монеты висят под потолком, выше любого прыжка"
+msgstr "Coins hang under the ceiling, higher than any jump"
+
+msgid "Монеты висят в кронах, выше любого прыжка"
+msgstr "Coins hang in the treetops, higher than any jump"
+
+msgid "Финишная черта нарисована на обочине и раньше настоящей"
+msgstr "The finish line is drawn on the shoulder, before the real one"
+
+msgid "Финиш на обочине: черта нарисована в стороне, а засчитывают невидимую дальше"
+msgstr "Finish on the shoulder: the line is drawn off to the side, an invisible one farther on counts"
+
+msgid "Враги не кончаются, цель растёт с каждым убитым"
+msgstr "Enemies never end, the goal grows with every kill"
+
+msgid "Враги не кончаются: из-за угла выходят новые"
+msgstr "Enemies never end: new ones keep coming around the corner"
+
+msgid "Соперник непробиваемый: ракетка выше, быстрее и не ошибается"
+msgstr "The rival is unbeatable: his paddle is bigger, faster and never misses"
+
+msgid "Ворота соперника вдвое уже"
+msgstr "The rival's goal is half as wide"
+
+msgid "Бессмертный соперник: удар попадает, но раунд не засчитан никому"
+msgstr "An immortal rival: the hit lands, but nobody gets the round"
+
+msgid "Главарь бессмертен: полоска здоровья не убывает"
+msgstr "The gang leader is immortal: his health bar doesn't drop"
+
+msgid "Матрос стоит на краю, кольца перед маяком висят высоко над мачтами"
+msgstr "A sailor stands at the edge, the rings before the lighthouse hang high above the masts"
+
+msgid "Соперники за растяжкой финиша, шлюпка героя едет дальше по пустой дороге"
+msgstr "The rivals are past the finish banner, the hero's dinghy keeps going down an empty road"
+
+msgid "Скелет вспыхивает от попаданий и идёт дальше"
+msgstr "A skeleton flashes from the hits and keeps walking"
+
+msgid "Счётчик ворот полный и зелёный, под ним «надо» с числом больше"
+msgstr "The gate counter is full and green, under it “needed” with a bigger number"
+
+msgid "Упавший скелет встаёт, герой уже бьёт следующего"
+msgstr "A fallen skeleton gets back up, the hero is already hitting the next one"
+
+msgid "Матрос в прыжке не достаёт до дублона над головой"
+msgstr "The sailor jumps and can't reach the doubloon overhead"
+
+msgid "На счётчике «КРУГ 3/2», соперники стоят за финишем"
+msgstr "The counter says “LAP 3/2”, the rivals are standing past the finish"
+
+msgid "Матрос белеет от попадания и продолжает целиться"
+msgstr "The sailor flashes white from a hit and keeps aiming"
+
+msgid "Счёт «34/60» после последнего броска"
+msgstr "The score is “34/60” after the last shot"
+
+msgid "Полоса здоровья капитана снова полная после связки"
+msgstr "The captain's health bar is full again after a combo"
+
+msgid "Ряд монет светится под потолком, герой прыгает под ними"
+msgstr "A row of coins glows under the ceiling, the hero jumps beneath them"
+
+msgid "Дублоны блестят в кронах над тропой, матрос прыгает под ними"
+msgstr "Doubloons glint in the treetops above the trail, the sailor jumps beneath them"
+
+msgid "Машина пересекает нарисованный финиш на обочине, а таймер идёт дальше"
+msgstr "The car crosses the painted finish on the shoulder, and the timer keeps running"
+
+msgid "Повозка пересекает черту на песке, а гонка не кончается"
+msgstr "The cart crosses the line in the sand, and the race doesn't end"
+
+msgid "Счётчик цели прибавляет за каждого сбитого, волна не кончается"
+msgstr "The goal counter goes up with every kill, the wave doesn't end"
+
+msgid "Из-за угла выходит ещё один скелет, за ним ещё"
+msgstr "Another skeleton comes around the corner, then another"
+
+msgid "Огромная ракетка соперника отбивает мяч, который не успеть увидеть"
+msgstr "The rival's huge paddle returns a ball you can't even see"
+
+msgid "Мяч бьётся в штангу узких ворот соперника"
+msgstr "The ball hits the post of the rival's narrow goal"
+
+msgid "Удар героя попадает, табло раунда не меняется"
+msgstr "The hero's hit lands, the round scoreboard doesn't change"
+
+msgid "Удары сыплются на боцмана, а его полоска стоит полной"
+msgstr "Hits rain down on the bosun, his bar stays full"
+
+msgid "ФИНИШ УЕХАЛ"
+msgstr "FINISH MOVED"
+
+msgid "БЕССМЕРТНЫЕ"
+msgstr "IMMORTALS"
+
+msgid "НЕ НАБРАТЬ"
+msgstr "CAN'T SCORE"
+
+msgid "БЕССМЕРТНЫЙ"
+msgstr "IMMORTAL"
+
+msgid "БЕСКОНЕЧНЫЕ ВОЛНЫ"
+msgstr "ENDLESS WAVES"
+
+msgid "БЕСКОНЕЧНЫЕ {enemies}"
+msgstr "ENDLESS {enemies}"
+
+msgid "НЕПРОБИВАЕМЫЙ"
+msgstr "UNBEATABLE"
+
+msgid "КАЛИТКА"
+msgstr "TINY GOAL"
+
+msgid "БЕССМЕРТНЫЙ {brute}"
+msgstr "IMMORTAL {brute}"
+
+msgid "Последние кольца повесили на небе. Финиш вижу, попасть не могу"
+msgstr "They hung the last rings in the sky. I can see the finish, can't get there"
+
+msgid "Соперники финишировали, а моя черта уехала за горизонт"
+msgstr "The rivals finished and my line drove off over the horizon"
+
+msgid "Высадил во врага барабан, он отряхнулся. У них там бессмертие в комплекте"
+msgstr "Emptied a whole cylinder into an enemy, he shook it off. Immortality comes standard over there"
+
+msgid "Прошёл все ворота до единых. Игра говорит: мало, надо ещё восемь"
+msgstr "Went through every single gate. The game says not enough, eight more to go"
+
+msgid "Враг встал, отдохнул и снова как новый. Бил его сорок секунд"
+msgstr "The enemy got up, rested and was good as new. I hit him for forty seconds"
+
+msgid "Монеты висят над тропой на высоте птичьего полёта. Прыгал, не достал, обиделся"
+msgstr "The coins hang over the trail at bird height. Jumped, didn't reach, got upset"
+
+msgid "Проехал два круга, а мне пишут «круг 3 из 2». Соперники уже финишировали и разъехались"
+msgstr "Drove two laps and it says “lap 3 of 2”. The rivals already finished and went home"
+
+msgid "Всадил во врага обойму, он даже не моргнул. Бессмертие завезли не тому"
+msgstr "Put a whole clip into an enemy, he didn't even blink. They gave the immortality to the wrong guy"
+
+msgid "Нужно 60 очков за десять бросков. Я попал все десять. Не хватило"
+msgstr "You need 60 points in ten shots. I made all ten. Not enough"
+
+msgid "Бью, полоска падает и тут же отрастает. {boss} лечится быстрее, чем я бью"
+msgstr "I hit, the bar drops and grows right back. The {boss} heals faster than I can hit"
+
+msgid "Монетки нарисованы под самым потолком. Достать можно только взглядом"
+msgstr "The coins are drawn right under the ceiling. You can only reach them with your eyes"
+
+msgid "Монеты висят в кронах, куда не допрыгнуть. Тропа для птиц"
+msgstr "The coins hang in the treetops where you can't jump. A trail for birds"
+
+msgid "Пересёк финиш, а гонка продолжается. Настоящую черту никто не видел"
+msgstr "Crossed the finish and the race keeps going. Nobody has seen the real line"
+
+msgid "Финишная черта стоит на обочине, а гонку засчитали километром дальше"
+msgstr "The finish line is on the shoulder, but the race was counted a kilometer later"
+
+msgid "Сбил сотню, до победы осталась сотня. Счётчик живёт своей жизнью"
+msgstr "Took down a hundred, a hundred left to win. The counter lives its own life"
+
+msgid "Зачистил весь уровень, а {enemies} лезут снова. Похоже, их там склад"
+msgstr "Cleared the whole level and the {enemies} keep coming. Looks like they've got a warehouse back there"
+
+msgid "Ракетка соперника в полполя и не ошибается. Честный матч"
+msgstr "The rival's paddle is half the field and never misses. A fair match"
+
+msgid "Ворота соперника размером с калитку. Забить можно только случайно"
+msgstr "The rival's goal is the size of a garden gate. You can only score by accident"
+
+msgid "Попадаю раз за разом, а счёт стоит. Соперник из неуязвимой стали"
+msgstr "I hit him again and again, the score doesn't move. The rival is made of invincible steel"
+
+msgid "Бил главаря три минуты, полоска не шелохнулась. Похоже, он из чугуна"
+msgstr "Hit the gang leader for three minutes, his bar didn't budge. He must be cast iron"
+
+
+# --- resources/bugs/wild_physics.tres ---
+msgid "ПРЫЖОК ×3"
+msgstr "JUMP ×3"
+
+msgid "Прыжок втрое выше, враги вдвое быстрее"
+msgstr "Jumps three times higher, enemies twice as fast"
+
+msgid "{hero} улетает за верх экрана, {enemies} носятся как спринтеры"
+msgstr "The {hero} flies off the top of the screen, {enemies} dash around like sprinters"
+
+msgid "Прыгнул и улетел за край экрана. Вернулся не сразу"
+msgstr "Jumped and flew off the edge of the screen. Took a while to come back"
+
+msgid "Физика сегодня в ударе: всё летает, ничего не падает"
+msgstr "Physics is on fire today: everything flies, nothing falls"
+
+msgid "Герой уходит за верх экрана, внизу мелькает скелет"
+msgstr "The hero leaves through the top of the screen, a skeleton flashes by below"
+
+msgid "Машины скользят, как по льду, соперники носятся быстрее"
+msgstr "Cars slide like on ice, rivals race faster"
+
+msgid "Пол как каток: герой скользит, враги носятся быстрее"
+msgstr "The floor is an ice rink: the hero slides, enemies run faster"
+
+msgid "Мяч скачет, как резиновый: десяток отскоков на удар"
+msgstr "The ball bounces like rubber: a dozen bounces per hit"
+
+msgid "Арена как на Луне: прыжок втрое выше, от удара бойцы летят по дуге"
+msgstr "The arena is on the Moon: jumps three times higher, hit fighters fly in an arc"
+
+msgid "Машину несёт боком, как по льду, а соперники едут как по рельсам"
+msgstr "The car slides sideways like on ice, the rivals drive like they're on rails"
+
+msgid "Героя носит по уровню, как по льду, а {enemies} бегают как спринтеры"
+msgstr "The hero skates around the level like it's ice, and {enemies} run like sprinters"
+
+msgid "Мяч прыгает по полю как резиновый. Гольф или пинбол?"
+msgstr "The ball bounces around the course like rubber. Golf or pinball?"
+
+msgid "Один удар, и {boss} улетел по дуге за край арены. Гравитацию забыли включить"
+msgstr "One punch and the {boss} flew in an arc off the edge of the arena. Somebody forgot to turn gravity on"
+
+msgid "Шлюпка уходит в занос и бьётся о берег, мимо пролетает соперник"
+msgstr "The dinghy spins out and slams into the shore, a rival flies past"
+
+msgid "Герой проезжает мимо цели и врезается в бочку, сзади несётся скелет"
+msgstr "The hero slides past the goal and crashes into a barrel, a skeleton rushes up behind"
+
+msgid "Бочонок скачет по песку десятком отскоков и перелетает грин"
+msgstr "A barrel bounces across the sand a dozen times and flies over the green"
+
+msgid "Капитан от удара взлетает и летит через палубу к борту"
+msgstr "A hit sends the captain flying across the deck to the railing"
+
+msgid "ГОЛОЛЁД"
+msgstr "BLACK ICE"
+
+msgid "ЛЁД ПОД НОГАМИ"
+msgstr "ICE UNDERFOOT"
+
+msgid "ПОПРЫГУНЧИК"
+msgstr "BOUNCY BALL"
+
+msgid "НЕВЕСОМОСТЬ"
+msgstr "ZERO GRAVITY"
+
+msgid "Прыжок выше деревьев, на крюке героя мотает вдвое быстрее и уносит мимо цели"
+msgstr "Jumps go over the trees, the hook swings the hero twice as fast and flings him past the target"
+
+msgid "Дорога как лёд: машину несёт боком, соперники при этом едут быстрее"
+msgstr "The road is ice: the car slides sideways, and the rivals drive faster"
+
+msgid "Каждый выстрел задирает ствол в небо, а враги бегут к вышке"
+msgstr "Every shot jerks the barrel up to the sky while enemies run for the tower"
+
+msgid "Прыжок уносит райдера выше склона и держит в воздухе втрое дольше"
+msgstr "Jumps carry the rider above the slope and keep him in the air three times longer"
+
+msgid "От удара враг улетает через всю арену"
+msgstr "A hit sends the enemy flying across the whole arena"
+
+msgid "Прыжок вдвое выше: героя уносит над тропой мимо платформ, враги носятся вдвое быстрее"
+msgstr "Jumps twice as high: the hero flies over the trail past the platforms, enemies run twice as fast"
+
+msgid "Гололёд: машину несёт боком мимо поворота, соперники быстрее"
+msgstr "Black ice: the car slides sideways past the turn, rivals are faster"
+
+msgid "Лёд под прицелом: он скользит мимо цели, враги целятся быстрее"
+msgstr "Ice under the crosshair: it slides past the target, enemies aim faster"
+
+msgid "Мяч скачет, как резиновый: от обруча и щита отлетает на полплощадки"
+msgstr "The ball bounces like rubber: off the rim and backboard it flies half the court"
+
+msgid "Арена как на Луне: от удара бойцы улетают по дуге через пол-арены"
+msgstr "The arena is on the Moon: a hit sends fighters flying in an arc across half the arena"
+
+msgid "Прыжок уносит на три этажа: сквозь дыры герой летит дальше, без дыры бьётся о потолок"
+msgstr "Jumps go up three floors: through holes the hero keeps flying, without a hole he hits the ceiling"
+
+msgid "Прыжок втрое выше: герой улетает за верх экрана, враги носятся вдвое быстрее"
+msgstr "Jumps three times higher: the hero flies off the top of the screen, enemies run twice as fast"
+
+msgid "Гололёд: машину проносит лишнюю полосу, соперники быстрее"
+msgstr "Black ice: the car slides one lane too far, rivals are faster"
+
+msgid "Гололёд: машину ведёт поперёк с запозданием, соперники быстрее"
+msgstr "Black ice: the car drifts across lanes with a delay, rivals are faster"
+
+msgid "Лёд: ствол раскручивается и тормозит не сразу, враги быстрее"
+msgstr "Ice: the barrel spins up and slows down late, enemies are faster"
+
+msgid "Лёд под ногами: героя заносит, враги и их пули быстрее"
+msgstr "Ice underfoot: the hero skids, enemies and their bullets are faster"
+
+msgid "Попрыгунчик: мяч быстрее от каждой стенки и отскакивает куда попало"
+msgstr "Bouncy ball: the ball speeds up off every wall and bounces anywhere"
+
+msgid "Мяч скачет по газону, как резиновый"
+msgstr "The ball bounces across the grass like rubber"
+
+msgid "Невесомость: проигравший улетает по дуге, соперник быстрее"
+msgstr "Zero gravity: the loser flies off in an arc, the rival is faster"
+
+msgid "Арена как на Луне: от удара враги улетают высоко и далеко"
+msgstr "The arena is on the Moon: a hit sends enemies flying high and far"
+
+msgid "Матрос на верёвке делает оборот вокруг кольца и улетает за край кадра"
+msgstr "The sailor on the rope swings all the way around the ring and flies out of frame"
+
+msgid "Шлюпка скользит через поворот бортом вперёд, соперник проезжает ровно"
+msgstr "The dinghy slides through the turn sideways, the rival drives through it clean"
+
+msgid "Прицел после выстрела улетает в небо, бегун внизу почти добежал"
+msgstr "After a shot the crosshair flies up to the sky, the runner below has almost made it"
+
+msgid "Райдер висит над дюной выше пальм, ворота проплывают внизу"
+msgstr "The rider hangs over the dune higher than the palms, the gates drift by below"
+
+msgid "Скелет от удара скользит через всю палубу и врезается в борт"
+msgstr "A hit sends a skeleton sliding across the whole deck into the railing"
+
+msgid "Матрос летит высоко над косой, внизу мелькает скелет"
+msgstr "The sailor flies high above the sandbar, a skeleton flashes by below"
+
+msgid "Шлюпку разворачивает поперёк трассы, мимо проносится соперник"
+msgstr "The dinghy spins across the track, a rival zooms past"
+
+msgid "Прицел проезжает мимо матроса за бочкой, кольцо над ним уже красное"
+msgstr "The crosshair slides past the sailor behind the barrel, the ring over him is already red"
+
+msgid "Бочонок отлетает от обруча высокой дугой через всю площадку"
+msgstr "The barrel bounces off the rim in a high arc across the whole court"
+
+msgid "Капитан от удара летит по дуге над палубой"
+msgstr "A hit sends the captain flying in an arc over the deck"
+
+msgid "Контур героя пролетает три этажа подряд и вылетает за верх экрана"
+msgstr "The hero's outline flies through three floors in a row and off the top of the screen"
+
+msgid "Матрос улетает за верх экрана над лианами, внизу носится краб"
+msgstr "The sailor flies off the top of the screen above the vines, a crab scuttles below"
+
+msgid "Каркас машины проскакивает лишнюю полосу, мимо проносится соперник"
+msgstr "The car's wireframe skips an extra lane, a rival zooms past"
+
+msgid "Повозка уходит в занос поперёк дороги, мимо проносятся соперники"
+msgstr "The cart spins out across the road, the rivals zoom past"
+
+msgid "Ствол башни проворачивается мимо цели, враги подползают быстрее"
+msgstr "The turret barrel swings past the target, enemies crawl in faster"
+
+msgid "Камера проезжает мимо поворота, навстречу летят быстрые пули"
+msgstr "The camera slides past the turn, fast bullets fly at it"
+
+msgid "Мяч рикошетит от стенки под диким углом и разгоняется"
+msgstr "The ball ricochets off the wall at a crazy angle and speeds up"
+
+msgid "Мяч скачет высокими отскоками через всё поле"
+msgstr "The ball takes high bounces across the whole field"
+
+msgid "Контур соперника улетает по дуге за край экрана"
+msgstr "The rival's outline flies in an arc off the edge of the screen"
+
+msgid "Головорез от удара улетает по высокой дуге за край экрана"
+msgstr "A hit sends the thug flying in a high arc off the edge of the screen"
+
+msgid "ДИКАЯ ФИЗИКА"
+msgstr "WILD PHYSICS"
+
+msgid "ПРЫЖОК НА ТРИ ЭТАЖА"
+msgstr "THREE-FLOOR JUMP"
+
+msgid "ЛЁД НА БАШНЕ"
+msgstr "ICE ON THE TOWER"
+
+msgid "Зацепился крюком и улетел за горизонт. Физику, похоже, писали в невесомости"
+msgstr "Hooked on and flew off over the horizon. Looks like they wrote the physics in zero gravity"
+
+msgid "Весь заезд ехал боком и молился. У соперников почему-то сцепление есть"
+msgstr "Drove the whole race sideways, praying. The rivals somehow have traction"
+
+msgid "После каждого выстрела смотрю в облака. {enemies} за это время уже под вышкой"
+msgstr "After every shot I'm staring at the clouds. Meanwhile the {enemies} are already at the tower"
+
+msgid "Подпрыгнул через бревно и пролетел трое ворот. Дюна на Луне, что ли"
+msgstr "Hopped over a log and flew past three gates. Is this dune on the Moon or something"
+
+msgid "Толкнул врага, а он улетел на другой край. Теперь бегаю за ним по всей арене"
+msgstr "Shoved an enemy and he flew to the other side. Now I'm chasing him around the whole arena"
+
+msgid "Прыгнул через яму и улетел за горизонт. Гравитацию сюда не завезли"
+msgstr "Jumped over a pit and flew off past the horizon. They didn't ship gravity with this one"
+
+msgid "Весь заезд ехал боком. Это не дрифт, это трасса из мыла"
+msgstr "Drove the whole race sideways. That's not drifting, the track is made of soap"
+
+msgid "Прицел едет как по льду, а {enemies} стреляют как из пулемёта. Тир для терпеливых"
+msgstr "The crosshair slides like it's on ice and the {enemies} fire like machine guns. A shooting gallery for the patient"
+
+msgid "Мяч отскочил от щита и ускакал за площадку. Баскетбол с попрыгунчиком"
+msgstr "The ball bounced off the backboard and hopped off the court. Basketball with a bouncy ball"
+
+msgid "Один удар, и {boss} улетел по дуге. Невесомость в комплекте"
+msgstr "One punch and the {boss} flew off in an arc. Zero gravity included"
+
+msgid "Прыгнул на этаж выше, улетел на три и треснулся о потолок. Лестница была бы надёжнее"
+msgstr "Jumped for the next floor, went up three and smacked into the ceiling. A ladder would've been more reliable"
+
+msgid "Прыгнул через врага и улетел в облака. Враг тем временем обежал уровень дважды"
+msgstr "Jumped over an enemy and flew into the clouds. Meanwhile the enemy ran around the level twice"
+
+msgid "Перестроился на одну полосу, проскочил две. Дорогу явно полили маслом"
+msgstr "Changed one lane, skipped two. Someone definitely oiled the road"
+
+msgid "Машину на прямой несёт боком, как по льду, а соперники гонят как на нитро"
+msgstr "The car slides sideways on the straight like it's on ice while the rivals race like they've got nitro"
+
+msgid "Башню крутит по инерции, как карусель. Целиться невозможно"
+msgstr "The turret keeps spinning on momentum like a merry-go-round. Impossible to aim"
+
+msgid "Повернул в коридор и проехал мимо, как на коньках. {enemies} стреляют очередями"
+msgstr "Turned into the corridor and slid right past it like on skates. The {enemies} fire in bursts"
+
+msgid "Мяч отскакивает под углом, которого нет в геометрии"
+msgstr "The ball bounces at an angle that doesn't exist in geometry"
+
+msgid "Мяч прыгает по газону как попрыгунчик. Обработать невозможно"
+msgstr "The ball hops across the grass like a bouncy ball. Impossible to control"
+
+msgid "Сразил дуэлянта, а он улетел по дуге за экран. Гравитацию отключили"
+msgstr "Took down the duelist and he flew off the screen in an arc. Gravity's been switched off"
+
+msgid "Дал врагу в ухо, тот улетел через полквартала. Гравитацию забыли включить"
+msgstr "Clocked an enemy in the ear and he flew half a block. Somebody forgot to turn gravity on"
+
+
+# --- resources/texts/feed.tres ---
+msgid "прошёл {title} за два вечера. Второй раз за год дошёл до титров"
+msgstr "beat {title} in two evenings. second time this year i've actually seen the credits"
+
+msgid "{title} стоит своих денег. Давно так не говорил про игры"
+msgstr "{title} is worth the money. haven't said that about a game in a while"
+
+msgid "сел на полчаса, очнулся в три ночи. Спасибо, {title}, на работу я не выспался"
+msgstr "sat down for half an hour, came to at 3am. thanks {title}, i'm going to work on no sleep"
+
+msgid "наконец игра, в которой всё работает так, как ждёшь"
+msgstr "finally a game where everything works the way you expect"
+
+msgid "{title} купил по совету, остался по любви"
+msgstr "bought {title} on a friend's tip, stayed for love"
+
+msgid "жена спросила, во что я играю третий вечер подряд. Показал. Теперь играем по очереди"
+msgstr "my wife asked what i've been playing three nights in a row. showed her. now we take turns"
+
+msgid "в {title} нет ничего лишнего. Редкость"
+msgstr "nothing in {title} is extra. that's rare"
+
+msgid "у {title} лучшее управление, что я трогал в этом году"
+msgstr "{title} has the best controls i've touched all year"
+
+msgid "ставлю {title} 9 из 10. Балл снял за то, что она закончилась"
+msgstr "giving {title} a 9/10. took a point off because it ended"
+
+msgid "студия заслужила отпуск. Но сначала пусть сделают вторую часть!"
+msgstr "the studio deserves a vacation. but make the sequel first!"
+
+msgid "прошёл {title} и сразу начал заново. Со мной такое редко"
+msgstr "beat {title} and started over right away. that almost never happens to me"
+
+msgid "скептически смотрел на трейлер. Был неправ"
+msgstr "was skeptical about the trailer. i was wrong"
+
+msgid "{title}: тот случай, когда маленькая команда делает лучше большой"
+msgstr "{title} is one of those cases where a small team beats a big one"
+
+msgid "показал {title} отцу. Он не играл двадцать лет. Сидит до сих пор"
+msgstr "showed {title} to my dad. he hasn't played in twenty years. still sitting there"
+
+msgid "всё, чего я хотел от игры: никаких лутбоксов и никакой воды"
+msgstr "everything i wanted from a game: no loot boxes and no filler"
+
+msgid "отложил ради {title} три игры из бэклога. Не жалею"
+msgstr "pushed three backlog games aside for {title}. no regrets"
+
+msgid "видно, что {title} делали люди, которые сами в такое играют"
+msgstr "you can tell {title} was made by people who actually play this stuff"
+
+msgid "думал, пройду и забуду. Неделю напеваю музыку из меню"
+msgstr "thought i'd beat it and forget it. been humming the menu music for a week"
+
+msgid "советую {title} всем, кто устал от игр на сто часов"
+msgstr "recommending {title} to everyone tired of hundred-hour games"
+
+msgid "{title} не пытается быть всем сразу. И правильно"
+msgstr "{title} doesn't try to be everything at once. good call"
+
+msgid "дошёл до финала и расстроился, что финал"
+msgstr "reached the ending and got sad that it was the ending"
+
+msgid "друзья, это оно! Берите {title}, потом обсудим"
+msgstr "guys, this is it! get {title}, we'll talk after"
+
+msgid "первый раз за долгое время не жалко потраченного вечера"
+msgstr "first time in ages i don't regret how i spent an evening"
+
+msgid "мелочь, а приятно: в {title} нормальная пауза и вменяемые настройки"
+msgstr "small thing, but nice: {title} has a proper pause and sane settings"
+
+msgid "играю в {title} в обеденный перерыв. Перерывы стали длиннее"
+msgstr "playing {title} on my lunch break. my lunch breaks got longer"
+
+msgid "честная игра за честные деньги. Больше мне ничего не надо"
+msgstr "an honest game for an honest price. that's all i need"
+
+msgid "{title}: вернул деньги через сорок минут"
+msgstr "{title}: refunded after forty minutes"
+
+msgid "идея у {title} хорошая. Жаль, одной идеи мало"
+msgstr "{title} has a good idea. too bad one idea isn't enough"
+
+msgid "ощущение, что {title} выпустили на месяц раньше, чем стоило"
+msgstr "feels like {title} shipped a month before it should have"
+
+msgid "играть можно. Хотеть играть не получается"
+msgstr "it's playable. wanting to play it is another story"
+
+msgid "ждал {title} полгода. Зря ждал"
+msgstr "waited six months for {title}. shouldn't have"
+
+msgid "{title} напоминает хорошую игру, которую пересказали по памяти"
+msgstr "{title} is like a good game someone retold from memory"
+
+msgid "прошёл половину и понял, что мне всё равно, чем кончится"
+msgstr "got halfway and realized i don't care how it ends"
+
+msgid "в {title} скучно уже на втором уровне. Дальше не проверял"
+msgstr "{title} gets boring by level two. didn't check past that"
+
+msgid "не плохо. Просто никак"
+msgstr "not bad. just nothing"
+
+msgid "студия, я в вас верил. В следующий раз подожду отзывов"
+msgstr "studio, i believed in you. next time i'll wait for reviews"
+
+msgid "управление в {title} спорит со мной на каждом шагу"
+msgstr "the controls in {title} argue with me every step of the way"
+
+msgid "такое чувство, что {title} никто не проходил до релиза"
+msgstr "feels like nobody played {title} start to finish before launch"
+
+msgid "купил на старте. Больше на старте не покупаю"
+msgstr "bought it at launch. not buying at launch anymore"
+
+msgid "{title}: три хорошие минуты и час усталости"
+msgstr "{title}: three good minutes and an hour of fatigue"
+
+msgid "хотел полюбить эту игру. Она не помогла"
+msgstr "wanted to love this game. it didn't help"
+
+msgid "у {title} есть настроение, но нет ни одной причины вернуться"
+msgstr "{title} has a mood but not a single reason to come back"
+
+msgid "выключил {title} и пошёл мыть посуду. Посуда выиграла"
+msgstr "turned off {title} and went to do the dishes. the dishes won"
+
+msgid "может, патчи спасут. Пока мимо"
+msgstr "maybe patches will save it. passing for now"
+
+msgid "друг советовал {title}. С другом поговорю отдельно"
+msgstr "a friend recommended {title}. me and that friend are going to talk"
+
+msgid "в описании обещали больше, чем дали"
+msgstr "the store page promised more than it delivered"
+
+msgid "{title} не сломана. Она просто пустая"
+msgstr "{title} isn't broken. it's just empty"
+
+msgid "дотерпел до финала из упрямства. Удовольствия ноль"
+msgstr "pushed through to the end out of stubbornness. zero fun"
+
+msgid "слишком дорого для того, что внутри"
+msgstr "way too expensive for what's inside"
+
+msgid "похоже на студенческую работу. Старательную, но студенческую"
+msgstr "feels like a student project. a diligent one, but a student project"
+
+msgid "жду, когда кто-нибудь объяснит мне, чем хороша {title}"
+msgstr "still waiting for someone to explain what's good about {title}"
+
+msgid "сыграл один раз, удалил, освободил место под что-нибудь получше"
+msgstr "played it once, uninstalled, freed up space for something better"
+
+msgid "третий раз за день вижу клип из {title}. Сдаюсь, покупаю"
+msgstr "third clip from {title} on my feed today. fine, i give up, buying it"
+
+msgid "вся лента в {title}. Что я пропустил?"
+msgstr "my whole feed is {title}. what did i miss?"
+
+msgid "коллега прислал клип из {title} с подписью «это ты на планёрке». Смешно, но обидно"
+msgstr "coworker sent me a clip from {title} captioned “you at standup”. funny, but rude"
+
+msgid "{tag} в трендах второй день. Студия, признавайтесь, вы так и задумали?"
+msgstr "{tag} trending for the second day. studio, be honest, did you plan this?"
+
+msgid "мама спросила, что такое {title}. Ей показали в новостях!"
+msgstr "my mom asked what {title} is. she saw it on the news!"
+
+msgid "не играл, но уже знаю все мемы"
+msgstr "haven't played it but i already know all the memes"
+
+msgid "клип из {title} набрал больше просмотров, чем трейлер. Маркетинг, учитесь"
+msgstr "a clip from {title} got more views than the trailer. marketing, take notes"
+
+msgid "купил {title} только затем, чтобы понимать шутки в чате"
+msgstr "bought {title} just so i get the jokes in chat"
+
+msgid "зашёл на стрим на минуту, просидел два часа. Там {title} и шесть тысяч человек орут"
+msgstr "dropped into a stream for a minute, stayed two hours. it's {title} and six thousand people screaming"
+
+msgid "поздравляю студию: вас теперь знают все. Правда, не за то"
+msgstr "congrats to the studio: everyone knows you now. just not for the right thing"
+
+msgid "ещё вчера про {title} никто не слышал. Сегодня у меня три вкладки с ней"
+msgstr "yesterday nobody had heard of {title}. today i have three tabs open about it"
+
+msgid "в каждом чате кто-то присылает одну и ту же гифку из {title}"
+msgstr "every group chat has someone posting the same gif from {title}"
+
+msgid "такого шума вокруг маленькой игры не помню давно"
+msgstr "can't remember this much noise around a small game"
+
+msgid "стримеры нашли {title}. Теперь от неё не спрячешься"
+msgstr "streamers found {title}. there's no escaping it now"
+
+msgid "кто-нибудь играл в {title}? Не могу найти ни одного обзора"
+msgstr "anyone played {title}? can't find a single review"
+
+msgid "у {title} двенадцать отзывов. Один мой"
+msgstr "{title} has twelve reviews. one of them is mine"
+
+msgid "вышла {title}. Узнал случайно"
+msgstr "{title} is out. found out by accident"
+
+msgid "странно, что про {title} молчат. Или не странно?"
+msgstr "weird how quiet it is about {title}. or not weird?"
+
+msgid "нашёл {title} на третьей странице новинок"
+msgstr "found {title} on page three of new releases"
+
+msgid "играю в {title} один, обсудить не с кем"
+msgstr "playing {title} alone, nobody to talk to about it"
+
+msgid "студия вообще кому-нибудь сказала, что игра вышла?"
+msgstr "did the studio tell anyone the game came out?"
+
+msgid "тихий релиз. Ни стримов, ни клипов, ни споров"
+msgstr "quiet launch. no streams, no clips, no arguments"
+
+msgid "видел {title} у одного небольшого стримера. Чат молчал"
+msgstr "saw {title} on one small stream. chat was silent"
+
+msgid "добавил {title} в желаемое и забыл. Напомните через год"
+msgstr "wishlisted {title} and forgot. remind me in a year"
+
+msgid "в сообществе {title} сорок человек. Все вежливые"
+msgstr "the {title} community is forty people. all of them polite"
+
+msgid "про {title} не пишут ни хорошего, ни плохого. Это хуже всего"
+msgstr "nobody posts anything good or bad about {title}. that's the worst"
+
+msgid "рассказал про {title} троим знакомым. Никто не слышал"
+msgstr "told three people about {title}. none of them had heard of it"
+
+msgid "игра вышла, мир не заметил"
+msgstr "the game came out, the world didn't notice"
+
+msgid "давно не видел платформера, где прыжок ровно такой длины, как надо"
+msgstr "haven't seen a platformer in ages where the jump is exactly the right length"
+
+msgid "умер сорок раз на одном прыжке. Претензий нет, сам виноват"
+msgstr "died forty times on one jump. no complaints, my own fault"
+
+msgid "уровни короткие, чекпойнты честные. Так и надо делать платформеры"
+msgstr "short levels, fair checkpoints. this is how you make platformers"
+
+msgid "собрал все монеты на первом уровне. На втором передумал собирать"
+msgstr "got every coin on level one. on level two i changed my mind"
+
+msgid "платформер проверяется вторым уровнем. Этот проверку прошёл"
+msgstr "level two is the real test of a platformer. this one passed"
+
+msgid "третий час бьюсь за полсекунды на одном повороте. Это любовь"
+msgstr "third hour fighting for half a second on one corner. this is love"
+
+msgid "соперники в {title} ездят как живые: тоже врезаются"
+msgstr "the rivals in {title} drive like real people: they crash too"
+
+msgid "гонки, в которых хочется тормозить вовремя. Редкий зверь"
+msgstr "a racer where you actually want to brake on time. a rare beast"
+
+msgid "финишировал вторым. Перезапустил. Финишировал вторым. Перезапустил"
+msgstr "finished second. restarted. finished second. restarted"
+
+msgid "лучшая трасса та, которую помнишь с закрытыми глазами. Тут такие есть"
+msgstr "the best track is the one you remember with your eyes closed. there are a few here"
+
+msgid "у оружия в {title} есть отдача и звук. Половина жанра этого не умеет"
+msgstr "the guns in {title} have kick and sound. half the genre can't do that"
+
+msgid "волны идут плотно, передышек ровно столько, чтобы выдохнуть"
+msgstr "the waves come thick, with just enough breathing room to exhale"
+
+msgid "люблю шутеры, где враги не губки для пуль. Здесь так"
+msgstr "love shooters where enemies aren't bullet sponges. this is one"
+
+msgid "патроны кончились в худший момент. Значит, баланс есть"
+msgstr "ran out of ammo at the worst moment. so there is balance"
+
+msgid "стрелял два часа, руки помнят до сих пор"
+msgstr "shot stuff for two hours, my hands still remember"
+
+msgid "спортивная игра, в которой понятно, почему ты проиграл. Уже достижение"
+msgstr "a sports game where you understand why you lost. that's already an achievement"
+
+msgid "всё решилось на последней секунде. Я кричал, соседи стучали"
+msgstr "came down to the last second. i screamed, the neighbors banged on the wall"
+
+msgid "играем с сыном по очереди. Он выигрывает, я делаю вид, что поддаюсь"
+msgstr "playing with my son, taking turns. he wins, i pretend i'm letting him"
+
+msgid "удар ложится туда, куда целишься. Для жанра это роскошь"
+msgstr "the shot lands where you aim. for the genre that's a luxury"
+
+msgid "думал, спорт не моё. Третий вечер проверяю"
+msgstr "thought sports weren't my thing. third evening of double-checking"
+
+msgid "выучил одну связку и чувствую себя чемпионом"
+msgstr "learned one combo and i feel like a champion"
+
+msgid "бои короткие, злые, после каждого хочется ещё один"
+msgstr "fights are short and mean, after each one you want another"
+
+msgid "блок работает, удары читаются. Остальное приложится"
+msgstr "blocking works, attacks are readable. the rest will come"
+
+msgid "проиграл боссу девять раз. На десятый он проиграл мне!"
+msgstr "lost to the boss nine times. on the tenth he lost to me!"
+
+msgid "в хорошем файтинге злишься на себя, а не на игру. Это хороший файтинг"
+msgstr "in a good fighting game you get mad at yourself, not the game. this is a good fighting game"
+
+msgid "пиратов в играх много, а таких, чтобы пахло солью, мало. Тут пахнет"
+msgstr "plenty of pirate games, but few you can smell the salt in. this one you can"
+
+msgid "попугай на плече капитана нарисован с любовью. Я заметил"
+msgstr "the parrot on the captain's shoulder was drawn with love. i noticed"
+
+msgid "ром, пушки, сундуки. Ничего нового, но как же хорошо сделано"
+msgstr "rum, cannons, chests. nothing new, but so well made"
+
+msgid "третий день говорю «полундра» вместо «осторожно»"
+msgstr "third day of yelling “avast” instead of “watch out”"
+
+msgid "космос в {title} пустой и тихий, каким и должен быть"
+msgstr "space in {title} is empty and quiet, the way it should be"
+
+msgid "звёзды на фоне не просто точки. Кто-то старался"
+msgstr "the stars in the background aren't just dots. somebody tried"
+
+msgid "люблю, когда в космосе не объясняют лишнего"
+msgstr "love it when space games don't over-explain"
+
+msgid "скафандр главного героя заслуживает отдельной игры"
+msgstr "the hero's spacesuit deserves its own game"
+
+msgid "замки, рвы, латники. Мне снова двенадцать лет"
+msgstr "castles, moats, knights in armor. i'm twelve again"
+
+msgid "рыцарь звенит при каждом шаге. Мелочь, а верится"
+msgstr "the knight clanks with every step. small thing, but i buy it"
+
+msgid "камень, факелы, знамёна. Художникам отдельный поклон"
+msgstr "stone, torches, banners. a special bow to the artists"
+
+msgid "наконец замок, в котором понятно, где выход"
+msgstr "finally a castle where you can tell where the exit is"
+
+msgid "зомби медленные, но их много. Классика работает"
+msgstr "the zombies are slow, but there are lots of them. the classics work"
+
+msgid "думал, устал от зомби. Оказалось, устал от плохих игр про зомби"
+msgstr "thought i was tired of zombies. turns out i was tired of bad zombie games"
+
+msgid "зомби в {title} не страшные, а настойчивые. Так даже хуже"
+msgstr "the zombies in {title} aren't scary, they're persistent. that's even worse"
+
+msgid "играл ночью в наушниках. Не повторяйте"
+msgstr "played at night with headphones. don't do it"
+
+msgid "плащ развевается правильно. Для игры про супергероев это половина успеха"
+msgstr "the cape flows right. for a superhero game that's half the battle"
+
+msgid "герой в {title} спасает город без единой пафосной речи. Ценю"
+msgstr "the hero in {title} saves the city without a single big speech. respect"
+
+msgid "злодеи здесь интереснее героя. Как и положено"
+msgstr "the villains are more interesting than the hero. as they should be"
+
+msgid "наконец супергерои без вселенной на сорок фильмов"
+msgstr "finally superheroes without a forty-movie universe"
+
+msgid "эльфы, руны, туман над лесом. Заезжено, а сердце всё равно ёкает"
+msgstr "elves, runes, mist over the forest. overdone, and my heart still skips"
+
+msgid "фэнтези без карты на три разворота. Спасибо!"
+msgstr "fantasy without a three-page map. thank you!"
+
+msgid "дракон появляется один раз, и этого достаточно"
+msgstr "the dragon shows up once, and that's enough"
+
+msgid "музыка в лесу такая, что стоял и слушал"
+msgstr "the forest music is so good i just stood there and listened"
+
+msgid "после {title} съел полкоробки зефира. Игра виновата"
+msgstr "after {title} i ate half a box of marshmallows. the game's fault"
+
+msgid "всё розовое, всё блестит, и почему-то не приторно"
+msgstr "everything's pink, everything sparkles, and somehow it's not too sweet"
+
+msgid "карамельные враги хрустят, когда на них прыгаешь. Гениально"
+msgstr "the candy enemies crunch when you jump on them. genius"
+
+msgid "дочь требует торт «как в игре». Ищу кондитера"
+msgstr "my daughter wants a cake “like in the game”. looking for a baker"
+
+msgid "ниндзя в {title} двигается так, что хочется записаться в секцию"
+msgstr "the ninja in {title} moves so well i want to sign up for classes"
+
+msgid "сюрикены летят по дуге. Кто-то открывал учебник физики"
+msgstr "the shuriken fly in an arc. somebody opened a physics textbook"
+
+msgid "тишина, крыша, луна. Понял всё без единого слова"
+msgstr "silence, a rooftop, the moon. got it all without a single word"
+
+msgid "три часа крался. Потом побежал напролом. Тоже работает"
+msgstr "snuck around for three hours. then charged straight in. also works"
+
+msgid "динозавры большие, герой маленький. Больше мне ничего не нужно"
+msgstr "the dinosaurs are big, the hero is small. that's all i need"
+
+msgid "рёв тираннозавра записан так, что кот ушёл из комнаты"
+msgstr "the t-rex roar is recorded so well my cat left the room"
+
+msgid "в детстве я хотел такую игру. Дождался"
+msgstr "wanted a game like this as a kid. finally got it"
+
+msgid "папоротники шевелятся, когда рядом идёт кто-то крупный. Жутко и красиво"
+msgstr "the ferns rustle when something big walks nearby. creepy and beautiful"
+
+msgid "игра про офис, в которой принтер работает. Фантастика"
+msgstr "a game about an office where the printer works. pure fantasy"
+
+msgid "узнал в начальнике из {title} своего. Передал привет"
+msgstr "recognized my boss in the boss from {title}. said hi"
+
+msgid "кулер, степлер, планёрка. Страшнее зомби"
+msgstr "water cooler, stapler, standup. scarier than zombies"
+
+msgid "играю в игру про офис, сидя в офисе. Коллеги пока не заметили"
+msgstr "playing an office game while sitting in the office. coworkers haven't noticed yet"
+
+msgid "одни линии на чёрном экране, а не оторваться"
+msgstr "just lines on a black screen, and i can't put it down"
+
+msgid "графики почти нет. Игры при этом больше, чем у многих"
+msgstr "there's barely any graphics. there's more game than in most"
+
+msgid "светящиеся контуры напомнили автоматы в кинотеатре моего детства"
+msgstr "the glowing outlines remind me of the arcade at the movie theater when i was a kid"
+
+msgid "когда нечем удивлять глаз, приходится делать интересно. Сделали"
+msgstr "when you've got nothing to dazzle the eye, you have to make it fun. they did"
+
+msgid "минимализм, который не выглядит экономией"
+msgstr "minimalism that doesn't look like cost-cutting"
+
+msgid "три цвета на спрайт, и всё понятно с первого взгляда"
+msgstr "three colors per sprite, and you get everything at first glance"
+
+msgid "пиксели крупные, как в детстве. Глаза отдыхают"
+msgstr "big chunky pixels like when i was a kid. my eyes get a rest"
+
+msgid "музыка пищит, сердце радуется"
+msgstr "the music beeps, my heart sings"
+
+msgid "выглядит как картридж, который я не успел купить в девяносто пятом"
+msgstr "looks like a cartridge i never got to buy in '95"
+
+msgid "ретро без притворства: просто так нарисовано, и всё"
+msgstr "retro without pretending: it's just drawn that way, that's all"
+
+msgid "спрайты нарисованы от руки, это видно по каждому кадру"
+msgstr "the sprites are hand-drawn, you can tell in every frame"
+
+msgid "задники в три слоя. Залип на первом же экране"
+msgstr "three-layer backgrounds. got stuck staring at the very first screen"
+
+msgid "так выглядели лучшие игры на приставке у соседа"
+msgstr "this is how the best games looked on my neighbor's console"
+
+msgid "анимации плавные, ни одного ленивого кадра"
+msgstr "smooth animations, not a single lazy frame"
+
+msgid "картинка тёплая. Не знаю, как сказать точнее"
+msgstr "the picture feels warm. don't know how to put it better"
+
+msgid "угловатые модели, дрожащие текстуры. Девяносто восьмой год, я скучал"
+msgstr "blocky models, wobbly textures. 1998, i missed you"
+
+msgid "полигонов мало, характера много"
+msgstr "few polygons, lots of character"
+
+msgid "камера иногда живёт своей жизнью, но за такой вид я ей всё прощаю"
+msgstr "the camera sometimes has a mind of its own, but for this view i forgive it everything"
+
+msgid "выглядит как диск, который давали поиграть на выходные"
+msgstr "looks like a disc a friend lent you for the weekend"
+
+msgid "три измерения, и в каждом есть на что посмотреть"
+msgstr "three dimensions, and something worth looking at in each one"
+
+msgid "вода в {title} как настоящая. Стоял и смотрел"
+msgstr "the water in {title} looks real. just stood there watching it"
+
+msgid "свет, тени, отражения. Видеокарта довольна, я тоже"
+msgstr "light, shadows, reflections. my gpu is happy, so am i"
+
+msgid "выглядит дорого. Интересно, сколько людей это делало"
+msgstr "looks expensive. wonder how many people made this"
+
+msgid "скриншотов сделал больше, чем прошёл уровней"
+msgstr "took more screenshots than levels i've beaten"
+
+msgid "такую картинку ждёшь от студии в десять раз больше"
+msgstr "you'd expect visuals like this from a studio ten times the size"
+
+msgid "««{title}» сделана так, как делали раньше: коротко, честно и без единой лишней кнопки.»"
+msgstr "“‘{title}’ is made the way they used to make them: short, honest, without a single extra button.”"
+
+msgid "«Я прошла её за вечер и не нашла, к чему придраться. Со мной такое случается раз в год.»"
+msgstr "“I finished it in one evening and found nothing to pick at. That happens to me once a year.”"
+
+msgid "«Здесь знают, что игра начинается с управления, а не с заставки. Остальное приложилось.»"
+msgstr "“They know here that a game starts with the controls, not the intro. The rest followed.”"
+
+msgid "«Редкая игра уважает время игрока. «{title}» уважает.»"
+msgstr "“Few games respect the player's time. ‘{title}’ does.”"
+
+msgid "«Хорошая работа. Говорю это нечасто и без удовольствия, но приходится.»"
+msgstr "“Good work. I don't say that often or happily, but I have to.”"
+
+msgid "«В «{title}» нет ничего нового, и слава богу: всё старое на своих местах.»"
+msgstr "“There's nothing new in ‘{title}’, and thank goodness: everything old is in its place.”"
+
+msgid "«Через двадцать лет её будут вспоминать тепло. Я начну уже сейчас.»"
+msgstr "“In twenty years people will remember it fondly. I'll start now.”"
+
+msgid "«Крепко, ясно, по делу. Так пишут рассказы и так стоит делать игры.»"
+msgstr "“Solid, clear, to the point. That's how short stories are written and how games should be made.”"
+
+msgid "«Мне нечего советовать авторам. Пусть продолжают.»"
+msgstr "“I have no advice for the authors. Keep going.”"
+
+msgid "«Ремесло есть, характера пока нет. «{title}» можно пройти и можно не проходить.»"
+msgstr "“There's craft, but no character yet. You can play ‘{title}’, and you can skip it.”"
+
+msgid "«Всё на месте, и ничего не запоминается. Профессиональная работа в худшем смысле слова.»"
+msgstr "“Everything is in place, and none of it sticks. Professional work in the worst sense of the word.”"
+
+msgid "«Я видела эту игру раз двадцать под другими названиями. Эта версия не хуже прочих.»"
+msgstr "“I've seen this game about twenty times under other names. This version is no worse than the rest.”"
+
+msgid "«Середина. Не обидная, не радостная, просто середина.»"
+msgstr "“The middle. Not insulting, not joyful, just the middle.”"
+
+msgid "««{title}» старается, и старание видно. К сожалению, видно только его.»"
+msgstr "“‘{title}’ tries hard, and you can see the effort. Unfortunately, that's all you can see.”"
+
+msgid "«Вечер она займёт. Второй вечер уже нет.»"
+msgstr "“It'll fill an evening. Not a second one.”"
+
+msgid "«Авторы умеют делать игры. Теперь бы им захотеть сказать что-нибудь своё.»"
+msgstr "“The authors know how to make games. Now they need to want to say something of their own.”"
+
+msgid "«Ни одной грубой ошибки и ни одной находки. Ставлю ровно столько, сколько заслужено.»"
+msgstr "“Not one glaring mistake and not one discovery. The score is exactly what it earned.”"
+
+msgid "«Аккуратная вещь без единого острого угла. Острые углы я как раз люблю.»"
+msgstr "“A tidy piece without a single sharp edge. Sharp edges are what I like.”"
+
+msgid "««{title}» выпущена раньше, чем закончена. В моё время за такое несли картридж обратно в магазин.»"
+msgstr "“‘{title}’ was released before it was finished. In my day you'd take a cartridge like that back to the store.”"
+
+msgid "«Я дошла до конца по долгу службы. Вам этого делать не обязательно.»"
+msgstr "“I made it to the end because it's my job. You don't have to.”"
+
+msgid "«Много замысла, мало игры. Обратная пропорция работает лучше.»"
+msgstr "“Lots of concept, little game. The reverse ratio works better.”"
+
+msgid "«Авторы явно торопились. Мне торопиться некуда: подожду следующей попытки.»"
+msgstr "“The authors were clearly in a hurry. I'm not: I'll wait for the next attempt.”"
+
+msgid "«Скучно. Это единственный грех, который я не прощаю.»"
+msgstr "“Boring. The one sin I don't forgive.”"
+
+msgid "««{title}» можно описать одним словом, и это слово «сырая».»"
+msgstr "“‘{title}’ can be described in one word, and that word is ‘unfinished’.”"
+
+msgid "«Похоже на набросок, который забыли убрать со стола перед приходом гостей.»"
+msgstr "“It's like a sketch someone forgot to clear off the table before the guests arrived.”"
+
+msgid "«Не понимаю, для кого это сделано. Подозреваю, авторы тоже.»"
+msgstr "“I don't understand who this was made for. I suspect the authors don't either.”"
+
+msgid "«Плохую игру можно полюбить за смелость. Здесь нет и смелости.»"
+msgstr "“You can love a bad game for its courage. There's no courage here either.”"
+
+msgid "Старая графика мне ближе, и скрывать это я не буду."
+msgstr "I prefer old-school graphics, and I won't hide it."
+
+msgid "Отдельный балл за то, что здесь не гонятся за модой."
+msgstr "An extra point for not chasing trends."
+
+msgid "Крупный пиксель честнее любого шейдера."
+msgstr "A chunky pixel is more honest than any shader."
+
+msgid "Такая картинка не стареет, потому что уже состарилась."
+msgstr "Graphics like these don't age, because they already have."
+
+msgid "Люблю игры, которые поместились бы на дискету."
+msgstr "I love games that would fit on a floppy disk."
+
+msgid "«Проверил «{title}» трижды. Замечаний по существу нет.»"
+msgstr "“Checked ‘{title}’ three times. No substantive issues.”"
+
+msgid "«Сборка стабильная, поведение предсказуемое. Играть приятно, писать не о чем.»"
+msgstr "“Stable build, predictable behavior. Pleasant to play, nothing to write about.”"
+
+msgid "«За шесть часов ни одной ситуации, которую пришлось бы объяснять читателю. Рекомендую.»"
+msgstr "“Six hours without a single situation I'd have to explain to readers. Recommended.”"
+
+msgid "««{title}» работает. В наше время это уже комплимент, и я его делаю.»"
+msgstr "“‘{title}’ works. These days that's a compliment, and I'm paying it.”"
+
+msgid "«Всё, что обещано в описании, есть в игре. Сверил по пунктам.»"
+msgstr "“Everything promised on the store page is in the game. Checked item by item.”"
+
+msgid "«Авторы закончили работу до релиза, а не после. Запомните этот случай.»"
+msgstr "“The authors finished their work before release, not after. Remember this case.”"
+
+msgid "«Качество исполнения выше среднего по году. Цифры на моей стороне.»"
+msgstr "“Execution above the year's average. The numbers are on my side.”"
+
+msgid "«Игру тестировали. Это видно, и это редкость.»"
+msgstr "“The game was tested. It shows, and that's rare.”"
+
+msgid "«Претензий нет. Перечитайте это предложение, я пишу его редко.»"
+msgstr "“No complaints. Read that sentence again, I rarely write it.”"
+
+msgid "«Играбельно. Мелкие недочёты записал, критичных нет.»"
+msgstr "“Playable. Minor flaws noted, nothing critical.”"
+
+msgid "««{title}» не подводит и не удивляет. Отчёт короткий.»"
+msgstr "“‘{title}’ doesn't let you down and doesn't surprise you. Short report.”"
+
+msgid "«По технической части порядок, по содержательной вопросов больше, чем ответов.»"
+msgstr "“Technically in order. Content-wise, more questions than answers.”"
+
+msgid "«Сделано аккуратнее, чем придумано.»"
+msgstr "“Better executed than conceived.”"
+
+msgid "«Работает как положено, забывается как положено.»"
+msgstr "“Works as intended, forgotten as intended.”"
+
+msgid "«Средняя оценка за средний результат. Арифметика простая.»"
+msgstr "“An average score for an average result. Simple arithmetic.”"
+
+msgid "«Список замечаний уместился на одной странице. Список достоинств тоже.»"
+msgstr "“The list of issues fit on one page. So did the list of strengths.”"
+
+msgid "«Проходится без приключений, в обоих смыслах.»"
+msgstr "“Plays through without incident, in both senses.”"
+
+msgid "«Ничего не сломано. Больше добавить нечего.»"
+msgstr "“Nothing is broken. Nothing more to add.”"
+
+msgid "««{title}» вышла в состоянии, в котором её рано было показывать людям.»"
+msgstr "“‘{title}’ shipped in a state that wasn't ready to be shown to people.”"
+
+msgid "«Завёл список проблем. На второй странице перестал нумеровать.»"
+msgstr "“Started a list of problems. Stopped numbering on page two.”"
+
+msgid "«Это не релиз, это открытое тестирование за деньги покупателя.»"
+msgstr "“This isn't a release, it's an open beta paid for by the customer.”"
+
+msgid "«Авторам стоит познакомиться со словом «проверка». Полезное слово.»"
+msgstr "“The authors should get acquainted with the word ‘testing’. A useful word.”"
+
+msgid "«Вернусь после патча. Если он будет.»"
+msgstr "“I'll be back after the patch. If there is one.”"
+
+msgid "«Играть мешает сама игра. Формулировка странная, но точная.»"
+msgstr "“The game itself gets in the way of playing. Strange phrasing, but accurate.”"
+
+msgid "«Оценка ниже, чем хотелось бы. Выше ставить не за что.»"
+msgstr "“The score is lower than I'd like. There's nothing to give a higher one for.”"
+
+msgid "«Половину времени я играл, половину разбирался, что произошло.»"
+msgstr "“Half the time I was playing, half the time figuring out what just happened.”"
+
+msgid "«Потенциал есть. Продавать потенциал по полной цене не принято.»"
+msgstr "“There's potential. Selling potential at full price is not done.”"
+
+msgid "За каждый дефект снимаю балл. Сегодня было за что."
+msgstr "I take off a point for every defect. Today there were plenty."
+
+msgid "Баги я считаю, а не прощаю."
+msgstr "I count bugs, I don't forgive them."
+
+msgid "Ошибки найдены, записаны и учтены в оценке."
+msgstr "Errors found, logged and reflected in the score."
+
+msgid "Недоделку смешной не считаю, даже когда над ней смеётся чат."
+msgstr "I don't consider a defect funny, even when chat is laughing at it."
+
+msgid "Отдел тестирования, судя по всему, был в отпуске."
+msgstr "The QA department was apparently on vacation."
+
+msgid "«Вот ради таких игр я этим и занимаюсь! «{title}» не похожа ни на что из моего списка за год.»"
+msgstr "“This is the kind of game I do this job for! ‘{title}’ is unlike anything on my list this year.”"
+
+msgid "«Смело, странно и работает. Больше таких, пожалуйста!»"
+msgstr "“Bold, strange, and it works. More like this, please!”"
+
+msgid "««{title}» рискует там, где другие считают деньги. Риск оправдался.»"
+msgstr "“‘{title}’ takes risks where others count money. The risk paid off.”"
+
+msgid "«Я не знала, что хочу именно такую игру, пока не сыграла.»"
+msgstr "“I didn't know I wanted exactly this game until I played it.”"
+
+msgid "«У авторов есть своя интонация. Это дороже любого бюджета.»"
+msgstr "“The authors have their own voice. That's worth more than any budget.”"
+
+msgid "«Наконец-то кто-то попробовал иначе и не испугался довести до конца!»"
+msgstr "“Finally someone tried something different and wasn't afraid to see it through!”"
+
+msgid "«После «{title}» скучно возвращаться к обычным релизам.»"
+msgstr "“After ‘{title}’ it's dull going back to ordinary releases.”"
+
+msgid "«Свежо. Давно не писала это слово без кавычек.»"
+msgstr "“Fresh. Haven't written that word without irony in a long time.”"
+
+msgid "«Игра, после которой хочется спорить. Выше оценки я не знаю.»"
+msgstr "“A game that makes you want to argue. I know no higher praise.”"
+
+msgid "«Добротно, но я это уже видела. И вы видели.»"
+msgstr "“Solid, but I've seen it before. So have you.”"
+
+msgid "««{title}» идёт по проторенной дороге и ни разу с неё не сворачивает.»"
+msgstr "“‘{title}’ follows the beaten path and never once strays from it.”"
+
+msgid "«Хорошее исполнение чужих идей. Своих пока не нашлось.»"
+msgstr "“Good execution of other people's ideas. No ideas of its own yet.”"
+
+msgid "«Приятная игра без единого вопроса к самой себе.»"
+msgstr "“A pleasant game that never asks itself a single question.”"
+
+msgid "«Ждала сюрприза. Получила ровно то, что написано на коробке.»"
+msgstr "“I was expecting a surprise. I got exactly what's written on the box.”"
+
+msgid "«Не к чему придраться и не о чем рассказать друзьям.»"
+msgstr "“Nothing to pick at and nothing to tell your friends about.”"
+
+msgid "«Авторы умеют. Теперь пусть попробуют рискнуть.»"
+msgstr "“The authors have the skills. Now let them try taking a risk.”"
+
+msgid "«Симпатично и безопасно. Второе слово здесь не похвала.»"
+msgstr "“Nice and safe. The second word is not a compliment here.”"
+
+msgid "«Одна хорошая находка на всю игру. Маловато, но я запомнила.»"
+msgstr "“One good idea for the whole game. Not much, but I remembered it.”"
+
+msgid "««{title}» боится собственной идеи и прячет её за шаблонами.»"
+msgstr "“‘{title}’ is afraid of its own idea and hides it behind templates.”"
+
+msgid "«Вторично от первого до последнего экрана.»"
+msgstr "“Derivative from the first screen to the last.”"
+
+msgid "«Я зевнула на обучении. Дальше лучше не стало.»"
+msgstr "“I yawned during the tutorial. It didn't get better.”"
+
+msgid "«Игра собрана из чужих удачных решений, которые здесь перестали быть удачными.»"
+msgstr "“The game is assembled from other people's successful ideas, which stopped being successful here.”"
+
+msgid "«Ни одной причины существовать, кроме плана релизов.»"
+msgstr "“No reason to exist other than the release schedule.”"
+
+msgid "«Мне было скучно, а скука заразна. Не подходите близко.»"
+msgstr "“I was bored, and boredom is contagious. Keep your distance.”"
+
+msgid "«Авторы не рисковали, и это заметно сильнее любых ошибок.»"
+msgstr "“The authors took no risks, and that shows more than any bug.”"
+
+msgid "«Так делали пять лет назад. Тогда это тоже не впечатляло.»"
+msgstr "“This is how they did it five years ago. It wasn't impressive then either.”"
+
+msgid "«Хотела найти хоть что-то своё. Не нашла.»"
+msgstr "“I wanted to find at least something of its own. I didn't.”"
+
+msgid "Такого сочетания я ещё не видела, и за это отдельный плюс!"
+msgstr "I've never seen this combination before, and that earns a bonus!"
+
+msgid "Новая территория. Сюда ещё никто не ходил, и это чувствуется."
+msgstr "New territory. Nobody's been here before, and you can feel it."
+
+msgid "За попытку сделать по-другому накидываю сверху."
+msgstr "I add extra for trying to do it differently."
+
+msgid "Жанр и тема встретились впервые, и им есть о чём поговорить."
+msgstr "This genre and theme are meeting for the first time, and they have plenty to talk about."
+
+msgid "Первыми быть трудно. Здесь получилось."
+msgstr "Being first is hard. They pulled it off."
+
+msgid "«{bug}. Чат, клипуйте, это надо сохранить!»"
+msgstr "“{bug}. Chat, clip it, we need to save this!”"
+
+msgid "«Стоп. Стоп! Вы это видели? Отмотайте!»"
+msgstr "“Wait. WAIT! Did you see that? Run it back!”"
+
+msgid "«Я ничего не трогал, оно само! Клянусь!»"
+msgstr "“I didn't touch anything, it did it on its own! I swear!”"
+
+msgid "«Лучший баг месяца, даже не спорьте»"
+msgstr "“Bug of the month, don't even argue”"
+
+msgid "«Разработчики, не чините. Умоляю»"
+msgstr "“Devs, don't fix it. I'm begging you”"
+
+msgid "«{bug}. Ради такого я и встаю по утрам»"
+msgstr "“{bug}. This is what I get up in the morning for”"
+
+msgid "«Чат, кто записал? Скажите, что кто-то записал!»"
+msgstr "“Chat, who recorded that? Tell me somebody recorded that!”"
+
+msgid "«Это не баг, это подарок. Мне, лично»"
+msgstr "“That's not a bug, that's a gift. To me, personally”"
+
+msgid "«Десять лет стримлю, такого ещё не ловил!»"
+msgstr "“Ten years of streaming and I've never caught one like this!”"
+
+msgid "«Прошёл без единого бага. Мне нечего вам показать»"
+msgstr "“Didn't hit a single bug. I've got nothing to show you”"
+
+msgid "«Всё работает. Чат, расходимся»"
+msgstr "“Everything works. Chat, we're done here”"
+
+msgid "«Хорошая игра, плохой контент. Простите»"
+msgstr "“Good game, bad content. Sorry”"
+
+msgid "«Час ищу, где она сломается. Не ломается!»"
+msgstr "“Been trying to break it for an hour. It won't break!”"
+
+msgid "«Чисто, ровно, скучно. Игрокам отлично, мне беда»"
+msgstr "“Clean, smooth, boring. Great for players, terrible for me”"
+
+msgid "«Ни одного вылета. Кто так делает игры?»"
+msgstr "“Not one crash. Who makes games like this?”"
+
+msgid "«Ладно, признаю: сделано на совесть. Но клипа не будет»"
+msgstr "“Fine, I admit it: this was made with care. But there's no clip”"
+
+msgid "«{bug}. Красиво сломалось, надо признать»"
+msgstr "“{bug}. Broke beautifully, I'll give it that”"
+
+msgid "«Смотрите, как оно разваливается. Почти искусство»"
+msgstr "“Look at it falling apart. It's almost art”"
+
+msgid "«Так, это не входило в художественный замысел. Наверное»"
+msgstr "“Okay, that was not part of the art direction. Probably”"
+
+msgid "«Чат, я сделала сорок скриншотов. Тридцать девять с багом»"
+msgstr "“Chat, I took forty screenshots. Thirty-nine of them have the bug”"
+
+msgid "«{bug}. Оставлю на заставку канала»"
+msgstr "“{bug}. I'm keeping this for my channel intro”"
+
+msgid "«Геометрия вышла погулять. Вернётся, я в неё верю»"
+msgstr "“The geometry went out for a walk. It'll be back, I believe in it”"
+
+msgid "«Сломано, зато с каким размахом!»"
+msgstr "“Broken, but on such a grand scale!”"
+
+msgid "«Я пришла смотреть на картинку. Картинка решила посмотреть на меня»"
+msgstr "“I came to look at the visuals. The visuals decided to look at me”"
+
+msgid "«Не знаю, что произошло, но кадр получился отличный»"
+msgstr "“No idea what just happened, but that's a great shot”"
+
+msgid "«Посмотрите на свет в этой сцене. Можно даже не играть»"
+msgstr "“Look at the lighting in this scene. You don't even have to play”"
+
+msgid "«Остановлюсь тут на минуту. Очень уж красиво»"
+msgstr "“I'm stopping here for a minute. It's just too pretty”"
+
+msgid "«Аккуратная работа. Любой кадр можно вешать на стену»"
+msgstr "“Careful work. You could hang any frame on the wall”"
+
+msgid "«Ни одной кривой тени. Кто-то очень старался»"
+msgstr "“Not one crooked shadow. Somebody tried really hard”"
+
+msgid "«Чат, тише. Я смотрю»"
+msgstr "“Quiet, chat. I'm looking”"
+
+msgid "«Картинка держится от первого кадра до последнего. Редкость»"
+msgstr "“The picture holds up from the first frame to the last. That's rare”"
+
+msgid "«Играется так же ровно, как выглядит»"
+msgstr "“Plays as smoothly as it looks”"
+
+msgid "«{bug}. В моё время это называли секретным уровнем»"
+msgstr "“{bug}. Back in my day we called that a secret level”"
+
+msgid "«Ох ты ж. Ну, бывает, бывает»"
+msgstr "“Oh my. Well, it happens, it happens”"
+
+msgid "«Раньше с таким картридж несли обратно. А сейчас смеёмся»"
+msgstr "“Back in the day you'd take a cartridge like this back to the store. Now we laugh”"
+
+msgid "«Не ругайтесь, чат. Игру люди делали, люди и ошиблись»"
+msgstr "“Don't be harsh, chat. People made this game, and people make mistakes”"
+
+msgid "«{bug}. Внукам покажу, не поверят»"
+msgstr "“{bug}. I'll show the grandkids, they won't believe it”"
+
+msgid "«Тридцать лет играю, а всё равно каждый раз удивляюсь!»"
+msgstr "“Thirty years of gaming and it still surprises me every time!”"
+
+msgid "«Сломалось. Ничего, дедушка и не такое проходил»"
+msgstr "“It broke. That's alright, grandpa's beaten worse”"
+
+msgid "«Вот тут надо было подуть на картридж»"
+msgstr "“This is where you should have blown on the cartridge”"
+
+msgid "«Перезапустим и сделаем вид, что ничего не было»"
+msgstr "“Let's restart and pretend nothing happened”"
+
+msgid "«Две кнопки и крестовина. Больше и не надо»"
+msgstr "“Two buttons and a D-pad. That's all you need”"
+
+msgid "«Хорошая игра. Простая, как раньше»"
+msgstr "“A good game. Simple, like the old days”"
+
+msgid "«Прошёл с первого раза. Руки помнят!»"
+msgstr "“Beat it on the first try. The hands remember!”"
+
+msgid "«Сделано по-людски. Спасибо ребятам»"
+msgstr "“Made the decent way. Thank you, kids”"
+
+msgid "«Сижу, играю, чай остыл. Значит, игра хорошая»"
+msgstr "“I sit, I play, my tea's gone cold. That means it's a good game”"
+
+msgid "«Ничего не сломалось. Даже непривычно»"
+msgstr "“Nothing broke. Feels strange, actually”"
+
+msgid "«Вот так и надо делать, без суеты»"
+msgstr "“This is how it should be done, no fuss”"
+
+msgid "«Цельная, короткая, с характером. Хочется второй части»."
+msgstr "“Whole, short, with character. I want a sequel.”"
+
+msgid "«{title} делает ровно то, что обещает, и делает хорошо»."
+msgstr "“{title} does exactly what it promises, and does it well.”"
+
+msgid "«Редкий случай, когда нечего убавить»."
+msgstr "“A rare case where there's nothing to cut.”"
+
+msgid "«Крепкая середина: ни провалов, ни открытий»."
+msgstr "“A solid middle: no failures, no discoveries.”"
+
+msgid "«Приятная, но забывается к вечеру»."
+msgstr "“Pleasant, but forgotten by evening.”"
+
+msgid "«Есть идея, есть исполнение, нет искры»."
+msgstr "“There's an idea, there's execution, there's no spark.”"
+
+msgid "«Не доделано. Я бы подождал патча»."
+msgstr "“Unfinished. I'd wait for a patch.”"
+
+msgid "«{title} выглядит как черновик самой себя»."
+msgstr "“{title} looks like a rough draft of itself.”"
+
+msgid "«Подожду следующей игры студии»."
+msgstr "“I'll wait for the studio's next game.”"
+
+msgid "Старая графика мне всегда ближе."
+msgstr "I always prefer old-school graphics."
+
+msgid "За каждый баг снимаю балл."
+msgstr "I take off a point for every bug."
+
+msgid "Такого сочетания я ещё не видела, за это плюс."
+msgstr "I've never seen this combination before, that's a plus."
+
+msgid "Видно руку студии-ветерана: в «{studio}» давно знают, что делают."
+msgstr "You can see a veteran studio's hand: {studio} has long known what it's doing."
+
+msgid "«{studio}» уже студия-ветеран, и от неё ждёшь большего."
+msgstr "{studio} is a veteran studio now, and you expect more from it."
+
+msgid "Студия-ветеран, и это чувствуется в каждой мелочи."
+msgstr "A veteran studio, and you can feel it in every detail."
+
+msgid "Для студии-ветерана вроде «{studio}» это почти рутина."
+msgstr "For a veteran studio like {studio}, this is almost routine."
+
+msgid "Снова ветераны из «{studio}» в деле. Интересно, надолго ли."
+msgstr "The veterans at {studio} are at it again. Wonder how long they'll last."
+
+msgid "От ветеранов вроде «{studio}» ждёшь ровной работы, и её получаешь."
+msgstr "From veterans like {studio} you expect steady work, and that's what you get."
+
+msgid "«{studio}» давно не новички: студия-ветеран с собственным почерком."
+msgstr "{studio} are no newcomers: a veteran studio with a style of its own."
+
+msgid "У ветеранов из «{studio}» за плечами целая полка игр, и это слышно в каждом решении."
+msgstr "The veterans at {studio} have a whole shelf of games behind them, and you can hear it in every decision."
+
+msgid "«{bug}. Чат, это лучшее за неделю»"
+msgstr "“{bug}. Chat, this is the best thing all week”"
+
+msgid "«Смотрите. {bug}. Я не могу»"
+msgstr "“Look. {bug}. I can't”"
+
+msgid "«Скажите мне, что так и задумано»"
+msgstr "“Tell me this is on purpose”"
+
+msgid "«Чисто прошёл. Красиво, но показать нечего»"
+msgstr "“Clean run. Pretty, but nothing to show”"
+
+msgid "«Нормальная игра, чат заскучал»"
+msgstr "“Decent game, chat got bored”"
+
+# --- scripts/feed ---
+msgid "студия"
+msgstr "studio"
+
+msgid "Продажи первой недели"
+msgstr "First week sales"
+
+msgid "вниз, внизу выбрать"
+msgstr "down, select at the bottom"
+
+msgid "Итоги релиза · %s"
+msgstr "Release Results · %s"
+
+msgid "Отклик · %s"
+msgstr "Reaction · %s"
+
+msgid "Критик · %s"
+msgstr "Critic · %s"
+
+msgid "Просмотры клипов"
+msgstr "Clip views"
+
+msgid "Дальше"
+msgstr "Next"

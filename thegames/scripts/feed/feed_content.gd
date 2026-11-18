@@ -52,10 +52,16 @@ func only(kinds: Array) -> FeedContent:
 	return c
 
 
-## «1,2 млн», «140 тыс.», «640».
+## «1,2 млн», «140 тыс.», «640»; по-английски «1.2M», «140K».
 static func format_count(n: int) -> String:
+	if Lang.english():
+		if n >= 1000000:
+			return "%.1fM" % (n / 1000000.0)
+		if n >= 1000:
+			return "%dK" % int(round(n / 1000.0))
+		return str(n)
 	if n >= 1000000:
-		return ("%.1f" % (n / 1000000.0)).replace(".", ",") + " млн"
+		return ("%.1f" % (n / 1000000.0)).replace(".", ",") + " млн"  # i18n: skip (русская ветка)
 	if n >= 1000:
-		return "%d тыс." % int(round(n / 1000.0))
+		return "%d тыс." % int(round(n / 1000.0))  # i18n: skip (русская ветка)
 	return str(n)

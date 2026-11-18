@@ -181,7 +181,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "место %d из %d · монеты %d · %d с" % [sim.place, sim.rivals.size() + 1, sim.coins_got, int(round(elapsed))]
+	return Lang.t("место %d из %d · монеты %d · %d с") % [sim.place, sim.rivals.size() + 1, sim.coins_got, int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -556,7 +556,7 @@ func _draw_parts(canvas: CanvasItem) -> void:
 func _draw_hud(canvas: CanvasItem) -> void:
 	var gold: Array[Color] = [Color("#7a3a10"), Color("#d0781c"), Color("#f8c040"), Color("#fff2a0")]
 	Fx16.frame_box(canvas, Rect2(6.0, 6.0, 132.0, 46.0))
-	PixelFont16.draw(canvas, Vector2(14.0, 11.0), "МЕСТО", Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
+	PixelFont16.draw(canvas, Vector2(14.0, 11.0), Lang.t("МЕСТО"), Color("#d8d0e8"), Color("#9a90b0"), Fx16.INK, 1.0)
 	var place := "%d/%d" % [sim.place, sim.rivals.size() + 1]
 	var top3 := sim.place <= 3
 	PixelFont16.draw(canvas, Vector2(56.0, 11.0), place, gold[3] if top3 else Color.WHITE, gold[2] if top3 else Color("#b8c0d0"),
@@ -614,4 +614,4 @@ func _draw_start(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "руль"], [GameInput.key(GameInput.A), "газ"], [GameInput.key(GameInput.B), "нитро"]]
+	return [["← →", Lang.t("руль")], [GameInput.key(GameInput.A), Lang.t("газ")], [GameInput.key(GameInput.B), Lang.t("нитро")]]

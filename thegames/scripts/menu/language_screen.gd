@@ -35,7 +35,7 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 32)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(column)
-	var title := _label("Язык · Language", Style.FONT_H1, Style.INK)
+	var title := _label("Язык · Language", Style.FONT_H1, Style.INK)  # i18n: skip
 	title.add_theme_font_override("font", Jelly.fun_font(800))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)

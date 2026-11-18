@@ -54,11 +54,11 @@ static func pair_key(genre: Game.Genre, tech: int) -> int:
 ## Штамп под жанр и технологию записи; `tech` −1: только по жанру.
 func stamp_for(genre: Game.Genre, tech := -1, setting := Game.Setting.PIRATES) -> String:
 	var text: String = stamp_by_pair.get(pair_key(genre, tech), stamp_by_genre.get(int(genre), stamp))
-	return SettingDef.of(setting).fill(text)
+	return SettingDef.of(setting).fill(Lang.t(text))
 
 
 func manifestation_for(genre: Game.Genre, tech := -1) -> String:
-	return manifestation_by_pair.get(pair_key(genre, tech), manifestation_by_genre.get(int(genre), manifestation))
+	return Lang.t(manifestation_by_pair.get(pair_key(genre, tech), manifestation_by_genre.get(int(genre), manifestation)))
 
 
 func tweet_for(genre: Game.Genre, tech := -1) -> String:

@@ -587,7 +587,7 @@ func _draw() -> void:
 	var gap := 28.0
 	var x0 := size.x - 48.0 - (mazes_total - 1) * gap
 	var font := get_theme_default_font()
-	var caption := "двигается точка" if mode == Mode.DOT else "двигается лабиринт"
+	var caption := tr("двигается точка") if mode == Mode.DOT else tr("двигается лабиринт")
 	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY).x
 	draw_string(font, Vector2(x0 - r - 32.0 - w, 69.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY,
 			(Style.accent(0) if mode == Mode.MAZE else Style.INK) if flash <= 0.0 else Style.FOCUS)

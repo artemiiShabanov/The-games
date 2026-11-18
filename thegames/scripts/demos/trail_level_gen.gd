@@ -306,46 +306,46 @@ static func validate(lv: TrailLevel, t: PlatformerBit16GenTuning) -> String:
 		var a := lv.points[i - 1]
 		var b := lv.points[i]
 		if b.x <= a.x:
-			return "точки не по порядку у x %.0f" % b.x
+			return "точки не по порядку у x %.0f" % b.x  # i18n: skip
 		if b.y < t.ground_min_y - 1.0 or b.y > t.ground_max_y + 1.0:
-			return "земля у x %.0f на высоте %.0f" % [b.x, b.y]
+			return "земля у x %.0f на высоте %.0f" % [b.x, b.y]  # i18n: skip
 		var mid := (a.x + b.x) * 0.5
 		if not lv.in_gap(mid) and absf(b.y - a.y) / (b.x - a.x) > tan(deg_to_rad(t.slope_steep_deg)) + 0.05:
-			return "склон круче %.0f° у x %.0f" % [t.slope_steep_deg, a.x]
+			return "склон круче %.0f° у x %.0f" % [t.slope_steep_deg, a.x]  # i18n: skip
 	if lv.gaps.is_empty():
-		return "нет ям"
+		return "нет ям"  # i18n: skip
 	for a in lv.arches:
 		if lv.gaps[0] > a.from:
-			return "арка раньше первой ямы"
+			return "арка раньше первой ямы"  # i18n: skip
 		var h0 := lv.height_at(a.from)
 		var x := a.from
 		while x <= a.to:
 			if absf(lv.height_at(x) - h0) > 0.5:
-				return "под аркой у x %.0f земля неровная" % x
+				return "под аркой у x %.0f земля неровная" % x  # i18n: skip
 			x += 4.0
 	for f in lv.foes:
 		if lv.gaps[0] > f.from:
-			return "враг раньше первой ямы"
+			return "враг раньше первой ямы"  # i18n: skip
 		var x := f.from
 		while x <= f.to:
 			if lv.height_at(x) == INF:
-				return "участок врага у x %.0f над ямой" % x
+				return "участок врага у x %.0f над ямой" % x  # i18n: skip
 			x += 4.0
 	for c in lv.checkpoints:
 		if lv.height_at(c) == INF or lv.arch_at(c) != null:
-			return "место возврата %.0f не на земле" % c
+			return "место возврата %.0f не на земле" % c  # i18n: skip
 		for f in lv.foes:
 			if c > f.from - 30.0 and c < f.to + 30.0:
-				return "место возврата %.0f на пути врага" % c
+				return "место возврата %.0f на пути врага" % c  # i18n: skip
 	for b in lv.bridges:
 		if not lv.in_gap((b.from + b.to) * 0.5) or absf(lv.height_at(b.from - 1.0) - b.y) > 0.5 \
 				or absf(lv.height_at(b.to + 1.0) - b.y) > 0.5:
-			return "мостки у x %.0f не лежат на краях ямы" % b.from
+			return "мостки у x %.0f не лежат на краях ямы" % b.from  # i18n: skip
 		if b.holes.has(0) or b.holes.has(int((b.to - b.from) / TrailLevel.PLANK_W) - 1):
-			return "мостки у x %.0f с дырой у края" % b.from
+			return "мостки у x %.0f с дырой у края" % b.from  # i18n: skip
 	for v in lv.vines:
 		if not lv.in_gap(v.anchor.x):
-			return "лиана %.0f не над ямой" % v.anchor.x
+			return "лиана %.0f не над ямой" % v.anchor.x  # i18n: skip
 	if lv.height_at(lv.flag_x) == INF:
-		return "флаг не на земле"
+		return "флаг не на земле"  # i18n: skip
 	return ""

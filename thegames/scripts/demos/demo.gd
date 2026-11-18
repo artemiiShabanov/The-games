@@ -94,7 +94,12 @@ const PIXEL_DIGITS := {
 	"K": ["101", "101", "110", "101", "101"], "O": ["111", "101", "101", "101", "111"],
 	"В": ["110", "101", "110", "101", "110"], "Е": ["111", "100", "110", "100", "111"],
 	"М": ["101", "111", "111", "101", "101"], "Я": ["011", "101", "011", "101", "101"],
-}
+	# Латиница для английского HUD (2026-11-18): «PAR», «TIME».
+	"P": ["111", "101", "111", "100", "100"], "A": ["010", "101", "111", "101", "101"],
+	"R": ["110", "101", "110", "101", "101"], "T": ["111", "010", "010", "010", "010"],
+	"I": ["111", "010", "010", "010", "111"], "M": ["101", "111", "111", "101", "101"],
+	"E": ["111", "100", "110", "100", "111"],
+}  # i18n: skip
 
 var record: GameRecord
 var source: StringName = &"debug"
@@ -254,7 +259,7 @@ func _draw_loading() -> void:
 		_loading.draw_circle(mid + Vector2((i - 1) * 46.0, 22.0), 13.0 - hop * 4.0, Color(Style.INK, 0.08), true, -1.0, true)
 		_loading.draw_circle(at, 15.0, Style.accent(i), true, -1.0, true)
 	var font := Jelly.fun_font(700)
-	var label := "Загрузка"
+	var label := Lang.t("Загрузка")
 	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY).x
 	_loading.draw_string(font, mid + Vector2(-width / 2.0, 78.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_BODY, Style.INK_2)
 
@@ -933,12 +938,12 @@ func _result_title(goal: bool) -> String:
 ## Подпись экрана итога одной строкой (2026-11-18): итог словами жанра, затем числа демки.
 ## «3 место» и «из 6» сливаются в «3 место из 6».
 func _result_comment(goal: bool) -> String:
-	var head := _result_title(goal)
+	var head := Lang.t(_result_title(goal))
 	head = head.substr(0, 1).to_upper() + head.substr(1)
 	var tail := _result_caption()
 	if tail == "":
 		return head
-	return head + (" " if tail.begins_with("из ") else " · ") + tail
+	return head + (" " if tail.begins_with("из ") or tail.begins_with("of ") else " · ") + tail  # i18n: skip
 
 
 # --- Оверлей итога и паузы в стиле оболочки ------------------------------------------------
@@ -1009,7 +1014,7 @@ func _build_overlay() -> void:
 	var hint_row := HBoxContainer.new()
 	hint_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu_hint.add_child(hint_row)
-	hint_row.add_child(HintPill.make("%s %s выбрать · %s подтвердить · %s вернуться" % [
+	hint_row.add_child(HintPill.make(Lang.t("%s %s выбрать · %s подтвердить · %s вернуться") % [
 			GameInput.key(GameInput.LEFT), GameInput.key(GameInput.RIGHT),
 			GameInput.key(GameInput.A), "Esc"]))
 	_menu_hint.visible = false

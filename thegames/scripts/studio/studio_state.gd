@@ -97,4 +97,4 @@ func release_of(i: int) -> int:
 
 
 func _to_string() -> String:
-	return "прокачки %s, штат %s, людей %d%s" % [upgrade_ids, staff, people, ", спасены" if rescued else ""]
+	return "прокачки %s, штат %s, людей %d%s" % [upgrade_ids, staff, people, ", спасены" if rescued else ""]  # i18n: skip

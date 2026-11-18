@@ -526,7 +526,7 @@ func hero_won() -> bool:
 
 ## Сводка боя одной строкой для заметок автотеста и дампа.
 func summary() -> String:
-	return "здоровье %d:%d, %s на %.1f с; герой: ударов %d (верхних %d, нижних %d), попал %d, в блок %d, блоков %d, уклонов %d; соперник: ударов %d, попал %d, в блок %d, блоков %d, уклонов %d" % [
+	return "здоровье %d:%d, %s на %.1f с; герой: ударов %d (верхних %d, нижних %d), попал %d, в блок %d, блоков %d, уклонов %d; соперник: ударов %d, попал %d, в блок %d, блоков %d, уклонов %d" % [  # i18n: skip
 			hero.health, rival.health, "нокаут" if knocked_out() else "время", seconds(),
 			hero.highs + hero.lows, hero.highs, hero.lows, hero.landed, hero.guarded, hero.blocks, hero.dodges,
 			rival.highs + rival.lows, rival.landed, rival.guarded, rival.blocks, rival.dodges]
@@ -536,5 +536,5 @@ func summary() -> String:
 func bug_summary() -> String:
 	if not bugs.any():
 		return ""
-	return "сквозь хитбокс у героя %d из %d касаний, у капитана %d из %d; от чиха %d; ударов без урона %d; подбросов %d, выше всего %.0f px" % [
+	return "сквозь хитбокс у героя %d из %d касаний, у капитана %d из %d; от чиха %d; ударов без урона %d; подбросов %d, выше всего %.0f px" % [  # i18n: skip
 			hero.ghosts, hero.contacts, rival.ghosts, rival.contacts, sneezes, shrugged, flings, max_air]

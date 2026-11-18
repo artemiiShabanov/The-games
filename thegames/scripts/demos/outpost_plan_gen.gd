@@ -71,17 +71,17 @@ static func _build(seed_: int, attempt: int, rules: ShooterThreedTuning) -> Outp
 ## Пусто, если план годится; иначе что не так.
 static func validate(plan: OutpostPlan) -> String:
 	if plan.waves.size() != WAVES.size():
-		return "волн %d" % plan.waves.size()
+		return "волн %d" % plan.waves.size()  # i18n: skip
 	if plan.sides_of(0) != 1:
-		return "первая волна не с одной стороны"
+		return "первая волна не с одной стороны"  # i18n: skip
 	if plan.sides_of(plan.waves.size() - 1) < 3 or plan.sides_of(2) < 2:
-		return "мало сторон атаки"
+		return "мало сторон атаки"  # i18n: skip
 	if plan.count(B) != 1 or plan.count(S) < 4 or plan.count(T) < 3:
-		return "состав волн не тот"
+		return "состав волн не тот"  # i18n: skip
 	if plan.kegs.size() < 4:
-		return "бочек %d" % plan.kegs.size()
+		return "бочек %d" % plan.kegs.size()  # i18n: skip
 	for i in plan.kegs.size():
 		for j in range(i + 1, plan.kegs.size()):
 			if plan.kegs[i].distance_to(plan.kegs[j]) < 5.0:
-				return "бочки %d и %d рядом" % [i, j]
+				return "бочки %d и %d рядом" % [i, j]  # i18n: skip
 	return ""

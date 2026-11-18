@@ -291,7 +291,7 @@ func _run() -> void:
 	var money := report.cash_start
 	if report.current != null:
 		money += report.first_week
-		await _add_row("Первая неделя · %s" % report.current.title, report.first_week, Style.MONEY, money)
+		await _add_row(tr("Первая неделя · %s") % report.current.title, report.first_week, Style.MONEY, money)
 	var tails := report.tails.duplicate()
 	tails.sort_custom(func(a: StudioPhase.Tail, b: StudioPhase.Tail) -> bool: return a.tick > b.tick)
 	var shown := 0
@@ -303,22 +303,22 @@ func _run() -> void:
 		if shown < MAX_TAIL_ROWS:
 			shown += 1
 			money += t.tick
-			await _add_row("Продажи · %s" % t.record.title, t.tick, Style.MONEY, money)
+			await _add_row(tr("Продажи · %s") % t.record.title, t.tick, Style.MONEY, money)
 		else:
 			rest += 1
 			rest_sum += t.tick
 	if rest > 0:
 		money += rest_sum
-		await _add_row("Ещё игр: %d" % rest, rest_sum, Style.MONEY, money)
+		await _add_row(tr("Ещё игр: %d") % rest, rest_sum, Style.MONEY, money)
 	# Доли по договорам вставок (#66): отдельной строкой на игру.
 	for t in report.tails:
 		if t.share > 0:
 			money -= t.share
-			await _add_row("Доля %s · %s" % [_share_to(t.to), t.record.title], -t.share, Style.INK, money)
+			await _add_row(tr("Доля %s · %s") % [_share_to(t.record.share_to), t.record.title], -t.share, Style.INK, money)
 	money -= report.upkeep
 	await _add_row("Содержание студии", -report.upkeep, Style.INK, money)
 	if report.bankrupt:
-		await _add_row("Меньше цены самого дешёвого релиза (%s)" % Style.format_money(report.cheapest), 0, Style.DANGER, money)
+		await _add_row(tr("Меньше цены самого дешёвого релиза (%s)") % Style.format_money(report.cheapest), 0, Style.DANGER, money)
 		if report.game_over:
 			await _add_row("Повторного спасения нет. Банкротство.", 0, Style.DANGER, money)
 	_fade_in(_valuation_block)
@@ -350,8 +350,13 @@ func _show_event(valuation_before: float) -> void:
 
 
 ## Строка доли: «Доля по договору с Виктором · Игра» (в записи имя в творительном).
-func _share_to(to: String) -> String:
-	return "по договору с " + to if to != "" else "по договору"
+func _share_to(names: PackedStringArray) -> String:
+	if names.is_empty():
+		return tr("по договору")
+	var parts: PackedStringArray = []
+	for n in names:
+		parts.append(tr(n))
+	return tr("по договору с %s") % tr(" и ").join(parts)
 
 
 func _step() -> void:
@@ -389,21 +394,21 @@ func _show_offer() -> void:
 				else "Денег не хватает на самый дешёвый релиз. Спасение уже использовано."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
-		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
+		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("дальше"))))
 		return
 	if report.offer.is_empty():
 		_offer_title.text = "Все жанры и технологии открыты"
 		_offer_caption.text = "Предложений больше не будет."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
-		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
+		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("дальше"))))
 		return
 	if defer_offer:
 		_offer_title.text = "Пришло предложение"
 		_offer_caption.text = "Новый жанр или технология. Доступно на главном экране до начала новой игры."
 		_fade_in(_offer_title)
 		_fade_in(_offer_caption)
-		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "дальше")))
+		_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("дальше"))))
 		return
 	_offer_title.text = "Жанр или технология"
 	_fade_in(_offer_title)
@@ -417,14 +422,14 @@ func _show_offer() -> void:
 	_refresh_prices()
 	_refresh_focus(false)
 	_hints.add_child(HintPill.make("← → выбрать"))
-	_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "купить")))
-	_hints.add_child(HintPill.make(GameInput.hint(GameInput.B, "пропустить")))
+	_hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("купить"))))
+	_hints.add_child(HintPill.make(GameInput.hint(GameInput.B, tr("пропустить"))))
 
 
 # --- Построение ---------------------------------------------------------------------------------
 
 func _build() -> void:
-	var header := HintPill.header(ShellHeader.release(report.release, "Студия"))
+	var header := HintPill.header(ShellHeader.release(report.release, tr("Студия")))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
@@ -617,16 +622,16 @@ func _refresh_prices() -> void:
 		var ok := affordable(i) or def == bought
 		price.add_theme_color_override("font_color", Style.INK if ok else Style.DANGER)
 		if ok:
-			note.text = "+ %s к содержанию за релиз" % Style.format_money(def.upkeep(economy))
+			note.text = tr("+ %s к содержанию за релиз") % Style.format_money(def.upkeep(economy))
 			note.add_theme_color_override("font_color", Style.INK_2)
 		else:
-			note.text = "не хватит на игру: нужно ещё %s" % Style.format_money(def.price(economy) + reserve() - wallet.cash)
+			note.text = tr("не хватит на игру: нужно ещё %s") % Style.format_money(def.price(economy) + reserve() - wallet.cash)
 			note.add_theme_color_override("font_color", Style.DANGER)
 
 
 func _mark_bought(i: int) -> void:
 	_kind_pills[i].add_theme_stylebox_override("panel", _pill_style(Style.SUCCESS))
-	_kind_labels[i].text = "куплено"
+	_kind_labels[i].text = tr("куплено")
 	_kind_labels[i].add_theme_color_override("font_color", Style.SURFACE_SOLID)
 
 

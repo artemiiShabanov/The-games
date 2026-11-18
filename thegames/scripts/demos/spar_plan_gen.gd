@@ -59,14 +59,14 @@ static func validate(plan: SparPlan, t: FightingLowpolyGenTuning = null) -> Stri
 	if t == null:
 		t = FightingLowpolyGenTuning.load_default()
 	if plan.combos.size() != t.combos:
-		return "связок %d" % plan.combos.size()
+		return "связок %d" % plan.combos.size()  # i18n: skip
 	for i in mini(t.double_from, plan.combos.size()):
 		if plan.combos[i].moves.size() != 1 or plan.combos[i].moves[0] == SparPlan.Move.HEAVY:
-			return "связка %d в начале не одиночная" % i
+			return "связка %d в начале не одиночная" % i  # i18n: skip
 	if plan.count(SparPlan.Move.HEAVY) < 3:
-		return "сильных ударов %d" % plan.count(SparPlan.Move.HEAVY)
+		return "сильных ударов %d" % plan.count(SparPlan.Move.HEAVY)  # i18n: skip
 	if plan.count(SparPlan.Move.KICK) < 6 or plan.count(SparPlan.Move.PUNCH) < 6:
-		return "мало ударов рукой или ногой"
+		return "мало ударов рукой или ногой"  # i18n: skip
 	if plan.longest() < 3:
-		return "нет тройной связки"
+		return "нет тройной связки"  # i18n: skip
 	return ""

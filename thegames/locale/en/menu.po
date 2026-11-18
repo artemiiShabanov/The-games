@@ -152,7 +152,7 @@ msgid "пауза"
 msgstr "paused"
 
 msgid "Продолжить"
-msgstr "Resume"
+msgstr "Continue"
 
 msgid "В меню"
 msgstr "Main menu"
@@ -162,3 +162,53 @@ msgstr "↑ ↓ choose · %s select · Esc resume"
 
 msgid "↑ ↓ выбрать · %s или Esc продолжить"
 msgstr "↑ ↓ choose · %s or Esc resume"
+
+msgid "Язык / Language"
+msgstr "Язык / Language"
+
+# --- Общие подписи (scripts/ui) ---
+msgid "любая клавиша"
+msgstr "any key"
+
+msgid "Релиз %d · %s"
+msgstr "Release %d · %s"
+
+msgid "бесплатно"
+msgstr "free"
+
+# --- Акценты палитр ---
+msgid "красное"
+msgstr "red"
+
+msgid "тёмно-синее"
+msgstr "navy"
+
+msgid "оливковое"
+msgstr "olive"
+
+msgid "охристое"
+msgstr "ochre"
+
+msgid "голубое"
+msgstr "sky blue"
+
+msgid "синее"
+msgstr "blue"
+
+msgid "жёлтое"
+msgstr "yellow"
+
+msgid "розовое"
+msgstr "pink"
+
+msgid "зелёное"
+msgstr "green"
+
+msgid "песочное"
+msgstr "sand"
+
+msgid "бордовое"
+msgstr "maroon"
+
+msgid "фиолетовое"
+msgstr "purple"

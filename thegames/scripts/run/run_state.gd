@@ -550,17 +550,17 @@ func close_release(record: GameRecord, report: StudioPhase.Report) -> void:
 	rep_log.append(market.reputation)
 	if report != null and report.game_over:
 		finished = true
-		finish_reason = "банкротство"
+		finish_reason = "банкротство"  # i18n: skip
 		return
 	# Концовка, выбранная во вставке (#68): забег кончается после этой фазы.
 	if event_state.ending in [&"sale", &"corporation", &"legend"]:
 		finished = true
-		finish_reason = "концовка"
+		finish_reason = "концовка"  # i18n: skip
 		return
 	release += 1
 	if release > cap:
 		finished = true
-		finish_reason = "год закончился"
+		finish_reason = "год закончился"  # i18n: skip
 		return
 	studio.refresh_people(release)
 	refresh_board()
@@ -589,4 +589,4 @@ func stats_with(current: GameRecord) -> RunStats:
 
 
 func _to_string() -> String:
-	return "релиз %d/%d, %s, R %.1f, игр %d, %s" % [release, cap, Style.format_money(wallet.cash), market.reputation, records.size(), studio]
+	return "релиз %d/%d, %s, R %.1f, игр %d, %s" % [release, cap, Style.format_money(wallet.cash), market.reputation, records.size(), studio]  # i18n: skip

@@ -1,0 +1,220 @@
+# Studio Running: английский перевод, часть «minigames». Ключ (msgid) это русский текст.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- resources/minigames: verb, hint, mouse_hint ---
+msgid "Реши"
+msgstr "Decide"
+
+msgid "Подходит под правило: ↑, не подходит: любая другая стрелка"
+msgstr "Fits the rule: ↑, doesn't fit: any other arrow"
+
+msgid "клик выше карточки: да · ниже или правый клик: нет"
+msgstr "click above the card: yes · below or right-click: no"
+
+msgid "Проверни"
+msgstr "Rotate"
+
+msgid "Влево-вправо вращай фигуру под вырез в стене"
+msgstr "Rotate the shape left or right to fit the gap in the wall"
+
+msgid "колесо или тяни вбок: вращай"
+msgstr "wheel or drag sideways: rotate"
+
+msgid "Удержи"
+msgstr "Hold"
+
+msgid "Держи клавишу: столбик вверх, отпусти: вниз, держи шарик внутри"
+msgstr "Hold the key: bar goes up, release: down. Keep the ball inside"
+
+msgid "держи кнопку мыши"
+msgstr "hold the mouse button"
+
+msgid "Подгони"
+msgstr "Fit"
+
+msgid "Вверх-вниз число сторон, влево или вправо отправить в трафарет"
+msgstr "Up-down sets the sides, left or right sends it to the stencil"
+
+msgid "колесо стороны · клик по половине поля"
+msgstr "wheel: sides · click a half of the field"
+
+msgid "Залей"
+msgstr "Fill"
+
+msgid "← → цвет, ␣ заливает из угла: сделай сетку одноцветной"
+msgstr "← → color, ␣ fills from the corner: make the grid one color"
+
+msgid "клик по цвету или по клетке"
+msgstr "click a color or a cell"
+
+msgid "В такт"
+msgstr "Keep time"
+
+msgid "Ноты бегут к метке: нужная стрелка в такт, длинные держи"
+msgstr "Notes run to the mark: hit the arrow on the beat, hold long ones"
+
+msgid "клик по дорожке, длинные держи"
+msgstr "click the lane, hold long ones"
+
+msgid "Раздуй"
+msgstr "Inflate"
+
+msgid "Запомни кольцо, держи A, отпусти у него"
+msgstr "Remember the ring, hold A, release at it"
+
+msgid "левая кнопка: держи и отпусти"
+msgstr "left button: hold and release"
+
+msgid "Выведи"
+msgstr "Guide"
+
+msgid "Выведи точку к выходу: движется то точка, то лабиринт. Двухцветный кружок меняет, что движется"
+msgstr "Guide the dot to the exit: either the dot or the maze moves. The two-color circle switches which"
+
+msgid "клик с той стороны от точки"
+msgstr "click on that side of the dot"
+
+msgid "Старт"
+msgstr "Start"
+
+msgid "Огни погасли: жми ␣, раньше фальстарт"
+msgstr "Lights out: press ␣. Earlier is a false start"
+
+msgid "клик"
+msgstr "click"
+
+msgid "Разгони"
+msgstr "Mash"
+
+msgid "Влево-вправо по очереди, как можно быстрее"
+msgstr "Left and right in turn, as fast as you can"
+
+msgid "левая и правая кнопка по очереди"
+msgstr "left and right button in turn"
+
+msgid "Бей"
+msgstr "Whack"
+
+msgid "Кружок выскочил: бей ← ↑ → ↓ в его сторону, пока не спрятался"
+msgstr "A circle pops up: hit ← ↑ → ↓ toward it before it hides"
+
+msgid "клик по лунке"
+msgstr "click the hole"
+
+msgid "Запомни"
+msgstr "Memorize"
+
+msgid "Открывай карточки парами"
+msgstr "Flip cards in pairs"
+
+msgid "клик по карточке"
+msgstr "click a card"
+
+msgid "Поправь"
+msgstr "Patch"
+
+msgid "Сдвинутый блок под курсором: стрелка ставит его на место"
+msgstr "Shifted block under the cursor: an arrow puts it back"
+
+msgid "клик выше или ниже ленты · колесо"
+msgstr "click above or below the strip · wheel"
+
+msgid "Натяни"
+msgstr "Pull"
+
+msgid "Держи ␣: полоса тянется по земле, отпусти, когда её конец в лунке; стрелка сносит шар"
+msgstr "Hold ␣: the bar stretches along the ground, release when its end is in the hole; arrows nudge the ball"
+
+msgid "держи кнопку мыши, отпусти"
+msgstr "hold the mouse button, release"
+
+msgid "Повтори"
+msgstr "Repeat"
+
+msgid "Запомни последовательность и повтори её"
+msgstr "Memorize the sequence and repeat it"
+
+msgid "клик по клавишам"
+msgstr "click the keys"
+
+msgid "Выстрой"
+msgstr "Align"
+
+msgid "␣ останавливает светящееся кольцо: поставь вырез под стрелку, снаружи внутрь; мимо, и замок заново"
+msgstr "␣ stops the glowing ring: put its notch under the arrow, outside in. Miss and the lock resets"
+
+msgid "Прыгай"
+msgstr "Jump"
+
+msgid "A прыжок через ямы и столбики, держи дольше: выше"
+msgstr "A jumps over pits and posts, hold longer: higher"
+
+msgid "клик прыжок, держи: выше"
+msgstr "click: jump, hold: higher"
+
+msgid "Найди отличие"
+msgstr "Spot it"
+
+msgid "Стрелки ведут рамку по правой картинке, ␣ отмечает клетку, которая отличается"
+msgstr "Arrows move the frame over the right picture, ␣ marks the cell that differs"
+
+msgid "наведи на клетку и кликни"
+msgstr "hover over a cell and click"
+
+msgid "Поставь"
+msgstr "Stack"
+
+msgid "A роняет блок на башню, свес отрезается"
+msgstr "A drops the block on the tower, the overhang is cut off"
+
+msgid "клик роняет блок"
+msgstr "click drops the block"
+
+msgid "Настрой волну"
+msgstr "Tune"
+
+msgid "← → частота, ↑ ↓ амплитуда: совмести волны"
+msgstr "← → frequency, ↑ ↓ amplitude: match the waves"
+
+msgid "веди с зажатой кнопкой · колесо амплитуда"
+msgstr "drag with the button held · wheel: amplitude"
+
+# --- scripts/minigames: drawn captions ---
+msgid " и "
+msgstr " and "
+
+msgid "чётное"
+msgstr "even"
+
+msgid "нечётное"
+msgstr "odd"
+
+msgid "держи"
+msgstr "hold"
+
+msgid "отпусти"
+msgstr "release"
+
+msgid "двигается точка"
+msgstr "dot moves"
+
+msgid "двигается лабиринт"
+msgstr "maze moves"
+
+msgid "фальстарт"
+msgstr "false start"
+
+msgid " мс"
+msgstr " ms"
+
+msgid "%s\n\nзаглушка мини-игры: A успех, B провал"
+msgstr "%s\n\nminigame placeholder: A success, B fail"
+
+msgid "частота ← →   амплитуда ↑ ↓"
+msgstr "frequency ← →   amplitude ↑ ↓"

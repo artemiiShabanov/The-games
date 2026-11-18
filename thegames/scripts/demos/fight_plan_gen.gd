@@ -74,28 +74,28 @@ static func _build(rng: RandomNumberGenerator, t: FightGenTuning, round_seconds:
 ## Пустая строка, если план годится, иначе причина.
 static func validate(plan: FightPlan, t: FightGenTuning, round_seconds := 60.0) -> String:
 	if plan.total_seconds() < round_seconds:
-		return "фазы покрывают %.0f с из %.0f" % [plan.total_seconds(), round_seconds]
+		return "фазы покрывают %.0f с из %.0f" % [plan.total_seconds(), round_seconds]  # i18n: skip
 	var seen := {}
 	for i in plan.phases.size():
 		var ph := plan.phases[i]
 		if ph.profile < 0 or ph.profile >= t.profiles.size():
-			return "профиль %d вне каталога" % ph.profile
+			return "профиль %d вне каталога" % ph.profile  # i18n: skip
 		if not plan.fallback and i > 0 and ph.profile == plan.phases[i - 1].profile:
-			return "фазы %d и %d одного профиля" % [i - 1, i]
+			return "фазы %d и %d одного профиля" % [i - 1, i]  # i18n: skip
 		if ph.seconds < t.phase_min or ph.seconds > t.phase_max:
-			return "фаза %d длиной %.0f с" % [i, ph.seconds]
+			return "фаза %d длиной %.0f с" % [i, ph.seconds]  # i18n: skip
 		if ph.pattern.length() < t.pattern_min or ph.pattern.length() > t.pattern_max:
-			return "паттерн фазы %d «%s»" % [i, ph.pattern]
+			return "паттерн фазы %d «%s»" % [i, ph.pattern]  # i18n: skip
 		for ch in ph.pattern:
 			if ch != "H" and ch != "L":
-				return "знак «%s» в паттерне фазы %d" % [ch, i]
+				return "знак «%s» в паттерне фазы %d" % [ch, i]  # i18n: skip
 		seen[ph.profile] = true
 	if seen.size() < mini(t.distinct_min, t.profiles.size()):
-		return "разных профилей %d" % seen.size()
+		return "разных профилей %d" % seen.size()  # i18n: skip
 	if plan.reaction < t.reaction_min or plan.reaction > t.reaction_max:
-		return "реакция %d" % plan.reaction
+		return "реакция %d" % plan.reaction  # i18n: skip
 	if plan.miss < t.miss_min - 0.005 or plan.miss > t.miss_max + 0.005:
-		return "промах %.2f" % plan.miss
+		return "промах %.2f" % plan.miss  # i18n: skip
 	if plan.props.size() != 2 or signf(plan.props[0].x) == signf(plan.props[1].x):
-		return "пропы не у разных бортов"
+		return "пропы не у разных бортов"  # i18n: skip
 	return ""

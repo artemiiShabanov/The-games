@@ -56,5 +56,5 @@ func describe(gen: FightGenTuning) -> String:
 	var parts: PackedStringArray = []
 	for p in phases:
 		var title := gen.profiles[p.profile].title if p.profile < gen.profiles.size() else str(p.profile)
-		parts.append("%s %.0f с %s" % [title, p.seconds, p.pattern])
+		parts.append("%s %.0f с %s" % [title, p.seconds, p.pattern])  # i18n: skip
 	return " → ".join(parts)

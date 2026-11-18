@@ -135,19 +135,19 @@ static func _rivals(tr: RoadTrack, rng: RandomNumberGenerator, t: RacingBit16Gen
 ## Проверка трассы; пустая строка, если всё в порядке.
 static func validate(tr: RoadTrack, t: RacingBit16GenTuning) -> String:
 	if tr.finish < t.length:
-		return "финиш на сегменте %d раньше длины %d" % [tr.finish, t.length]
+		return "финиш на сегменте %d раньше длины %d" % [tr.finish, t.length]  # i18n: skip
 	for i in tr.count():
 		if absf(tr.curve[i]) > t.curve_hard + 0.01:
-			return "изгиб %.1f на сегменте %d" % [tr.curve[i], i]
+			return "изгиб %.1f на сегменте %d" % [tr.curve[i], i]  # i18n: skip
 	for i in range(1, tr.count()):
 		if absf(tr.y[i] - tr.y[i - 1]) > RoadTrack.SEG * 0.6:
-			return "уклон на сегменте %d круче 0,6" % i
+			return "уклон на сегменте %d круче 0,6" % i  # i18n: skip
 	for p in tr.props:
 		if absf(p.y) < 1.15:
-			return "проп на дороге у сегмента %d" % int(p.x)
+			return "проп на дороге у сегмента %d" % int(p.x)  # i18n: skip
 	for c in tr.coins:
 		if absf(c.x) > 0.9 or c.y > tr.finish_z():
-			return "монета вне дороги у %d" % int(c.y)
+			return "монета вне дороги у %d" % int(c.y)  # i18n: skip
 	if tr.rivals.size() != t.rivals:
-		return "соперников %d" % tr.rivals.size()
+		return "соперников %d" % tr.rivals.size()  # i18n: skip
 	return ""

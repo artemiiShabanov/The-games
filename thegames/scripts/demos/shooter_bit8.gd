@@ -261,16 +261,16 @@ func _on_end(goal_: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "отбился" if goal else "не отбился"
+	return Lang.t("отбился") if goal else Lang.t("не отбился")
 
 
 func _result_caption() -> String:
 	var t := int(round(fight_time))
 	if kills >= goal:
-		return "уничтожено %d · жизней %d из %d · %d с" % [kills, hp, tuning.hero_hp, t]
+		return Lang.t("уничтожено %d · жизней %d из %d · %d с") % [kills, hp, tuning.hero_hp, t]
 	if hp <= 0:
-		return "уничтожено %d из %d · %d с" % [kills, goal, t]
-	return "уничтожено %d из %d · время вышло" % [kills, goal]
+		return Lang.t("уничтожено %d из %d · %d с") % [kills, goal, t]
+	return Lang.t("уничтожено %d из %d · время вышло") % [kills, goal]
 
 
 # --- Ввод ------------------------------------------------------------------------------------
@@ -316,7 +316,7 @@ func _perf_text() -> String:
 	var parts: PackedStringArray = []
 	for key: String in _perf:
 		var v: Vector3i = _perf[key]
-		parts.append("%s %.0f/%d мкс" % [key, float(v.x) / maxi(v.z, 1), v.y])
+		parts.append("%s %.0f/%d мкс" % [key, float(v.x) / maxi(v.z, 1), v.y])  # i18n: skip
 	return ", ".join(parts)
 
 
@@ -1002,4 +1002,4 @@ func _draw_heart(pos: Vector2, full: bool, cell := 2.0) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "выстрел"], [GameInput.key(GameInput.B), "держать: целиться стоя"]]
+	return [["← → ↑ ↓", Lang.t("ход")], [GameInput.key(GameInput.A), Lang.t("выстрел")], [GameInput.key(GameInput.B), Lang.t("держать: целиться стоя")]]

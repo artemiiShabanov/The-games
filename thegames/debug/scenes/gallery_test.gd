@@ -35,7 +35,10 @@ func _ready() -> void:
 			_checks = true
 			Debug.skip_cards = true
 			AutoTest.require("gallery checks")
-	_open([] if empty else _entries())
+	var list: Array[GalleryEntry] = []
+	if not empty:
+		list = _entries()
+	_open(list)
 
 
 func _exit_tree() -> void:

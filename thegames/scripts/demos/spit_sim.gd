@@ -246,7 +246,7 @@ func _collect() -> void:
 
 
 func _hurt(why: StringName) -> void:
-	hurt_log.append("%s на %.1f с, %s" % [why, time, describe_near()])
+	hurt_log.append("%s на %.1f с, %s" % [why, time, describe_near()])  # i18n: skip
 	hits += 1
 	lives -= 1
 	events.append([&"hurt", why, pos])
@@ -276,7 +276,7 @@ func progress() -> float:
 func describe_near() -> String:
 	var p := level.pieces[piece]
 	var q := p.local(pos)
-	return "кусок %d (%s), s %.1f из %.0f, u %+.1f" % [piece, SpitLevel.Kind.keys()[p.kind], q.x, p.length, q.y]
+	return "кусок %d (%s), s %.1f из %.0f, u %+.1f" % [piece, SpitLevel.Kind.keys()[p.kind], q.x, p.length, q.y]  # i18n: skip
 
 
 # --- Боты ------------------------------------------------------------------------------------

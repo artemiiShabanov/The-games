@@ -331,7 +331,7 @@ func _on_event(ev: Array) -> void:
 			elif kind == &"foe":
 				_burst(at, 3, WHITE, 0.28, 1.8)
 		&"through":
-			_shout = "НАСКВОЗЬ"
+			_shout = Lang.t("НАСКВОЗЬ")
 			_shout_left = 0.6
 		&"kill":
 			_play("kill")
@@ -345,7 +345,7 @@ func _on_event(ev: Array) -> void:
 			_play("hurt")
 			_hurt = 0.6
 			_shake = 1.0
-			_shout = "ПЛЕННЫЙ!"
+			_shout = Lang.t("ПЛЕННЫЙ!")
 			_shout_left = 1.2
 		&"fire":
 			_play("fire")
@@ -389,7 +389,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "убито %d из %d · точность %d%% · жизней %d" % [sim.kills, level.hostiles(), int(round(100.0 * sim.hits / maxf(sim.shots, 1.0))),
+	return Lang.t("убито %d из %d · точность %d%% · жизней %d") % [sim.kills, level.hostiles(), int(round(100.0 * sim.hits / maxf(sim.shots, 1.0))),
 			maxi(sim.lives, 0)]
 
 
@@ -596,7 +596,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		canvas.draw_rect(load.grow(1.0), dark)
 		canvas.draw_rect(Rect2(load.position, Vector2(roundf(load.size.x * (1.0 - sim.reload_left / tuning.reload)), load.size.y)), white)
 	elif sim.ammo <= 0 and int(_time * 6.0) % 2 == 0:
-		var text := "ПУСТО"
+		var text := Lang.t("ПУСТО")
 		PixelFont16.draw(canvas, Vector2(view.x - 12.0 - PixelFont16.width(text, 1.0), view.y - 44.0), text, white, red, dark, 1.0)
 	# Отсчёт и окрик.
 	if sim.phase == RailSim.Phase.COUNTDOWN:
@@ -610,4 +610,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "прицел"], [GameInput.key(GameInput.A), "выстрел"], [GameInput.key(GameInput.B), "перезарядка"]]
+	return [["← → ↑ ↓", Lang.t("прицел")], [GameInput.key(GameInput.A), Lang.t("выстрел")], [GameInput.key(GameInput.B), Lang.t("перезарядка")]]

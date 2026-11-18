@@ -131,7 +131,7 @@ func _done(what: String) -> void:
 	if feed != null:
 		feed.queue_free()
 		feed = null
-	_label.text = "Нажали: %s\n%s\n\nA снова, F1 меню" % [what, record.score]
+	_label.text = ("Pressed: %s\n%s\n\nA again, F1 menu" if Lang.english() else "Нажали: %s\n%s\n\nA снова, F1 меню") % [tr(what), record.score]
 	_label.visible = true
 
 
@@ -159,7 +159,8 @@ func _run_checks() -> void:
 	_expect(counts[K.TWEET] == 4 and counts[K.CRITIC] == 3 and counts[K.CLIP] == 1 and counts[K.NUMBERS] == 1
 			and content.items[-1].kind == K.NUMBERS and content.items[0].kind != K.CLIP, "состав ленты %s" % [counts])
 	_expect(content.views > 0 and content.views % 100 == 0 and content.online > 0, "просмотры %d, онлайн %d" % [content.views, content.online])
-	_expect(FeedContent.format_count(1234567) == "1,2 млн" and FeedContent.format_count(140400) == "140 тыс." and FeedContent.format_count(640) == "640",
+	var count_fmt := ["1.2M", "140K"] if Lang.english() else ["1,2 млн", "140 тыс."]
+	_expect(FeedContent.format_count(1234567) == count_fmt[0] and FeedContent.format_count(140400) == count_fmt[1] and FeedContent.format_count(640) == "640",
 			"формат просмотров")
 	var tag := Feed.hashtag(str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])))
 	_expect(content.tag == tag, "хэштег %s" % content.tag)
@@ -182,7 +183,8 @@ func _run_checks() -> void:
 	# У векторных и 16/32-демок строки под пару «жанр × технология» (#103).
 	var want_stamp := Feed.clip_bug(record, catalog).stamp_for(genre, record.tech, record.setting)
 	_expect(record.tech != Game.Tech.BIT8 or genre != Game.Genre.PLATFORMER or want_stamp == "ПРЫЖОК ×3", "штамп платформера 8-bit %s" % want_stamp)
-	_expect(clip != null and clip.stamp == want_stamp, "штамп клипа %s, ждали %s" % [clip.stamp if clip else "", want_stamp])
+	# Под английским штамп переведён (шаблон до подстановки слов сеттинга), сверка только по-русски.
+	_expect(clip != null and (Lang.english() or clip.stamp == want_stamp), "штамп клипа %s, ждали %s" % [clip.stamp if clip else "", want_stamp])
 	_expect(genre not in [Game.Genre.RACING, Game.Genre.SHOOTER, Game.Genre.SPORT, Game.Genre.FIGHTING] or want_stamp != "ПРЫЖОК ×3", "штамп платформера в клипе жанра %d" % genre)
 	for item in content.items:
 		if item.kind == K.TWEET:
@@ -203,7 +205,7 @@ func _run_checks() -> void:
 	var vet := Feed.build(clean, clean.score, critics, streamers, texts, tuning, catalog, rng, 0.0, true, "Тихая Лампа")
 	var vet_lines := 0
 	for item in vet.items:
-		if item.kind == FeedContent.Kind.CRITIC and item.text.find("ветеран") >= 0:
+		if item.kind == FeedContent.Kind.CRITIC and item.text.find("veteran" if Lang.english() else "ветеран") >= 0:
 			vet_lines += 1
 			_expect(item.text.find("{studio}") < 0, "подстановка студии: %s" % item.text)
 	_expect(vet.veteran and vet_lines == 1, "ветеран у одного критика: %d" % vet_lines)

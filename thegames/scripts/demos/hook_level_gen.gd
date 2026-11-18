@@ -225,47 +225,47 @@ static func validate(level: HookLevel, t: PlatformerThreedGenTuning = null, rule
 	if rules == null:
 		rules = PlatformerThreedTuning.load_default()
 	if level.gaps.size() < 12 or level.islets.size() != level.gaps.size() + 1:
-		return "пропастей %d" % level.gaps.size()
+		return "пропастей %d" % level.gaps.size()  # i18n: skip
 	if level.gaps[0].kind != HookLevel.Kind.JUMP:
-		return "первая пропасть не простой прыжок"
+		return "первая пропасть не простой прыжок"  # i18n: skip
 	for g in level.gaps.size():
 		var ids := level.rings_of(g)
 		if (level.gaps[g].kind == HookLevel.Kind.RINGS) != (not ids.is_empty()):
-			return "пропасть %d: вид и кольца не сходятся" % g
+			return "пропасть %d: вид и кольца не сходятся" % g  # i18n: skip
 		# Соседние кольца цепочки достаются одной верёвкой с запасом.
 		for k in range(1, ids.size()):
 			if level.rings[ids[k - 1]].pos.distance_to(level.rings[ids[k]].pos) > rules.rope_max * 1.6:
-				return "кольца %d и %d слишком далеко" % [ids[k - 1], ids[k]]
+				return "кольца %d и %d слишком далеко" % [ids[k - 1], ids[k]]  # i18n: skip
 		if level.gaps[g].kind == HookLevel.Kind.CLIMB:
 			var rise := level.gaps[g].b.y - level.gaps[g].a.y
 			if rise > rules.climb_reach + rules.jump_speed * rules.jump_speed / (2.0 * rules.gravity) - 0.5:
-				return "уступ %d слишком высок" % g
+				return "уступ %d слишком высок" % g  # i18n: skip
 	# Острова не налезают друг на друга, кольца не висят над чужим островом.
 	for i in level.islets.size():
 		for j in range(i + 2, level.islets.size()):
 			var a := level.islets[i]
 			var b := level.islets[j]
 			if Vector2(a.pos.x - b.pos.x, a.pos.z - b.pos.z).length() < a.radius + b.radius + 4.0:
-				return "острова %d и %d слишком близко" % [i, j]
+				return "острова %d и %d слишком близко" % [i, j]  # i18n: skip
 	for r in level.rings:
 		for i in level.islets.size():
 			if i == r.gap or i == r.gap + 1:
 				continue
 			var it := level.islets[i]
 			if Vector2(it.pos.x - r.pos.x, it.pos.z - r.pos.z).length() < it.radius + 3.0:
-				return "кольцо над островом %d" % i
+				return "кольцо над островом %d" % i  # i18n: skip
 	if level.count(HookLevel.Kind.RINGS) * 2 < level.gaps.size() - 2:
-		return "мало пропастей с кольцами"
+		return "мало пропастей с кольцами"  # i18n: skip
 	if level.count(HookLevel.Kind.CLIMB) < 2:
-		return "мало уступов"
+		return "мало уступов"  # i18n: skip
 	if level.longest_chain() < 3:
-		return "нет цепочки из трёх колец"
+		return "нет цепочки из трёх колец"  # i18n: skip
 	if level.moving() < 1:
-		return "нет движущихся колец"
+		return "нет движущихся колец"  # i18n: skip
 	if level.pumps() < 2:
-		return "мало пропастей с раскачкой"
+		return "мало пропастей с раскачкой"  # i18n: skip
 	if level.small() < 2:
-		return "нет секции камней"
+		return "нет секции камней"  # i18n: skip
 	if level.props.size() < 6:
-		return "мало реквизита"
+		return "мало реквизита"  # i18n: skip
 	return ""

@@ -375,7 +375,7 @@ func _draw_reaction(housing: Rect2) -> void:
 	var y := housing.end.y + 112.0
 	var font := get_theme_default_font()
 	if outcomes[k] == Outcome.FALSE_START:
-		_draw_centered(font, "фальстарт", Style.FONT_H1, Style.DANGER, y)
+		_draw_centered(font, tr("фальстарт"), Style.FONT_H1, Style.DANGER, y)
 		return
 	var col := Style.SUCCESS if outcomes[k] == Outcome.OK else Style.INK_3
 	if reactions[k] < 0.0:
@@ -384,7 +384,7 @@ func _draw_reaction(housing: Rect2) -> void:
 	# Число моноширинным, «мс» основным шрифтом (в Menlo кириллица чужая).
 	var mono := Style.mono_font()
 	var num := str(roundi(reactions[k] * 1000.0))
-	var unit := " мс"
+	var unit := tr(" мс")
 	var nw := mono.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, NUMBER_SIZE).x
 	var uw := font.get_string_size(unit, HORIZONTAL_ALIGNMENT_LEFT, -1, UNIT_SIZE).x
 	var x := size.x / 2.0 - (nw + uw) / 2.0

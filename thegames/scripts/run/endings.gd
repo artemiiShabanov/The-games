@@ -24,7 +24,7 @@ class Result:
 	var studio := ""
 
 	func title() -> String:
-		return NAMES[id]
+		return Lang.t(NAMES[id])
 
 	## Оценка крупно: деньги у продажи и корпорации, очки у легенды, пусто у банкротства.
 	func score_text() -> String:
@@ -38,15 +38,15 @@ class Result:
 	func caption() -> String:
 		match id:
 			Id.SALE:
-				return "Студия продана"
+				return Lang.t("Студия продана")
 			Id.CORPORATION:
-				return "Студия стала корпорацией"
+				return Lang.t("Студия стала корпорацией")
 			Id.LEGEND:
-				return "Студия закрыта на пике"
-		return "Денег не осталось"
+				return Lang.t("Студия закрыта на пике")
+		return Lang.t("Денег не осталось")
 
 	func _to_string() -> String:
-		return "%s %d, релизов %d, лучшие %s" % [title(), score, releases, top.map(func(r: GameRecord) -> String: return r.title)]
+		return "%s %d, релизов %d, лучшие %s" % [title(), score, releases, top.map(func(r: GameRecord) -> String: return r.title)]  # i18n: skip
 
 
 static func from_key(key: StringName) -> Id:
@@ -103,24 +103,24 @@ static func year_offer(records: Array[GameRecord], stats: RunStats, flags: Dicti
 		who: CharacterDef, studio: String) -> Events.Offer:
 	var def := EventDef.new()
 	def.id = &"year_summary"
-	def.title = "Итоги года"
+	def.title = Lang.t("Итоги года")
 	def.kind = EventDef.Kind.ENDING
 	def.character = who
 	var o := Events.Offer.new()
 	o.def = def
 	o.character = who
-	o.line = "Год закончился, пишу итоги для журнала. Чем студия «%s» его закрывает? Покупатель ждёт ответа, а молчание он тоже примет за «да»." % studio
+	o.line = Lang.t("Год закончился, пишу итоги для журнала. Чем студия «%s» его закрывает? Покупатель ждёт ответа, а молчание он тоже примет за «да».") % studio
 	var texts := {Id.SALE: "Продать студию", Id.CORPORATION: "Стать корпорацией", Id.LEGEND: "Закрыться легендой"}
 	for id in available(records, t):
 		var res := compute(id, records, stats, flags)
 		var c := Events.Choice.new()
-		c.text = texts[id]
+		c.text = Lang.t(texts[id])
 		var e := Events.Effect.new()
 		e.kind = EffectDef.Kind.ENDING
 		e.id = KEYS[id]
 		c.effects.append(e)
-		var label := "оценка " + res.score_text() if id == Id.SALE else ("оборот " + res.score_text() if id == Id.CORPORATION else "%s очков" % res.score_text())
-		c.pills.append(Events.Pill.of("концовка", Events.Tone.ENDING))
+		var label := Lang.t("оценка %s") % res.score_text() if id == Id.SALE else (Lang.t("оборот %s") % res.score_text() if id == Id.CORPORATION else Lang.t("%s очков") % res.score_text())
+		c.pills.append(Events.Pill.of(Lang.t("концовка"), Events.Tone.ENDING))
 		c.pills.append(Events.Pill.of(label, Events.Tone.PLUS))
 		o.choices.append(c)
 	return o

@@ -6,11 +6,11 @@ extends Resource
 
 const PATH := "res://resources/studio_backdrop.tres"
 
-@export_group("Вид")
+@export_group("Вид")  # i18n: skip
 ## Доли смешения фона с `studio-ink`: линия, средний тон, светлый тон.
 @export var tones := Vector3(0.42, 0.2, 0.08)
 
-@export_group("Человечки")
+@export_group("Человечки")  # i18n: skip
 ## Рубашки, кожа, волосы: облик каждого выбирается по месту без случайности. Цвета приглушаются
 ## к фону на `people_mix`, чтобы под оболочкой оставались тихими.
 @export var shirts := PackedColorArray([Color("#5E7FC2"), Color("#6FA581"), Color("#C9775A"),
@@ -24,7 +24,7 @@ const PATH := "res://resources/studio_backdrop.tres"
 @export var pants_tone := 0.55
 @export var eyes_tone := 0.95
 
-@export_group("Движение")
+@export_group("Движение")  # i18n: skip
 ## Скорость ходьбы, пикселей арта в секунду.
 @export var walk_speed := 16.0
 ## Смена кадра шага, секунды.
@@ -35,7 +35,7 @@ const PATH := "res://resources/studio_backdrop.tres"
 ## Мигание экрана у печатающего, секунды.
 @export var screen_seconds := 0.7
 
-@export_group("Занятия")
+@export_group("Занятия")  # i18n: skip
 ## Сколько длится печать перед следующим выбором, секунды (спека: 5-20).
 @export var type_min := 5.0
 @export var type_max := 20.0
@@ -59,7 +59,7 @@ const PATH := "res://resources/studio_backdrop.tres"
 ## Менеджер стоит у стола, секунды.
 @export var manager_stop_seconds := 2.5
 
-@export_group("Мышь")
+@export_group("Мышь")  # i18n: skip
 ## Взятый человечек поднимается над своей тенью на столько пикселей арта за `lift_seconds`.
 @export var lift_height := 6.0
 @export var lift_seconds := 0.08
@@ -77,7 +77,7 @@ const PATH := "res://resources/studio_backdrop.tres"
 @export var clock_spin_hours := 3.0
 @export var clock_spin_seconds := 0.8
 
-@export_group("День и ночь")
+@export_group("День и ночь")  # i18n: skip
 ## Полные сутки за окнами, секунды (плейтест 2026-11-11: около пяти минут). Начинаются с
 ## `start_hour`; время идёт от часов самой студии, без случайности.
 @export var day_seconds := 300.0
@@ -115,7 +115,7 @@ const PATH := "res://resources/studio_backdrop.tres"
 ## Ночью мониторы, лампы и телевизор светятся: прозрачность света поверх оттенка ночи.
 @export var glow_alpha := 0.5
 
-@export_group("Реакции")
+@export_group("Реакции")  # i18n: skip
 ## «Релиз» (машут) и «вирусно» (прыгают), секунды.
 @export var react_seconds := 2.0
 ## Высота прыжка, пикселей арта, и период.

@@ -112,29 +112,29 @@ static func _near_door(a: ShooterArena, c: Vector2i, gap: int) -> bool:
 ## Пустая строка, если арена годится, иначе причина.
 static func validate(a: ShooterArena, t: ShooterGenTuning) -> String:
 	if a.width != t.width or a.height != t.height or a.tiles.size() != a.width * a.height:
-		return "размер арены"
+		return "размер арены"  # i18n: skip
 	var start := a.start_cell()
 	if a.tile(start.x, start.y) != ShooterArena.Tile.FLOOR:
-		return "старт героя занят"
+		return "старт героя занят"  # i18n: skip
 	for p in a.props:
 		if _cheb(p.cell, start) <= t.clear_center:
-			return "проп у старта %s" % p.cell
+			return "проп у старта %s" % p.cell  # i18n: skip
 		if _near_door(a, p.cell, t.clear_door):
-			return "проп перед трапом %s" % p.cell
+			return "проп перед трапом %s" % p.cell  # i18n: skip
 	if not a.fallback and (a.props.size() < t.props_min or a.props.size() > t.props_max):
-		return "пропов %d" % a.props.size()
+		return "пропов %d" % a.props.size()  # i18n: skip
 	if a.doors.size() != 4:
-		return "трапов %d" % a.doors.size()
+		return "трапов %d" % a.doors.size()  # i18n: skip
 	var dist := a.distances(start)
 	for row in a.height:
 		for col in a.width:
 			var tt := a.tile(col, row)
 			if (tt == ShooterArena.Tile.FLOOR or tt == ShooterArena.Tile.DOOR) and dist[row * a.width + col] < 0:
-				return "клетка %d,%d отрезана" % [col, row]
+				return "клетка %d,%d отрезана" % [col, row]  # i18n: skip
 	for i in a.doors.size():
 		var inside := a.doors[i] + a.door_dirs[i]
 		if a.tile(inside.x, inside.y) != ShooterArena.Tile.FLOOR:
-			return "перед трапом %d не палуба" % i
+			return "перед трапом %d не палуба" % i  # i18n: skip
 	if a.total_enemies() < t.enemies_min_total:
-		return "врагов %d меньше %d" % [a.total_enemies(), t.enemies_min_total]
+		return "врагов %d меньше %d" % [a.total_enemies(), t.enemies_min_total]  # i18n: skip
 	return ""

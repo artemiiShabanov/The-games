@@ -60,7 +60,7 @@ func title() -> String:
 		GameConfig.Kind.SEQUEL:
 			return "%s %d" % [parent.franchise_title(), parent.part + 1]
 		GameConfig.Kind.REMAKE:
-			return "%s: ремейк" % parent.title
+			return Lang.t("%s: ремейк") % parent.title
 	return ""
 
 

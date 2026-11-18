@@ -1,0 +1,724 @@
+# Studio Running: английский перевод, часть «hub». Ключ (msgid) это русский текст.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- game.gd: аспекты, жанры, технологии, сеттинги ---
+msgid "оптимизация"
+msgstr "optimization"
+
+msgid "звук"
+msgstr "sound"
+
+msgid "управление"
+msgstr "controls"
+
+msgid "графика"
+msgstr "graphics"
+
+msgid "баланс"
+msgstr "balance"
+
+msgid "платформер"
+msgstr "platformer"
+
+msgid "гонки"
+msgstr "racing"
+
+msgid "шутер"
+msgstr "shooter"
+
+msgid "спорт"
+msgstr "sports"
+
+msgid "файтинг"
+msgstr "fighting"
+
+msgid "примитив"
+msgstr "primitive"
+
+msgid "ретро"
+msgstr "retro"
+
+msgid "продвинутые"
+msgstr "advanced"
+
+msgid "пираты"
+msgstr "pirates"
+
+msgid "космос"
+msgstr "space"
+
+msgid "замки"
+msgstr "castles"
+
+msgid "зомби"
+msgstr "zombies"
+
+msgid "супергерои"
+msgstr "superheroes"
+
+msgid "фэнтези"
+msgstr "fantasy"
+
+msgid "сладости"
+msgstr "sweets"
+
+msgid "ниндзя"
+msgstr "ninja"
+
+msgid "динозавры"
+msgstr "dinosaurs"
+
+msgid "офис"
+msgstr "office"
+
+# --- main.gd ---
+msgid "%s · релиз %d"
+msgstr "%s · Release %d"
+
+msgid "Проверка игры"
+msgstr "Game check"
+
+msgid "«%s» собрана."
+msgstr "“%s” is built."
+
+msgid "Список багов не показывается."
+msgstr "The bug list stays hidden."
+
+msgid "Багфикс · %s"
+msgstr "Bugfix · %s"
+
+msgid "Багфикс"
+msgstr "Bugfix"
+
+msgid "Успех. Багов стало меньше, если они были."
+msgstr "Success. Fewer bugs now, if there were any."
+
+msgid "Провал. Баги остались."
+msgstr "Failed. The bugs are still there."
+
+msgid "продать студию"
+msgstr "sell the studio"
+
+# --- run_tuning.gd, run.tres ---
+msgid "Зомби на платформах"
+msgstr "Zombie Platforms"
+
+# --- достижения ---
+msgid "Достижение «%s»"
+msgstr "Achievement: %s"
+
+msgid "Открыт сеттинг: %s. Действует во всех забегах."
+msgstr "Theme unlocked: %s. Applies to all runs."
+
+msgid "%s из %s"
+msgstr "%s of %s"
+
+msgid "часть %d из %d"
+msgstr "part %d of %d"
+
+msgid "%d из %d"
+msgstr "%d of %d"
+
+msgid "Первая игра"
+msgstr "First Game"
+
+msgid "Выпустить первую игру"
+msgstr "Release your first game"
+
+msgid "Три игры"
+msgstr "Three Games"
+
+msgid "Выпустить три игры за забег"
+msgstr "Release three games in one run"
+
+msgid "Пять технологий"
+msgstr "Five Techs"
+
+msgid "Игры на всех пяти технологиях за один забег"
+msgstr "Games on all five techs in one run"
+
+msgid "Без следа"
+msgstr "Spotless"
+
+msgid "Три релиза подряд без единого бага"
+msgstr "Three releases in a row without a single bug"
+
+msgid "Сладкая жизнь"
+msgstr "Sweet Life"
+
+msgid "Три релиза подряд окупились за первую неделю"
+msgstr "Three releases in a row paid off in their first week"
+
+msgid "Девять из десяти"
+msgstr "Nine Out of Ten"
+
+msgid "Все три критика поставили игре 9 и выше"
+msgstr "All three critics gave a game 9 or higher"
+
+msgid "Сокровище"
+msgstr "Treasure"
+
+msgid "На счету студии $200 000"
+msgstr "$200,000 in the studio account"
+
+msgid "Трилогия"
+msgstr "Trilogy"
+
+msgid "Выпустить третью часть одной франшизы"
+msgstr "Release the third game in one franchise"
+
+msgid "Корпорация"
+msgstr "Corporation"
+
+msgid "Закончить забег концовкой «Корпорация»"
+msgstr "End a run with the Corporation ending"
+
+# --- концовки ---
+msgid "Продажа"
+msgstr "Sale"
+
+msgid "Легенда"
+msgstr "Legend"
+
+msgid "Банкротство"
+msgstr "Bankruptcy"
+
+msgid "Студия продана"
+msgstr "The studio is sold"
+
+msgid "Студия стала корпорацией"
+msgstr "The studio became a corporation"
+
+msgid "Студия закрыта на пике"
+msgstr "The studio closed at its peak"
+
+msgid "Денег не осталось"
+msgstr "No money left"
+
+msgid "Итоги года"
+msgstr "Year in Review"
+
+msgid "Год закончился, пишу итоги для журнала. Чем студия «%s» его закрывает? Покупатель ждёт ответа, а молчание он тоже примет за «да»."
+msgstr "The year's over and I'm writing the wrap-up for the magazine. How does %s close it out? The buyer's waiting for an answer, and he'll take silence as a yes too."
+
+msgid "Продать студию"
+msgstr "Sell the studio"
+
+msgid "Стать корпорацией"
+msgstr "Become a corporation"
+
+msgid "Закрыться легендой"
+msgstr "Go out a legend"
+
+msgid "оценка %s"
+msgstr "valuation %s"
+
+msgid "оборот %s"
+msgstr "turnover %s"
+
+msgid "%s очков"
+msgstr "%s points"
+
+msgid "концовка"
+msgstr "ending"
+
+msgid "Конец забега"
+msgstr "End of Run"
+
+msgid "Концовка"
+msgstr "Ending"
+
+msgid "студия «%s»"
+msgstr "studio %s"
+
+msgid "В галерею"
+msgstr "To Gallery"
+
+msgid "в галерею"
+msgstr "to gallery"
+
+msgid "релизов"
+msgstr "releases"
+
+msgid "релиз"
+msgstr "release"
+
+msgid "релиза"
+msgstr "releases"
+
+# --- галерея ---
+msgid "Игры · %d"
+msgstr "Games · %d"
+
+msgid "Студии · %d"
+msgstr "Studios · %d"
+
+msgid "↑ ↓ выбрать"
+msgstr "↑ ↓ choose"
+
+msgid "← → вкладка"
+msgstr "← → tab"
+
+msgid "запустить"
+msgstr "launch"
+
+msgid "R сортировка"
+msgstr "R sort"
+
+msgid "Esc назад"
+msgstr "Esc back"
+
+msgid "по забегам"
+msgstr "by run"
+
+msgid "по критикам"
+msgstr "by critics"
+
+msgid "Игр нет. Выпущенные игры остаются здесь."
+msgstr "No games yet. Released games stay here."
+
+msgid "Студий нет."
+msgstr "No studios yet."
+
+msgid "вирусная"
+msgstr "viral"
+
+msgid "Забег %d · релиз %d%s"
+msgstr "Run %d · Release %d%s"
+
+msgid "Студия без названия"
+msgstr "Unnamed studio"
+
+msgid "Забег %d · релизов %d"
+msgstr "Run %d · %d releases"
+
+msgid " · критики в среднем %.1f"
+msgstr " · critics avg %.1f"
+
+msgid " · вирусных %d"
+msgstr " · %d viral"
+
+msgid "Лучшая: «%s», %.1f"
+msgstr "Best: “%s”, %.1f"
+
+msgid "оценка %d"
+msgstr "score %d"
+
+msgid "идёт"
+msgstr "in progress"
+
+msgid "не закончен"
+msgstr "unfinished"
+
+msgid "игр"
+msgstr "games"
+
+msgid "игра"
+msgstr "game"
+
+msgid "игры"
+msgstr "games"
+
+# --- новая студия ---
+msgid "Жанр"
+msgstr "Genre"
+
+msgid "Технология"
+msgstr "Tech"
+
+msgid "Жанр · выпал"
+msgstr "Genre · rolled"
+
+msgid "Технология · выпала"
+msgstr "Tech · rolled"
+
+msgid "Новая студия"
+msgstr "New Studio"
+
+msgid "R название и логотип"
+msgstr "R name and logo"
+
+msgid "основать студию"
+msgstr "found studio"
+
+msgid "R другое название и логотип"
+msgstr "R another name and logo"
+
+msgid "Бюджет"
+msgstr "Budget"
+
+msgid "Основать студию"
+msgstr "Found Studio"
+
+msgid "Выпадает…"
+msgstr "Rolling…"
+
+msgid "Студия"
+msgstr "Studio"
+
+# --- главный экран забега ---
+msgid "релиз %d"
+msgstr "release %d"
+
+msgid "Одну карточку можно купить до начала новой игры."
+msgstr "You can buy one card before starting a new game."
+
+msgid "Пока ни одной игры."
+msgstr "No games yet."
+
+msgid "Релиз %d · %s × %s × %s"
+msgstr "Release %d · %s × %s × %s"
+
+msgid "критики"
+msgstr "critics"
+
+msgid "Нанятый получает зарплату каждый релиз. Соискатель ждёт недолго."
+msgstr "Hires get a salary every release. Applicants don't wait long."
+
+msgid "%s\nЗарплата %s за релиз"
+msgstr "%s\nSalary %s per release"
+
+msgid "Ставка на оценку критиков. Угадано: +%s. Не угадано: 0."
+msgstr "Bet on the critics' score. Won: +%s. Lost: 0."
+
+msgid "ниже %s"
+msgstr "below %s"
+
+msgid "от %s до %s"
+msgstr "%s to %s"
+
+msgid "от %s и выше"
+msgstr "%s and up"
+
+msgid "Штат · %d"
+msgstr "Staff · %d"
+
+msgid "Соискатели · %d"
+msgstr "Applicants · %d"
+
+msgid "Сеттинги · %d из %d"
+msgstr "Themes · %d of %d"
+
+msgid "Новая игра"
+msgstr "New Game"
+
+msgid "Показать всё"
+msgstr "Show All"
+
+msgid "нажать"
+msgstr "press"
+
+msgid "Esc пауза"
+msgstr "Esc pause"
+
+msgid "Ставка сделана"
+msgstr "Bet placed"
+
+msgid "Ставка угадана"
+msgstr "Bet won"
+
+msgid "Ставка не угадана"
+msgstr "Bet lost"
+
+msgid "Ставка: %s. Оценка: %s"
+msgstr "Bet: %s. Score: %s"
+
+msgid "Твиты · %s"
+msgstr "Posts · %s"
+
+msgid "Стрим · %s"
+msgstr "Stream · %s"
+
+msgid "%s онлайн · вирусный"
+msgstr "%s watching · viral"
+
+msgid "%s онлайн"
+msgstr "%s watching"
+
+msgid "Критики · рецензии вышли"
+msgstr "Critics · reviews are out"
+
+msgid "Открыть оценки"
+msgstr "See scores"
+
+msgid "Играть"
+msgstr "Play"
+
+msgid "Отклик"
+msgstr "Reaction"
+
+msgid "Стрим"
+msgstr "Stream"
+
+msgid "Закрыть"
+msgstr "Close"
+
+msgid "Ставка"
+msgstr "Bet"
+
+msgid "Твиты"
+msgstr "Posts"
+
+msgid "Критики"
+msgstr "Critics"
+
+msgid "Первая неделя"
+msgstr "First week"
+
+msgid "Низкая"
+msgstr "Low"
+
+msgid "Средняя"
+msgstr "Medium"
+
+msgid "Высокая"
+msgstr "High"
+
+msgid "низкая"
+msgstr "low"
+
+msgid "средняя"
+msgstr "medium"
+
+msgid "высокая"
+msgstr "high"
+
+msgid "Разработка"
+msgstr "Development"
+
+msgid "Продажи прошлых игр"
+msgstr "Back catalog sales"
+
+msgid "Доли по договорам"
+msgstr "Contract shares"
+
+msgid "Содержание"
+msgstr "Upkeep"
+
+msgid "Улучшения"
+msgstr "Upgrades"
+
+msgid "Вставка"
+msgstr "Event"
+
+msgid "Ставка на критиков"
+msgstr "Critics bet"
+
+msgid "Аванс издателя"
+msgstr "Publisher advance"
+
+msgid "Наём"
+msgstr "Hiring"
+
+msgid "Деньги"
+msgstr "Money"
+
+msgid "Штат"
+msgstr "Staff"
+
+msgid "Соискатели"
+msgstr "Applicants"
+
+msgid "Оценка критиков"
+msgstr "Critics' score"
+
+msgid "Игры студии"
+msgstr "Studio games"
+
+msgid "Расходов ещё не было."
+msgstr "No expenses yet."
+
+msgid "В штате никого. Люди нанимаются с доски соискателей."
+msgstr "No staff yet. Hire people from the applicants board."
+
+msgid "%s за релиз"
+msgstr "%s per release"
+
+msgid "Жанры и технологии"
+msgstr "Genres and techs"
+
+msgid "Жанр или технология"
+msgstr "Genre or tech"
+
+msgid "Итоги релиза"
+msgstr "Release Results"
+
+# --- сеттинги ---
+msgid "Открыт со старта"
+msgstr "Open from the start"
+
+msgid "Открыт в этом забеге со старта"
+msgstr "Open from the start of this run"
+
+msgid "Скоро"
+msgstr "Coming soon"
+
+msgid "Открыт · достижение «%s»"
+msgstr "Unlocked · achievement “%s”"
+
+msgid "Куплен на этот забег"
+msgstr "Bought for this run"
+
+msgid "Сейчас: %s"
+msgstr "Now: %s"
+
+msgid "Открыто %d из %d. Достижение открывает сеттинг во всех забегах."
+msgstr "%d of %d open. An achievement unlocks a theme for all runs."
+
+# --- рынок и стримеры (success) ---
+msgid "надоело"
+msgstr "overdone"
+
+msgid "недавно было"
+msgstr "done recently"
+
+msgid "вирусно"
+msgstr "viral"
+
+msgid "заметили"
+msgstr "noticed"
+
+msgid "тихо"
+msgstr "quiet"
+
+# --- названия студий (studio_names.tres): слово целиком, без родов ---
+msgid "Ленивый|Ленивая|Ленивое"
+msgstr "Lazy"
+
+msgid "Сонный|Сонная|Сонное"
+msgstr "Sleepy"
+
+msgid "Бодрый|Бодрая|Бодрое"
+msgstr "Perky"
+
+msgid "Хитрый|Хитрая|Хитрое"
+msgstr "Sly"
+
+msgid "Квадратный|Квадратная|Квадратное"
+msgstr "Square"
+
+msgid "Пиксельный|Пиксельная|Пиксельное"
+msgstr "Pixel"
+
+msgid "Тихий|Тихая|Тихое"
+msgstr "Quiet"
+
+msgid "Громкий|Громкая|Громкое"
+msgstr "Loud"
+
+msgid "Ржавый|Ржавая|Ржавое"
+msgstr "Rusty"
+
+msgid "Медленный|Медленная|Медленное"
+msgstr "Slow"
+
+msgid "Кривой|Кривая|Кривое"
+msgstr "Wonky"
+
+msgid "Весёлый|Весёлая|Весёлое"
+msgstr "Jolly"
+
+msgid "Северный|Северная|Северное"
+msgstr "Northern"
+
+msgid "Последний|Последняя|Последнее"
+msgstr "Last"
+
+msgid "Карманный|Карманная|Карманное"
+msgstr "Pocket"
+
+msgid "Жёлтый|Жёлтая|Жёлтое"
+msgstr "Yellow"
+
+msgid "Бешеный|Бешеная|Бешеное"
+msgstr "Rabid"
+
+msgid "Добрый|Добрая|Доброе"
+msgstr "Kindly"
+
+msgid "Упрямый|Упрямая|Упрямое"
+msgstr "Stubborn"
+
+msgid "Ночной|Ночная|Ночное"
+msgstr "Midnight"
+
+msgid "Енот:m"
+msgstr "Raccoon"
+
+msgid "Барсук:m"
+msgstr "Badger"
+
+msgid "Кран:m"
+msgstr "Faucet"
+
+msgid "Чайник:m"
+msgstr "Kettle"
+
+msgid "Кот:m"
+msgstr "Cat"
+
+msgid "Утюг:m"
+msgstr "Iron"
+
+msgid "Пингвин:m"
+msgstr "Penguin"
+
+msgid "Кактус:m"
+msgstr "Cactus"
+
+msgid "Батон:m"
+msgstr "Loaf"
+
+msgid "Тапок:m"
+msgstr "Slipper"
+
+msgid "Мамонт:m"
+msgstr "Mammoth"
+
+msgid "Пельмень:m"
+msgstr "Dumpling"
+
+msgid "Утка:f"
+msgstr "Duck"
+
+msgid "Сова:f"
+msgstr "Owl"
+
+msgid "Белка:f"
+msgstr "Squirrel"
+
+msgid "Табуретка:f"
+msgstr "Stool"
+
+msgid "Ракета:f"
+msgstr "Rocket"
+
+msgid "Лампа:f"
+msgstr "Lamp"
+
+msgid "Капуста:f"
+msgstr "Cabbage"
+
+msgid "Черепаха:f"
+msgstr "Turtle"
+
+msgid "Облако:n"
+msgstr "Cloud"
+
+msgid "Ведро:n"
+msgstr "Bucket"
+
+msgid "Яблоко:n"
+msgstr "Apple"
+
+msgid "Пианино:n"
+msgstr "Piano"
+
+msgid "Окно:n"
+msgstr "Window"

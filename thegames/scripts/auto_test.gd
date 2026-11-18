@@ -136,6 +136,8 @@ func _finish() -> void:
 			fail("screenshot: " + error_string(err))
 		else:
 			print("AUTO-TEST screenshot: " + Screenshot.absolute(screenshot_path))
+	if Lang.english():
+		_russian_on_screen()
 	if failures.is_empty():
 		print("END ok")
 	else:
@@ -232,3 +234,19 @@ static func parse_args(list: PackedStringArray) -> Dictionary:
 		else:
 			out[arg.substr(0, eq)] = arg.substr(eq + 1)
 	return out
+
+
+## Перевод (2026-11-18): под `--lang=en` подписи на экране с кириллицей в заметку
+## «i18n: русский на экране». Видит только ноды с `text` (не `draw_string`).
+func _russian_on_screen() -> void:
+	var cyr := RegEx.create_from_string("[А-Яа-яЁё]")
+	var seen: Array[String] = []
+	for node in get_tree().root.find_children("*", "Control", true, false):
+		var c := node as Control
+		if not c.is_visible_in_tree() or not ("text" in c):
+			continue
+		var shown := c.atr(str(c.get("text")))
+		if cyr.search(shown) != null and not seen.has(shown):
+			seen.append(shown)
+	if not seen.is_empty():
+		note("i18n: русский на экране (%d): %s" % [seen.size(), " | ".join(seen.slice(0, 30))])

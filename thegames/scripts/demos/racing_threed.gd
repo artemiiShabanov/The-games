@@ -414,11 +414,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "%d место" % sim.place() if goal else "не доехал"
+	return Lang.t("%d место") % sim.place() if goal else Lang.t("не доехал")
 
 
 func _result_caption() -> String:
-	return "из %d · %d с · ударов %d" % [sim.cars.size(), int(round(sim.time)), sim.scrapes + sim.crashes]
+	return Lang.t("из %d · %d с · ударов %d") % [sim.cars.size(), int(round(sim.time)), sim.scrapes + sim.crashes]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -509,16 +509,16 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		h.rect(Rect2(Vector2.ZERO, view), Color(1.0, 1.0, 1.0, _flash * 0.4))
 	# Место: слева сверху.
 	h.panel(Rect2(10.0, 9.0, 78.0, 36.0), 7.0)
-	h.text(Vector2(17.0, 17.0), "МЕСТО", 5.2, ThreedHud.DIM, -1)
+	h.text(Vector2(17.0, 17.0), Lang.t("МЕСТО"), 5.2, ThreedHud.DIM, -1)
 	var place := sim.place()
 	h.text(Vector2(17.0, 31.5), str(place), 20.0, ThreedHud.GOLD if place == 1 else ThreedHud.WHITE, -1)
-	h.text(Vector2(36.0, 34.0), "из %d" % sim.cars.size(), 7.0, ThreedHud.DIM, -1)
+	h.text(Vector2(36.0, 34.0), Lang.t("из %d") % sim.cars.size(), 7.0, ThreedHud.DIM, -1)
 	for i in sim.cars.size():
 		var filled := i >= place - 1
 		h.circle(Vector2(63.0 + i * 6.2, 34.0), 2.1, (ThreedHud.GOLD if i == place - 1 else ThreedHud.FAINT) if filled else ThreedHud.RED)
 	# Время: справа сверху.
 	h.panel(Rect2(view.x - 88.0, 9.0, 78.0, 36.0), 7.0)
-	h.text(Vector2(view.x - 81.0, 17.0), "ВРЕМЯ", 5.2, ThreedHud.DIM, -1)
+	h.text(Vector2(view.x - 81.0, 17.0), Lang.t("ВРЕМЯ"), 5.2, ThreedHud.DIM, -1)
 	h.text(Vector2(view.x - 81.0, 31.5), "%d:%04.1f" % [int(sim.time) / 60, fmod(sim.time, 60.0)], 15.0, ThreedHud.WHITE, -1)
 	# Путь до финиша сверху по центру: сужения засечками, соперники точками, игрок бегунком.
 	var from := Vector2(view.x / 2.0 - 92.0, 20.0)
@@ -591,7 +591,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	var blink := _shift_blink > 0.0 and int(_shift_blink * 16.0) % 2 == 0
 	h.text(hub + Vector2(0.0, -0.5), "R" if me.speed < -0.5 else str(me.gear + 1), 15.0, ThreedHud.GOLD if blink or me.shift_left > 0.0 else ThreedHud.WHITE)
 	h.text(hub + Vector2(0.0, 23.5), "%d" % roundi(absf(me.speed) * 3.6), 10.5, ThreedHud.WHITE)
-	h.text(hub + Vector2(0.0, 32.5), "КМ/Ч", 4.2, ThreedHud.DIM)
+	h.text(hub + Vector2(0.0, 32.5), Lang.t("КМ/Ч"), 4.2, ThreedHud.DIM)
 	# Лампа переключения: горит у отсечки.
 	h.circle(hub + Vector2(0.0, -24.0), 2.6, ThreedHud.RED if hot else Color(1.0, 1.0, 1.0, 0.12))
 	if sim.countdown > 0.0:
@@ -601,4 +601,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "руль"], ["↑", "газ"], ["↓", "тормоз"]]
+	return [["← →", Lang.t("руль")], ["↑", Lang.t("газ")], ["↓", Lang.t("тормоз")]]

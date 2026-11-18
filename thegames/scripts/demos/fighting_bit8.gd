@@ -201,15 +201,15 @@ func _on_end(goal_: bool) -> void:
 
 func _result_title(goal: bool) -> String:
 	if sim == null:
-		return "поражение"
+		return Lang.t("поражение")
 	if goal:
-		return "нокаут" if sim.knocked_out() else "победа"
-	return "ничья" if sim.hero.health == sim.rival.health else "поражение"
+		return Lang.t("нокаут") if sim.knocked_out() else Lang.t("победа")
+	return Lang.t("ничья") if sim.hero.health == sim.rival.health else Lang.t("поражение")
 
 
 func _result_caption() -> String:
-	var how := ("нокаут на %d с" % int(round(sim.seconds()))) if sim.knocked_out() else "время вышло"
-	return "здоровье %d : %d · ударов %d · блоков %d · %s" % [sim.hero.health, sim.rival.health,
+	var how := (Lang.t("нокаут на %d с") % int(round(sim.seconds()))) if sim.knocked_out() else Lang.t("время вышло")
+	return Lang.t("здоровье %d : %d · ударов %d · блоков %d · %s") % [sim.hero.health, sim.rival.health,
 			sim.hero.highs + sim.hero.lows, sim.hero.blocks, how]
 
 
@@ -354,7 +354,7 @@ func _on_event(e: FightSim.Event) -> void:
 			var f := sim.hero if e.by_hero else sim.rival
 			_ghost_boxes.append(sim.hit_rect(f))
 			_ghost_life.append(GHOST_LIFE)
-			_note_once(&"ghost_hits", "fighting bug: удар %s прошёл сквозь %s на %.1f с, хитбокс за спиной на %.0f px" % [
+			_note_once(&"ghost_hits", "fighting bug: удар %s прошёл сквозь %s на %.1f с, хитбокс за спиной на %.0f px" % [  # i18n: skip
 					"матроса" if e.by_hero else "капитана", "капитана" if e.by_hero else "матроса", sim.seconds(), bugs.ghost_shift])
 		&"guard":
 			_play("guard")
@@ -366,14 +366,14 @@ func _on_event(e: FightSim.Event) -> void:
 ## Первые проявления багов правил боя в заметках автотеста.
 func _note_bug_hit(e: FightSim.Event) -> void:
 	if e.by_hero and bugs.sneeze and sim.sneezes > 0:
-		_note_once(&"sneeze_enemies", "fighting bug: капитан от первого касания %s на %.1f с, здоровье %d:%d, отлёт %.0f px" % [
+		_note_once(&"sneeze_enemies", "fighting bug: капитан от первого касания %s на %.1f с, здоровье %d:%d, отлёт %.0f px" % [  # i18n: skip
 				"нокаутом" if sim.rival.health <= 0 else "отлетел (бессмертен)", sim.seconds(), sim.hero.health, sim.rival.health,
 				bugs.sneeze_push])
 	if e.by_hero and bugs.immortal:
-		_note_once(&"unreachable_coins", "fighting bug: капитан бессмертен, попадание на %.1f с без урона, здоровье %d" % [
+		_note_once(&"unreachable_coins", "fighting bug: капитан бессмертен, попадание на %.1f с без урона, здоровье %d" % [  # i18n: skip
 				sim.seconds(), sim.rival.health])
 	if bugs.launch_speed > 0.0:
-		_note_once(&"wild_physics", "fighting bug: %s подброшен попаданием на %.1f с (%.0f px/с вверх, %.0f вбок)" % [
+		_note_once(&"wild_physics", "fighting bug: %s подброшен попаданием на %.1f с (%.0f px/с вверх, %.0f вбок)" % [  # i18n: skip
 				"капитан" if e.by_hero else "матрос", sim.seconds(), bugs.launch_speed, bugs.fling_speed])
 
 
@@ -637,7 +637,7 @@ func _draw_hud() -> void:
 		var cell := 6.0
 		draw_pixel_text(hud, (Vector2(center_x - 1.5 * cell, view.y * 0.3)).round(), str(_count_digit()), HUD_INK, HUD_SHADOW, cell)
 	elif phase == Phase.OVER:
-		var word := "KO" if sim.knocked_out() else "ВРЕМЯ"
+		var word := "KO" if sim.knocked_out() else Lang.t("ВРЕМЯ")
 		var cell := 6.0
 		var w := word.length() * 4.0 * cell - cell
 		draw_pixel_text(hud, (Vector2(center_x - w / 2.0, view.y * 0.3)).round(), word, HUD_INK, HUD_SHADOW, cell)
@@ -671,4 +671,4 @@ func _draw_face(name: String, at: Vector2, flip: bool, pink: bool) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "шаг"], ["↓", "присед"], [GameInput.key(GameInput.A), "удар"], [GameInput.key(GameInput.B), "блок"]]
+	return [["← →", Lang.t("шаг")], ["↓", Lang.t("присед")], [GameInput.key(GameInput.A), Lang.t("удар")], [GameInput.key(GameInput.B), Lang.t("блок")]]

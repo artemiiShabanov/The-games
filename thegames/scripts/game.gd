@@ -1,6 +1,6 @@
 class_name Game
 extends RefCounted
-## Общие перечисления игры и их подписи. Порядок значений это порядок тюнинга:
+## Общие перечисления игры и их подписи (функции `*_name` отдают их переведёнными, `Lang.t`). Порядок значений это порядок тюнинга:
 ## при равных весах аспекты идут в порядке `Aspect`.
 
 enum Aspect { OPTIMIZATION, SOUND, CONTROLS, GRAPHICS, BALANCE }
@@ -20,16 +20,16 @@ const SETTING_NAMES: Array[String] = ["пираты", "космос", "замк�
 
 
 static func aspect_name(a: Aspect) -> String:
-	return ASPECT_NAMES[a]
+	return Lang.t(ASPECT_NAMES[a])
 
 
 static func genre_name(g: Genre) -> String:
-	return GENRE_NAMES[g]
+	return Lang.t(GENRE_NAMES[g])
 
 
 static func tech_name(t: Tech) -> String:
-	return TECH_NAMES[t]
+	return Lang.t(TECH_NAMES[t])
 
 
 static func setting_name(s: Setting) -> String:
-	return SETTING_NAMES[s]
+	return Lang.t(SETTING_NAMES[s])

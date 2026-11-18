@@ -46,11 +46,11 @@ static func generate(seed_: int, depth := 70.0) -> BrawlWaves:
 
 static func validate(w: BrawlWaves) -> String:
 	if w.screens.size() != SCREENS:
-		return "экранов %d" % w.screens.size()
+		return "экранов %d" % w.screens.size()  # i18n: skip
 	for i in SCREENS:
 		if w.screens[i].is_empty() or w.screens[i].size() > SCREEN_MAX:
-			return "на экране %d врагов %d" % [i + 1, w.screens[i].size()]
+			return "на экране %d врагов %d" % [i + 1, w.screens[i].size()]  # i18n: skip
 	var last: Array = w.screens[SCREENS - 1]
 	if (last[last.size() - 1] as BrawlWaves.Spawn).kind != BrawlWaves.Kind.BOSS:
-		return "на последнем экране нет боцмана"
+		return "на последнем экране нет боцмана"  # i18n: skip
 	return ""

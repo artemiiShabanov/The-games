@@ -107,11 +107,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "добрался первым" if goal else "не добрался"
+	return Lang.t("добрался первым") if goal else Lang.t("не добрался")
 
 
 func _result_caption() -> String:
-	return "место %d из %d · столкновений %d · %d с" % [sim.place(), sim.rivals.size() + 1, sim.player.crashes,
+	return Lang.t("место %d из %d · столкновений %d · %d с") % [sim.place(), sim.rivals.size() + 1, sim.player.crashes,
 			int(round(elapsed))]
 
 
@@ -333,4 +333,4 @@ func _draw_hud(v: VectorScreen, size: Vector2, road_right: float) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "полоса"], [GameInput.key(GameInput.A) + " ↑", "газ"]]
+	return [["← →", Lang.t("полоса")], [GameInput.key(GameInput.A) + " ↑", Lang.t("газ")]]

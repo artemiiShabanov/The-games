@@ -324,8 +324,8 @@ func _cap() -> int:
 ## «в пар», «+3 к пару», «−1 к пару».
 static func rel_text(diff: int) -> String:
 	if diff == 0:
-		return "в пар"
-	return ("+%d к пару" % diff) if diff > 0 else ("−%d к пару" % -diff)
+		return Lang.t("в пар")
+	return (Lang.t("+%d к пару") % diff) if diff > 0 else (Lang.t("−%d к пару") % -diff)
 
 
 func _all_played() -> bool:
@@ -352,15 +352,15 @@ func _on_end(goal_: bool) -> void:
 
 func _result_title(goal: bool) -> String:
 	if course == null or not _all_played():
-		return "не доиграл"
+		return Lang.t("не доиграл")
 	return rel_text(total_strokes() - course.total_par())
 
 
 func _result_caption() -> String:
 	var t := int(round(play_time))
 	if not _all_played():
-		return "сыграно лунок %d из %d · время вышло" % [scores.size(), course.holes.size()]
-	return "ударов %d при паре %d · лунок %d · %d с" % [total_strokes(), course.total_par(), scores.size(), t]
+		return Lang.t("сыграно лунок %d из %d · время вышло") % [scores.size(), course.holes.size()]
+	return Lang.t("ударов %d при паре %d · лунок %d · %d с") % [total_strokes(), course.total_par(), scores.size(), t]
 
 
 # --- Ввод ------------------------------------------------------------------------------------
@@ -1005,7 +1005,7 @@ func _draw_hud() -> void:
 	var top := 3.0
 	_draw_icon(FLAG_ICON, Vector2(4, top))
 	draw_pixel_text(hud, Vector2(13, top), "%d/%d" % [hole_index + 1, course.holes.size()], HUD_INK, HUD_SHADOW)
-	draw_pixel_text(hud, Vector2(48, top), "ПАР %d" % hole.par, HUD_INK, HUD_SHADOW)
+	draw_pixel_text(hud, Vector2(48, top), Lang.t("ПАР %d") % hole.par, HUD_INK, HUD_SHADOW)
 	if is_pink("ball"):
 		hud.draw_rect(Rect2(98, top + 1, 6, 6), PINK)
 	else:
@@ -1013,7 +1013,7 @@ func _draw_hud() -> void:
 	draw_pixel_text(hud, Vector2(109, top), str(strokes), HUD_INK, HUD_SHADOW)
 	if not scores.is_empty():
 		var diff := total_strokes() - _par_played()
-		draw_pixel_text(hud, Vector2(133, top), "ПАР" if diff == 0 else "%+d" % diff, HUD_INK, HUD_SHADOW)
+		draw_pixel_text(hud, Vector2(133, top), Lang.t("ПАР") if diff == 0 else "%+d" % diff, HUD_INK, HUD_SHADOW)
 	_draw_wind(Vector2(view.x - 4.0, top))
 	if phase == Phase.AIM:
 		_draw_meter(Vector2(4, view.y - 13.0))
@@ -1021,11 +1021,11 @@ func _draw_hud() -> void:
 		var big := 6.0
 		var t1 := "%d/%d" % [hole_index + 1, course.holes.size()]
 		draw_pixel_text(hud, (Vector2(view.x / 2.0 - t1.length() * 2.0 * big, view.y * 0.28)).round(), t1, HUD_INK, HUD_SHADOW, big)
-		var t2 := "ПАР %d" % hole.par
+		var t2 := Lang.t("ПАР %d") % hole.par
 		draw_pixel_text(hud, (Vector2(view.x / 2.0 - t2.length() * 2.0 * 3.0, view.y * 0.28 + 40.0)).round(), t2, HUD_INK, HUD_SHADOW, 3.0)
 	elif phase == Phase.HOLED:
 		var diff := strokes - hole.par
-		var t := "ПАР" if diff == 0 else "%+d" % diff
+		var t := Lang.t("ПАР") if diff == 0 else "%+d" % diff
 		var big := 6.0
 		draw_pixel_text(hud, (Vector2(view.x / 2.0 - t.length() * 2.0 * big, view.y * 0.28)).round(), t, HUD_INK, HUD_SHADOW, big)
 	var ball_screen := Vector2(ball.pos.x - cam_x, ball.pos.y + _origin_y)
@@ -1091,4 +1091,4 @@ func _draw_icon(rows: Array[String], pos: Vector2) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["↑ ↓", "угол"], [GameInput.key(GameInput.A), "держать: сила, отпустить: удар"], [GameInput.key(GameInput.B), "разворот"]]
+	return [["↑ ↓", Lang.t("угол")], [GameInput.key(GameInput.A), Lang.t("держать: сила, отпустить: удар")], [GameInput.key(GameInput.B), Lang.t("разворот")]]

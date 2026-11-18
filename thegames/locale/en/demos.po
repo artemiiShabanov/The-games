@@ -1,0 +1,528 @@
+# Studio Running: английский перевод, часть «demos». Ключ (msgid) это русский текст.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- demo.gd: пауза, итог, загрузка ---
+
+msgid "Вернуться"
+msgstr "Resume"
+
+msgid "Пропустить"
+msgstr "Skip"
+
+msgid "Игра окончена"
+msgstr "Game over"
+
+msgid "Загрузка"
+msgstr "Loading"
+
+msgid "пройдено"
+msgstr "cleared"
+
+msgid "не пройдено"
+msgstr "not cleared"
+
+msgid "%s %s выбрать · %s подтвердить · %s вернуться"
+msgstr "%s %s choose · %s confirm · %s resume"
+
+# --- платформеры ---
+
+msgid "забрался"
+msgstr "reached the top"
+
+msgid "не забрался"
+msgstr "didn't reach the top"
+
+msgid "монеты %d из %d · падений %d · %d с"
+msgstr "coins %d of %d · falls %d · %d s"
+
+msgid "бег"
+msgstr "run"
+
+msgid "прыжок вверх"
+msgstr "jump up"
+
+msgid "прыжок"
+msgstr "jump"
+
+msgid "рывок"
+msgstr "dash"
+
+msgid "слайд"
+msgstr "slide"
+
+msgid "монеты %d из %d · потеряно жизней %d · %d с"
+msgstr "coins %d of %d · lives lost %d · %d s"
+
+msgid "добрался до маяка"
+msgstr "reached the lighthouse"
+
+msgid "не добрался"
+msgstr "didn't make it"
+
+msgid "дублоны %d из %d · %d с"
+msgstr "doubloons %d of %d · %d s"
+
+msgid "ход"
+msgstr "move"
+
+msgid "крюк"
+msgstr "grapple"
+
+msgid "%d с · зацепов %d · падений %d"
+msgstr "%d s · grapples %d · falls %d"
+
+# --- гонки ---
+
+msgid "добрался первым"
+msgstr "finished first"
+
+msgid "место %d из %d · столкновений %d · %d с"
+msgstr "place %d of %d · crashes %d · %d s"
+
+msgid "полоса"
+msgstr "lane"
+
+msgid "газ"
+msgstr "gas"
+
+msgid "тормоз"
+msgstr "brake"
+
+msgid "поворот"
+msgstr "steer"
+
+msgid "руль"
+msgstr "steer"
+
+msgid "нитро"
+msgstr "nitro"
+
+msgid "дрифт"
+msgstr "drift"
+
+msgid "%d место"
+msgstr "place %d"
+
+msgid "не доехал"
+msgstr "didn't finish"
+
+msgid "из %d · %d с"
+msgstr "of %d · %d s"
+
+msgid "круг не пройден за %d с"
+msgstr "lap not finished in %d s"
+
+msgid "место %d из %d · монеты %d · %d с"
+msgstr "place %d of %d · coins %d · %d s"
+
+msgid "МЕСТО"
+msgstr "PLACE"
+
+msgid "из %d"
+msgstr "of %d"
+
+msgid "из %d · %d с · в воде %d"
+msgstr "of %d · %d s · sank %d"
+
+msgid "КРУГ %d/%d"
+msgstr "LAP %d/%d"
+
+msgid "В ВОДЕ"
+msgstr "IN THE WATER"
+
+msgid "из %d · %d с · ударов %d"
+msgstr "of %d · %d s · hits %d"
+
+msgid "КМ/Ч"
+msgstr "KM/H"
+
+msgid "ВРЕМЯ"
+msgstr "TIME"
+
+# --- шутеры ---
+
+msgid "отбился"
+msgstr "held them off"
+
+msgid "не отбился"
+msgstr "overrun"
+
+msgid "уничтожено %d · жизней %d из %d · %d с"
+msgstr "destroyed %d · lives %d of %d · %d s"
+
+msgid "уничтожено %d из %d · %d с"
+msgstr "destroyed %d of %d · %d s"
+
+msgid "уничтожено %d из %d · время вышло"
+msgstr "destroyed %d of %d · time's up"
+
+msgid "уничтожено %d из %.0f · жизней %d · %d с"
+msgstr "destroyed %d of %.0f · lives %d · %d s"
+
+msgid "выстрел"
+msgstr "shoot"
+
+msgid "держать: целиться стоя"
+msgstr "hold: aim in place"
+
+msgid "ствол"
+msgstr "aim"
+
+msgid "огонь"
+msgstr "fire"
+
+msgid "здоровье %d · скелетов %d · %d с"
+msgstr "health %d · skeletons %d · %d s"
+
+msgid "ЗДОРОВЬЕ"
+msgstr "HEALTH"
+
+msgid "ПОБИТО"
+msgstr "KILLS"
+
+msgid "КЛЮЧ"
+msgstr "KEY"
+
+msgid "обзор"
+msgstr "look"
+
+msgid "ПЛЕННЫЙ!"
+msgstr "HOSTAGE!"
+
+msgid "НАСКВОЗЬ"
+msgstr "NO HIT"
+
+msgid "убито %d из %d · точность %d%% · жизней %d"
+msgstr "kills %d of %d · accuracy %d%% · lives %d"
+
+msgid "ПУСТО"
+msgstr "EMPTY"
+
+msgid "прицел"
+msgstr "aim"
+
+msgid "перезарядка"
+msgstr "reload"
+
+msgid "аванпост устоял"
+msgstr "the outpost held"
+
+msgid "аванпост пал"
+msgstr "the outpost fell"
+
+msgid "волна %d из %d · убито %d · %d с"
+msgstr "wave %d of %d · kills %d · %d s"
+
+msgid "ЩИТ: БЕЙ В ГОЛОВУ"
+msgstr "SHIELD: GO FOR THE HEAD"
+
+msgid "ЗАПАС"
+msgstr "RESERVE"
+
+msgid "ПАТРОНЫ"
+msgstr "AMMO"
+
+msgid "К ЯЩИКУ ЗА ПАТРОНАМИ"
+msgstr "GET AMMO AT THE CRATE"
+
+msgid "ВОЛНА"
+msgstr "WAVE"
+
+msgid "ВРАГОВ"
+msgstr "ENEMIES"
+
+msgid "шаг"
+msgstr "move"
+
+# --- спорт ---
+
+msgid "выиграл"
+msgstr "won"
+
+msgid "проиграл"
+msgstr "lost"
+
+msgid "счёт %d:%d · %d с"
+msgstr "score %d:%d · %d s"
+
+msgid "ракетка"
+msgstr "paddle"
+
+msgid "в пар"
+msgstr "even par"
+
+msgid "+%d к пару"
+msgstr "%d over par"
+
+msgid "−%d к пару"
+msgstr "%d under par"
+
+msgid "не доиграл"
+msgstr "didn't finish"
+
+msgid "сыграно лунок %d из %d · время вышло"
+msgstr "holes %d of %d · time's up"
+
+msgid "ударов %d при паре %d · лунок %d · %d с"
+msgstr "strokes %d, par %d · holes %d · %d s"
+
+msgid "ПАР %d"
+msgstr "PAR %d"
+
+msgid "ПАР"
+msgstr "PAR"
+
+msgid "угол"
+msgstr "angle"
+
+msgid "держать: сила, отпустить: удар"
+msgstr "hold: power, release: swing"
+
+msgid "разворот"
+msgstr "turn around"
+
+msgid "ГОСТИ"
+msgstr "AWAY"
+
+msgid "ГОЛ!"
+msgstr "GOAL!"
+
+msgid "пас, держать: удар"
+msgstr "pass, hold: shoot"
+
+msgid "подкат"
+msgstr "tackle"
+
+msgid " ЧИСТО"
+msgstr " SWISH"
+
+msgid "%d очков"
+msgstr "%d points"
+
+msgid "мало очков"
+msgstr "not enough points"
+
+msgid "порог %d · попал %d из %d · чисто %d"
+msgstr "need %d · made %d of %d · swish %d"
+
+msgid "ВЕТЕР"
+msgstr "WIND"
+
+msgid "ГОРИТ X%d"
+msgstr "ON FIRE X%d"
+
+msgid "%d ОЧК"
+msgstr "%d PTS"
+
+msgid "держать: сила, отпустить: бросок"
+msgstr "hold: power, release: shoot"
+
+msgid "МИМО"
+msgstr "MISS"
+
+msgid "ЕСТЬ!"
+msgstr "NICE!"
+
+msgid "СРЫВ КАНТА"
+msgstr "EDGE SLIP"
+
+msgid "спуск засчитан"
+msgstr "made the descent"
+
+msgid "мало ворот"
+msgstr "too few gates"
+
+msgid "ворот %d из %d · %d с · падений %d"
+msgstr "gates %d of %d · %d s · falls %d"
+
+msgid "ВОРОТА"
+msgstr "GATES"
+
+msgid "надо %d"
+msgstr "need %d"
+
+msgid "ПРИСЕД"
+msgstr "TUCK"
+
+msgid "УПАЛ"
+msgstr "WIPEOUT"
+
+msgid "кант"
+msgstr "edge"
+
+msgid "держать и отпустить: прыжок"
+msgstr "hold and release: jump"
+
+msgid "присед"
+msgstr "crouch"
+
+# --- файтинги ---
+
+msgid "поражение"
+msgstr "defeat"
+
+msgid "нокаут"
+msgstr "knockout"
+
+msgid "победа"
+msgstr "victory"
+
+msgid "ничья"
+msgstr "draw"
+
+msgid "нокаут на %d с"
+msgstr "KO at %d s"
+
+msgid "время вышло"
+msgstr "time's up"
+
+msgid "здоровье %d : %d · ударов %d · блоков %d · %s"
+msgstr "health %d : %d · hits %d · blocks %d · %s"
+
+msgid "удар"
+msgstr "attack"
+
+msgid "блок"
+msgstr "block"
+
+msgid "раунды %d:%d · лучшая реакция %s"
+msgstr "rounds %d:%d · best reaction %s"
+
+msgid "%.2f с"
+msgstr "%.2f s"
+
+msgid "нет"
+msgstr "none"
+
+msgid "удар после вспышки"
+msgstr "strike after the flash"
+
+msgid "побито %d · жизней %d · %d с"
+msgstr "defeated %d · lives %d · %d s"
+
+msgid "ЕЩЁ РАЗ!"
+msgstr "AGAIN!"
+
+msgid "ВПЕРЁД!"
+msgstr "GO!"
+
+msgid "тяжёлый удар"
+msgstr "heavy attack"
+
+msgid "СБОКУ!"
+msgstr "FLANK!"
+
+msgid "СИЛЬНЫЙ"
+msgstr "HEAVY"
+
+msgid "БЛОК"
+msgstr "BLOCK"
+
+msgid "УШЁЛ"
+msgstr "DODGED"
+
+msgid "ВЫДОХСЯ"
+msgstr "WINDED"
+
+msgid "%d с · здоровья %d · сбоку %d · блоков %d"
+msgstr "%d s · health %d · flank hits %d · blocks %d"
+
+msgid "ходьба"
+msgstr "walk"
+
+msgid "шаг вглубь"
+msgstr "sidestep"
+
+msgid "рука"
+msgstr "punch"
+
+msgid "нога"
+msgstr "kick"
+
+msgid "ЩИТ СБИТ"
+msgstr "SHIELD BROKEN"
+
+msgid "ЩИТ: ДЕРЖИ УДАР"
+msgstr "SHIELD: HOLD FOR HEAVY"
+
+msgid "ДОБИВАНИЕ"
+msgstr "FINISHER"
+
+msgid "ПЕРЕХВАТ"
+msgstr "COUNTER"
+
+msgid "палуба чиста"
+msgstr "deck cleared"
+
+msgid "уложил %d из %d · серия %d · %d с"
+msgstr "downed %d of %d · combo %d · %d s"
+
+msgid "УДАР ×2"
+msgstr "DAMAGE ×2"
+
+msgid "СЕРИЯ"
+msgstr "COMBO"
+
+msgid "куда бить"
+msgstr "aim"
+
+msgid "удар, держать: сильный"
+msgstr "attack, hold: heavy"
+
+msgid "перекат"
+msgstr "roll"
+
+# --- битемап: имена врагов (brawl_waves_gen.gd, brawl_sim.gd) ---
+
+msgid "Хряк"
+msgstr "Hog"
+
+msgid "Сэм Кривой"
+msgstr "Crooked Sam"
+
+msgid "Рыжий Ник"
+msgstr "Red Nick"
+
+msgid "Бочка"
+msgstr "Barrel"
+
+msgid "Гнилозуб"
+msgstr "Rotfang"
+
+msgid "Одноглазый"
+msgstr "One-Eye"
+
+msgid "Шнырь"
+msgstr "Weasel"
+
+msgid "Косой Джо"
+msgstr "Squint Joe"
+
+msgid "Бульдог"
+msgstr "Bulldog"
+
+msgid "Ржавый"
+msgstr "Rusty"
+
+msgid "Боцман"
+msgstr "Bosun"
+
+# --- resources/demos/fighting_gen.tres: профили соперника (только в дампе) ---
+
+msgid "напор"
+msgstr "rush"
+
+msgid "стена"
+msgstr "wall"
+
+msgid "подсечка"
+msgstr "sweep"
+
+msgid "контра"
+msgstr "counter"

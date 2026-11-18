@@ -14,5 +14,5 @@ var valuation := 0
 
 
 func _to_string() -> String:
-	return "сиквелов %d, живых хвостов %d, тик %d, лучшая C %.1f, топ-3 %.1f, вирусных %d, R %.1f, оценка %d" % [
+	return "сиквелов %d, живых хвостов %d, тик %d, лучшая C %.1f, топ-3 %.1f, вирусных %d, R %.1f, оценка %d" % [  # i18n: skip
 		sequels, alive_tails, tail_total, best_critics, top3_critics, viral_count, reputation, valuation]

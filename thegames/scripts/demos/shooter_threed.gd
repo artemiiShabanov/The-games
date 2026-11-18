@@ -15,7 +15,7 @@ extends Demo
 
 const PLACEHOLDER_SLOTS: Array[String] = ["enemy", "prop", "gun"]
 const ISLAND := 58.0
-const KIND_NAMES := ["БЕГУН", "ЩИТ", "МЕТАТЕЛЬ", "ВЕЛИКАН"]
+const KIND_NAMES := ["БЕГУН", "ЩИТ", "МЕТАТЕЛЬ", "ВЕЛИКАН"]  # i18n: skip (не используется)
 
 var tuning: ShooterThreedTuning
 var plan: OutpostPlan
@@ -440,11 +440,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "аванпост устоял" if goal else "аванпост пал"
+	return Lang.t("аванпост устоял") if goal else Lang.t("аванпост пал")
 
 
 func _result_caption() -> String:
-	return "волна %d из %d · убито %d · %d с" % [sim.wave + 1, plan.waves.size(), sim.kills, int(round(sim.time))]
+	return Lang.t("волна %d из %d · убито %d · %d с") % [sim.wave + 1, plan.waves.size(), sim.kills, int(round(sim.time))]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -563,12 +563,12 @@ func _draw_hud(canvas: CanvasItem) -> void:
 			var dir := Vector2(1.0, 1.0).normalized().rotated(PI / 2.0 * k)
 			h.line(mid + dir * 4.0, mid + dir * 9.0, color, 1.4)
 	if _block > 0.0:
-		h.text(mid + Vector2(0.0, 22.0), "ЩИТ: БЕЙ В ГОЛОВУ", 6.5, Color(ThreedHud.GOLD, minf(_block * 3.0, 1.0)), 0, Color(0.0, 0.0, 0.0, 0.6))
+		h.text(mid + Vector2(0.0, 22.0), Lang.t("ЩИТ: БЕЙ В ГОЛОВУ"), 6.5, Color(ThreedHud.GOLD, minf(_block * 3.0, 1.0)), 0, Color(0.0, 0.0, 0.0, 0.6))
 	# Волна сверху по центру: номер и сколько врагов осталось.
 	h.panel(Rect2(mid.x - 62.0, 9.0, 124.0, 30.0), 7.0)
-	h.text(Vector2(mid.x - 54.0, 17.5), "ВОЛНА", 5.2, ThreedHud.DIM, -1)
+	h.text(Vector2(mid.x - 54.0, 17.5), Lang.t("ВОЛНА"), 5.2, ThreedHud.DIM, -1)
 	h.text(Vector2(mid.x - 54.0, 29.0), "%d / %d" % [sim.wave + 1, plan.waves.size()], 11.0, ThreedHud.GOLD if _wave_note > 0.0 and int(_wave_note * 6.0) % 2 == 0 else ThreedHud.WHITE, -1)
-	h.text(Vector2(mid.x + 54.0, 17.5), "ВРАГОВ", 5.2, ThreedHud.DIM, 1)
+	h.text(Vector2(mid.x + 54.0, 17.5), Lang.t("ВРАГОВ"), 5.2, ThreedHud.DIM, 1)
 	h.text(Vector2(mid.x + 54.0, 29.0), str(sim.left_total()), 11.0, ThreedHud.WHITE, 1)
 	for w in plan.waves.size():
 		h.circle(Vector2(mid.x - 12.5 + w * 5.0, 24.0), 1.7, ThreedHud.GOLD if w < sim.wave else (ThreedHud.WHITE if w == sim.wave else ThreedHud.FAINT))
@@ -587,15 +587,15 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		h.bar(c + Vector2(0.0, -5.0), c + Vector2(0.0, 5.0), ThreedHud.GOLD if i < sim.clip else ThreedHud.FAINT, 4.6)
 	var dry := sim.reserve == 0
 	h.text(Vector2(view.x - 18.0, view.y - 28.5), str(sim.reserve), 11.0, ThreedHud.RED if dry else ThreedHud.WHITE, 1)
-	h.text(Vector2(view.x - 18.0, view.y - 17.0), "ЗАПАС", 4.6, ThreedHud.DIM, 1)
+	h.text(Vector2(view.x - 18.0, view.y - 17.0), Lang.t("ЗАПАС"), 4.6, ThreedHud.DIM, 1)
 	# Подсказка про ящик: когда запас кончается.
 	if sim.reserve <= tuning.clip and sim.phase == OutpostSim.Phase.PLAY:
 		var crate := Vector3(plan.crate.x, tuning.deck_height + 1.2, plan.crate.y)
 		if not lowpoly.camera.is_position_behind(crate):
 			var at := lowpoly.project(crate)
-			h.text(at, "ПАТРОНЫ", 6.0, ThreedHud.GOLD, 0, Color(0.0, 0.0, 0.0, 0.6))
+			h.text(at, Lang.t("ПАТРОНЫ"), 6.0, ThreedHud.GOLD, 0, Color(0.0, 0.0, 0.0, 0.6))
 		if dry and sim.clip <= 2:
-			h.text(Vector2(view.x - 66.0, view.y - 46.0), "К ЯЩИКУ ЗА ПАТРОНАМИ", 5.6, ThreedHud.RED if int(_time * 4.0) % 2 == 0 else ThreedHud.GOLD,
+			h.text(Vector2(view.x - 66.0, view.y - 46.0), Lang.t("К ЯЩИКУ ЗА ПАТРОНАМИ"), 5.6, ThreedHud.RED if int(_time * 4.0) % 2 == 0 else ThreedHud.GOLD,
 					0, Color(0.0, 0.0, 0.0, 0.6))
 	if sim.crate_left > 0.0:
 		h.arc(mid, 14.0, -PI / 2.0, -PI / 2.0 + TAU * sim.crate_left / tuning.crate_seconds, ThreedHud.GOLD, 1.6)
@@ -606,4 +606,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["W A S D", "шаг"], ["← →", "обзор"], [GameInput.key(GameInput.A), "выстрел"], [GameInput.key(GameInput.B), "перезарядка"]]
+	return [["W A S D", Lang.t("шаг")], ["← →", Lang.t("обзор")], [GameInput.key(GameInput.A), Lang.t("выстрел")], [GameInput.key(GameInput.B), Lang.t("перезарядка")]]

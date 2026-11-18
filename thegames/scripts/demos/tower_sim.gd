@@ -319,11 +319,11 @@ func describe_near() -> String:
 	var parts: PackedStringArray = []
 	for i in enemy_x.size():
 		if enemy_alive[i] and tower.enemies[i].level == level:
-			parts.append("враг %.0f%s" % [enemy_x[i], "→" if tower.enemies[i].speed > 0.0 else "←"])
+			parts.append("враг %.0f%s" % [enemy_x[i], "→" if tower.enemies[i].speed > 0.0 else "←"])  # i18n: skip
 	for i in hole_x.size():
 		var h := tower.holes[i]
 		if h.line == level or h.line == level + 1:
-			parts.append("%s %.0f%s" % ["пол" if h.line == level else "верх", hole_x[i], "→" if h.speed > 0.0 else "←"])
+			parts.append("%s %.0f%s" % ["пол" if h.line == level else "верх", hole_x[i], "→" if h.speed > 0.0 else "←"])  # i18n: skip
 	return ", ".join(parts)
 
 

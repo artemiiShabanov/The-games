@@ -59,7 +59,7 @@ func _ready() -> void:
 	var title := _label("Сеттинги", Style.FONT_H1, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
 	column.add_child(title)
-	column.add_child(_label("Открыто %d из %d. Достижение открывает сеттинг во всех забегах." % [
+	column.add_child(_label(tr("Открыто %d из %d. Достижение открывает сеттинг во всех забегах.") % [
 			open_count(profile, run), Game.Setting.size()], Style.FONT_BODY, Style.INK_2))
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 8)
@@ -137,7 +137,7 @@ func _cell(s: Game.Setting, entry: CatalogEntry) -> PanelContainer:
 	col.add_theme_constant_override("separation", 2)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(col)
-	var name_label := _label(entry.title if entry != null else Game.setting_name(s), 30, Style.INK if open else Style.INK_2)
+	var name_label := _label(tr(entry.title) if entry != null else Game.setting_name(s), 30, Style.INK if open else Style.INK_2)
 	name_label.add_theme_font_override("font", Jelly.fun_font(800))
 	col.add_child(name_label)
 	var status := ""
@@ -148,15 +148,16 @@ func _cell(s: Game.Setting, entry: CatalogEntry) -> PanelContainer:
 	elif not ready:
 		status = "Скоро"
 	elif earned:
-		status = "Открыт · достижение «%s»" % ach.title
+		status = tr("Открыт · достижение «%s»") % tr(ach.title)
 		status_color = Style.MONEY
 	elif ach != null:
-		status = "«%s»: %s" % [ach.title, ach.text.substr(0, 1).to_lower() + ach.text.substr(1)]
+		var cond := tr(ach.text)
+		status = ("“%s”: %s" if Lang.english() else "«%s»: %s") % [tr(ach.title), cond.substr(0, 1).to_lower() + cond.substr(1)]
 		var p := Achievements.progress(ach, run)
 		if in_run:
 			detail = "Куплен на этот забег"
 		if p != "":
-			detail += (" · " if detail != "" else "") + "Сейчас: " + p
+			detail += (" · " if detail != "" else "") + tr("Сейчас: %s") % p
 	var sl := _label(status, Style.FONT_CAPTION, status_color)
 	sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(sl)

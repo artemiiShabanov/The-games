@@ -157,49 +157,49 @@ static func _hole(rng: RandomNumberGenerator, t: GolfGenTuning, plain: bool) -> 
 ## Пустая строка, если поле годится, иначе причина.
 static func validate(c: GolfCourse, t: GolfGenTuning) -> String:
 	if c.holes.size() < t.holes_min or c.holes.size() > t.holes_max:
-		return "лунок %d" % c.holes.size()
+		return "лунок %d" % c.holes.size()  # i18n: skip
 	for n in c.holes.size():
 		var why := _validate_hole(c.holes[n], t)
 		if why != "":
-			return "лунка %d: %s" % [n + 1, why]
+			return "лунка %d: %s" % [n + 1, why]  # i18n: skip
 	return ""
 
 
 static func _validate_hole(h: GolfCourse.Hole, t: GolfGenTuning) -> String:
 	if h.length < t.length_min - h.step or h.length > t.length_max + h.step or h.length % h.step != 0:
-		return "длина %d" % h.length
+		return "длина %d" % h.length  # i18n: skip
 	if h.heights.size() != h.length / h.step + 1 or h.kinds.size() != h.heights.size() - 1:
-		return "размер карты высот"
+		return "размер карты высот"  # i18n: skip
 	var tee := h.height_at(h.tee_x)
 	if absf(h.height_at(h.tee_x - 12) - tee) > 0.01 or absf(h.height_at(h.tee_x + 12) - tee) > 0.01:
-		return "ти не ровный"
+		return "ти не ровный"  # i18n: skip
 	if h.kind_at(h.tee_x) != GolfCourse.Kind.DECK:
-		return "ти не на палубе"
+		return "ти не на палубе"  # i18n: skip
 	var deck := h.height_at(h.green_from)
 	for x in range(int(h.green_from), int(h.green_to) + 1, h.step):
 		if absf(h.height_at(x) - deck) > 0.01 or (x < h.green_to and h.kind_at(x) != GolfCourse.Kind.DECK):
-			return "палуба грина не ровная"
+			return "палуба грина не ровная"  # i18n: skip
 	if h.cup_x < h.green_from + t.cup_margin or h.cup_x > h.green_to - t.cup_margin:
-		return "люк у края палубы"
+		return "люк у края палубы"  # i18n: skip
 	for i in h.kinds.size():
 		if h.kinds[i] != GolfCourse.Kind.SAND:
 			continue
 		var x := i * h.step
 		var edge := (i > 0 and h.kinds[i - 1] != GolfCourse.Kind.SAND) or (i < h.kinds.size() - 1 and h.kinds[i + 1] != GolfCourse.Kind.SAND)
 		if (x > h.tee_x and h.heights[i] < t.ground_top - 0.5) or h.heights[i] > t.ground_bottom + 0.5:
-			return "песок вне высот на x %d" % x
+			return "песок вне высот на x %d" % x  # i18n: skip
 		if not edge and absf(h.heights[i + 1] - h.heights[i]) > t.max_rise:
-			return "крутой склон на x %d" % x
+			return "крутой склон на x %d" % x  # i18n: skip
 	if h.has_water():
 		var w := h.water_to - h.water_from
 		if w < t.water_min - h.step or w > t.water_max + h.step:
-			return "пролив шириной %d" % int(w)
+			return "пролив шириной %d" % int(w)  # i18n: skip
 		if h.water_from < h.tee_x + t.water_gap or h.water_to > h.green_from - t.water_gap + h.step:
-			return "пролив у ти или грина"
+			return "пролив у ти или грина"  # i18n: skip
 		if h.height_at(h.water_from - 0.5) > t.sea_y - t.bank_above + 0.5 or h.height_at(h.water_to + 0.5) > t.sea_y - t.bank_above + 0.5:
-			return "берег пролива ниже моря"
+			return "берег пролива ниже моря"  # i18n: skip
 	if h.par != (3 if h.cup_x - h.tee_x < t.par4_from else 4):
-		return "пар %d" % h.par
+		return "пар %d" % h.par  # i18n: skip
 	if absi(h.wind) > t.wind_max:
-		return "ветер %d" % h.wind
+		return "ветер %d" % h.wind  # i18n: skip
 	return ""

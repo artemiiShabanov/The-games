@@ -478,7 +478,7 @@ func _touch_foes() -> void:
 			continue
 		if invuln > 0.0 or state == State.HURT:
 			continue
-		_hurt(&"краб" if level.foes[i].kind == TrailLevel.FoeKind.CRAB else &"попугай", signf(pos.x - f.x))
+		_hurt(&"краб" if level.foes[i].kind == TrailLevel.FoeKind.CRAB else &"попугай", signf(pos.x - f.x))  # i18n: skip
 		return
 
 
@@ -503,7 +503,7 @@ func _drown() -> void:
 	vel = Vector2.ZERO
 	_to(State.DROWN)
 	_emit([&"fall"])
-	_emit([&"hurt", &"вода"])
+	_emit([&"hurt", &"вода"])  # i18n: skip
 	if lives <= 0:
 		ended = true
 		_emit([&"lose"])

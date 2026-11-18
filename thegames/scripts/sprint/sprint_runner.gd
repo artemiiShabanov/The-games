@@ -136,7 +136,7 @@ func _next() -> void:
 		_dots.queue_redraw()
 		plan_finished.emit(results.duplicate())
 		return
-	_header.text = ShellHeader.text("Спринт %d из %d" % [index + 1, plan.size()] + (" · " + game_title if game_title != "" else ""))
+	_header.text = ShellHeader.text(tr("Спринт %d из %d") % [index + 1, plan.size()] + (" · " + game_title if game_title != "" else ""))
 	_header_pill.visible = true
 	_dots.queue_redraw()
 	_run_sprint(plan.defs[index])
@@ -302,12 +302,12 @@ func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control
 		column.add_child(_label("провал", Style.FONT_VERB, Style.BUG))
 	if replays > 0:
 		column.add_child(_spacer(16))
-		column.add_child(_label("Повторить спринт? Осталось: %d" % replays, Style.FONT_H2, Style.INK_2))
+		column.add_child(_label(tr("Повторить спринт? Осталось: %d") % replays, Style.FONT_H2, Style.INK_2))
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 16)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, "повторить"))
+		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, tr("повторить")))
 		row.add_child(_offer_pill)
 		row.add_child(HintPill.make("другая клавиша: дальше"))
 		card.add_child(HintPill.bottom_bar(row))

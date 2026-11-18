@@ -426,7 +426,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "%d с · зацепов %d · падений %d" % [int(round(sim.time)), sim.hooks, sim.falls]
+	return Lang.t("%d с · зацепов %d · падений %d") % [int(round(sim.time)), sim.hooks, sim.falls]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -591,4 +591,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "прыжок"], [GameInput.key(GameInput.B), "крюк"]]
+	return [["← → ↑ ↓", Lang.t("ход")], [GameInput.key(GameInput.A), Lang.t("прыжок")], [GameInput.key(GameInput.B), Lang.t("крюк")]]

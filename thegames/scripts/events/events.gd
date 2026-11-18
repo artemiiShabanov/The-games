@@ -121,11 +121,11 @@ static func resolve(def: EventDef, mood: int, ctx: Context, meta: MetaTuning, wh
 		if not c.effects.is_empty() and oc.effects.is_empty() and not c.coin:
 			continue
 		o.choices.append(oc)
-		texts.append(c.text)
+		texts.append(Lang.t(c.text))
 	for i in o.choices.size():
 		o.choices[i].text = _fill(texts[i], vars)
 		o.choices[i].pills = _pills(o.choices[i], o.character)
-	o.line = _fill(def.line_for(mood, ctx.records.size() if ctx != null else 0), vars)
+	o.line = _fill(Lang.t(def.line_for(mood, ctx.records.size() if ctx != null else 0)), vars)
 	return o
 
 
@@ -248,19 +248,19 @@ static func _value_name(kind: EffectDef.Kind, value: int) -> String:
 # --- Пилюли --------------------------------------------------------------------------------
 
 ## Пилюли варианта: ограничения следующей игры одной пилюлей, монетка с обеими ветками через
-## «или», настроение персонажа последней.
+## «или» (пилюля с этим текстом, карточка переводит её при показе), настроение персонажа последней.
 static func _pills(c: Choice, who: CharacterDef) -> Array[Pill]:
 	var out: Array[Pill] = []
 	if c.coin:
-		out.append(Pill.of("монетка", Tone.NEUTRAL))
+		out.append(Pill.of(Lang.t("монетка"), Tone.NEUTRAL))
 	out.append_array(_effect_pills(c.effects))
 	if c.coin and not c.lose_effects.is_empty():
 		out.append(Pill.of("или", Tone.NEUTRAL))
 		out.append_array(_effect_pills(c.lose_effects))
 	if c.mood_delta < 0:
-		out.append(Pill.of("%s обидится" % who.short(), Tone.MINUS))
+		out.append(Pill.of(Lang.t("%s обидится") % Lang.t(who.short()), Tone.MINUS))
 	elif c.mood_delta > 0:
-		out.append(Pill.of("%s запомнит" % who.short(), Tone.PLUS))
+		out.append(Pill.of(Lang.t("%s запомнит") % Lang.t(who.short()), Tone.PLUS))
 	return out
 
 
@@ -269,32 +269,36 @@ static func _effect_pills(effects: Array[Effect]) -> Array[Pill]:
 	var next: PackedStringArray = []
 	for e in effects:
 		if e.text != "":
-			out.append(Pill.of(e.text, _tone(e)))
+			out.append(Pill.of(Lang.t(e.text), _tone(e)))
 			continue
 		match e.kind:
 			EffectDef.Kind.MONEY:
 				out.append(Pill.of(("+" if e.amount > 0 else "−") + Style.format_money(absi(e.amount)), _tone(e)))
 			EffectDef.Kind.REPUTATION:
 				var arrow := ("↑" if e.steps > 0 else "↓").repeat(absi(e.steps))
-				out.append(Pill.of("репутация " + arrow, _tone(e)))
+				out.append(Pill.of(Lang.t("репутация %s") % arrow, _tone(e)))
 			EffectDef.Kind.RESTRICT_GENRE, EffectDef.Kind.RESTRICT_SETTING, EffectDef.Kind.RESTRICT_TECH:
 				next.append(_value_name(e.kind, e.value).to_lower())
 			EffectDef.Kind.RESTRICT_SEQUEL:
-				next.append("сиквел")
+				next.append(Lang.t("сиквел"))
 			EffectDef.Kind.TAIL_SHARE:
-				var games := "" if e.games <= 1 else " %s игр" % (["двух", "трёх", "четырёх"][e.games - 2] if e.games <= 4 else str(e.games))
-				out.append(Pill.of("−%d %% с продаж%s" % [roundi(e.share * 100.0), games], Tone.MINUS))
+				var games := ""
+				if e.games > 1 and Lang.english():
+					games = " for %d games" % e.games
+				elif e.games > 1:
+					games = " %s игр" % (["двух", "трёх", "четырёх"][e.games - 2] if e.games <= 4 else str(e.games))  # i18n: skip
+				out.append(Pill.of(Lang.t("−%d %% с продаж%s") % [roundi(e.share * 100.0), games], Tone.MINUS))
 			EffectDef.Kind.NEXT_BONUS:
-				var what: String = ["критики", "стримеры", "продажи"][e.stat]
+				var what := Lang.t(["критики", "стримеры", "продажи"][e.stat])
 				var v := ("%+.1f" % e.bonus) if e.stat == EffectDef.Stat.CRITICS else ("%+d %%" % roundi(e.bonus * 100.0) if e.stat == EffectDef.Stat.SALES else "%+d" % roundi(e.bonus))
-				out.append(Pill.of("%s следующей игры %s" % [what, v.replace("-", "−")], _tone(e)))
+				out.append(Pill.of(Lang.t("%s следующей игры %s") % [what, v.replace("-", "−")], _tone(e)))
 			EffectDef.Kind.ENDING:
-				out.append(Pill.of("концовка", Tone.ENDING))
+				out.append(Pill.of(Lang.t("концовка"), Tone.ENDING))
 			EffectDef.Kind.SELL_TAIL:
 				out.append(Pill.of("+" + Style.format_money(e.amount), Tone.PLUS))
-				out.append(Pill.of("игра перестанет продаваться", Tone.MINUS))
+				out.append(Pill.of(Lang.t("игра перестанет продаваться"), Tone.MINUS))
 	if not next.is_empty():
-		out.insert(mini(1, out.size()), Pill.of("следующая игра: " + " · ".join(next), Tone.LOCK))
+		out.insert(mini(1, out.size()), Pill.of(Lang.t("следующая игра: %s") % " · ".join(next), Tone.LOCK))
 	return out
 
 
@@ -325,7 +329,7 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 	var outcome := ""
 	if c.coin:
 		var win := rng.randf() < meta.coin_chance
-		outcome = "Монетка: повезло" if win else "Монетка: не повезло"
+		outcome = Lang.t("Монетка: повезло") if win else Lang.t("Монетка: не повезло")
 		if not win:
 			effects = c.lose_effects
 	var who := offer.character.with_name() if offer.character != null else ""

@@ -151,7 +151,7 @@ func confirm(option: BaseOption = null) -> void:
 # --- Построение --------------------------------------------------------------------------------
 
 func _build() -> void:
-	var header := HintPill.header(ShellHeader.release(release, "Основа"))
+	var header := HintPill.header(ShellHeader.release(release, tr("Основа")))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
@@ -196,7 +196,7 @@ func _build() -> void:
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("↑ ↓ листать"))
 	hints.add_child(HintPill.make("← → колонка"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "выбрать")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("выбрать"))))
 	hints.add_child(HintPill.make("Esc назад"))
 	add_child(hints)
 	MouseUi.pass_through(self)
@@ -233,9 +233,9 @@ func _make_card(o: BaseOption) -> Control:
 	name_label.max_lines_visible = 2
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	inner.add_child(name_label)
-	var sub := "%s · часть %d" % [Game.tech_name(o.parent.tech), o.parent.part]
+	var sub := tr("%s · часть %d") % [Game.tech_name(o.parent.tech), o.parent.part]
 	if o.parent.score != null:
-		sub = "%s · критики %.1f" % [Game.tech_name(o.parent.tech), o.parent.score.critics]
+		sub = tr("%s · критики %.1f") % [Game.tech_name(o.parent.tech), o.parent.score.critics]
 	var sub_label := CardColumns.label(sub, Style.FONT_CAPTION, Color(1, 1, 1, 0.75))
 	sub_label.position = Vector2(24, Style.CARD_SIZE.y - 24 - 26)
 	inner.add_child(sub_label)

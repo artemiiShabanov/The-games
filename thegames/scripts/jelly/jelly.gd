@@ -7,8 +7,8 @@ extends RefCounted
 ## `button` для кнопок, `panel` для модальных карточек, `attach_container` для панелей.
 ## Ручки в разделе «Желе» дебаг-меню.
 
-const SECTION: StringName = &"Желе"
-const MATERIALS: Array[String] = ["мармелад", "желе"]
+const SECTION: StringName = &"Желе"  # i18n: skip
+const MATERIALS: Array[String] = ["мармелад", "желе"]  # i18n: skip
 const PATHS: Array[String] = ["res://resources/jelly.tres", "res://resources/jelly_soft.tres"]
 
 static var enabled := true
@@ -196,21 +196,21 @@ static func register_debug() -> void:
 			func() -> String: return MATERIALS[material],
 			func(v: String) -> void: material = maxi(MATERIALS.find(v), 0), true)
 	var tu := tuning()
-	_num("Фокус: высота бортика", tu, &"lift_px", 0.0, 20.0, 1.0)
-	_num("Жёсткость тела", tu, &"blob_stiffness", 100.0, 1200.0, 20.0)
-	_num("Затухание тела", tu, &"blob_damping", 1.0, 30.0, 1.0)
-	_num("Давление", tu, &"blob_pressure", 0.0, 4000.0, 100.0)
-	_num("Инерция шлепка", tu, &"blob_inertia", 0.0, 1.0, 0.05)
-	_num("Тяжесть", tu, &"blob_gravity", 0.0, 6000.0, 200.0)
-	_num("Вытягивание", tu, &"blob_stretch", 0.0, 0.0012, 0.00005)
-	_num("Брызги", tu, &"splash_scale", 0.0, 3.0, 0.1)
-	_num("Волна поверхности", tu, &"ripple_amp", 0.0, 30.0, 1.0)
-	_num("Жёсткость предметов", tu, &"spring_stiffness", 60.0, 900.0, 20.0)
-	_num("Интерфейс: жёсткость", tu, &"ui_stiffness", 60.0, 900.0, 20.0)
-	_num("Интерфейс: затухание", tu, &"ui_damping", 1.0, 30.0, 1.0)
-	_num("Интерфейс: инерция", tu, &"ui_inertia", 0.0, 0.08, 0.002)
-	_num("Интерфейс: вздрог", tu, &"ui_poke", 0.0, 3.0, 0.1)
-	_num("Интерфейс: линза курсора", tu, &"ui_hover_lens", 0.0, 0.3, 0.01)
+	_num("Фокус: высота бортика", tu, &"lift_px", 0.0, 20.0, 1.0)  # i18n: skip
+	_num("Жёсткость тела", tu, &"blob_stiffness", 100.0, 1200.0, 20.0)  # i18n: skip
+	_num("Затухание тела", tu, &"blob_damping", 1.0, 30.0, 1.0)  # i18n: skip
+	_num("Давление", tu, &"blob_pressure", 0.0, 4000.0, 100.0)  # i18n: skip
+	_num("Инерция шлепка", tu, &"blob_inertia", 0.0, 1.0, 0.05)  # i18n: skip
+	_num("Тяжесть", tu, &"blob_gravity", 0.0, 6000.0, 200.0)  # i18n: skip
+	_num("Вытягивание", tu, &"blob_stretch", 0.0, 0.0012, 0.00005)  # i18n: skip
+	_num("Брызги", tu, &"splash_scale", 0.0, 3.0, 0.1)  # i18n: skip
+	_num("Волна поверхности", tu, &"ripple_amp", 0.0, 30.0, 1.0)  # i18n: skip
+	_num("Жёсткость предметов", tu, &"spring_stiffness", 60.0, 900.0, 20.0)  # i18n: skip
+	_num("Интерфейс: жёсткость", tu, &"ui_stiffness", 60.0, 900.0, 20.0)  # i18n: skip
+	_num("Интерфейс: затухание", tu, &"ui_damping", 1.0, 30.0, 1.0)  # i18n: skip
+	_num("Интерфейс: инерция", tu, &"ui_inertia", 0.0, 0.08, 0.002)  # i18n: skip
+	_num("Интерфейс: вздрог", tu, &"ui_poke", 0.0, 3.0, 0.1)  # i18n: skip
+	_num("Интерфейс: линза курсора", tu, &"ui_hover_lens", 0.0, 0.3, 0.01)  # i18n: skip
 
 
 static func _num(label: String, _tu: JellyTuning, prop: StringName, lo: float, hi: float, step: float) -> void:

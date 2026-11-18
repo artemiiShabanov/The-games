@@ -305,7 +305,7 @@ func _build() -> void:
 	head.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0 - 8)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(head)
-	var title := HintPill.header(ShellHeader.text("Галерея"))
+	var title := HintPill.header(ShellHeader.text(tr("Галерея")))
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(title)
 	_header_label = title.get_child(0) as Label
@@ -318,8 +318,8 @@ func _build() -> void:
 		head.add_child(p)
 		_tabs.append(p)
 		_tab_labels.append(l)
-	_tab_labels[0].text = "Игры · %d" % entries.size()
-	_tab_labels[1].text = "Студии · %d" % studios.size()
+	_tab_labels[0].text = tr("Игры · %d") % entries.size()
+	_tab_labels[1].text = tr("Студии · %d") % studios.size()
 
 	var right := HBoxContainer.new()
 	right.alignment = BoxContainer.ALIGNMENT_END
@@ -371,7 +371,7 @@ func _build() -> void:
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("↑ ↓ выбрать"))
 	hints.add_child(HintPill.make("← → вкладка"))
-	_play_hint = HintPill.make(GameInput.hint(GameInput.A, "запустить"))
+	_play_hint = HintPill.make(GameInput.hint(GameInput.A, tr("запустить")))
 	hints.add_child(_play_hint)
 	_sort_hint = HintPill.make("R сортировка")
 	hints.add_child(_sort_hint)
@@ -475,7 +475,7 @@ func _game_row(e: GalleryEntry, w: float) -> PanelContainer:
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar.add_theme_stylebox_override("panel", Style.flat(entry.color if entry != null else Style.INK_3, Style.R_PILL, Color.TRANSPARENT, 0))
 		stripes.add_child(bar)
-		names.append(entry.title if entry != null else "?")
+		names.append(tr(entry.title) if entry != null else "?")
 	col.add_child(_label(" × ".join(names), Style.FONT_CAPTION, Style.INK_2))
 	var title := _label(e.title, Style.FONT_H2, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
@@ -492,8 +492,8 @@ func _game_row(e: GalleryEntry, w: float) -> PanelContainer:
 		row.add_child(_pill("вирусная", Style.TINT_PLUS, Style.MONEY, 0.0))
 	for id in e.bug_ids:
 		var bug := _bugs.by_id(id)
-		row.add_child(_pill(bug.stamp_for(e.genre, e.tech, e.setting) if bug != null else String(id), Style.BUG, Style.SURFACE_SOLID, -4.0))
-	col.add_child(_label("Забег %d · релиз %d%s" % [e.run_number, e.release, (" · «%s»" % e.studio) if e.studio != "" else ""],
+		row.add_child(_pill(tr(bug.stamp_for(e.genre, e.tech, e.setting)) if bug != null else String(id), Style.BUG, Style.SURFACE_SOLID, -4.0))
+	col.add_child(_label(tr("Забег %d · релиз %d%s") % [e.run_number, e.release, ((" · “%s”" if Lang.english() else " · «%s»") % e.studio) if e.studio != "" else ""],
 			Style.FONT_CAPTION, Style.INK_3))
 	h.add_child(_shot_view(e))
 	return c
@@ -558,19 +558,19 @@ func _studio_row(d: Dictionary, w: float) -> PanelContainer:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_child(col)
-	var name_ := str(d["studio"]) if str(d["studio"]) != "" else "Студия без названия"
+	var name_ := str(d["studio"]) if str(d["studio"]) != "" else tr("Студия без названия")
 	var title := _label(name_, Style.FONT_H2, Style.INK)
 	title.add_theme_font_override("font", Jelly.fun_font(800))
 	col.add_child(title)
 	var games := int(d["games"])
-	var line := "Забег %d · релизов %d" % [int(d["run"]), int(d["releases"])]
+	var line := tr("Забег %d · релизов %d") % [int(d["run"]), int(d["releases"])]
 	if games > 0:
-		line += " · критики в среднем %.1f" % float(d["avg_critics"])
+		line += tr(" · критики в среднем %.1f") % float(d["avg_critics"])
 	if int(d["viral"]) > 0:
-		line += " · вирусных %d" % int(d["viral"])
+		line += tr(" · вирусных %d") % int(d["viral"])
 	col.add_child(_label(line, Style.FONT_BODY, Style.INK_2))
 	if str(d["best"]) != "":
-		col.add_child(_label("Лучшая: «%s», %.1f" % [str(d["best"]), float(d["best_critics"])], Style.FONT_CAPTION, Style.INK_3))
+		col.add_child(_label(tr("Лучшая: «%s», %.1f") % [str(d["best"]), float(d["best_critics"])], Style.FONT_CAPTION, Style.INK_3))
 	var right := VBoxContainer.new()
 	right.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_child(right)
@@ -578,8 +578,8 @@ func _studio_row(d: Dictionary, w: float) -> PanelContainer:
 	var k := Endings.KEYS.find(ending)
 	if k >= 0:
 		var bad := ending == &"bankruptcy"
-		right.add_child(_pill(Endings.NAMES[k], Style.TINT_MINUS if bad else Style.TINT_PLUS, Style.DANGER if bad else Style.MONEY, 0.0, Style.FONT_BODY))
-		var score := _label("оценка %d" % int(d["score"]), Style.FONT_CAPTION, Style.INK_2)
+		right.add_child(_pill(Lang.t(Endings.NAMES[k]), Style.TINT_MINUS if bad else Style.TINT_PLUS, Style.DANGER if bad else Style.MONEY, 0.0, Style.FONT_BODY))
+		var score := _label(tr("оценка %d") % int(d["score"]), Style.FONT_CAPTION, Style.INK_2)
 		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		right.add_child(score)
 	else:
@@ -628,6 +628,8 @@ func _scroll_to(i: int) -> void:
 
 
 static func _games_text(n: int) -> String:
+	if Lang.english():
+		return "%d game" % n if n == 1 else "%d games" % n
 	var m10 := n % 10
 	var m100 := n % 100
 	var word := "игр"

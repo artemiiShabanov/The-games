@@ -277,6 +277,6 @@ func _draw() -> void:
 	Style.flat(fill_color, Style.R_PILL, Color.TRANSPARENT, 0).draw(get_canvas_item(), Rect2(gx - bulge / 2.0, top + TRACK_H - fill_h, GAUGE_W + bulge, fill_h))
 	# Подпись действия.
 	var font := get_theme_default_font()
-	var caption := "держи" if _holding() else "отпусти"
+	var caption := tr("держи") if _holding() else tr("отпусти")
 	var w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION).x
 	draw_string(font, Vector2(cx - w / 2.0, top - 24.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_CAPTION, Style.INK_3)

@@ -479,11 +479,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "%d место" % sim.place() if goal else "не доехал"
+	return Lang.t("%d место") % sim.place() if goal else Lang.t("не доехал")
 
 
 func _result_caption() -> String:
-	return "из %d · %d с · в воде %d" % [sim.cars.size(), int(round(sim.time)), sim.sinks]
+	return Lang.t("из %d · %d с · в воде %d") % [sim.cars.size(), int(round(sim.time)), sim.sinks]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -531,7 +531,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 	# Место крупно слева, круг по центру.
 	PixelFont16.draw(canvas, Vector2(10.0, 6.0), str(sim.place()), white, gold, dark, 3.0)
 	PixelFont16.draw(canvas, Vector2(34.0, 18.0), "/%d" % sim.cars.size(), white, white, dark, 1.0)
-	var lap := "КРУГ %d/%d" % [sim.lap_of(me), tuning.laps]
+	var lap := Lang.t("КРУГ %d/%d") % [sim.lap_of(me), tuning.laps]
 	PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(lap, 1.0) / 2.0), 8.0), lap, white, white, dark, 1.0)
 	# Скорость и заряд заноса слева внизу.
 	var bar := Rect2(10.0, view.y - 20.0, 110.0, 8.0)
@@ -568,11 +568,11 @@ func _draw_hud(canvas: CanvasItem) -> void:
 		PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(count, 5.0) / 2.0), roundf(view.y / 2.0 - 40.0)), count,
 				white, gold, dark, 5.0)
 	elif me.sunk > 0.0:
-		var text := "В ВОДЕ"
+		var text := Lang.t("В ВОДЕ")
 		PixelFont16.draw(canvas, Vector2(roundf(view.x / 2.0 - PixelFont16.width(text, 2.0) / 2.0), roundf(view.y / 2.0 - 20.0)), text,
 				white, blue, dark, 2.0)
 
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "руль"], ["↑", "газ"], ["↓", "тормоз"], [GameInput.key(GameInput.A), "дрифт"]]
+	return [["← →", Lang.t("руль")], ["↑", Lang.t("газ")], ["↓", Lang.t("тормоз")], [GameInput.key(GameInput.A), Lang.t("дрифт")]]

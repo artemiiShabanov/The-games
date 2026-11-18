@@ -272,26 +272,26 @@ func _on_event(ev: Array) -> void:
 			var kick := _fighter(1 - who).move == SparPlan.Move.KICK
 			_burst(Vector3(f.x, 1.0 if kick else 1.4, f.z + 0.3), 7 if ev[4] or ev[3] else 4, HOT if ev[4] or ev[3] else WHITE, 0.4, 2.6)
 			if ev[3]:
-				_say("СБОКУ!", true)
+				_say(Lang.t("СБОКУ!"), true)
 			elif ev[4] and who == 0:
-				_say("СИЛЬНЫЙ", false)
+				_say(Lang.t("СИЛЬНЫЙ"), false)
 		&"block":
 			_play("block")
 			var f := _fighter(ev[1])
 			_burst(Vector3(f.x + (0.35 if ev[1] == 0 else -0.35), 1.2, 0.3), 3, WHITE, 0.25, 1.6)
 			if ev[1] == 0:
-				_say("БЛОК", true)
+				_say(Lang.t("БЛОК"), true)
 		&"ghost":
 			_play("whiff")
-			_say("НАСКВОЗЬ", false)
+			_say(Lang.t("НАСКВОЗЬ"), false)
 		&"whiff":
 			_play("whiff")
 			if ev[1] == 1 and sim.rival.flank > 0.0:
-				_say("УШЁЛ", true)
+				_say(Lang.t("УШЁЛ"), true)
 		&"step":
 			_play("step")
 		&"tired":
-			_say("ВЫДОХСЯ", true)
+			_say(Lang.t("ВЫДОХСЯ"), true)
 		&"ko":
 			# Итог не сразу: нокаут сначала виден, боец падает.
 			_play("ko")
@@ -320,11 +320,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "нокаут" if goal else "проиграл"
+	return Lang.t("нокаут") if goal else Lang.t("проиграл")
 
 
 func _result_caption() -> String:
-	return "%d с · здоровья %d · сбоку %d · блоков %d" % [int(round(sim.time)), maxi(sim.hero.hp, 0), sim.flank_hits, sim.blocks]
+	return Lang.t("%d с · здоровья %d · сбоку %d · блоков %d") % [int(round(sim.time)), maxi(sim.hero.hp, 0), sim.flank_hits, sim.blocks]
 
 
 # --- Картинка --------------------------------------------------------------------------------
@@ -510,4 +510,4 @@ func _draw_hud(canvas: CanvasItem) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "ходьба"], ["↑", "шаг вглубь"], ["↓", "блок"], [GameInput.key(GameInput.A), "рука"], [GameInput.key(GameInput.B), "нога"]]
+	return [["← →", Lang.t("ходьба")], ["↑", Lang.t("шаг вглубь")], ["↓", Lang.t("блок")], [GameInput.key(GameInput.A), Lang.t("рука")], [GameInput.key(GameInput.B), Lang.t("нога")]]

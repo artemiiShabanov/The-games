@@ -266,19 +266,19 @@ static func validate(level: RailLevel, t: ShooterLowpolyGenTuning = null, rules:
 	for i in level.stops.size():
 		for j in range(i + 2, level.stops.size()):
 			if level.stops[i].pos.distance_to(level.stops[j].pos) < 9.0:
-				return "остановки %d и %d рядом" % [i, j]
+				return "остановки %d и %d рядом" % [i, j]  # i18n: skip
 	for i in t.stops:
 		var n := 0
 		for c in level.covers:
 			n += 1 if c.stop == i else 0
 		if n < t.covers_min:
-			return "укрытий на остановке %d: %d" % [i, n]
+			return "укрытий на остановке %d: %d" % [i, n]  # i18n: skip
 		if level.foes_of(i, 0).is_empty():
-			return "остановка %d без врагов" % i
+			return "остановка %d без врагов" % i  # i18n: skip
 	# Камера ни в одном переезде не проходит вплотную к укрытию.
 	for c in level.covers:
 		if level.path_distance(c.pos.x, c.pos.z) < 2.6:
-			return "укрытие на пути камеры"
+			return "укрытие на пути камеры"  # i18n: skip
 	for i in level.foes.size():
 		var foe := level.foes[i]
 		var head := foe.out + Vector3(0.0, rules.head_y, 0.0)
@@ -290,20 +290,20 @@ static func validate(level: RailLevel, t: ShooterLowpolyGenTuning = null, rules:
 				var cam := level.pose_pos(foe.stop, k)
 				var at := RailLevel.project(head, cam, level.pose_look(foe.stop, k), tan_half, rules.aspect)
 				if at.z < 3.0 or absf(at.x) > 0.9 or absf(at.y) > 0.85 or not level.sees(cam, head):
-					return "бегун к остановке %d не в кадре" % foe.stop
+					return "бегун к остановке %d не в кадре" % foe.stop  # i18n: skip
 			continue
 		var stop := level.stops[foe.stop]
 		var at := RailLevel.project(head, stop.pos, Vector2(stop.yaw, stop.pitch), tan_half, rules.aspect)
 		if at.z < 3.0 or absf(at.x) > 0.9 or absf(at.y) > 0.8:
-			return "враг %d не в кадре" % i
+			return "враг %d не в кадре" % i  # i18n: skip
 		if not level.sees(stop.pos, head):
-			return "враг %d закрыт" % i
+			return "враг %d закрыт" % i  # i18n: skip
 	for k in level.kegs:
 		var stop := level.stops[k.stop]
 		var mid := k.pos + Vector3(0.0, rules.keg_y, 0.0)
 		var at := RailLevel.project(mid, stop.pos, Vector2(stop.yaw, stop.pitch), tan_half, rules.aspect)
 		if at.z < 3.0 or absf(at.x) > 0.88 or absf(at.y) > 0.85 or not level.sees(stop.pos, mid):
-			return "бочка с порохом не видна"
+			return "бочка с порохом не видна"  # i18n: skip
 		# Бочка не заслоняет голову врага своей остановки.
 		for foe in level.foes:
 			if foe.stop != k.stop or foe.kind == RailLevel.Kind.RUNNER:
@@ -311,13 +311,13 @@ static func validate(level: RailLevel, t: ShooterLowpolyGenTuning = null, rules:
 			var to := foe.out + Vector3(0.0, rules.head_y, 0.0) - stop.pos
 			var hit := RailLevel.hit_sphere(stop.pos, to.normalized(), mid, rules.keg_r + 0.15)
 			if hit >= 0.0 and hit < to.length():
-				return "бочка с порохом заслоняет врага"
+				return "бочка с порохом заслоняет врага"  # i18n: skip
 	if level.kegs.size() < mini(t.kegs, 1):
-		return "нет бочек с порохом"
+		return "нет бочек с порохом"  # i18n: skip
 	if level.count(RailLevel.Kind.CAPTAIN) < 1:
-		return "нет капитана"
+		return "нет капитана"  # i18n: skip
 	if level.count(RailLevel.Kind.HOSTAGE) < t.hostages_min:
-		return "пленных %d" % level.count(RailLevel.Kind.HOSTAGE)
+		return "пленных %d" % level.count(RailLevel.Kind.HOSTAGE)  # i18n: skip
 	if level.hostiles() < 16:
-		return "врагов %d" % level.hostiles()
+		return "врагов %d" % level.hostiles()  # i18n: skip
 	return ""

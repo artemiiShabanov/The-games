@@ -103,7 +103,7 @@ func _process(delta: float) -> void:
 func _stop(col: int) -> void:
 	_done[col] = true
 	_columns.index[col] = _target[col]
-	_columns.set_caption(col, STOPPED[col])
+	_columns.set_caption(col, tr(STOPPED[col]))
 	_columns.refresh(true)
 	Jelly.poke(_columns.cards[col][_target[col]] as Control, 3.0)
 	ShellSounds.play(&"hit")
@@ -170,7 +170,7 @@ func found() -> void:
 # --- Построение --------------------------------------------------------------------------------
 
 func _build() -> void:
-	var header := HintPill.header("Новая студия")
+	var header := HintPill.header(tr("Новая студия"))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
@@ -223,7 +223,7 @@ func _build() -> void:
 	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("R название и логотип"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "основать студию")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("основать студию"))))
 	add_child(hints)
 	MouseUi.pass_through(self)
 

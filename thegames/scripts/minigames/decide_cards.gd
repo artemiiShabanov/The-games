@@ -456,7 +456,7 @@ func _draw_rule(font: Font) -> void:
 	var colors: Array[Color] = []
 	for i in rule.size():
 		if i > 0:
-			parts.append(" и ")
+			parts.append(tr(" и "))
 			colors.append(Style.INK_3)
 		parts.append(_cond_text(rule[i]))
 		colors.append(Style.accent(rule[i].value) if rule[i].kind == Kind.COLOR else ink)
@@ -483,9 +483,9 @@ static func _cond_text(c: Cond) -> String:
 		Kind.NUMBER_GE:
 			return "≥ " + str(c.value)
 		Kind.EVEN:
-			return "чётное"
+			return Lang.t("чётное")
 		Kind.ODD:
-			return "нечётное"
+			return Lang.t("нечётное")
 		Kind.COLOR:
 			return Style.accent_name(c.value)
 	return ""

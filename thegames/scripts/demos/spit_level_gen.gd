@@ -295,15 +295,15 @@ static func validate(lv: SpitLevel, t: PlatformerLowpolyGenTuning = null) -> Str
 	if t == null:
 		t = PlatformerLowpolyGenTuning.load_default()
 	if lv.gaps() < t.gaps_min:
-		return "ям %d, меньше %d" % [lv.gaps(), t.gaps_min]
+		return "ям %d, меньше %d" % [lv.gaps(), t.gaps_min]  # i18n: skip
 	if lv.rafts.size() < t.rafts_min:
-		return "плотов %d" % lv.rafts.size()
+		return "плотов %d" % lv.rafts.size()  # i18n: skip
 	if lv.turns() < t.turns_min:
-		return "поворотов %d" % lv.turns()
+		return "поворотов %d" % lv.turns()  # i18n: skip
 	if lv.steps() < t.steps_min:
-		return "уступов %d" % lv.steps()
+		return "уступов %d" % lv.steps()  # i18n: skip
 	if lv.guards.is_empty() or lv.rollers.is_empty() or lv.cannons.is_empty():
-		return "нет скелетов, катка или пушек"
+		return "нет скелетов, катка или пушек"  # i18n: skip
 	var raft_gap := 2.0 * t.raft_hop + 2.0 * t.raft_half
 	for i in range(1, lv.pieces.size()):
 		var p := lv.pieces[i]
@@ -311,45 +311,45 @@ static func validate(lv: SpitLevel, t: PlatformerLowpolyGenTuning = null) -> Str
 		var turned := not p.dir.is_equal_approx(prev.dir)
 		if p.raft >= 0:
 			if absf(p.gap - raft_gap) > 0.01 or absf(p.h0 - prev.h1) > 0.01 or turned:
-				return "кусок %d: плот над ямой %.2f" % [i, p.gap]
+				return "кусок %d: плот над ямой %.2f" % [i, p.gap]  # i18n: skip
 		elif p.gap < 0.0 or p.gap > t.gap_last + 0.01 or (p.gap > 0.0 and p.gap < minf(t.gap_min, t.stone_gap_min) - 0.01):
-			return "кусок %d: яма %.2f" % [i, p.gap]
+			return "кусок %d: яма %.2f" % [i, p.gap]  # i18n: skip
 		if p.gap > 0.0 and (turned or p.kind == SpitLevel.Kind.BRIDGE or prev.kind == SpitLevel.Kind.BRIDGE):
-			return "кусок %d: яма на повороте или у мостика" % i
+			return "кусок %d: яма на повороте или у мостика" % i  # i18n: skip
 		if p.gap > 0.0 and p.h0 - prev.h1 > t.gap_step + 0.01:
-			return "кусок %d: яма с подъёмом %.2f" % [i, p.h0 - prev.h1]
+			return "кусок %d: яма с подъёмом %.2f" % [i, p.h0 - prev.h1]  # i18n: skip
 		if p.gap <= 0.0 and absf(p.h0 - prev.h1) > t.step_max + 0.01:
-			return "кусок %d: уступ %.2f" % [i, p.h0 - prev.h1]
+			return "кусок %d: уступ %.2f" % [i, p.h0 - prev.h1]  # i18n: skip
 		if p.gap <= 0.0 and absf(p.h0 - prev.h1) > 0.01 and (prev.kind == SpitLevel.Kind.STONE or prev.kind == SpitLevel.Kind.BRIDGE):
-			return "кусок %d: уступ сразу за камнем или мостиком" % i
+			return "кусок %d: уступ сразу за камнем или мостиком" % i  # i18n: skip
 		if not turned:
 			var shift := absf(prev.local(p.a).y)
 			var overlap := (prev.width + p.width) / 2.0 - shift
 			if overlap < (t.overlap_min if p.gap > 0.0 and p.kind != SpitLevel.Kind.STONE else 1.5) - 0.01:
-				return "кусок %d: перекрытие по ширине %.2f" % [i, overlap]
+				return "кусок %d: перекрытие по ширине %.2f" % [i, overlap]  # i18n: skip
 		elif absf(prev.h1 - prev.h0) > 0.01 or prev.length < p.width + 3.0:
-			return "кусок %d: поворот с наклонного или короткого куска" % i
+			return "кусок %d: поворот с наклонного или короткого куска" % i  # i18n: skip
 		if p.h0 < t.height_min - 0.01 or p.h1 > t.height_max + 0.01:
-			return "кусок %d: высота" % i
+			return "кусок %d: высота" % i  # i18n: skip
 		# Коса не пересекает сама себя: кусок не задевает никакой раньше предыдущего.
 		var mine := _rect(p).grow(0.5)
 		for j in i - 1:
 			if mine.intersects(_rect(lv.pieces[j])):
-				return "кусок %d задевает кусок %d" % [i, j]
+				return "кусок %d задевает кусок %d" % [i, j]  # i18n: skip
 	for g in lv.guards:
 		var p := lv.pieces[g.piece]
 		if g.reach > p.width / 2.0 - 0.3 or g.s < 3.5 or g.s > p.length - 3.5 or g.speed <= 0.0:
-			return "скелет на куске %d стоит не там" % g.piece
+			return "скелет на куске %d стоит не там" % g.piece  # i18n: skip
 	for c in lv.cannons:
 		if c.s < 2.5 or c.s > lv.pieces[c.piece].length - 2.5:
-			return "пушка у края куска %d" % c.piece
+			return "пушка у края куска %d" % c.piece  # i18n: skip
 	for c in lv.crates:
 		var i := lv.piece_at(c + Vector3(0.0, 0.01, 0.0))
 		if i < 0:
-			return "ящик над водой"
+			return "ящик над водой"  # i18n: skip
 		var s := lv.pieces[i].local(c).x
 		if s < 3.5 or s > lv.pieces[i].length - 4.5:
-			return "ящик у края куска %d" % i
+			return "ящик у края куска %d" % i  # i18n: skip
 	if lv.coins.is_empty():
-		return "нет дублонов"
+		return "нет дублонов"  # i18n: skip
 	return ""

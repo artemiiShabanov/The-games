@@ -27,4 +27,4 @@ func shortfall() -> int:
 
 
 func _to_string() -> String:
-	return "%d × %d = %d, остаток %d" % [sprints, sprint_price, total, remainder]
+	return "%d × %d = %d, остаток %d" % [sprints, sprint_price, total, remainder] # i18n: skip

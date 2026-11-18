@@ -17,7 +17,7 @@ extends Control
 
 enum Stage { START, HUB, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, YEAR, END }
 
-const SECTION: StringName = &"Состояние"
+const SECTION: StringName = &"Состояние"  # i18n: skip
 const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
 const BASE_PATH := "res://scenes/base_chooser.tscn"
 ## Кадр демки плейтеста в галерею: когда снимать и размер.
@@ -459,7 +459,7 @@ func _start_runner(from: int) -> void:
 	_runner.menu_requested.connect(_to_menu)
 	add_child(_runner)
 	_runner.run(run.last_plan, run.t_value(), run.release == 1, record.seed + _resumes * RESUME_SEED_STEP,
-			"%s · релиз %d" % [record.title, run.release], from, record.sprint_results)
+			tr("%s · релиз %d") % [record.title, run.release], from, record.sprint_results)
 
 
 ## Сложность мини-игры: первая встреча за всю игру идёт на 0, дальше по релизу и штату.
@@ -495,7 +495,7 @@ func _begin_playtest() -> void:
 		_runner.queue_free()
 		_runner = null
 	# Число багов не показываем (плейтест 2026-11-11): игрок ищет их в демке сам.
-	_show_card("Проверка игры", ["«%s» собрана." % record.title, "Список багов не показывается."], "")
+	_show_card("Проверка игры", [tr("«%s» собрана.") % record.title, "Список багов не показывается."], "")
 	ShellSounds.play(&"intro")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	if stage != Stage.PLAYTEST:
@@ -534,7 +534,7 @@ func _capture_shot(r: GameRecord, demo: Demo) -> void:
 		_demo_header.visible = false
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
-	if demo != _demo:
+	if demo != _demo or not is_instance_valid(demo):
 		return
 	var img := get_viewport().get_texture().get_image()
 	if _demo_header != null:
@@ -597,7 +597,7 @@ func _on_bugfix_accepted() -> void:
 	_runner.t_of = _t_for
 	_runner.sprint_finished.connect(_on_bugfix_sprint)
 	add_child(_runner)
-	_runner.run(Bugfix.plan_for(def), run.t_value(), false, run.rng.randi(), "Багфикс · %s" % record.title)
+	_runner.run(Bugfix.plan_for(def), run.t_value(), false, run.rng.randi(), tr("Багфикс · %s") % record.title)
 
 
 func _on_bugfix_sprint(def: MinigameDef, success: bool) -> void:
@@ -739,9 +739,9 @@ func _on_studio_finished() -> void:
 
 ## Конец забега (#68): банкротство, концовка из вставки или «Итоги года» на капе.
 func _show_end() -> void:
-	if run.finish_reason == "банкротство":
+	if run.finish_reason == "банкротство":  # i18n: skip
 		_show_ending(Endings.Id.BANKRUPTCY)
-	elif run.finish_reason == "концовка":
+	elif run.finish_reason == "концовка":  # i18n: skip
 		_show_ending(Endings.from_key(run.event_state.ending))
 	else:
 		_show_year()
@@ -755,7 +755,7 @@ func _show_year() -> void:
 	var offer := Endings.year_offer(run.records, run.stats(), run.event_state.flags, run.tuning, who, run.studio_name)
 	var c := EventCard.new()
 	c.cancel_index = 0
-	c.cancel_hint = "продать студию"
+	c.cancel_hint = tr("продать студию")
 	c.setup(offer, run.release - 1, run.wallet, func(i: int) -> String:
 		return Events.apply(offer, i, run.wallet, run.market, run.event_state, run.meta, run.rng, run.release - 1))
 	c.finished.connect(func(_i: int) -> void: _show_ending(Endings.from_key(run.event_state.ending)))
@@ -827,7 +827,7 @@ func _resume(s: RunSave) -> void:
 			_open_studio()
 		&"year":
 			run.finished = true
-			run.finish_reason = "год закончился"
+			run.finish_reason = "год закончился"  # i18n: skip
 			_show_year()
 		_:
 			_start_release(s.prepared)

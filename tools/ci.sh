@@ -17,6 +17,7 @@ step() {
 }
 step "model_run --check" python3 tools/model_run.py --check
 step "settings check" python3 tools/check_settings.py --check
+step "i18n check" python3 tools/i18n.py --check
 export HEADLESS=1
 step "economy_test" sh tools/autotest.sh --scene=economy_test --frames=200
 step "success_test" sh tools/autotest.sh --scene=success_test --frames=200
@@ -125,6 +126,7 @@ step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --f
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400
 step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
+step "loop M1 en" sh tools/autotest.sh --loop --lang=en --time-scale=4 --frames=6500
 step "loop after release" sh tools/autotest.sh --loop --after --time-scale=4 --frames=6500
 step "loop remake" sh tools/autotest.sh --loop --remake --releases=3 --time-scale=4 --frames=6500
 # Сверка модели (#72): игра на спокойном рынке с руками 0.75 пишет ведомость, модель её пересчитывает.

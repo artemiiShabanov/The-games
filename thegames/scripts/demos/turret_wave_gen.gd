@@ -57,34 +57,34 @@ static func is_side(angle: float, t: ShooterVectorGenTuning) -> bool:
 ## Проверка расписания: "" или причина.
 static func validate(w: TurretWaves, t: ShooterVectorGenTuning) -> String:
 	if w.spawns.size() != t.count:
-		return "появлений %d" % w.spawns.size()
+		return "появлений %d" % w.spawns.size()  # i18n: skip
 	var prev := 0.0
 	var lo := t.interval_end * (1.0 - t.interval_jitter) - 0.01
 	for i in w.spawns.size():
 		var s := w.spawns[i]
 		if i > 0 and s.time - prev < lo:
-			return "появление %d слишком скоро, через %.2f с" % [i, s.time - prev]
+			return "появление %d слишком скоро, через %.2f с" % [i, s.time - prev]  # i18n: skip
 		prev = s.time
 		match s.kind:
 			TurretWaves.Kind.ENEMY:
 				if s.speed < t.enemy_speed_min - 0.01 or s.speed > t.enemy_speed_max + 0.01:
-					return "враг со скоростью %.0f" % s.speed
+					return "враг со скоростью %.0f" % s.speed  # i18n: skip
 				if not is_side(s.angle, t):
-					return "быстрый враг %d появляется не сбоку" % i
+					return "быстрый враг %d появляется не сбоку" % i  # i18n: skip
 			TurretWaves.Kind.ROCK:
 				if s.speed < t.rock_speed_min - 0.01 or s.speed > t.rock_speed_max + 0.01:
-					return "глыба со скоростью %.0f" % s.speed
+					return "глыба со скоростью %.0f" % s.speed  # i18n: skip
 			TurretWaves.Kind.SPINNER:
 				if i < t.spinner_from:
-					return "вьюн раньше времени, появление %d" % i
+					return "вьюн раньше времени, появление %d" % i  # i18n: skip
 				if s.speed < t.spinner_speed_min - 0.01 or s.speed > t.spinner_speed_max + 0.01:
-					return "вьюн со скоростью %.0f" % s.speed
+					return "вьюн со скоростью %.0f" % s.speed  # i18n: skip
 				if absf(s.spin) < deg_to_rad(t.spinner_spin_min) - 0.001 or absf(s.spin) > deg_to_rad(t.spinner_spin_max) + 0.001:
-					return "вьюн кружит со скоростью %.2f" % s.spin
+					return "вьюн кружит со скоростью %.2f" % s.spin  # i18n: skip
 			_:
-				return "появление %d неизвестного вида" % i
+				return "появление %d неизвестного вида" % i  # i18n: skip
 		if s.kind != TurretWaves.Kind.SPINNER and s.spin != 0.0:
-			return "появление %d кружит, а не должно" % i
+			return "появление %d кружит, а не должно" % i  # i18n: skip
 	if w.seconds <= prev:
-		return "длина расписания %.1f" % w.seconds
+		return "длина расписания %.1f" % w.seconds  # i18n: skip
 	return ""

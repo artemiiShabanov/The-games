@@ -948,13 +948,13 @@ func _money_rows() -> Array[Control]:
 		var net := 0
 		for e in by_release[r]:
 			net += int(e["delta"])
-		rows.append(_money_row("Релиз %d" % r, net, true))
+		rows.append(_money_row(tr("Релиз %d") % r, net, true))
 		for e in by_release[r]:
 			var reason := str(e.get("reason", ""))
-			var text: String = REASONS.get(reason, reason)
+			var text: String = tr(REASONS.get(reason, reason))
 			var note := str(e.get("note", ""))
 			if note != "":
-				text += " · " + note
+				text += " · " + tr(note)
 			rows.append(_money_row(text, int(e["delta"]), false))
 	return rows
 
@@ -992,7 +992,7 @@ func _upgrade_rows() -> Array[Control]:
 		rows.append(_wrap_label("В штате никого. Люди нанимаются с доски соискателей.", Style.FONT_BODY, Style.INK_2))
 	for m in run.studio.staff:
 		rows.append(_staff_row(m, Staff.effect_line(m.role, m.grade, tuning),
-				"%s за релиз" % Style.format_money(run.hire_salary(m)), Style.INK_3))
+				tr("%s за релиз") % Style.format_money(run.hire_salary(m)), Style.INK_3))
 	if not ids.is_empty():
 		rows.append(_wrap_label("Жанры и технологии", Style.FONT_CAPTION, Style.INK_3))
 	for i in ids.size():
@@ -1024,7 +1024,7 @@ func _upgrade_rows() -> Array[Control]:
 		h.add_child(right)
 		right.add_child(_kind_pill(kind, def.kind_name() if def != null else ""))
 		var when := run.studio.release_of(i)
-		var wl := _label("релиз %d" % when if when > 0 else "", Style.FONT_CAPTION, Style.INK_3)
+		var wl := _label(tr("релиз %d") % when if when > 0 else "", Style.FONT_CAPTION, Style.INK_3)
 		wl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		right.add_child(wl)
 		rows.append(row)
@@ -1138,7 +1138,7 @@ func _games_window_rows() -> Array[Control]:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(col)
 		col.add_child(_label(r.title, Style.FONT_BODY, Style.INK))
-		col.add_child(_label("Релиз %d · %s × %s × %s" % [i + 1, Game.genre_name(r.genre), Game.tech_name(r.tech),
+		col.add_child(_label(tr("Релиз %d · %s × %s × %s") % [i + 1, Game.genre_name(r.genre), Game.tech_name(r.tech),
 				Game.setting_name(r.setting)], Style.FONT_CAPTION, Style.INK_2))
 		var right := VBoxContainer.new()
 		right.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1168,7 +1168,7 @@ func _board_window_rows() -> Array[Control]:
 	for i in _board_members.size():
 		var m := _board_members[i]
 		# Без счётчика ожидания (2026-11-17): сколько соискатель ещё ждёт, игрок не видит.
-		var effect := "%s\nЗарплата %s за релиз" % [Staff.effect_line(m.role, m.grade, tuning),
+		var effect := tr("%s\nЗарплата %s за релиз") % [tr(Staff.effect_line(m.role, m.grade, tuning)),
 				Style.format_money(run.hire_salary(m))]
 		var row := _staff_row(m, effect, Style.format_money(run.hire_price(m)), Style.INK)
 		rows.append(row)
@@ -1188,10 +1188,10 @@ func _bet_window_rows() -> Array[Control]:
 	_bet_lifts.clear()
 	_bet_focus = 1
 	var t := run.tuning
-	rows.append(_wrap_label("Ставка на оценку критиков. Угадано: +%s. Не угадано: 0." % Style.format_money(t.bet_bonus),
+	rows.append(_wrap_label(tr("Ставка на оценку критиков. Угадано: +%s. Не угадано: 0.") % Style.format_money(t.bet_bonus),
 			Style.FONT_CAPTION, Style.INK_2))
-	var ranges: Array[String] = ["ниже %s" % _score(t.bet_low), "от %s до %s" % [_score(t.bet_low), _score(t.bet_high)],
-			"от %s и выше" % _score(t.bet_high)]
+	var ranges: Array[String] = [tr("ниже %s") % _score(t.bet_low), tr("от %s до %s") % [_score(t.bet_low), _score(t.bet_high)],
+			tr("от %s и выше") % _score(t.bet_high)]
 	for i in 3:
 		var row := PanelContainer.new()
 		var h := HBoxContainer.new()
@@ -1226,7 +1226,8 @@ func _refresh_bet() -> void:
 
 
 static func _score(v: float) -> String:
-	return ("%.1f" % v).replace(".", ",")
+	var s := "%.1f" % v
+	return s if Lang.english() else s.replace(".", ",")
 
 
 ## Фокус строки предложения: тёмная подложка; цена красным, если покупка съест запас.
@@ -1419,7 +1420,7 @@ func _build() -> void:
 		logo.set_logo(run.studio_logo, false)
 		head.add_child(logo)
 	# Лампа «в эфире» из логотипа Studio Running слева от названия студии.
-	var title := HintPill.header(ShellHeader.text("Релиз %d" % run.release), ShellHeader.studio != "")
+	var title := HintPill.header(ShellHeader.text(tr("Релиз %d") % run.release), ShellHeader.studio != "")
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(title)
 	_studio_label = title.find_children("", "Label", true, false)[0] as Label
@@ -1460,12 +1461,12 @@ func _build() -> void:
 	_money_index = _focusables.size()
 	_pill_button(_pills, Style.format_money(run.wallet.cash), true)
 	_upgrades_index = _focusables.size()
-	_pill_button(_pills, "Штат · %d" % run.studio.staff.size(), false)
+	_pill_button(_pills, tr("Штат · %d") % run.studio.staff.size(), false)
 	if not run.board.is_empty():
 		_board_index = _focusables.size()
-		_pill_button(_pills, "Соискатели · %d" % run.board.size(), false)
+		_pill_button(_pills, tr("Соискатели · %d") % run.board.size(), false)
 	_settings_index = _focusables.size()
-	_pill_button(_pills, "Сеттинги · %d из %d" % [SettingsScreen.open_count(run.profile, run), Game.Setting.size()], false)
+	_pill_button(_pills, tr("Сеттинги · %d из %d") % [SettingsScreen.open_count(run.profile, run), Game.Setting.size()], false)
 	if not run.pending_defs().is_empty():
 		_offer_index = _focusables.size()
 		_offer_button(_pills)
@@ -1494,7 +1495,7 @@ func _build() -> void:
 	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
 	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.add_child(HintPill.make("← → ↑ ↓ выбрать"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "нажать")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("нажать"))))
 	hints.add_child(HintPill.make("Esc пауза"))
 	_chrome.add_child(hints)
 	_hints = hints
@@ -1547,19 +1548,19 @@ func _wave_card(kind: Wave) -> PanelContainer:
 				color = Style.MONEY
 			else:
 				caption = "Ставка не угадана"
-				text = "Ставка: %s. Оценка: %s" % [BET_NAMES[after_record.bet], VERDICTS[bet_class()]]
+				text = tr("Ставка: %s. Оценка: %s") % [tr(BET_NAMES[after_record.bet]), tr(VERDICTS[bet_class()])]
 		Wave.TWEETS:
-			caption = "Твиты · " + after_content.tag
+			caption = tr("Твиты · %s") % tr(after_content.tag)
 			for it in after_content.items:
 				if it.kind == FeedContent.Kind.TWEET:
 					text = it.text
 					break
 		Wave.STREAM:
-			caption = "Стрим · " + after_content.clip_person.name
-			text = FeedContent.format_count(after_content.online) + " онлайн" + (" · вирусный" if after_content.viral else "")
+			caption = tr("Стрим · %s") % tr(after_content.clip_person.name)
+			text = (tr("%s онлайн · вирусный") if after_content.viral else tr("%s онлайн")) % FeedContent.format_count(after_content.online)
 		Wave.CRITICS:
 			if after_record.bet_done:
-				text = _score(after_content.critics_avg) + " · " + VERDICTS[bet_class()]
+				text = _score(after_content.critics_avg) + " · " + tr(VERDICTS[bet_class()])
 				mono = true
 			else:
 				caption = "Критики · рецензии вышли"

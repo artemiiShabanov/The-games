@@ -7,7 +7,7 @@ var _label: Label
 
 func _on_start() -> void:
 	_label = Label.new()
-	_label.text = "%s\n\nзаглушка мини-игры: A успех, B провал" % def.verb
+	_label.text = tr("%s\n\nзаглушка мини-игры: A успех, B провал") % tr(def.verb)
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

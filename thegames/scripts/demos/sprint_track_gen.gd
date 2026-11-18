@@ -148,21 +148,21 @@ static func validate(track: SprintTrack, t: RacingThreedGenTuning = null) -> Str
 	if t == null:
 		t = RacingThreedGenTuning.load_default()
 	if track.corners.size() < 7:
-		return "поворотов %d" % track.corners.size()
+		return "поворотов %d" % track.corners.size()  # i18n: skip
 	if track.links < 1:
-		return "нет связки поворотов"
+		return "нет связки поворотов"  # i18n: skip
 	if track.narrows.size() < 2:
-		return "сужений %d" % track.narrows.size()
+		return "сужений %d" % track.narrows.size()  # i18n: skip
 	if track.sands.size() < 2:
-		return "участков песка %d" % track.sands.size()
+		return "участков песка %d" % track.sands.size()  # i18n: skip
 	if track.climb() < 2.0:
-		return "нет рельефа"
+		return "нет рельефа"  # i18n: skip
 	if track.tightest() < 15.0:
-		return "поворот радиусом %.0f м" % track.tightest()
+		return "поворот радиусом %.0f м" % track.tightest()  # i18n: skip
 	# Дальние витки не сходятся.
 	var skip := int(120.0 / track.step)
 	for i in range(0, track.count(), 4):
 		for j in range(i + skip, track.count(), 4):
 			if track.points[i].distance_to(track.points[j]) < t.clearance:
-				return "витки сходятся на %.0f и %.0f м" % [i * track.step, j * track.step]
+				return "витки сходятся на %.0f и %.0f м" % [i * track.step, j * track.step]  # i18n: skip
 	return ""

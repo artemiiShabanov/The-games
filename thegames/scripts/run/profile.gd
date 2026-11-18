@@ -99,5 +99,5 @@ func finish_run(ending: StringName, score: int, run_number := 0, studio := "", l
 
 
 func _to_string() -> String:
-	return "забегов %d/%d, игр %d, концовки %s, лучшие %s, пара %d×%d" % [runs_finished, runs_started, gallery.size(),
+	return "забегов %d/%d, игр %d, концовки %s, лучшие %s, пара %d×%d" % [runs_finished, runs_started, gallery.size(),  # i18n: skip
 		ending_counts, best_endings, last_start_genre, last_start_tech]

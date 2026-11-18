@@ -124,7 +124,7 @@ func _build() -> void:
 	column.add_child(_label("Спринт багфикса", Style.FONT_H1, Style.INK, true))
 	column.add_child(_label("Успех спринта чинит половину багов игры.",
 			Style.FONT_BODY, Style.INK_2, true))
-	column.add_child(_label("Цена обычного спринта: %s · у вас %s" % [Style.format_money(cost), Style.format_money(cash)],
+	column.add_child(_label(tr("Цена обычного спринта: %s · у вас %s") % [Style.format_money(cost), Style.format_money(cash)],
 			Style.FONT_BODY, Style.INK_2, true))
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -143,7 +143,7 @@ func _build() -> void:
 		_lifts.append(Jelly.button(b))
 	var pill_row := HBoxContainer.new()
 	pill_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	pill_row.add_child(HintPill.make("← → выбрать · %s подтвердить · %s выпустить так" % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
+	pill_row.add_child(HintPill.make(tr("← → выбрать · %s подтвердить · %s выпустить так") % [GameInput.key(GameInput.A), GameInput.key(GameInput.B)]))
 	column.add_child(pill_row)
 	MouseUi.pass_through(self)
 	_refresh()
@@ -161,7 +161,7 @@ func _refresh() -> void:
 		_buttons[i].add_theme_stylebox_override("panel", Style.flat(bg, Style.R_CTL, Color.TRANSPARENT, 0))
 		_lifts[i].focused = on
 		_labels[i].add_theme_color_override("font_color", ink)
-	_labels[0].text = "Купить" if affordable() else "Не хватает " + Style.format_money(cost - cash)
+	_labels[0].text = tr("Купить") if affordable() else tr("Не хватает %s") % Style.format_money(cost - cash)
 
 
 func _shake(node: Control) -> void:

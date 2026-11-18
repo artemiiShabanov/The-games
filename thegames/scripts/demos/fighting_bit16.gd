@@ -138,7 +138,7 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_caption() -> String:
-	return "побито %d · жизней %d · %d с" % [sim.kills, sim.lives, int(round(elapsed))]
+	return Lang.t("побито %d · жизней %d · %d с") % [sim.kills, sim.lives, int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -295,7 +295,7 @@ func _on_event(ev: Array) -> void:
 			_throw_t = 0.0
 			_play("throw")
 		&"life":
-			_banner = "ЕЩЁ РАЗ!"
+			_banner = Lang.t("ЕЩЁ РАЗ!")
 			_banner_t = 1.4
 			if AutoTest.enabled and not embedded:
 				AutoTest.note("fighting bit16: жизнь потеряна на %.1f с, экран %d" % [elapsed, sim.screen + 1])
@@ -373,7 +373,7 @@ func _draw_world(canvas: CanvasItem) -> void:
 		var at := Vector2(bit16.view.x - 108.0 + bob, 96.0)
 		if g != null:
 			canvas.draw_texture_rect_region(g, Rect2(at, Vector2(72.0, 44.0)), Rect2((int(_time * 4.0) % 2) * 72.0, 0.0, 72.0, 44.0))
-		PixelFont16.draw(canvas, at + Vector2(-6.0, -22.0), "ВПЕРЁД!", GOLD_RAMP[3], GOLD_RAMP[1], INK, 2.0)
+		PixelFont16.draw(canvas, at + Vector2(-6.0, -22.0), Lang.t("ВПЕРЁД!"), GOLD_RAMP[3], GOLD_RAMP[1], INK, 2.0)
 
 
 ## Тень под ногами: пиксельный овал, меньше, когда боец в воздухе.
@@ -498,7 +498,7 @@ func _draw_hud(canvas: CanvasItem) -> void:
 				face = "brawl_face_knife"
 			BrawlWaves.Kind.BOSS:
 				face = "brawl_face_boss"
-		_plate(canvas, Vector2(10.0, 58.0), face, show.name, float(show.hp) / show.max_hp, _target_lag, RED_RAMP, false,
+		_plate(canvas, Vector2(10.0, 58.0), face, Lang.t(show.name), float(show.hp) / show.max_hp, _target_lag, RED_RAMP, false,
 				show.flash > 0.0)
 	if _banner_t > 0.0:
 		var cell := 4.0
@@ -569,4 +569,4 @@ func _bar(canvas: CanvasItem, r: Rect2, k: float, lag: float, ramp: Array[Color]
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← → ↑ ↓", "ход"], [GameInput.key(GameInput.A), "удар"], [GameInput.key(GameInput.B), "тяжёлый удар"]]
+	return [["← → ↑ ↓", Lang.t("ход")], [GameInput.key(GameInput.A), Lang.t("удар")], [GameInput.key(GameInput.B), Lang.t("тяжёлый удар")]]

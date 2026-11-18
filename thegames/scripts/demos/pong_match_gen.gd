@@ -25,15 +25,15 @@ static func generate(seed_: int, t: SportVectorGenTuning = null) -> PongMatch:
 ## Проверка матча: "" или причина.
 static func validate(m: PongMatch, t: SportVectorGenTuning) -> String:
 	if m.ai_speed < t.ai_speed_min - 0.01 or m.ai_speed > t.ai_speed_max + 0.01:
-		return "скорость соперника %.0f" % m.ai_speed
+		return "скорость соперника %.0f" % m.ai_speed  # i18n: skip
 	if m.ai_error < t.ai_error_min - 0.01 or m.ai_error > t.ai_error_max + 0.01:
-		return "ошибка соперника %.0f" % m.ai_error
+		return "ошибка соперника %.0f" % m.ai_error  # i18n: skip
 	if m.ai_react < t.ai_react_min - 0.001 or m.ai_react > t.ai_react_max + 0.001:
-		return "запоздание соперника %.2f" % m.ai_react
+		return "запоздание соперника %.2f" % m.ai_react  # i18n: skip
 	if m.serves.size() != t.serves:
-		return "подач %d" % m.serves.size()
+		return "подач %d" % m.serves.size()  # i18n: skip
 	for a in m.serves:
 		var deg := absf(rad_to_deg(a))
 		if deg < t.serve_angle_min - 0.01 or deg > t.serve_angle_max + 0.01:
-			return "подача под углом %.0f" % deg
+			return "подача под углом %.0f" % deg  # i18n: skip
 	return ""

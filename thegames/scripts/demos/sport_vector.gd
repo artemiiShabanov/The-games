@@ -109,11 +109,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "выиграл" if goal else "проиграл"
+	return Lang.t("выиграл") if goal else Lang.t("проиграл")
 
 
 func _result_caption() -> String:
-	return "счёт %d:%d · %d с" % [sim.score_player, sim.score_ai, int(round(elapsed))]
+	return Lang.t("счёт %d:%d · %d с") % [sim.score_player, sim.score_ai, int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -240,4 +240,4 @@ func _draw_vector(v: VectorScreen) -> void:
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["↑ ↓", "ракетка"]]
+	return [["↑ ↓", Lang.t("ракетка")]]

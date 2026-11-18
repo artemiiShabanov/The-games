@@ -57,10 +57,10 @@ static func _build(seed_: int, attempt: int, t: FightingThreedTuning) -> FrayPla
 ## Пусто, если план годится; иначе что не так.
 static func validate(plan: FrayPlan) -> String:
 	if plan.waves.size() != WAVES.size():
-		return "волн %d" % plan.waves.size()
+		return "волн %d" % plan.waves.size()  # i18n: skip
 	for k in plan.waves[0].kinds:
 		if k != T:
-			return "в первой волне не только простые пираты"
+			return "в первой волне не только простые пираты"  # i18n: skip
 	if plan.count(S) < 2 or plan.count(K) < 2:
-		return "мало щитоносцев или ножей"
+		return "мало щитоносцев или ножей"  # i18n: skip
 	return ""

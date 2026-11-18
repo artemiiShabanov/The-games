@@ -149,5 +149,5 @@ textures/canvas_textures/default_texture_filter=0
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://locale/en.po")
+locale/translations=PackedStringArray("res://locale/en/demos.po", "res://locale/en/events.po", "res://locale/en/feed.po", "res://locale/en/hub.po", "res://locale/en/menu.po", "res://locale/en/minigames.po", "res://locale/en/studio.po")
 locale/fallback="ru"

@@ -157,7 +157,7 @@ func confirm() -> void:
 	if wallet != null:
 		_roll_money(wallet.cash)
 	if outcome != "":
-		_outcome.text = outcome
+		_outcome.text = tr(outcome)
 		_outcome.visible = true
 		Jelly.poke(_panel, 1.0)
 	var wait := meta.outcome_seconds if not Debug.skip_cards else 0.05
@@ -175,7 +175,7 @@ func _build() -> void:
 		shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(shade)
 		Jelly.cover(self)
-	var header := HintPill.header(ShellHeader.release(release, "Вставка"))
+	var header := HintPill.header(ShellHeader.release(release, tr("Вставка")))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
@@ -223,10 +223,10 @@ func _build() -> void:
 	head.add_child(text)
 	var who := offer.character
 	text.add_child(_label(_who_line(), Style.FONT_CAPTION, Style.INK_3))
-	var name_label := _label(who.name if who != null else "", NAME_FONT, Style.INK)
+	var name_label := _label(tr(who.name) if who != null else "", NAME_FONT, Style.INK)
 	name_label.add_theme_font_override("font", Jelly.fun_font(800))
 	text.add_child(name_label)
-	var say := _label("«%s»" % offer.line, LINE_FONT, Style.INK)
+	var say := _label(tr("«%s»") % offer.line, LINE_FONT, Style.INK)
 	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	say.custom_minimum_size = Vector2(CARD_WIDTH - 2 * Style.PAD_CARD - FACE_BOX - 32, 0)
 	text.add_child(say)
@@ -249,10 +249,10 @@ func _build() -> void:
 	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
 	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hints.add_child(HintPill.make("↑ ↓ выбрать"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "решить")))
+	hints.add_child(HintPill.make(tr("↑ ↓ выбрать")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("решить"))))
 	if cancel_index >= 0 and cancel_hint != "":
-		hints.add_child(HintPill.make("Esc " + cancel_hint))
+		hints.add_child(HintPill.make("Esc " + tr(cancel_hint)))
 	add_child(hints)
 	MouseUi.pass_through(self)
 
@@ -262,13 +262,13 @@ func _who_line() -> String:
 	var who := offer.character
 	if who == null:
 		return ""
-	var parts: PackedStringArray = [who.role]
+	var parts: PackedStringArray = [tr(who.role)]
 	if who.subtitle != "":
-		parts.append(who.subtitle)
+		parts.append(tr(who.subtitle))
 	if offer.mood > 0:
-		parts.append("в хорошем настроении")
+		parts.append(tr("в хорошем настроении"))
 	elif offer.mood < 0:
-		parts.append("помнит прошлый отказ")
+		parts.append(tr("помнит прошлый отказ"))
 	return " · ".join(parts)
 
 
@@ -338,7 +338,7 @@ static func pill_colors(tone: Events.Tone) -> Array[Color]:
 func _pill(p: Events.Pill) -> Control:
 	var colors := pill_colors(p.tone)
 	if p.text == "или":
-		var l := _label("или", Style.FONT_CAPTION, Style.INK_3)
+		var l := _label(tr("или"), Style.FONT_CAPTION, Style.INK_3)
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.custom_minimum_size = Vector2(0, 36)
 		return l

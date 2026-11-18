@@ -60,40 +60,40 @@ static func generate(seed_: int, t: PlatformerVectorGenTuning = null) -> TowerLe
 ## враги не на верхнем этаже и не стартуют рядом с героем, всё в пределах экрана.
 static func validate(lv: TowerLevel, t: PlatformerVectorGenTuning) -> String:
 	if lv.floors != t.floors or lv.floors < 2:
-		return "этажей %d" % lv.floors
+		return "этажей %d" % lv.floors  # i18n: skip
 	for line in range(1, lv.floors + 1):
 		var hs := lv.holes_of(line)
 		if hs.is_empty() or hs.size() > 2:
-			return "на линии %d дыр %d" % [line, hs.size()]
+			return "на линии %d дыр %d" % [line, hs.size()]  # i18n: skip
 		for h in hs:
 			if absf(h.speed) < 10.0:
-				return "дыра линии %d стоит" % line
+				return "дыра линии %d стоит" % line  # i18n: skip
 			if h.width < 100.0 or h.width > lv.width / 4.0:
-				return "дыра линии %d шириной %.0f" % [line, h.width]
+				return "дыра линии %d шириной %.0f" % [line, h.width]  # i18n: skip
 			if h.x < 0.0 or h.x >= lv.width:
-				return "дыра линии %d за экраном" % line
+				return "дыра линии %d за экраном" % line  # i18n: skip
 		if line > 1 and absf(hs[0].speed - lv.holes_of(line - 1)[0].speed) < t.hole_speed_gap - 0.01:
-			return "линии %d и %d едут вровень" % [line - 1, line]
+			return "линии %d и %d едут вровень" % [line - 1, line]  # i18n: skip
 		if hs.size() == 2:
 			if not is_equal_approx(hs[0].speed, hs[1].speed):
-				return "дыры линии %d едут с разной скоростью" % line
+				return "дыры линии %d едут с разной скоростью" % line  # i18n: skip
 			if absf(TowerLevel.wrap_delta(hs[0].x, hs[1].x, lv.width)) < hs[0].width * 2.0:
-				return "дыры линии %d слиплись" % line
+				return "дыры линии %d слиплись" % line  # i18n: skip
 	for level in lv.floors:
 		if lv.enemies_of(level).is_empty():
-			return "на этаже %d нет врага" % level
+			return "на этаже %d нет врага" % level  # i18n: skip
 	for e in lv.enemies:
 		if e.level < 0 or e.level >= lv.floors:
-			return "враг на этаже %d" % e.level
+			return "враг на этаже %d" % e.level  # i18n: skip
 		if absf(e.speed) < t.enemy_speed_min - 0.01 or absf(e.speed) > t.enemy_speed_max + 0.01:
-			return "враг со скоростью %.0f" % e.speed
+			return "враг со скоростью %.0f" % e.speed  # i18n: skip
 		if e.level == 0 and absf(TowerLevel.wrap_delta(lv.start_x, e.x, lv.width)) < t.enemy_start_gap - 0.01:
-			return "враг стартует у героя"
+			return "враг стартует у героя"  # i18n: skip
 	if lv.coins.size() != t.coins_per_level * lv.floors:
-		return "монет %d" % lv.coins.size()
+		return "монет %d" % lv.coins.size()  # i18n: skip
 	for c in lv.coins:
 		if c.x < 0.0 or c.x >= lv.width or c.y < 0.0 or c.y >= lv.floors:
-			return "монета вне этажей"
+			return "монета вне этажей"  # i18n: skip
 	if lv.flag_x < lv.width * t.edge_margin - 0.01 or lv.flag_x > lv.width * (1.0 - t.edge_margin) + 0.01:
-		return "флаг у края"
+		return "флаг у края"  # i18n: skip
 	return ""

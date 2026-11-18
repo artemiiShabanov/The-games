@@ -101,11 +101,11 @@ func _on_end(goal: bool) -> void:
 
 
 func _result_title(goal: bool) -> String:
-	return "отбился" if goal else "не отбился"
+	return Lang.t("отбился") if goal else Lang.t("не отбился")
 
 
 func _result_caption() -> String:
-	return "уничтожено %d из %.0f · жизней %d · %d с" % [sim.kills, sim.goal, sim.lives, int(round(elapsed))]
+	return Lang.t("уничтожено %d из %.0f · жизней %d · %d с") % [sim.kills, sim.goal, sim.lives, int(round(elapsed))]
 
 
 # --- Ввод и шаг ------------------------------------------------------------------------------
@@ -257,4 +257,4 @@ static func _circle(center: Vector2, radius: float, points: int) -> PackedVector
 
 ## Управление для плиток в паузе (`Demo._controls`).
 func _controls() -> Array:
-	return [["← →", "ствол"], [GameInput.key(GameInput.A), "огонь"]]
+	return [["← →", Lang.t("ствол")], [GameInput.key(GameInput.A), Lang.t("огонь")]]
