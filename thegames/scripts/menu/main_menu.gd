@@ -60,15 +60,23 @@ func _ready() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
+	# Заглавная тема Studio Running (2026-11-18); молчит, пока открыта галерея с демками.
+	_bed = MusicBed.main(Music.tuning().menu_db)
+	add_child(_bed)
+	# Первый запуск (2026-11-18): сначала язык, меню после выбора. Автотест: `--first-launch`.
+	if (Options.language == "" and not AutoTest.enabled) or (AutoTest.enabled and args.has("first-launch")):
+		_leaving = true
+		var picker := LanguageScreen.new()
+		add_child(picker)
+		await picker.chosen
+		picker.queue_free()
+		_leaving = false
 	for i in RunSave.SLOTS:
 		saves.append(RunSave.load_slot(i + 1))
 	ShellHeader.studio = ""
 	_build()
 	_refresh()
 	card.raise_card()
-	# Заглавная тема Studio Running (2026-11-18); молчит, пока открыта галерея с демками.
-	_bed = MusicBed.main(Music.tuning().menu_db)
-	add_child(_bed)
 	# Автотест `--menu --settings`: экран сеттингов поверх меню.
 	if AutoTest.enabled and args.has("settings"):
 		_open_settings.call_deferred()
@@ -296,7 +304,24 @@ func _open_options() -> void:
 		_options.queue_free()
 		_options = null
 		_hints.visible = true)
+	_options.language_changed.connect(_rebuild)
 	add_child(_options)
+
+
+## Язык сменился в настройках: меню заново, подписи с подстановкой переводятся при сборке.
+func _rebuild() -> void:
+	card.queue_free()
+	_hints.queue_free()
+	_slots.clear()
+	_slot_lifts.clear()
+	_buttons.clear()
+	_button_lifts.clear()
+	_delete_pills.clear()
+	_build()
+	_hints.visible = false
+	move_child(_options, -1)
+	_refresh()
+	card.raise_card(false)
 
 
 # --- Построение ---------------------------------------------------------------------------------
@@ -362,7 +387,7 @@ func _build() -> void:
 	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("← → ↑ ↓ выбрать"))
-	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "открыть")))
+	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, tr("открыть"))))
 	hints.add_child(HintPill.make("R новый забег в слоте"))
 	hints.add_child(HintPill.make("Del удалить сохранение"))
 	add_child(hints)
@@ -390,7 +415,7 @@ func _make_slot(i: int) -> PanelContainer:
 	var top := HBoxContainer.new()
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(top)
-	var slot_label := _slot_label(_label("Слот %d" % (i + 1), Style.FONT_CAPTION, Style.INK_3))
+	var slot_label := _slot_label(_label(tr("Слот %d") % (i + 1), Style.FONT_CAPTION, Style.INK_3))
 	slot_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(slot_label)
 	_delete_pills[i] = null
@@ -425,6 +450,7 @@ func _make_slot(i: int) -> PanelContainer:
 		view.set_logo(logo, false)
 		head.add_child(view)
 	var name_label := _slot_label(_label(s.studio_name, 30, Style.INK))
+	name_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	name_label.add_theme_font_override("font", Jelly.fun_font(800))
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -434,7 +460,7 @@ func _make_slot(i: int) -> PanelContainer:
 	f2.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	f2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(f2)
-	col.add_child(_slot_label(_label("Релиз %d" % s.release, Style.FONT_H2, Style.INK)))
+	col.add_child(_slot_label(_label(tr("Релиз %d") % s.release, Style.FONT_H2, Style.INK)))
 	var money := _slot_label(_label(Style.format_money(s.cash), Style.FONT_BODY, Style.DANGER if s.cash < 0 else Style.MONEY))
 	money.add_theme_font_override("font", Style.mono_font())
 	col.add_child(money)
@@ -465,16 +491,16 @@ func _make_confirm(i: int) -> Control:
 	col.add_theme_constant_override("separation", 16)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(col)
-	col.add_child(_label(("Удалить сохранение в слоте %d?" if deleting else "Новый забег в слоте %d?") % (i + 1),
+	col.add_child(_label((tr("Удалить сохранение в слоте %d?") if deleting else tr("Новый забег в слоте %d?")) % (i + 1),
 			Style.FONT_H1, Style.INK))
-	var text := _label(("Сохранение студии «%s» будет удалено. Игры останутся в галерее." if deleting
-			else "Студия «%s» будет закрыта. Игры останутся в галерее.") % saves[i].studio_name,
+	var text := _label((tr("Сохранение студии «%s» будет удалено. Игры останутся в галерее.") if deleting
+			else tr("Студия «%s» будет закрыта. Игры останутся в галерее.")) % saves[i].studio_name,
 			Style.FONT_BODY, Style.INK_2)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(text)
 	var hint := HBoxContainer.new()
 	hint.add_theme_constant_override("separation", 16)
-	_confirm_yes = HintPill.make(GameInput.hint(GameInput.A, "удалить" if deleting else "начать заново"))
+	_confirm_yes = HintPill.make(GameInput.hint(GameInput.A, tr("удалить") if deleting else tr("начать заново")))
 	hint.add_child(_confirm_yes)
 	hint.add_child(HintPill.make("Esc отмена"))
 	col.add_child(hint)

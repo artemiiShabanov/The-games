@@ -390,7 +390,7 @@ func _build_pause() -> void:
 	var hint := HBoxContainer.new()
 	hint.alignment = BoxContainer.ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.add_child(HintPill.make("↑ ↓ выбрать · %s или Esc продолжить" % GameInput.key(GameInput.A)))
+	hint.add_child(HintPill.make(tr("↑ ↓ выбрать · %s или Esc продолжить") % GameInput.key(GameInput.A)))
 	column.add_child(hint)
 
 

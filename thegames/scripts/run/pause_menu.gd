@@ -61,7 +61,7 @@ func _ready() -> void:
 		_lifts.append(Jelly.button(b))
 	var hint := HBoxContainer.new()
 	hint.alignment = BoxContainer.ALIGNMENT_CENTER
-	hint.add_child(HintPill.make("↑ ↓ выбрать · %s выбрать · Esc продолжить" % GameInput.key(GameInput.A)))
+	hint.add_child(HintPill.make(tr("↑ ↓ выбрать · %s выбрать · Esc продолжить") % GameInput.key(GameInput.A)))
 	column.add_child(hint)
 	_refresh()
 	ShellSounds.play(&"tick")

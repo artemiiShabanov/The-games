@@ -55,6 +55,16 @@ func _check() -> void:
 	for k in Style.PALETTE_IDS.size() - 1:
 		screen.change(OptionsScreen.Row.PALETTE, 1)
 	_expect(Options.palette == pal and Style.FOCUS == focus, "палитры по кругу")
+	# Язык (2026-11-18): по кругу, перевод сразу; на русском английский файл не подмешивается.
+	var lang := Lang.current()
+	var changed := [0]
+	screen.language_changed.connect(func() -> void: changed[0] += 1)
+	screen.change(OptionsScreen.Row.LANGUAGE, 1)
+	_expect(Options.language == "en" and TranslationServer.get_locale() == "en" and changed[0] == 1,
+			"язык: английский, %s" % TranslationServer.get_locale())
+	_expect(tr("Настройки") == "Options" and screen.tr("Готово") == "Done", "английский перевод: %s" % tr("Настройки"))
+	screen.change(OptionsScreen.Row.LANGUAGE, 1)
+	_expect(Lang.current() == lang and tr("Настройки") == "Настройки", "язык по кругу назад, русский без подмеса")
 	# Чувствительность обзора (#109): шагом 10 %, полосой по месту, в границах 0..1.
 	var look := Options.mouse_look
 	screen.change(OptionsScreen.Row.MOUSE_LOOK, 1)
@@ -67,7 +77,7 @@ func _check() -> void:
 	_expect(_closed, "«Готово» закрывает")
 	_expect(not FileAccess.file_exists(Options.PATH) or FileAccess.get_modified_time(Options.PATH) < Time.get_unix_time_from_system() - 5,
 			"файл настроек под автотестом не тронут")
-	AutoTest.note("options: шины, громкость, тишина, движение, палитра, подписи, обзор мышью и стиком, закрытие")
+	AutoTest.note("options: шины, громкость, тишина, движение, палитра, язык, подписи, обзор мышью и стиком, закрытие")
 	AutoTest.fulfill("options checks")
 
 

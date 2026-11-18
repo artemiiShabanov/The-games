@@ -1,6 +1,6 @@
 class_name OptionsScreen
 extends Control
-## Экран настроек (#81) поверх меню или паузы: карточка со строками громкости (общая, музыка,
+## Экран настроек (#81) поверх меню или паузы: карточка со строками языка (2026-11-18), громкости (общая, музыка,
 ## звуки), полного экрана, движения интерфейса, палитры (название и десять образцов: пять смысловых
 ## цветов и пять акцентов мини-игр), подписей клавиш и чувствительности обзора мышью
 ## и стиком (#109), внизу «Готово». ↑ ↓ строка,
@@ -11,17 +11,21 @@ extends Control
 ## паузе дерева.
 
 signal closed
+## Язык сменился: экран под настройками перестраивает подписи с подстановкой.
+signal language_changed
 
 const WIDTH := 880.0
-const ROW_HEIGHT := 56.0
+const ROW_HEIGHT := 50.0
 const BAR := Vector2(320, 12)
 const STEP := 0.1
-## Зазор между строками (плейтест 2026-11-11: строки слипались).
-const ROW_GAP := 14
+## Зазор между строками (плейтест 2026-11-11: строки слипались; 2026-11-18 строка языка,
+## строки ниже и зазоры меньше, чтобы карточка не легла на подсказки).
+const ROW_GAP := 12
 
-enum Row { MASTER, MUSIC, SFX, FULLSCREEN, MOTION, PALETTE, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
+enum Row { LANGUAGE, MASTER, MUSIC, SFX, FULLSCREEN, MOTION, PALETTE, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
 
-const TITLES: Array[String] = ["Громкость", "Музыка", "Звуки", "Полный экран", "Анимация интерфейса", "Палитра", "Подписи клавиш",
+## Строка языка на двух языках сразу: найдётся, даже если язык переключили случайно.
+const TITLES: Array[String] = ["Язык / Language", "Громкость", "Музыка", "Звуки", "Полный экран", "Анимация интерфейса", "Палитра", "Подписи клавиш",
 		"Обзор мышью", "Обзор стиком", "Готово"]
 ## Строки с полосой: громкости и чувствительность обзора.
 const BARS: Array[int] = [Row.MASTER, Row.MUSIC, Row.SFX, Row.MOUSE_LOOK, Row.STICK_LOOK]
@@ -66,7 +70,7 @@ func _ready() -> void:
 	for i in TITLES.size():
 		column.add_child(_make_row(i))
 		if i == Row.SFX or i == Row.PALETTE or i == Row.STICK_LOOK:
-			column.add_child(_spacer(12))
+			column.add_child(_spacer(8))
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
 	hints.add_theme_constant_override("separation", 16)
@@ -86,6 +90,10 @@ func _ready() -> void:
 
 func change(row: int, dir: int) -> void:
 	match row:
+		Row.LANGUAGE:
+			Options.cycle_language(dir)
+			Options.apply()
+			language_changed.emit()
 		Row.MASTER:
 			Options.master = _step(Options.master, dir)
 		Row.MUSIC:
@@ -159,17 +167,19 @@ func _volume_of(row: int) -> float:
 
 func _value_text(row: int) -> String:
 	match row:
+		Row.LANGUAGE:
+			return Lang.name_of(Lang.current())
 		Row.MASTER, Row.MUSIC, Row.SFX:
 			var v := _volume_of(row)
-			return "выкл." if v <= 0.001 else "%d %%" % roundi(v * 100.0)
+			return tr("выкл.") if v <= 0.001 else "%d %%" % roundi(v * 100.0)
 		Row.FULLSCREEN:
-			return "да" if Options.fullscreen else "окно"
+			return tr("да") if Options.fullscreen else tr("окно")
 		Row.MOTION:
-			return "полная" if Options.motion else "сокращённая"
+			return tr("полная") if Options.motion else tr("сокращённая")
 		Row.PALETTE:
-			return Style.palette.title if Style.palette != null else ""
+			return tr(Style.palette.title) if Style.palette != null else ""
 		Row.GLYPHS:
-			return Options.GLYPH_NAMES[Options.glyphs]
+			return tr(Options.GLYPH_NAMES[Options.glyphs])
 		Row.MOUSE_LOOK, Row.STICK_LOOK:
 			return "%d %%" % roundi(_volume_of(row) * 100.0)
 	return ""

@@ -1,0 +1,164 @@
+# Studio Running: английский перевод. Ключ (msgid) это русский текст из игры, см. `Lang`.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# --- Главное меню ---
+msgid "Галерея"
+msgstr "Gallery"
+
+msgid "Сеттинги"
+msgstr "Themes"
+
+msgid "Настройки"
+msgstr "Options"
+
+msgid "Выход"
+msgstr "Quit"
+
+msgid "← → ↑ ↓ выбрать"
+msgstr "← → ↑ ↓ choose"
+
+msgid "открыть"
+msgstr "open"
+
+msgid "R новый забег в слоте"
+msgstr "R new run in slot"
+
+msgid "Del удалить сохранение"
+msgstr "Del delete save"
+
+msgid "Слот %d"
+msgstr "Slot %d"
+
+msgid "Удалить"
+msgstr "Delete"
+
+msgid "пусто"
+msgstr "empty"
+
+msgid "Пустой слот"
+msgstr "Empty slot"
+
+msgid "Релиз %d"
+msgstr "Release %d"
+
+msgid "Удалить сохранение в слоте %d?"
+msgstr "Delete the save in slot %d?"
+
+msgid "Новый забег в слоте %d?"
+msgstr "New run in slot %d?"
+
+msgid "Сохранение студии «%s» будет удалено. Игры останутся в галерее."
+msgstr "The save of studio “%s” will be deleted. Its games stay in the gallery."
+
+msgid "Студия «%s» будет закрыта. Игры останутся в галерее."
+msgstr "Studio “%s” will be closed. Its games stay in the gallery."
+
+msgid "удалить"
+msgstr "delete"
+
+msgid "начать заново"
+msgstr "start over"
+
+msgid "Esc отмена"
+msgstr "Esc cancel"
+
+# --- Настройки ---
+msgid "Громкость"
+msgstr "Volume"
+
+msgid "Музыка"
+msgstr "Music"
+
+msgid "Звуки"
+msgstr "Sounds"
+
+msgid "Полный экран"
+msgstr "Fullscreen"
+
+msgid "Анимация интерфейса"
+msgstr "Interface motion"
+
+msgid "Палитра"
+msgstr "Palette"
+
+msgid "Подписи клавиш"
+msgstr "Button prompts"
+
+msgid "Обзор мышью"
+msgstr "Mouse look"
+
+msgid "Обзор стиком"
+msgstr "Stick look"
+
+msgid "Готово"
+msgstr "Done"
+
+msgid "↑ ↓ строка"
+msgstr "↑ ↓ row"
+
+msgid "← → менять"
+msgstr "← → change"
+
+msgid "Esc готово"
+msgstr "Esc done"
+
+msgid "выкл."
+msgstr "off"
+
+msgid "да"
+msgstr "on"
+
+msgid "окно"
+msgstr "window"
+
+msgid "полная"
+msgstr "full"
+
+msgid "сокращённая"
+msgstr "reduced"
+
+msgid "авто"
+msgstr "auto"
+
+msgid "клавиатура"
+msgstr "keyboard"
+
+msgid "геймпад"
+msgstr "gamepad"
+
+msgid "Контраст"
+msgstr "Contrast"
+
+msgid "Лак"
+msgstr "Lacquer"
+
+msgid "Туман"
+msgstr "Fog"
+
+msgid "Бумага"
+msgstr "Paper"
+
+# --- Пауза ---
+msgid "Пауза"
+msgstr "Paused"
+
+msgid "пауза"
+msgstr "paused"
+
+msgid "Продолжить"
+msgstr "Resume"
+
+msgid "В меню"
+msgstr "Main menu"
+
+msgid "↑ ↓ выбрать · %s выбрать · Esc продолжить"
+msgstr "↑ ↓ choose · %s select · Esc resume"
+
+msgid "↑ ↓ выбрать · %s или Esc продолжить"
+msgstr "↑ ↓ choose · %s or Esc resume"

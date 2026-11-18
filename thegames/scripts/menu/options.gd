@@ -4,7 +4,8 @@ extends RefCounted
 ## `Master`, `Music`, `Sfx`), окно или полный экран, движение интерфейса (мармелад и студия,
 ## `Jelly.enabled`), подписи клавиш (авто, клавиатура, геймпад), чувствительность обзора мышью и
 ## правым стиком в демках от первого лица (#109, 0..1, числа в `LookTuning`), палитра смысловых цветов и
-## акцентов мини-игр (`Style.PALETTE_IDS`, 2026-11-17). Применяются сразу
+## акцентов мини-игр (`Style.PALETTE_IDS`, 2026-11-17), язык (`Lang`, 2026-11-18: пусто, пока
+## игрок не выбрал его на первом запуске). Применяются сразу
 ## (`apply`). Под автотестом файл не читается и не пишется: прогоны идут с умолчаниями и не
 ## трогают настройки игрока.
 
@@ -25,6 +26,8 @@ static var glyphs := Glyphs.AUTO
 static var mouse_look := 0.5
 static var stick_look := 0.5
 static var palette: StringName = Style.PALETTE_IDS[0]
+## Язык интерфейса (`Lang.IDS`); пустой до выбора на первом запуске, тогда игра на русском.
+static var language := ""
 
 
 ## На старте игры: шины, чтение файла, применение.
@@ -38,6 +41,9 @@ static func boot() -> void:
 			var pal := StringName(arg.trim_prefix("--palette="))
 			if Style.PALETTE_IDS.has(pal):
 				palette = pal
+		# Язык под автотестом: `--lang=en`.
+		elif arg.begins_with("--lang=") and Lang.IDS.has(arg.trim_prefix("--lang=")):
+			language = arg.trim_prefix("--lang=")
 	apply()
 
 
@@ -70,6 +76,8 @@ static func load_saved() -> void:
 	stick_look = clampf(float(cfg.get_value("input", "stick_look", stick_look)), 0.0, 1.0)
 	var pal := StringName(str(cfg.get_value("video", "palette", palette)))
 	palette = pal if Style.PALETTE_IDS.has(pal) else Style.PALETTE_IDS[0]
+	var lang := str(cfg.get_value("general", "language", language))
+	language = lang if Lang.IDS.has(lang) else ""
 
 
 static func save() -> void:
@@ -85,6 +93,8 @@ static func save() -> void:
 	cfg.set_value("input", "glyphs", int(glyphs))
 	cfg.set_value("input", "mouse_look", mouse_look)
 	cfg.set_value("input", "stick_look", stick_look)
+	if language != "":
+		cfg.set_value("general", "language", language)
 	cfg.save(PATH)
 
 
@@ -97,6 +107,7 @@ static func apply() -> void:
 		if DisplayServer.window_get_mode() != mode:
 			DisplayServer.window_set_mode(mode)
 	Jelly.enabled = motion
+	Lang.use(language)
 	if Style.palette == null or Style.palette.id != palette:
 		Style.use_palette(palette)
 		# Тема окна держит фокус и ползунки в цвете палитры; на старте её строит сам `UiTheme`.
@@ -110,6 +121,12 @@ static func apply() -> void:
 			GameInput.device = GameInput.Device.GAMEPAD
 		_:
 			GameInput.device = GameInput.Device.GAMEPAD if not Input.get_connected_joypads().is_empty() else GameInput.Device.KEYBOARD
+
+
+## Следующий или предыдущий язык по кругу.
+static func cycle_language(dir: int) -> void:
+	var i := maxi(Lang.IDS.find(Lang.current()), 0)
+	language = Lang.IDS[wrapi(i + (dir if dir != 0 else 1), 0, Lang.IDS.size())]
 
 
 ## Следующая или предыдущая палитра по кругу.

@@ -177,6 +177,9 @@
   (`SettingEnv`), не в `lowpoly.tres` и `threed.tres`. Вид основания под кадр: `--base=liquid|void|solid`
   у любой 3D-демки (`--scene=demo_test --tech=threed --setting=1 --base=liquid --no-checks
   --frames=520`), в дебаг-меню «3D: основание мира».
+- Язык (2026-11-18): переводы `thegames/locale/<id>.po`, ключ это русский текст, `Lang` в
+  `scripts/menu/lang.gd`. Под автотестом `--lang=en` у любой сцены; экран выбора языка первого
+  запуска `--menu --first-launch --frames=60`.
 - Всё разом: `sh tools/ci.sh` (модель экономики `python3 tools/model_run.py --check` и
   автотесты систем без окна, пара минут).
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.
