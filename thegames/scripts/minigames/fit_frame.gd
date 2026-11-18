@@ -273,6 +273,7 @@ func _draw_dots() -> void:
 		elif i == results.size() and state != State.NONE:
 			c = Style.INK
 		draw_circle(Vector2(x0 + i * gap, 60.0), r, c)
+	draw_mistakes(misses, FAIL_AT, 1)
 
 
 ## Дрейф на волнах: мелкое частое покачивание около места всплытия (плейтест 2026-11-05).

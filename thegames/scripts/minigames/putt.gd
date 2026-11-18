@@ -65,8 +65,6 @@ const ARROW_Y := 132.0
 const ARROW_W := 8.0
 const DOT_R := 12.0
 const DOT_GAP := 44.0
-const SLOT_R := 12.0
-const SLOT_GAP := 40.0
 ## Бот WIN: жмёт через столько после готовности; ошибка прицела до этой доли полуширины лунки.
 const BOT_WAIT := 0.25
 const BOT_ERROR := 0.4
@@ -503,11 +501,9 @@ func _draw_dots() -> void:
 		draw_circle(Vector2(x0 + i * DOT_GAP, y), r, c)
 
 
-## Два кружка промахов справа сверху, напротив значка: промахи `danger`.
+## Промахи крестиками справа сверху (`draw_mistakes`).
 func _draw_slots() -> void:
-	var y := 40.0 + AspectIcon.SIZE / 2.0
-	var x0 := size.x - 48.0 - SLOT_R - (MAX_MISSES - 1) * SLOT_GAP
-	for i in MAX_MISSES:
-		var c := Style.DANGER if i < misses else Color(Style.INK, 0.12)
-		var r := SLOT_R * clampf(1.0 + _slots[i].value, 0.5, 1.8)
-		draw_circle(Vector2(x0 + i * SLOT_GAP, y), r, c)
+	var pops: Array[float] = []
+	for sp in _slots:
+		pops.append(sp.value)
+	draw_mistakes(misses, MAX_MISSES, 0, pops)

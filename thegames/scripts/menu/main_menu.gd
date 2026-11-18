@@ -312,7 +312,17 @@ func _build() -> void:
 	card.content.add_child(column)
 	var logo := GameLogo.new()
 	logo.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	column.add_child(logo)
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", 4)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(head)
+	head.add_child(logo)
+	# Подпись автора под логотипом, с тем же отступом слева, что у букв.
+	var by := MarginContainer.new()
+	by.add_theme_constant_override("margin_left", int(logo.inset) + 6)
+	by.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	by.add_child(_label("A game by Artemii Shabanov", Style.FONT_H2, Style.INK_2))
+	head.add_child(by)
 	var filler := Control.new()
 	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	filler.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -348,8 +358,8 @@ func _build() -> void:
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
 	hints.add_theme_constant_override("separation", 16)
 	hints.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hints.offset_top = -(Style.PILL_HEIGHT + 16)
-	hints.offset_bottom = -16
+	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
+	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make("← → ↑ ↓ выбрать"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "открыть")))
@@ -380,7 +390,7 @@ func _make_slot(i: int) -> PanelContainer:
 	var top := HBoxContainer.new()
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(top)
-	var slot_label := _label("Слот %d" % (i + 1), Style.FONT_CAPTION, Style.INK_3)
+	var slot_label := _slot_label(_label("Слот %d" % (i + 1), Style.FONT_CAPTION, Style.INK_3))
 	slot_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(slot_label)
 	_delete_pills[i] = null
@@ -401,8 +411,8 @@ func _make_slot(i: int) -> PanelContainer:
 		f.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		f.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(f)
-		col.add_child(_label("пусто", Style.FONT_H2, Style.INK_3))
-		col.add_child(_label("Пустой слот", Style.FONT_BODY, Style.INK_2))
+		col.add_child(_slot_label(_label("пусто", Style.FONT_H2, Style.INK_3)))
+		col.add_child(_slot_label(_label("Пустой слот", Style.FONT_BODY, Style.INK_2)))
 		return p
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 16)
@@ -414,7 +424,7 @@ func _make_slot(i: int) -> PanelContainer:
 		view.custom_minimum_size = Vector2(LOGO, LOGO)
 		view.set_logo(logo, false)
 		head.add_child(view)
-	var name_label := _label(s.studio_name, 30, Style.INK)
+	var name_label := _slot_label(_label(s.studio_name, 30, Style.INK))
 	name_label.add_theme_font_override("font", Jelly.fun_font(800))
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -424,8 +434,8 @@ func _make_slot(i: int) -> PanelContainer:
 	f2.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	f2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(f2)
-	col.add_child(_label("Релиз %d" % s.release, Style.FONT_H2, Style.INK))
-	var money := _label(Style.format_money(s.cash), Style.FONT_BODY, Style.DANGER if s.cash < 0 else Style.MONEY)
+	col.add_child(_slot_label(_label("Релиз %d" % s.release, Style.FONT_H2, Style.INK)))
+	var money := _slot_label(_label(Style.format_money(s.cash), Style.FONT_BODY, Style.DANGER if s.cash < 0 else Style.MONEY))
 	money.add_theme_font_override("font", Style.mono_font())
 	col.add_child(money)
 	return p
@@ -473,7 +483,15 @@ func _make_confirm(i: int) -> Control:
 
 func _refresh() -> void:
 	for i in _slots.size():
-		_slot_lifts[i].focused = focus == i
+		var slot_on := focus == i
+		_slot_lifts[i].focused = slot_on
+		# Фокус слота тёмной подложкой, как у кнопок; текст инвертируется.
+		var sb := _slots[i].get_theme_stylebox("panel") as StyleBoxFlat
+		sb.bg_color = Style.INK if slot_on else Style.SURFACE_2
+		for l: Label in _slots[i].find_children("*", "Label", true, false):
+			if l.has_meta(&"ink"):
+				var c: Color = l.get_meta(&"ink")
+				l.add_theme_color_override("font_color", _on_ink(c) if slot_on else c)
 	for i in _buttons.size():
 		var on := focus == RunSave.SLOTS + i
 		_buttons[i].add_theme_stylebox_override("panel", Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
@@ -481,6 +499,23 @@ func _refresh() -> void:
 		_button_lifts[i].focused = on
 	if focus < _slots.size():
 		Jelly.poke(_slots[focus])
+
+
+## Подпись слота: цвет запоминается, на тёмной подложке фокуса он меняется (`_on_ink`).
+func _slot_label(l: Label) -> Label:
+	l.set_meta(&"ink", l.get_theme_color("font_color"))
+	return l
+
+
+## Цвет текста слота на тёмной подложке фокуса.
+static func _on_ink(c: Color) -> Color:
+	if c == Style.INK:
+		return Style.SURFACE_SOLID
+	if c == Style.INK_2:
+		return Style.SURFACE_2
+	if c == Style.INK_3:
+		return Style.INK_2.lightened(0.25)
+	return c.lightened(0.45)
 
 
 func _label(text: String, font_size: int, color: Color) -> Label:

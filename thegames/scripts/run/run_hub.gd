@@ -1491,8 +1491,8 @@ func _build() -> void:
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
 	hints.add_theme_constant_override("separation", 16)
 	hints.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hints.offset_top = -(Style.PILL_HEIGHT + 16)
-	hints.offset_bottom = -16
+	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
+	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.add_child(HintPill.make("← → ↑ ↓ выбрать"))
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "нажать")))
 	hints.add_child(HintPill.make("Esc пауза"))

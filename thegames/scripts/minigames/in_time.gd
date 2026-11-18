@@ -451,3 +451,5 @@ func _draw() -> void:
 			c = Style.INK_3
 		var bounce := _dots[n.order].value if n.order < _dots.size() else 0.0
 		draw_circle(Vector2(x0 + n.order * gap, 60.0), r * clampf(1.0 + bounce, 0.5, 1.8), c)
+	# Под нотами допустимые ошибки: промахи и лишние нажатия вместе.
+	draw_mistakes(mini(misses + false_presses, MAX_ERRORS), MAX_ERRORS, 1)

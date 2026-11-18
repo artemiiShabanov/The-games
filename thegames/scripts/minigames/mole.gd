@@ -46,8 +46,6 @@ const PIT_R := 72.0
 const MOLE_R := 64.0
 const HAMMER_R := 46.0
 const LIFT := 8.0
-const SLOT_R := 12.0
-const SLOT_GAP := 40.0
 const COUNT_SIZE := 40
 ## Бот WIN: реакция на выскок, второй кружок пары позже на столько, с.
 const BOT_REACTION := 0.35
@@ -387,11 +385,9 @@ func _draw_count() -> void:
 	draw_string(mono, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Style.SURFACE_SOLID)
 
 
-## Пять кружков упущенных справа сверху, напротив значка: пустые, упущенные `danger`.
+## Упущенные крестиками справа сверху (`draw_mistakes`).
 func _draw_slots() -> void:
-	var y := 40.0 + AspectIcon.SIZE / 2.0
-	var x0 := size.x - 48.0 - SLOT_R - (MAX_MISSED - 1) * SLOT_GAP
-	for i in MAX_MISSED:
-		var c := Style.DANGER if i < missed else Color(Style.INK, 0.12)
-		var r := SLOT_R * clampf(1.0 + _slots[i].value, 0.5, 1.8)
-		draw_circle(Vector2(x0 + i * SLOT_GAP, y), r, c)
+	var pops: Array[float] = []
+	for sp in _slots:
+		pops.append(sp.value)
+	draw_mistakes(missed, MAX_MISSED, 0, pops)

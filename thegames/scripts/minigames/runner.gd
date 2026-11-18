@@ -355,10 +355,8 @@ func _draw_hud() -> void:
 	var bar_w := size.x * 0.4
 	draw_line(Vector2(bar_x, 60.0), Vector2(bar_x + bar_w, 60.0), Style.SURFACE_2, 4.0, true)
 	draw_circle(Vector2(bar_x + bar_w * clampf(world_x / track_length, 0.0, 1.0), 60.0), 7.0, Style.INK)
-	var gap2 := 28.0
-	var rx := size.x - 48.0 - (FAIL_AT - 1) * gap2
-	for i in FAIL_AT:
-		var pop := 0.0
-		if Jelly.on() and jelly != null:
-			pop = clampf(jelly.pops[i].value * 0.04, -0.5, 1.0)
-		draw_circle(Vector2(rx + i * gap2, 60.0), 7.0 * (1.0 + pop), Style.DANGER if i < falls else Style.SURFACE_2)
+	var pops: Array[float] = []
+	if Jelly.on() and jelly != null:
+		for i in FAIL_AT:
+			pops.append(clampf(jelly.pops[i].value * 0.04, -0.5, 1.0))
+	draw_mistakes(falls, FAIL_AT, 0, pops)

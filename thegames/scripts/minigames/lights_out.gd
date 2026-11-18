@@ -337,6 +337,9 @@ func _draw() -> void:
 		_splash.draw_air(self, Vector2.ZERO)
 	_draw_rounds(housing)
 	_draw_reaction(housing)
+	# Фальстарты верхним рядом, медленные нижним: два любых одного вида это провал.
+	draw_mistakes(false_starts, MAX_FALSE, 0)
+	draw_mistakes(slows, MAX_SLOW, 1)
 
 
 ## Кружки раундов над табло: впереди пустые, текущий крупнее, решённые своим цветом.

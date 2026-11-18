@@ -508,8 +508,8 @@ func _build() -> void:
 	(_hints as HBoxContainer).alignment = BoxContainer.ALIGNMENT_CENTER
 	_hints.add_theme_constant_override("separation", 16)
 	_hints.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_hints.offset_top = -(Style.PILL_HEIGHT + 16)
-	_hints.offset_bottom = -16
+	_hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
+	_hints.offset_bottom = -Style.HINTS_BOTTOM
 	_hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hints.modulate.a = 0.0
 	add_child(_hints)

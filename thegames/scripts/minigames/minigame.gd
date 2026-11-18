@@ -303,6 +303,24 @@ func _bot_step(_delta: float) -> bool:
 
 # --- Обвес ------------------------------------------------------------------------------------
 
+const MISTAKE_GAP := 28.0
+const MISTAKE_R := 7.0
+
+
+## Допустимые ошибки крестиками справа сверху (2026-11-18: у всех мини-игр с лимитом ошибок):
+## пустые серые, набранные `danger`. `row` ряд сверху вниз (0 на высоте 60), `pops` значения
+## пружин мармелада по одной на крестик (подпрыгивает набранный).
+func draw_mistakes(made: int, limit: int, row := 0, pops: Array[float] = []) -> void:
+	var y := 60.0 + row * MISTAKE_GAP
+	var x0 := size.x - 48.0 - (limit - 1) * MISTAKE_GAP
+	for j in limit:
+		var c := Style.DANGER if j < made else Style.SURFACE_2
+		var s := clampf(1.0 + pops[j], 0.5, 1.8) if j < pops.size() else 1.0
+		var d := (MISTAKE_R - 1.0) * s
+		var p := Vector2(x0 + j * MISTAKE_GAP, y)
+		draw_line(p + Vector2(-d, -d), p + Vector2(d, d), c, 3.0, true)
+		draw_line(p + Vector2(-d, d), p + Vector2(d, -d), c, 3.0, true)
+
 func _build_chrome() -> void:
 	_timer_bar = ColorRect.new()
 	_timer_bar.color = Style.accent(0)

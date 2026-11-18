@@ -295,3 +295,4 @@ func _draw_dots() -> void:
 		var r := DOT_R * (1.3 if i == balloon and running else 1.0)
 		r *= clampf(1.0 + _dots[i].value, 0.5, 1.8)
 		draw_circle(Vector2(x0 + i * DOT_GAP, y), r, c)
+	draw_mistakes(missed, MAX_MISSES)

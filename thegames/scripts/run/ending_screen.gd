@@ -121,8 +121,8 @@ func _build() -> void:
 	var hints := HBoxContainer.new()
 	hints.alignment = BoxContainer.ALIGNMENT_CENTER
 	hints.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hints.offset_top = -(Style.PILL_HEIGHT + 16)
-	hints.offset_bottom = -16
+	hints.offset_top = -(Style.PILL_HEIGHT + Style.HINTS_BOTTOM)
+	hints.offset_bottom = -Style.HINTS_BOTTOM
 	hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hints.add_child(HintPill.make(GameInput.hint(GameInput.A, "в галерею")))
 	add_child(hints)
