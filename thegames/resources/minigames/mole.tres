@@ -4,24 +4,24 @@
 [ext_resource type="PackedScene" path="res://scenes/minigames/mole.tscn" id="2_mole"]
 
 [sub_resource type="Curve" id="Curve_interval"]
-_limits = [0.57, 1.05, 0.0, 1.0]
-_data = [Vector2(0, 0.77), 0.0, 0.0, 0, 0, Vector2(0.6, 0.65), 0.0, 0.0, 0, 0, Vector2(1, 0.57), 0.0, 0.0, 0, 0]
-point_count = 3
+_limits = [0.53, 1.05, 0.0, 1.0]
+_data = [Vector2(0, 0.73), 0.0, 0.0, 0, 0, Vector2(0.4, 0.65), 0.0, 0.0, 0, 0, Vector2(0.8, 0.57), 0.0, 0.0, 0, 0, Vector2(1, 0.53), 0.0, 0.0, 0, 0]
+point_count = 4
 
 [sub_resource type="Curve" id="Curve_up"]
-_limits = [0.57, 1.1, 0.0, 1.0]
-_data = [Vector2(0, 0.82), 0.0, 0.0, 0, 0, Vector2(0.1, 0.75), 0.0, 0.0, 0, 0, Vector2(0.6, 0.65), 0.0, 0.0, 0, 0, Vector2(1, 0.57), 0.0, 0.0, 0, 0]
+_limits = [0.53, 1.1, 0.0, 1.0]
+_data = [Vector2(0, 0.73), 0.0, 0.0, 0, 0, Vector2(0.4, 0.65), 0.0, 0.0, 0, 0, Vector2(0.8, 0.57), 0.0, 0.0, 0, 0, Vector2(1, 0.53), 0.0, 0.0, 0, 0]
 point_count = 4
 
 [sub_resource type="Curve" id="Curve_stun"]
-_limits = [0.3, 0.54, 0.0, 1.0]
-_data = [Vector2(0, 0.42), 0.0, 0.0, 0, 0, Vector2(0.1, 0.45), 0.0, 0.0, 0, 0, Vector2(0.6, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 0.54), 0.0, 0.0, 0, 0]
+_limits = [0.3, 0.56, 0.0, 1.0]
+_data = [Vector2(0, 0.46), 0.0, 0.0, 0, 0, Vector2(0.4, 0.5), 0.0, 0.0, 0, 0, Vector2(0.8, 0.54), 0.0, 0.0, 0, 0, Vector2(1, 0.56), 0.0, 0.0, 0, 0]
 point_count = 4
 
 [sub_resource type="Curve" id="Curve_pair"]
-_limits = [0, 0.5068, 0.0, 1.0]
-_data = [Vector2(0, 0.2398), 0.0, 0.0, 0, 0, Vector2(0.6, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 0.5068), 0.0, 0.0, 0, 0]
-point_count = 3
+_limits = [0, 0.5602, 0.0, 1.0]
+_data = [Vector2(0, 0.2932), 0.0, 0.0, 0, 0, Vector2(0.4, 0.4), 0.0, 0.0, 0, 0, Vector2(0.8, 0.5068), 0.0, 0.0, 0, 0, Vector2(1, 0.5602), 0.0, 0.0, 0, 0]
+point_count = 4
 
 [resource]
 script = ExtResource("1_i4prp")

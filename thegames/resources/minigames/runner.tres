@@ -27,6 +27,7 @@ hint = "A прыжок через ямы и столбики, держи дол�
 mouse_hint = "клик прыжок, держи: выше"
 scene = ExtResource("1_51fd4")
 inputs = Array[StringName]([&"action_a"])
+time_seconds = 16.0
 params = Dictionary[StringName, Curve]({
 &"combo_share": SubResource("Curve_qc282"),
 &"gap": SubResource("Curve_hliau"),

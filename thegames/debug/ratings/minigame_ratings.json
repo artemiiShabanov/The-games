@@ -210,15 +210,135 @@
 			"time_limit": 20.0
 		},
 		{
-			"difficulty": 2,
-			"duration": 3,
+			"difficulty": 2.0,
+			"duration": 3.0,
 			"elapsed": 13.4,
 			"id": "in_time",
-			"retries": 0,
+			"retries": 0.0,
 			"score": 1.0,
 			"session": "2026-11-18 14:01:57",
 			"t": 0.5,
 			"time_limit": 20.0
+		},
+		{
+			"difficulty": 4.0,
+			"duration": 3.0,
+			"elapsed": 11.9,
+			"id": "doorway",
+			"retries": 0.0,
+			"score": 0.25,
+			"session": "2026-11-18 14:22:34",
+			"summary": "стен пройдено 3 из 6",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 14.0,
+			"id": "patch_line",
+			"retries": 0.0,
+			"score": 0.75,
+			"session": "2026-11-18 14:22:34",
+			"summary": "поправлено 29, проехало 1, неверных 2",
+			"t": 0.5,
+			"time_limit": 14.0
+		},
+		{
+			"difficulty": 2.0,
+			"duration": 3.0,
+			"elapsed": 14.0,
+			"id": "mole",
+			"retries": 0.0,
+			"score": 0.95,
+			"session": "2026-11-18 14:22:34",
+			"summary": "выскоков 24, попаданий 24, упущено 0, мимо 1",
+			"t": 0.5,
+			"time_limit": 14.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 4.0,
+			"elapsed": 16.0,
+			"id": "runner",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:22:34",
+			"summary": "дорожка 100 %, падений 0",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 16.3,
+			"id": "tune",
+			"retries": 0.0,
+			"score": 0.72,
+			"session": "2026-11-18 14:22:34",
+			"summary": "волн 3 из 3, шагов прочь 7",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 4.0,
+			"duration": 3.0,
+			"elapsed": 13.4,
+			"id": "in_time",
+			"retries": 0.0,
+			"score": 0.69,
+			"session": "2026-11-18 14:22:34",
+			"summary": "попаданий 14 из 16, лишних нажатий 3",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 17.0,
+			"id": "putt",
+			"retries": 0.0,
+			"score": 0.6,
+			"session": "2026-11-18 14:22:34",
+			"summary": "лунок 5, промахов 2, ударов 7",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 15.9,
+			"id": "spot",
+			"retries": 0.0,
+			"score": 1.0,
+			"session": "2026-11-18 14:22:34",
+			"summary": "пар 3 из 3, неверных 0",
+			"t": 0.5,
+			"time_limit": 24.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 7.7,
+			"id": "stack",
+			"retries": 0.0,
+			"score": 0.71,
+			"session": "2026-11-18 14:22:34",
+			"summary": "этажей 12, промахов 0, ширина 11 из 243",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3,
+			"duration": 3,
+			"elapsed": 20.5,
+			"id": "lights_out",
+			"retries": 0,
+			"score": 0.8,
+			"session": "2026-11-18 14:22:34",
+			"summary": "фальстартов 1, медленных 0",
+			"t": 0.5,
+			"time_limit": 24.0
 		}
 	]
 }
