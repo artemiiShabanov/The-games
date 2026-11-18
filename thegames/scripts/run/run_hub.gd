@@ -20,8 +20,8 @@ extends Control
 ## релиза», а слева под пилюлями столбик карточек отклика. Отклик приходит волнами с небольшим
 ## перерывом: твиты, стример, критики, продажи; карточка волны открывает ленту релиза с тем, что
 ## уже пришло, карточка «Стрим» окно стрима. Первой стоит карточка ставки: до прихода критиков можно угадать их оценку
-## (`RunTuning.bet_*`). Кнопка внизу, пока волны идут, показывает всё сразу, потом ведёт к
-## итогам (`after_finished`). Клик по предмету в студии это второй вход в те же действия:
+## (`RunTuning.bet_*`). Кнопка внизу «Итоги релиза»: оставшиеся волны приходят сразу, дальше
+## рецензии, если не открыты, и итоги (`after_finished`). Клик по предмету в студии это второй вход в те же действия:
 ## хозяин зовёт `open_offer` (посылка) и `open_record` (коробка на полке).
 ## Оценки критиков не показываются, пока игрок не нажал на их карточку: тогда рецензии
 ## открываются по одной с паузой и только после этого попадают в общую ленту; ставка
@@ -194,9 +194,10 @@ func start_new_game() -> void:
 		return
 	_close_window(false)
 	_lifts[_new_index].press()
+	# Волны, что ещё не пришли, приходят сразу, и экран идёт дальше (2026-11-18: кнопка всегда
+	# «Итоги релиза», «Показать всё» висело, пока открытое окно держало волны).
 	if after and not _wave_plan.is_empty():
 		show_all_waves()
-		return
 	if after and not after_record.bet_done:
 		# Рецензии ещё не открыты: сначала они, итоги потом.
 		open_wave(Wave.CRITICS)
@@ -1478,7 +1479,7 @@ func _build() -> void:
 	b.position = Vector2((Style.SCREEN.x - NEW_GAME_SIZE.x) / 2.0, Style.SCREEN.y - NEW_GAME_BOTTOM - NEW_GAME_SIZE.y)
 	var caption := "Новая игра"
 	if after:
-		caption = "Итоги релиза" if _wave_plan.is_empty() else "Показать всё"
+		caption = "Итоги релиза"
 	var bl := _label(caption, Style.FONT_H1, Style.INK)
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
