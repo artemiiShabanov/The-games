@@ -152,6 +152,19 @@ func _staff() -> void:
 	if graphics != null and other != null:
 		_expect(is_equal_approx(run.t_for(graphics), run.t_value() * 0.72) and is_equal_approx(run.t_for(other), run.t_value()),
 				"художники упрощают только графику: %.3f и %.3f" % [run.t_for(graphics), run.t_for(other)])
+	# Жанр и технология (2026-11-18): от `t_start` до `t_owner_max` на капе, аспектные до 1.
+	var owner: MinigameDef = null
+	for d in run.minigames:
+		if d.kind != MinigameDef.Kind.ASPECT:
+			owner = d
+			break
+	if owner != null:
+		var release := run.release
+		run.release = run.cap
+		_expect(is_equal_approx(run.t_for(owner), run.tuning.t_owner_max) and is_equal_approx(run.t_value(), 1.0),
+				"на капе жанр и технология %.2f, аспекты %.2f" % [run.t_for(owner), run.t_value()])
+		run.release = release
+		_expect(is_equal_approx(run.t_for(owner), run.tuning.t_start), "жанр и технология на первом релизе %.2f" % run.t_for(owner))
 	_expect(st.replays() == 0 and st.bugfix_offers() == 1 and not st.sequels_unlocked() and st.insider_level() == 0, "пустые эффекты")
 	st.hire(StaffMember.make(R.LEAD, G.SENIOR))
 	_expect(st.replays() == 1, "тимлид-сеньор: повторов %d" % st.replays())

@@ -197,14 +197,21 @@ static func from_save(s: RunSave) -> RunState:
 
 ## Сложность релиза по спеке мини-игр: от `t_start` на первом релизе до 1 на последнем.
 func t_value() -> float:
-	var k := clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
-	return lerpf(tuning.t_start, 1.0, k)
+	return lerpf(tuning.t_start, 1.0, _t_progress())
 
 
-## Сложность одной мини-игры: аспектную упрощает специалист этого аспекта в штате.
+## Доля забега для сложности: 0 на первом релизе, 1 на капе.
+func _t_progress() -> float:
+	return clampf(float(release - 1) / float(maxi(cap - 1, 1)), 0.0, 1.0)
+
+
+## Сложность одной мини-игры: аспектную упрощает специалист этого аспекта в штате. Мини-игры
+## жанра и технологии специалистов не имеют и растут только до `t_owner_max` (2026-11-18).
 func t_for(def: MinigameDef) -> float:
+	if def != null and def.kind != MinigameDef.Kind.ASPECT:
+		return lerpf(tuning.t_start, maxf(tuning.t_owner_max, tuning.t_start), _t_progress())
 	var t := t_value()
-	if def != null and def.kind == MinigameDef.Kind.ASPECT:
+	if def != null:
 		t *= 1.0 - studio.ease(def.aspect)
 	return t
 
