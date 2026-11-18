@@ -329,16 +329,64 @@
 			"time_limit": 20.0
 		},
 		{
-			"difficulty": 3,
-			"duration": 3,
+			"difficulty": 3.0,
+			"duration": 3.0,
 			"elapsed": 20.5,
 			"id": "lights_out",
-			"retries": 0,
+			"retries": 0.0,
 			"score": 0.8,
 			"session": "2026-11-18 14:22:34",
 			"summary": "фальстартов 1, медленных 0",
 			"t": 0.5,
 			"time_limit": 24.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 12.3,
+			"id": "in_time",
+			"retries": 0.0,
+			"score": 0.88,
+			"session": "2026-11-18 14:32:15",
+			"summary": "попаданий 15 из 16, лишних нажатий 1",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 12.9,
+			"id": "runner",
+			"retries": 0.0,
+			"score": 0.8,
+			"session": "2026-11-18 14:32:15",
+			"summary": "дорожка 100 %, падений 1",
+			"t": 0.5,
+			"time_limit": 16.0
+		},
+		{
+			"difficulty": 3.0,
+			"duration": 3.0,
+			"elapsed": 12.5,
+			"id": "doorway",
+			"retries": 0.0,
+			"score": 0.75,
+			"session": "2026-11-18 14:32:15",
+			"summary": "стен пройдено 5 из 6",
+			"t": 0.5,
+			"time_limit": 20.0
+		},
+		{
+			"difficulty": 3,
+			"duration": 3,
+			"elapsed": 14.0,
+			"id": "mole",
+			"retries": 0,
+			"score": 0.95,
+			"session": "2026-11-18 14:32:15",
+			"summary": "выскоков 26, попаданий 26, упущено 0, мимо 1",
+			"t": 0.5,
+			"time_limit": 14.0
 		}
 	]
 }
