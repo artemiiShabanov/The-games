@@ -16,6 +16,8 @@ static func load_all() -> Array[UpgradeDef]:
 		return []
 	var names: PackedStringArray = []
 	for f in dir.get_files():
+		# В экспорте ресурсы лежат как `.tres.remap` (без этого в сборке пул был пуст).
+		f = f.trim_suffix(".remap")
 		if f.ends_with(".tres") or f.ends_with(".res"):
 			names.append(f)
 	names.sort()
