@@ -41,6 +41,11 @@ var _items: Array[Control] = []
 var _item_lifts: Array[Array] = []
 var _revealed := false
 var archive := false
+## Кнопка «Играть» (на экране итогов релиза её нет: демку там не запустить).
+var allow_demo := true
+## Итоги релиза (2026-11-18): `first_week` и `valuation` карточками в начале ленты, в шапке
+## «Итоги релиза» вместо «Отклик».
+var summary := {}
 ## Пауза между появлением элементов. Большая (рецензии после релиза, #133) открывает их по
 ## одному со звуком: саспенс перед оценками.
 var stagger := STAGGER_SECONDS
@@ -85,7 +90,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if MouseUi.is_motion(event):
 		# Наведение (#82): кнопки внизу берут фокус; посты не листаются от курсора.
 		for i in _buttons.size():
-			if at_end() and MouseUi.hit(_buttons[i], event) and focus_demo != (i == 0):
+			if at_end() and _buttons[i].is_visible_in_tree() and MouseUi.hit(_buttons[i], event) and focus_demo != (i == 0):
 				set_focus_demo(i == 0)
 		return
 	if MouseUi.is_mouse(event):
@@ -130,7 +135,7 @@ func _mouse(event: InputEvent) -> bool:
 	if not MouseUi.is_click(event):
 		return false
 	for i in _buttons.size():
-		if MouseUi.hit(_buttons[i], event):
+		if _buttons[i].is_visible_in_tree() and MouseUi.hit(_buttons[i], event):
 			set_focus_demo(i == 0)
 			confirm()
 			return true
@@ -167,6 +172,8 @@ func scroll_to_end() -> void:
 
 
 func set_focus_demo(v: bool) -> void:
+	if v and not allow_demo:
+		return
 	index = _items.size() - 1
 	if focus_demo != v:
 		focus_demo = v
@@ -218,6 +225,15 @@ func _build() -> void:
 	_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(_column)
 
+	if not summary.is_empty():
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", Style.GAP_CARDS)
+		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(_number_card("Продажи первой недели", Style.format_money(int(summary.get("first_week", 0))), Style.MONEY))
+		top.add_child(_number_card("Оценка студии", Style.format_money(int(summary.get("valuation", 0))), Style.INK))
+		_column.add_child(top)
+		_items.append(top)
+		_item_lifts.append([])
 	for item in content.items:
 		var node: Control
 		match item.kind:
@@ -262,7 +278,7 @@ func _build() -> void:
 
 ## Шапка над карточкой: релиз и тег слева, деньги справа.
 func _build_header() -> void:
-	var header := HintPill.header(ShellHeader.release(release, "Отклик · %s" % content.tag))
+	var header := HintPill.header(ShellHeader.release(release, ("Итоги релиза · %s" if not summary.is_empty() else "Отклик · %s") % content.tag))
 	header.position = Vector2(Style.EDGE, Style.HEADER_Y - Style.PILL_HEIGHT / 2.0)
 	add_child(header)
 	var right := HBoxContainer.new()
@@ -380,7 +396,7 @@ func _make_tweet(item: FeedContent.Item) -> Control:
 		var tag_end := t.find(" ", tag_at)
 		if tag_end < 0:
 			tag_end = t.length()
-		t = t.substr(0, tag_at) + "[color=%s]%s[/color]" % [Style.FOCUS.to_html(false), t.substr(tag_at, tag_end - tag_at)] + t.substr(tag_end)
+		t = t.substr(0, tag_at) + "[color=%s]%s[/color]" % [Style.ACCENT.to_html(false), t.substr(tag_at, tag_end - tag_at)] + t.substr(tag_end)
 	text.text = t
 	col.add_child(text)
 	return panel
@@ -458,6 +474,7 @@ func _make_buttons() -> Control:
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		b.add_child(l)
 		row.add_child(b)
+		b.visible = allow_demo or text != "Играть"
 		_buttons.append(b)
 		_button_labels.append(l)
 		_button_lifts.append(Jelly.button(b))
@@ -469,7 +486,8 @@ func _refresh_buttons() -> void:
 	for i in _buttons.size():
 		var on := at_end() and ((i == 0) == focus_demo)
 		_buttons[i].add_theme_stylebox_override("panel", Style.flat(Style.INK if on else Style.SURFACE_2, Style.R_CTL, Color.TRANSPARENT, 0))
-		_button_lifts[i].focused = on
+		if _button_lifts[i] != null:
+			_button_lifts[i].focused = on
 		_button_labels[i].add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK)
 
 

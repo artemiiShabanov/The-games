@@ -26,9 +26,9 @@ const RUN := [
 	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1],
 	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1],
 ]
-## Хвосты и P0 по таблице модели для релизов 2 и 3 (округлены до сотен).
-const MODEL_TAILS := [0, 3286, 4549]
-const MODEL_P0 := [6573, 4843, 6177]
+## Хвосты и P0 по таблице модели для релизов 2 и 3 (пересчитано 2026-11-18).
+const MODEL_TAILS := [0, 2986, 4046]
+const MODEL_P0 := [5971, 4255, 5231]
 
 var past_count := 2
 var cash := 20000
@@ -390,7 +390,11 @@ func _run_checks() -> void:
 	_expect(StudioPhase.buy(vector, w, up, st3, economy), "покупка технологии")
 	_expect(w.cash == 20000 - vector.price(economy) and up.total() == 800 + vector.upkeep(economy) and st3.has(&"tech_vector"),
 			"после покупки: %s, %s, %s" % [w, up, st3])
-	_expect(not StudioPhase.buy(vector, Wallet.new(100), up, st3, economy), "покупка без денег")
+	# Жанры и технологии бесплатные (2026-11-18): открываются и без денег, платится содержание.
+	var lowpoly := UpgradePool.find(pool, &"tech_lowpoly")
+	var poor3 := Wallet.new(100)
+	_expect(lowpoly.price(economy) == 0 and StudioPhase.buy(lowpoly, poor3, up, st3, economy) and poor3.cash == 100,
+			"бесплатная технология без денег: %s" % poor3)
 
 	# Экран: WIN покупает первое доступное.
 	_phase = 2

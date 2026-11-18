@@ -68,14 +68,15 @@ func replays() -> int:
 	return mini(Staff.replays(staff, t) + int(has(&"replay")) + int(has(&"replay2")), t.max_replays)
 
 
-## Предложений багфикса за релиз: с тестировщиком два.
+## Предложений багфикса за релиз: с тестировщиком-сеньором два.
 func bugfix_offers() -> int:
-	return 2 if has(&"qa") or Staff.count(staff, Staff.Role.TESTER) > 0 else 1
+	return 2 if has(&"qa") or Staff.best_grade(staff, Staff.Role.TESTER) >= Staff.Grade.SENIOR else 1
 
 
-## Что видит аналитик: 0 ничего, 1 жанр в тренде, 2 ещё и сеттинг, 3 ещё и высокий спрос.
+## Что видит аналитик: 0 ничего, 2 жанр и сеттинг в тренде (любой грейд, 2026-11-17).
+## Уровни 1 и 3 конструктор ещё понимает, штат их больше не даёт.
 func insider_level() -> int:
-	return maxi(Staff.best_grade(staff, Staff.Role.ANALYST) + 1, 2 if has(&"insider") else 0)
+	return 2 if has(&"insider") or Staff.count(staff, Staff.Role.ANALYST) > 0 else 0
 
 
 func insider() -> bool:

@@ -588,8 +588,11 @@ def check():
         print(f"FAIL: M3 старты неравны: в конце {finals}")
         ok = False
     # M4 (#128): жадный забег с пятью технологиями. Хорошие руки проходят кап с любого старта,
-    # ни один старт не богаче другого больше чем в 1,7 раза, забег идёт от часа до двух;
-    # средние руки на дорогом старте (16/32, low poly, «продвинутые») разоряются до пятого релиза.
+    # забег идёт от часа до двух; средние руки на дорогом старте (16/32, low poly, «продвинутые»)
+    # разоряются до пятого релиза или, отступив на бесплатно открытую дешёвую технологию, кончают
+    # беднее старта. Старты кроме «продвинутых» не богаче друг друга больше чем в 1,7 раза;
+    # «продвинутые» самый сильный старт, но не больше чем в 3,5 раза богаче самого бедного.
+    # Ожидания поправлены 2026-11-18: жанры и технологии бесплатные (DESIGN.md).
     finals4 = []
     for start in TECHS:
         _, g4 = simulate_m4(start, False, EVENTS_AVG)
@@ -599,10 +602,15 @@ def check():
             print(f"FAIL: M4 старт {start}, хорошие руки: релизов {g4['releases']}, банкротство {g4['first_bankrupt']}, "
                   f"минут {g4['minutes']:.0f}")
             ok = False
-        if start in ("16bit", "lowpoly", "3d") and (m4["first_bankrupt"] is None or m4["first_bankrupt"] > 4):
-            print(f"FAIL: M4 старт {start}, средние руки: банкротство на релизе {m4['first_bankrupt']}, ждали до 4-го")
-            ok = False
-    if max(finals4) > 1.7 * min(finals4):
+        if start in ("16bit", "lowpoly", "3d"):
+            early = m4["first_bankrupt"] is not None and m4["first_bankrupt"] <= 4
+            retreat = m4["first_bankrupt"] is None and m4["final_cash"] < E["start_cash"]
+            if not (early or retreat):
+                print(f"FAIL: M4 старт {start}, средние руки: банкротство на релизе {m4['first_bankrupt']}, "
+                      f"в конце {m4['final_cash']}; ждали банкротства до 4-го или конца беднее старта")
+                ok = False
+    rest4 = [f for t, f in zip(TECHS, finals4) if t != "3d"]
+    if max(rest4) > 1.7 * min(rest4) or finals4[TECHS.index("3d")] > 3.5 * min(finals4):
         print(f"FAIL: M4 старты неравны: в конце {finals4}")
         ok = False
     print(f"model: хорошие руки минимум {good['min_cash']}, в конце {good['final_cash']}; "
@@ -623,6 +631,11 @@ def events_avg(path):
 
 
 # --- Редкость достижений (#139) -------------------------------------------------------------------
+
+## Пороги «Десятки» и «Сладкой жизни» (ресурсы `achievements/ten.tres` и `sweet_life.tres`).
+TEN_FROM = 8.95
+SWEET_STREAK = 3
+
 
 def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
     """Жадный забег M4 со случайными руками: спринт удаётся с вероятностью `p`, провал даёт баг,
@@ -674,7 +687,7 @@ def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
             retro = c + (S["critic_retro_bonus"] if t in ("vector", "8bit") else -S["critic_retro_penalty"])
             hater = c + (S["critic_bug_hater_clean"] if bugs == 0 else -S["critic_bug_hater_per_bug"] * bugs)
             fresh = c + S["critic_novelty_weight"] * (nov - S["novelty_new_setting"])
-            tens = tens + 1 if min(retro, hater, fresh) >= 9.95 else 0
+            tens = tens + 1 if min(retro, hater, fresh) >= TEN_FROM else 0
             if tens >= ten_streak and "ten" not in got:
                 got.add("ten")
                 first_ten.append(i)
@@ -682,7 +695,7 @@ def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
             paid = paid + 1 if P0 >= cost else 0
             if clean >= 3:
                 got.add("no_trace")
-            if paid >= 5:
+            if paid >= SWEET_STREAK:
                 got.add("sweet_life")
             cash -= cost
             tails = 0
@@ -754,6 +767,7 @@ def replay(path):
     # или `--remake`), в ведомость покупок не попадают.
     upkeep = int(ledger[0]["upkeep"]) if ledger else int(E["upkeep_base"])
     R = 0.0
+    rep_events = 0.0
     sat_g = {g: 0.0 for g in GENRES}
     sat_s = {s: 0.0 for s in ALL_SETTINGS}
     games = []
@@ -825,6 +839,9 @@ def replay(path):
         cash += -cost + P0 + tails - e["upkeep"] - price + other
         expect(i, "деньги", cash, e["cash_after"], 2 * i)
         R += (C - 5.0) / 2.0 + (S["reputation_viral_bonus"] if viral else 0.0)
+        # Репутация от вставок фазы студии этого релиза (накопленная за забег, из ведомости).
+        R += e.get("rep_events", 0.0) - rep_events
+        rep_events = e.get("rep_events", 0.0)
         for k in sat_g:
             sat_g[k] *= S["saturation_keep"]
         for k in sat_s:

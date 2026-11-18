@@ -10,10 +10,10 @@ sprints_by_tech = Array[int]([4, 5, 6, 7, 8])
 sprint_base_by_tech = Array[int]([1000, 1400, 1900, 2000, 2800])
 genre_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.15])
 setting_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.1, 1.05, 1.0, 1.05, 1.1, 1.0])
-unlock_price_by_tech = Array[int]([3000, 5000, 8000, 12000, 18000])
-unlock_upkeep_by_tech = Array[int]([300, 400, 500, 700, 900])
-genre_unlock_price = 7000
-genre_unlock_upkeep = 250
+unlock_price_by_tech = Array[int]([0, 0, 0, 0, 0])
+unlock_upkeep_by_tech = Array[int]([450, 600, 750, 1050, 1350])
+genre_unlock_price = 0
+genre_unlock_upkeep = 400
 capability_prices = Dictionary[StringName, int]({
 &"insider": 4000,
 &"manager": 8000,

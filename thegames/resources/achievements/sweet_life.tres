@@ -6,8 +6,8 @@
 script = ExtResource("1_ach")
 id = &"sweet_life"
 title = "Сладкая жизнь"
-text = "Пять релизов подряд окупились за первую неделю"
+text = "Три релиза подряд окупились за первую неделю"
 setting = 6
 condition = 3
-threshold = 5
+threshold = 3
 ending = &""

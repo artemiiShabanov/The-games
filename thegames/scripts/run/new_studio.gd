@@ -298,7 +298,7 @@ func _refresh_studio(animate: bool) -> void:
 func _refresh_button() -> void:
 	var active := not spinning
 	_button_label.text = "Основать студию" if active else "Выпадает…"
-	_button.add_theme_stylebox_override("panel", Style.flat(Style.INK if active else Style.BG, Style.R_CTL, Color.TRANSPARENT, 0))
+	_button.add_theme_stylebox_override("panel", Style.flat(Style.ACCENT if active else Style.BG, Style.R_CTL, Color.TRANSPARENT, 0))
 	_button_label.add_theme_color_override("font_color", Style.SURFACE_SOLID if active else Style.INK_3)
 	_button_lift.focused = active
 	if active:

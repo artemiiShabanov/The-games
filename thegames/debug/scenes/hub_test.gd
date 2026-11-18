@@ -4,7 +4,7 @@ extends Control
 ## прокачки), затем `RunHub` на пиксельной студии. Раздел «Главный экран» дебаг-меню: «Заново», окна. Под ботом:
 ## окно денег сходится с кошельком, окно прокачки по порядку покупки, панель релиза с лентой,
 ## «Новая игра» шлёт сигнал, отложенное предложение покупается с главного экрана один раз.
-## `--no-checks [--pop=money|upgrades|release|offer|game|stream|box|board|staff]` держит экран для скриншота
+## `--no-checks [--pop=money|upgrades|release|offer|game|stream|box|board|staff|games]` держит экран для скриншота
 ## (`stream` окно стрима последнего релиза, `box` фокус на статуэтке с пилюлей названия).
 ## После релиза (#133): `--after` открывает экран со свежим релизом и волнами отклика
 ## (`--after=all` все волны сразу, `--pop=bet` окно ставки, `--pop=wave` лента пришедшего);
@@ -133,6 +133,8 @@ func _show_pop() -> void:
 			hub.open_record(0)
 		"board":
 			hub.open_board()
+		"games":
+			hub.activate(hub._studio_index)
 		"staff":
 			hub.open_upgrades()
 		"stream":
@@ -205,7 +207,10 @@ func _check_after() -> void:
 	_expect(hub._wave_nodes.has(RunHub.Wave.SALES) and hub._wave_nodes.has(RunHub.Wave.CRITICS), "карточки критиков и продаж на месте")
 	# Оценки критиков закрыты, пока не нажата их карточка: в общей ленте нет ни их, ни цифр.
 	_expect(_bets.is_empty() and not _record.bet_done, "рецензии пришли закрытыми, ставка ещё не сыграла")
+	# Продажи только показываются (2026-11-18): лента релиза теперь на экране итогов.
 	hub.open_wave(RunHub.Wave.SALES)
+	_expect(hub.window == RunHub.Pop.NONE and hub._feed == null, "карточка продаж ничего не открывает")
+	hub.open_wave(RunHub.Wave.TWEETS)
 	var hidden := hub._feed != null
 	if hidden:
 		for it in hub._feed.content.items:
@@ -222,7 +227,7 @@ func _check_after() -> void:
 	_expect(hub._feed.stagger >= 0.5, "рецензии открываются по одной с паузой")
 	hub._close_window(false)
 	_expect(_bets == [true] and _record.bet_done, "после рецензий верная ставка сыграла: %s" % [_bets])
-	hub.open_wave(RunHub.Wave.SALES)
+	hub.open_wave(RunHub.Wave.TWEETS)
 	var whole := run.build_feed(_record)
 	var has_clip := StreamScreen.clip_of(whole) != null
 	_expect(hub._feed != null and hub._feed.content.items.size() == whole.items.size() - int(has_clip)
@@ -253,6 +258,26 @@ func _check_after() -> void:
 	hub.activate(hub._box_focus.find_key(0))
 	_expect(hub.window == RunHub.Pop.GAME and hub._feed_record == run.records[0], "статуэтка в фокусе открывает карточку игры")
 	hub._close_window(false)
+	# Стрелки обходят полку (2026-11-18): ни одна стрелка с любой кнопки не ведёт на статуэтку.
+	var on_shelf := false
+	var keep := hub.focus
+	for i in hub._focusables.size():
+		if hub._box_focus.has(i):
+			continue
+		hub.focus = i
+		for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			if hub._box_focus.has(hub._nav_step(d)):
+				on_shelf = true
+	hub.focus = keep
+	_expect(not on_shelf, "стрелки не заходят на статуэтки")
+	# Карточка студии открывает список игр, строка открывает карточку игры.
+	_expect(hub._studio_index >= 0, "карточка студии в фокусе")
+	hub.activate(hub._studio_index)
+	_expect(hub.window == RunHub.Pop.GAMES and hub._games_rows.size() == run.records.size()
+			and hub._games_rows[0] == run.records.size() - 1, "список игр студии: %s" % [hub._games_rows])
+	hub._buy_row(0)
+	_expect(hub.window == RunHub.Pop.GAME and hub._feed_record == run.records[-1], "строка списка открывает игру")
+	hub._close_window(false)
 	_expect(_bg.prop_info().has("tv_channel") and _bg.poke(&"tv"), "телевизор на месте и нажимается")
 	_bg.pay_tails([0, 1])
 	_expect(int(_bg.thing_info()["coins"]) == 2, "монеты хвоста вылетели")
@@ -264,6 +289,8 @@ func _check_after() -> void:
 static func _make_run(n: int) -> RunState:
 	var r := RunState.start(1, true)
 	r.studio_name = "Тихая Лампа"
+	# Шапка с названием и лампой «в эфире», как в забеге.
+	ShellHeader.studio = r.studio_name
 	r.studio_logo = StudioLogo.new()
 	r.wallet.cash = 60000
 	for i in n:

@@ -55,7 +55,7 @@ const ROW_GAP := 12
 ## «Прокачаться» (цвет `success` палитры): как часто кнопка зовёт к себе.
 const OFFER_PULSE_SECONDS := 2.4
 
-enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME, STREAM, BOARD }
+enum Pop { NONE, MONEY, UPGRADES, RELEASE, OFFER, BET, GAME, STREAM, BOARD, GAMES }
 ## Волны отклика после релиза по порядку прихода; ставка стоит первой и не приходит.
 enum Wave { BET, TWEETS, STREAM, CRITICS, SALES }
 
@@ -102,6 +102,11 @@ var _settings: SettingsScreen
 var _offer_index := -1
 ## Пилюля «Соискатели» и люди в открытом окне доски, по строкам.
 var _board_index := -1
+## Карточка студии слева сверху (2026-11-18): открывает список выпущенных игр.
+var _studio_index := -1
+var _studio_label: Label
+## Строки окна игр студии: номер записи забега на строку.
+var _games_rows: Array[int] = []
 var _board_members: Array[StaffMember] = []
 var _offer_rows: Array[PanelContainer] = []
 var _offer_lifts: Array[JellyLift] = []
@@ -171,8 +176,9 @@ func _ready() -> void:
 		_catalogs.append(Catalog.load_kind(k))
 	_build()
 	_refresh_focus()
-	if run != null and not run.records.is_empty():
-		_bed = MusicBed.new(run.records[-1], Music.tuning().hub_db)
+	if run != null:
+		# Заглавная тема Studio Running (2026-11-18), раньше тема последней игры.
+		_bed = MusicBed.main(Music.tuning().hub_db)
 		add_child(_bed)
 	if not Debug.skip_cards:
 		_chrome.modulate.a = 0.0
@@ -297,6 +303,11 @@ func open_wave(kind: Wave) -> void:
 	if kind == Wave.STREAM:
 		_open_stream(after_record, after_content)
 		return
+	if kind == Wave.SALES:
+		# Продажи только показываются (2026-11-18): лента релиза теперь на экране итогов.
+		if _wave_nodes.has(kind):
+			Jelly.poke(_wave_nodes[kind], 1.0)
+		return
 	if kind == Wave.CRITICS and not after_record.bet_done:
 		# Первый раз: только рецензии, по одной с паузой.
 		_open_feed(after_record, after_content.only([FeedContent.Kind.CRITIC]), -1, run.tuning.after_critic_seconds)
@@ -347,6 +358,8 @@ func activate(i: int) -> void:
 		_toggle_window(Pop.OFFER)
 	elif i == _board_index:
 		_toggle_window(Pop.BOARD)
+	elif i == _studio_index:
+		_toggle_window(Pop.GAMES)
 	elif _wave_focus.has(i):
 		_lifts[i].press()
 		open_wave(_wave_focus[i])
@@ -406,6 +419,8 @@ func buy_offer(i: int) -> bool:
 
 
 func _offer_affordable(i: int) -> bool:
+	if window == Pop.GAMES:
+		return true
 	if window == Pop.BOARD:
 		return run.can_hire(_board_members[i])
 	return run.wallet.can_afford(_offer_defs[i].price(run.economy) + run.cheapest_next())
@@ -443,7 +458,11 @@ func hire_staff(i: int) -> bool:
 
 ## Нажата строка окна с покупкой: предложение жанра или технологии, либо доска.
 func _buy_row(i: int) -> void:
-	if window == Pop.BOARD:
+	if window == Pop.GAMES:
+		if i >= 0 and i < _games_rows.size():
+			_offer_lifts[i].press()
+			open_record(_games_rows[i])
+	elif window == Pop.BOARD:
 		hire_staff(i)
 	else:
 		buy_offer(i)
@@ -620,7 +639,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var dir := FocusNav.dir_of(event)
 	if dir != Vector2.ZERO:
-		var next := FocusNav.step(_focus_rects(), focus, dir)
+		var next := _nav_step(dir)
 		if next != focus:
 			focus = next
 			ShellSounds.play(&"tick")
@@ -643,7 +662,7 @@ func _window_input(event: InputEvent, viewport: Viewport) -> void:
 	elif MouseUi.is_click(event):
 		var inside := MouseUi.hit(_window_node, event)
 		var on_pill := _pill_at(event)
-		if window in [Pop.OFFER, Pop.BOARD] and inside:
+		if window in [Pop.OFFER, Pop.BOARD, Pop.GAMES] and inside:
 			var row := _offer_row_at(event)
 			if row >= 0:
 				_offer_focus = row
@@ -653,16 +672,16 @@ func _window_input(event: InputEvent, viewport: Viewport) -> void:
 			activate(on_pill)
 		elif not inside:
 			_close_window()
-	elif window in [Pop.OFFER, Pop.BOARD] and MouseUi.is_motion(event):
+	elif window in [Pop.OFFER, Pop.BOARD, Pop.GAMES] and MouseUi.is_motion(event):
 		var row := _offer_row_at(event)
 		if row >= 0 and row != _offer_focus:
 			_offer_focus = row
 			ShellSounds.play(&"tick")
 			_refresh_offer()
 		return
-	elif window in [Pop.OFFER, Pop.BOARD] and not event.is_echo() and GameInput.is_a(event):
+	elif window in [Pop.OFFER, Pop.BOARD, Pop.GAMES] and not event.is_echo() and GameInput.is_a(event):
 		_buy_row(_offer_focus)
-	elif window in [Pop.OFFER, Pop.BOARD] and (event.is_action_pressed(GameInput.DOWN, true) or event.is_action_pressed(GameInput.UP, true)):
+	elif window in [Pop.OFFER, Pop.BOARD, Pop.GAMES] and (event.is_action_pressed(GameInput.DOWN, true) or event.is_action_pressed(GameInput.UP, true)):
 		var next := clampi(_offer_focus + (1 if event.is_action_pressed(GameInput.DOWN, true) else -1), 0, _offer_rows.size() - 1)
 		if next != _offer_focus:
 			_offer_focus = next
@@ -729,6 +748,24 @@ func _offer_row_at(event: InputEvent) -> int:
 	return -1
 
 
+## Стрелки обходят статуэтки на полке (2026-11-18): они только для мыши.
+func _nav_step(dir: Vector2) -> int:
+	var ids: Array[int] = []
+	var rects: Array[Rect2] = []
+	var all := _focus_rects()
+	var from := -1
+	for i in all.size():
+		if _box_focus.has(i) and i != focus:
+			continue
+		if i == focus:
+			from = ids.size()
+		ids.append(i)
+		rects.append(all[i])
+	var next := FocusNav.step(rects, from, dir)
+	# Статуэтка в списке только та, на которой фокус (поставила мышь): стрелка уводит с неё.
+	return ids[next] if next >= 0 else focus
+
+
 func _focus_rects() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
 	for c in _focusables:
@@ -780,9 +817,13 @@ func _toggle_window(w: Pop) -> void:
 		Pop.BET:
 			rows = _bet_window_rows()
 			title = "Оценка критиков"
+		Pop.GAMES:
+			pill = _focusables[_studio_index]
+			rows = _games_window_rows()
+			title = "Игры студии"
 	_window_node = _make_window(rows, title)
 	add_child(_window_node)
-	if w == Pop.OFFER or w == Pop.BOARD:
+	if w == Pop.OFFER or w == Pop.BOARD or w == Pop.GAMES:
 		_refresh_offer()
 	elif w == Pop.BET:
 		_refresh_bet()
@@ -1024,7 +1065,7 @@ func _offer_window_rows() -> Array[Control]:
 		right.alignment = BoxContainer.ALIGNMENT_CENTER
 		h.add_child(right)
 		right.add_child(_kind_pill(kind, def.kind_name()))
-		var price := _label(Style.format_money(def.price(run.economy)), Style.FONT_BODY, Style.INK)
+		var price := _label(Style.format_price(def.price(run.economy)), Style.FONT_BODY, Style.INK)
 		price.add_theme_font_override("font", Style.mono_font())
 		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		right.add_child(price)
@@ -1071,6 +1112,49 @@ func _staff_row(m: StaffMember, effect: String, note: String, note_color: Color)
 	return row
 
 
+## Игры студии (2026-11-18): все выпущенные в забеге, последняя сверху; строка открывает
+## карточку игры, как статуэтка на полке.
+func _games_window_rows() -> Array[Control]:
+	var rows: Array[Control] = []
+	_offer_rows.clear()
+	_offer_lifts.clear()
+	_games_rows.clear()
+	_offer_focus = 0
+	if run.records.is_empty():
+		rows.append(_wrap_label("Пока ни одной игры.", Style.FONT_CAPTION, Style.INK_2))
+		return rows
+	for k in run.records.size():
+		var i := run.records.size() - 1 - k
+		var r := run.records[i]
+		var row := PanelContainer.new()
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 16)
+		row.add_child(h)
+		var bar := Panel.new()
+		bar.custom_minimum_size = Vector2(8, 0)
+		bar.add_theme_stylebox_override("panel", Style.flat(Style.INK_3, 4, Color.TRANSPARENT, 0))
+		h.add_child(bar)
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(col)
+		col.add_child(_label(r.title, Style.FONT_BODY, Style.INK))
+		col.add_child(_label("Релиз %d · %s × %s × %s" % [i + 1, Game.genre_name(r.genre), Game.tech_name(r.tech),
+				Game.setting_name(r.setting)], Style.FONT_CAPTION, Style.INK_2))
+		var right := VBoxContainer.new()
+		right.alignment = BoxContainer.ALIGNMENT_CENTER
+		h.add_child(right)
+		right.add_child(_label("критики", Style.FONT_CAPTION, Style.INK_3))
+		var score := _label(_score(r.score.critics) if r.score != null else "—", Style.FONT_BODY, Style.INK)
+		score.add_theme_font_override("font", Style.mono_font())
+		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		right.add_child(score)
+		rows.append(row)
+		_offer_rows.append(row)
+		_offer_lifts.append(Jelly.button(row, Style.R_CTL))
+		_games_rows.append(i)
+	return rows
+
+
 ## Доска соискателей: строки как у предложения, справа цена найма; нанять можно нескольких.
 func _board_window_rows() -> Array[Control]:
 	var rows: Array[Control] = []
@@ -1083,9 +1167,9 @@ func _board_window_rows() -> Array[Control]:
 			Style.FONT_CAPTION, Style.INK_2))
 	for i in _board_members.size():
 		var m := _board_members[i]
-		var left := m.until - run.release + 1
-		var effect := "%s\nЗарплата %s за релиз · ждёт ещё %d рел." % [Staff.effect_line(m.role, m.grade, tuning),
-				Style.format_money(run.hire_salary(m)), left]
+		# Без счётчика ожидания (2026-11-17): сколько соискатель ещё ждёт, игрок не видит.
+		var effect := "%s\nЗарплата %s за релиз" % [Staff.effect_line(m.role, m.grade, tuning),
+				Style.format_money(run.hire_salary(m))]
 		var row := _staff_row(m, effect, Style.format_money(run.hire_price(m)), Style.INK)
 		rows.append(row)
 		_offer_rows.append(row)
@@ -1184,7 +1268,10 @@ func _kind_pill(kind: int, text: String) -> PanelContainer:
 	sb.content_margin_top = 2
 	sb.content_margin_bottom = 2
 	p.add_theme_stylebox_override("panel", sb)
-	p.add_child(_label(text, Style.FONT_CAPTION, Style.kind_color(kind)))
+	var l := _label(text, Style.FONT_CAPTION, Style.kind_color(kind))
+	# Пилюля тянется по ширине столбца с ценой: подпись посередине.
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p.add_child(l)
 	return p
 
 
@@ -1282,6 +1369,7 @@ func _rebuild() -> void:
 	_labels.clear()
 	_offer_index = -1
 	_board_index = -1
+	_studio_index = -1
 	_offer_halo = null
 	_wave_focus.clear()
 	_wave_nodes.clear()
@@ -1330,9 +1418,13 @@ func _build() -> void:
 		logo.custom_minimum_size = Vector2(56, 56)
 		logo.set_logo(run.studio_logo, false)
 		head.add_child(logo)
-	var title := HintPill.header(ShellHeader.text("Релиз %d" % run.release))
+	# Лампа «в эфире» из логотипа Studio Running слева от названия студии.
+	var title := HintPill.header(ShellHeader.text("Релиз %d" % run.release), ShellHeader.studio != "")
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(title)
+	_studio_label = title.find_children("", "Label", true, false)[0] as Label
+	_studio_index = _focusables.size()
+	_add_focusable(title, Jelly.button(title, Style.R_PILL), _studio_label)
 
 	# Статуэтки на полке студии: невидимые области фокуса поверх них и пилюля с названием.
 	var boxes: Array = shelf_rects.call() if shelf_rects.is_valid() else []
@@ -1559,10 +1651,22 @@ func _refresh_focus() -> void:
 		if _box_focus.has(i) or _wave_focus.has(i):
 			continue
 		var c := _focusables[i] as PanelContainer
+		if i == _studio_index:
+			var hs := Style.flat(Style.INK if on else Style.SURFACE, Style.R_PILL, Color.TRANSPARENT, 0)
+			hs.content_margin_left = 14 if ShellHeader.studio != "" else 20
+			hs.content_margin_right = 20
+			hs.content_margin_top = 6
+			hs.content_margin_bottom = 6
+			c.add_theme_stylebox_override("panel", hs)
+			_studio_label.add_theme_color_override("font_color", Style.SURFACE_SOLID if on else Style.INK_2)
+			continue
 		var radius := Style.R_PILL if i != _new_index else Style.R_CTL
 		var bg := Style.INK if on else Style.SURFACE_SOLID
 		if i == _offer_index:
 			bg = Style.SUCCESS.darkened(0.3) if on else Style.SUCCESS
+		elif i == _new_index:
+			# Главная кнопка экрана фирменным красным (2026-11-18), в фокусе темнее.
+			bg = Style.ACCENT.darkened(0.25) if on else Style.ACCENT
 		var sb := Style.flat(bg, radius, Color.TRANSPARENT, 0)
 		sb.content_margin_left = 24
 		sb.content_margin_right = 24
@@ -1571,7 +1675,7 @@ func _refresh_focus() -> void:
 		var base := Style.INK
 		if i == _money_index:
 			base = Style.DANGER if run.wallet.cash < 0 else Style.MONEY
-		elif i == _offer_index:
+		elif i == _offer_index or i == _new_index:
 			base = Style.SURFACE_SOLID
 		l.add_theme_color_override("font_color", Style.SURFACE_SOLID if on else base)
 

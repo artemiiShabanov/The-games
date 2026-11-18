@@ -339,6 +339,7 @@ static func apply(offer: Offer, index: int, wallet: Wallet, market: MarketState,
 					wallet.spend(-e.amount, &"event", payer)
 			EffectDef.Kind.REPUTATION:
 				market.reputation += e.steps * meta.rep_step
+				market.event_reputation += e.steps * meta.rep_step
 			EffectDef.Kind.RESTRICT_GENRE, EffectDef.Kind.RESTRICT_SETTING, EffectDef.Kind.RESTRICT_TECH, EffectDef.Kind.RESTRICT_SEQUEL:
 				var r := EventState.Restriction.new()
 				r.kind = e.kind

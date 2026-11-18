@@ -5,7 +5,7 @@ extends Control
 ## студии, как спринты (решение 2026-11-06): карточка всплывает, экран демки в `screen`,
 ## после итога карточка уезжает вниз и приходит `demo_finished`. Таймера нет (решение
 ## 2026-11-05): демка кончается по своей цели или по своему условию провала (жизни, счёт),
-## затем короткий экран итога («добежал» / «не добежал», слова жанра в `_result_title`).
+## затем короткий экран итога: заголовок «Игра окончена», под ним итог словами жанра и числа.
 ## Esc открывает паузу с пунктами «Вернуться» и «Пропустить» (решение 2026-11-06); B
 ## остаётся демке, у платформера это дэш, у гонок тормоз.
 ## Подклассы переопределяют `_game_input`, а не `_unhandled_input`. Баги читаются флагами из
@@ -116,6 +116,9 @@ var _hold_left := 0.0
 var _closing := false
 var _menu_index := 0
 var _overlay: Control
+## Заголовок экрана итога у всех демок один (2026-11-18), итог демки в подписи под ним.
+const RESULT_HEADLINE := "Игра окончена"
+
 var _overlay_title: Label
 var _overlay_caption: Label
 var _menu_row: HBoxContainer
@@ -798,7 +801,8 @@ func _process(delta: float) -> void:
 	if _hold_left > 0.0:
 		_hold_left -= delta
 		if _hold_left <= 0.0 and not finished and not _closing:
-			_show_overlay(_result_title(reached), _result_caption(), Style.SUCCESS if reached else Style.INK)
+			_show_overlay(RESULT_HEADLINE, _result_comment(reached), Style.INK)
+			AutoTest.note("итог: %s, кадр %d" % [_result_comment(reached), Engine.get_process_frames()])
 			_result_left = RESULT_SECONDS
 		return
 	if _result_left > 0.0:
@@ -920,9 +924,21 @@ func _result_caption() -> String:
 	return ""
 
 
-## Заголовок экрана итога словами жанра: у платформера «добежал», у гонок «добрался первым».
+## Итог словами жанра: у платформера «добежал», у гонок «добрался первым». Идёт в начало
+## подписи, не в заголовок.
 func _result_title(goal: bool) -> String:
 	return "пройдено" if goal else "не пройдено"
+
+
+## Подпись экрана итога одной строкой (2026-11-18): итог словами жанра, затем числа демки.
+## «3 место» и «из 6» сливаются в «3 место из 6».
+func _result_comment(goal: bool) -> String:
+	var head := _result_title(goal)
+	head = head.substr(0, 1).to_upper() + head.substr(1)
+	var tail := _result_caption()
+	if tail == "":
+		return head
+	return head + (" " if tail.begins_with("из ") else " · ") + tail
 
 
 # --- Оверлей итога и паузы в стиле оболочки ------------------------------------------------

@@ -21,7 +21,8 @@ const AFTER_BUY_SECONDS := 0.6
 const BOT_PAUSE := 0.4
 const LEDGER_WIDTH := 760
 const VALUATION_WIDTH := 480
-const OFFER_Y := 420
+## Выше на 24 (2026-11-18): у выбранной карточки снизу выезжает подбородок, он не должен резаться.
+const OFFER_Y := 396
 const OFFER_CARD := Vector2(520, 336)
 ## Толщина полосы цвета вида сверху карточки прокачки (#79).
 const KIND_STRIP := 8.0
@@ -272,6 +273,21 @@ func _run() -> void:
 	for i in _critic_cards.size():
 		_fade_in(_critic_cards[i], i * 0.08)
 	await _step()
+	# С 2026-11-18 экран показывается только ради вставки или банкротства: продажи и оценки уже
+	# были в ленте итогов, ведомость денег нужна лишь при банкротстве.
+	if not report.bankrupt:
+		_set_money(report.cash)
+		_fade_in(_valuation_block)
+		_valuation_label.text = Style.format_money(int(report.stats.valuation if report.stats else report.cash))
+		await _step()
+		if event_offer != null:
+			await _show_event(float(report.stats.valuation if report.stats else report.cash))
+		_show_offer()
+		ready_for_input = true
+		_fade_in(_hints)
+		if not report.game_over:
+			offer_shown.emit(report.offer)
+		return
 	var money := report.cash_start
 	if report.current != null:
 		money += report.first_week
@@ -534,7 +550,7 @@ func _make_card(def: UpgradeDef) -> PanelContainer:
 	effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	effect.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(effect)
-	var price := _label(Style.format_money(def.price(economy)), Style.FONT_H2, Style.INK)
+	var price := _label(Style.format_price(def.price(economy)), Style.FONT_H2, Style.INK)
 	price.add_theme_font_override("font", Style.mono_font())
 	price.name = "Price"
 	column.add_child(price)

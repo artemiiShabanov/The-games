@@ -21,13 +21,17 @@ const INK_3 := Color("#A8A39A")
 static var FOCUS := Color("#006EB8")
 static var MONEY := Color("#1A7444")
 static var SUCCESS := Color("#00B49B")
-static var DANGER := Color("#CB2F43")
+static var DANGER := Color("#7E1E2A")
 static var BUG := Color("#C16B27")
+## Фирменный красный лампы Studio Running (2026-11-18): главная кнопка экрана, лампа, хэштеги,
+## активная вкладка, метки. Не значит «плохо»: для этого `DANGER`.
+static var ACCENT := Color("#CB2F43")
 ## Подложки пилюль последствий (концепт `06-meta-event`, #63): плюс, минус, ограничение.
 ## Светлые тона `money`, `danger`, `focus`, считаются из палитры.
 static var TINT_PLUS := tint(MONEY)
 static var TINT_MINUS := tint(DANGER)
 static var TINT_LOCK := tint(FOCUS)
+static var TINT_ACCENT := tint(ACCENT)
 
 const PALETTE_DIR := "res://resources/palettes/"
 ## Порядок палитр в настройках; первая по умолчанию.
@@ -58,10 +62,12 @@ static func use_palette(id: StringName) -> void:
 	MONEY = p.money
 	SUCCESS = p.success
 	DANGER = p.danger
+	ACCENT = p.accent
 	BUG = p.bug
 	TINT_PLUS = tint(MONEY)
 	TINT_MINUS = tint(DANGER)
 	TINT_LOCK = tint(FOCUS)
+	TINT_ACCENT = tint(ACCENT)
 	if p.accents.size() > 0:
 		accents.assign(Array(p.accents))
 
@@ -93,7 +99,7 @@ static func kind_tint(kind: int) -> Color:
 
 
 ## Акценты мини-игр a1..a5 из палитры (`use_palette`); здесь «Бумага» по умолчанию.
-static var accents: Array[Color] = [Color("#064F6E"), Color("#E2B540"), Color("#653514"), Color("#A6A159"), Color("#78CDD0")]
+static var accents: Array[Color] = [Color("#CB2F43"), Color("#1C4286"), Color("#A6A159"), Color("#E2B540"), Color("#78CDD0")]
 
 
 static func accent(i: int) -> Color:
@@ -144,6 +150,12 @@ const CARD_DROP_SECONDS := 0.24
 const SWITCH_SECONDS := 0.24
 const SHAKE_PX := 4
 const DIM_LOCKED := 0.4
+## Лампа «в эфире» из логотипа Studio Running (`RunningLamp`): радиус, ширина ореола, период
+## дыхания и яркость в самой тусклой точке.
+const LAMP_RADIUS := 7.0
+const LAMP_HALO := 6.0
+const LAMP_BREATH_SECONDS := 2.4
+const LAMP_DIM := 0.4
 ## Толщина карточки экрана и модальной карточки вместо тени (мармелад, 2026-11-09).
 const CARD_THICKNESS := 6.0
 
@@ -175,6 +187,11 @@ static func format_money(n: int) -> String:
 		if count % 3 == 0 and i > 0:
 			out = " " + out
 	return ("− $ " if n < 0 else "$ ") + out
+
+
+## Цена покупки: «бесплатно» вместо «$ 0» (жанры и технологии с 2026-11-17).
+static func format_price(n: int) -> String:
+	return "бесплатно" if n == 0 else format_money(n)
 
 
 # --- Фабрики стилей ------------------------------------------------------------------------

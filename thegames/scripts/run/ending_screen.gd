@@ -108,7 +108,7 @@ func _build() -> void:
 	column.add_child(bottom)
 	_button = PanelContainer.new()
 	_button.custom_minimum_size = Vector2(420, Style.BUTTON_HEIGHT)
-	_button.add_theme_stylebox_override("panel", Style.flat(Style.INK, Style.R_CTL, Color.TRANSPARENT, 0))
+	_button.add_theme_stylebox_override("panel", Style.flat(Style.ACCENT, Style.R_CTL, Color.TRANSPARENT, 0))
 	_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bl := _label("В галерею", Style.FONT_H2, Style.SURFACE_SOLID)
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -168,10 +168,10 @@
   картинок в `.import` включить `mipmaps/generate=true`.
 - Музыка (#87): `python3 tools/music.py --write` пишет темы и ударные в `assets/music/`
   (нужен sox), на слух вне игры `--themes <tech>` и `--pilot` (mp3 в `debug/playtest/music/`),
-  `--one <сеттинг> <tech> <жанр> out.mp3`; в игре дебаг-меню «Музыка».
+  `--one <сеттинг> <tech> <жанр> out.mp3`; в игре дебаг-меню «Музыка». Заглавная тема меню и главного экрана забега: `python3 tools/main_theme.py [--preview]` (`assets/music/main_theme.ogg`, с `--preview` mp3 на две петли в `debug/playtest/music/`).
 - Портреты внешних персонажей (#140): `python3 tools/portraits.py` пишет листы 24×24 в
   `assets/portraits/`, лист всех настроений `--preview out.png`; в игре вставка
-  `--scene=event_test --no-checks --event=<id> [--mood=N]` и лента `--scene=feed_test`.
+  `--scene=event_test --no-checks --event=<id> [--mood=N]` и лента `--scene=feed_test` (`--summary` лента итогов релиза с первой неделей и оценкой студии).
 - Окружение сеттинга в 3D (#147): свет, небо, туман и основание мира лежат в ресурсе сеттинга
   (`SettingEnv`), не в `lowpoly.tres` и `threed.tres`. Вид основания под кадр: `--base=liquid|void|solid`
   у любой 3D-демки (`--scene=demo_test --tech=threed --setting=1 --base=liquid --no-checks

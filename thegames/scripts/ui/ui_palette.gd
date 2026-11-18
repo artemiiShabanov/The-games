@@ -11,7 +11,10 @@ extends Resource
 @export var focus := Color("#006EB8")
 @export var money := Color("#1A7444")
 @export var success := Color("#00B49B")
-@export var danger := Color("#CB2F43")
+@export var danger := Color("#7E1E2A")
+## Фирменный красный (2026-11-18): лампа логотипа, главная кнопка экрана, мелкие акценты.
+## Опасность отдельно и темнее, чтобы не путалась с ним.
+@export var accent := Color("#CB2F43")
 @export var bug := Color("#C16B27")
 ## Акценты мини-игр a1..a5: a1 главный, a1 и a2 чаще всего рядом, поэтому сильно
 ## различаются светлотой; розового или фиолетового не больше одного (плейтест палитр

@@ -13,8 +13,8 @@ const S := Game.Setting
 
 ## План покупок модели: вид, что. Содержание после каждой из таблицы «Хорошие руки».
 const PLAN := [
-	["genre", G.SHOOTER, 1050], ["cap", &"replay", 1200], ["tech", T.VECTOR, 1500],
-	["cap", &"sequels", 1650], ["tech", T.LOWPOLY, 2350], ["genre", G.RACING, 2600], ["tech", T.THREED, 3500]]
+	["genre", G.SHOOTER, 1200], ["cap", &"replay", 1350], ["tech", T.VECTOR, 1800],
+	["cap", &"sequels", 1950], ["tech", T.LOWPOLY, 3000], ["genre", G.RACING, 3400], ["tech", T.THREED, 4750]]
 ## Двенадцать релизов модели: тройка и стоимость из таблицы (округлена до сотен).
 const RELEASES := [
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 7000], [G.SHOOTER, T.BIT8, S.PIRATES, 7350],
@@ -189,7 +189,8 @@ func _run_checks() -> void:
 	for item in PLAN:
 		_buy_next()
 		_expect(upkeep.total() == int(item[2]), "содержание после %s: %d, в модели %d" % [item[1], upkeep.total(), item[2]])
-	_expect(wallet.cash == 36000 - 7000 - 6000 - 3000 - 5000 - 12000 - 7000 - 18000, "списания покупок: %d" % wallet.cash)
+	# Жанры и технологии бесплатные (2026-11-18), платятся только возможности.
+	_expect(wallet.cash == 36000 - 6000 - 5000, "списания покупок: %d" % wallet.cash)
 	# Банкротство: 1 500 после шестого релиза средних рук меньше 4 000, минус тоже.
 	var cheapest := tuning.cheapest_release([G.PLATFORMER, G.SHOOTER], [T.VECTOR, T.BIT8], all_s)
 	_expect(cheapest == 4000, "дешёвый релиз средних рук %d" % cheapest)

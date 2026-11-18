@@ -106,12 +106,13 @@ func _order_checks() -> void:
 	screen.focus(5)
 	_expect(screen.index == 5, "фокус %d" % screen.index)
 	screen.focus(0)
-	# Вкладка студий: новые сверху, у второго забега концовки нет, у первого продажа.
+	# Вкладка студий: законченные сверху, незаконченные внизу (2026-11-18): у первого забега
+	# продажа, у второго концовки нет.
 	screen.set_tab(GalleryScreen.Tab.STUDIOS)
 	var st := screen.studios
-	_expect(screen.count() == 2 and int(st[0]["run"]) == 2 and st[0]["ending"] == &"" and st[1]["ending"] == &"sale",
+	_expect(screen.count() == 2 and int(st[0]["run"]) == 1 and st[0]["ending"] == &"sale" and st[1]["ending"] == &"",
 			"студии: %s" % [st])
-	_expect(st[0]["best"] == "Абордаж на лунке" and int(st[1]["games"]) == 3 and int(st[1]["releases"]) == 3,
+	_expect(st[1]["best"] == "Абордаж на лунке" and int(st[0]["games"]) == 3 and int(st[0]["releases"]) == 3,
 			"лучшая и релизы: %s" % [st])
 	screen.set_tab(GalleryScreen.Tab.GAMES)
 	_expect(screen.index == 0 and screen.count() == 6, "назад на игры")

@@ -118,6 +118,10 @@ func _launch() -> void:
 	content = Feed.build(record, record.score, critics, streamers, texts, tuning, catalog, rng, rep_delta)
 	feed = (load(SCENE_PATH) as PackedScene).instantiate() as FeedScreen
 	feed.setup(content, record, 2, 29000)
+	if AutoTest.parse_args(OS.get_cmdline_user_args()).has("summary"):
+		# `--summary`: лента итогов релиза (2026-11-18), сверху первая неделя и оценка студии.
+		feed.summary = {"first_week": record.score.sales_first, "valuation": 96000}
+		feed.allow_demo = false
 	feed.demo_requested.connect(_done.bind("В демо"))
 	feed.finished.connect(_done.bind("Дальше"))
 	add_child(feed)
@@ -160,14 +164,14 @@ func _run_checks() -> void:
 	var tag := Feed.hashtag(str(TITLES.get(genre, TITLES[Game.Genre.PLATFORMER])))
 	_expect(content.tag == tag, "хэштег %s" % content.tag)
 	# Сдвиги: ненавистник багов ниже общей C при двух багах, любитель ретро выше на векторе и
-	# 8-bit и ниже на технологиях новее (16/32-bit, #98).
+	# 8-bit, на технологиях новее ровно общая C (без штрафа с 2026-11-18).
 	var retro := tech <= Game.Tech.BIT8
 	var by_id := {}
 	for item in content.items:
 		if item.kind == K.CRITIC:
 			by_id[item.person.id] = item.score
 	var c := record.score.critics
-	_expect(by_id[&"ignat"] < c and (by_id[&"marta"] > c if retro else by_id[&"marta"] < c), "сдвиги критиков %s при C %.1f" % [by_id, c])
+	_expect(by_id[&"ignat"] < c and (by_id[&"marta"] > c if retro else is_equal_approx(by_id[&"marta"], snappedf(c, 0.1))), "сдвиги критиков %s при C %.1f" % [by_id, c])
 	_expect(content.clip_person != null and content.clip_person.id == &"kraken", "клип у любителя багов: %s" % (content.clip_person.id if content.clip_person else ""))
 	var clip: FeedContent.Item
 	for item in content.items:

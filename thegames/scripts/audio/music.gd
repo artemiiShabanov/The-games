@@ -53,6 +53,18 @@ static func player(setting: Game.Setting, tech: Game.Tech, genre: Game.Genre, vo
 	return p
 
 
+## Заглавная тема Studio Running (2026-11-18, `tools/main_theme.py`): меню и главный экран забега.
+const MAIN_THEME := DIR + "main_theme.ogg"
+
+
+static func main_theme(volume_db := 0.0) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.stream = _loop(MAIN_THEME)
+	p.volume_db = volume_db
+	p.bus = Options.MUSIC_BUS
+	return p
+
+
 static func for_record(record: GameRecord, volume_db := 0.0, drums := true) -> AudioStreamPlayer:
 	return player(record.setting, record.tech, record.genre, volume_db, drums)
 

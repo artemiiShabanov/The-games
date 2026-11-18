@@ -8,16 +8,17 @@ extends RefCounted
 ## Роли:
 ## - пять специалистов по аспектам упрощают мини-игры своего аспекта (сложность `t` ниже на
 ##   долю); одинаковые складываются сложным процентом, как и скидки;
-## - менеджер: спринт дешевле; тестировщик: багфикс дешевле и второй спринт багфикса;
-## - тимлид: повторы проваленного спринта, штуками;
+## - менеджер: спринт дешевле; тестировщик: багфикс дешевле, сеньор ещё и второй спринт багфикса;
+## - тимлид (только сеньор): повтор проваленного спринта;
 ## - продюсер: сиквелы (джуниор), ещё и ремейки (мидл), ещё и скидка на них (сеньор);
-## - аналитик: тренд жанра (джуниор), ещё и сеттинга (мидл), ещё и спрос (сеньор).
+## - аналитик (только мидл): тренд жанра и сеттинга.
 ## Здесь чистые функции от списка людей и чисел `StaffTuning`.
 
 enum Role { PROGRAMMER, SOUND, CONTROLS, ARTIST, DESIGNER, MANAGER, TESTER, LEAD, PRODUCER, ANALYST }
 enum Grade { JUNIOR, MIDDLE, SENIOR }
 
-const GRADE_NAMES: Array[String] = ["джуниор", "мидл", "сеньор"]
+## На карточках по-английски (2026-11-17): так грейды и называют в студиях.
+const GRADE_NAMES: Array[String] = ["Junior", "Middle", "Senior"]
 const TITLES: Array[String] = ["Программист", "Звукорежиссёр", "Дизайнер управления", "Художник", "Геймдизайнер",
 		"Менеджер", "Тестировщик", "Тимлид", "Продюсер", "Аналитик"]
 const IDS: Array[StringName] = [&"programmer", &"sound", &"controls", &"artist", &"designer", &"manager", &"tester",
@@ -50,7 +51,9 @@ static func effect_line(role: Role, grade: Grade, t: StaffTuning) -> String:
 		Role.MANAGER:
 			return "Цена спринта на %s ниже" % pct
 		Role.TESTER:
-			return "Багфикс на %s дешевле, второй спринт багфикса за релиз" % pct
+			if grade == Grade.SENIOR:
+				return "Багфикс на %s дешевле, второй спринт багфикса за релиз" % pct
+			return "Багфикс на %s дешевле" % pct
 		Role.LEAD:
 			var n := roundi(v)
 			return "Повторов проваленного спринта за релиз: %d" % n
@@ -58,7 +61,7 @@ static func effect_line(role: Role, grade: Grade, t: StaffTuning) -> String:
 			return ["Сиквелы в конструкторе", "Сиквелы и ремейки в конструкторе",
 					"Сиквелы и ремейки, их разработка на %d %% дешевле" % roundi(t.producer_discount * 100.0)][grade]
 		Role.ANALYST:
-			return ["Виден жанр в тренде", "Видны жанр и сеттинг в тренде", "Видны тренды и высокий спрос"][grade]
+			return "Видны жанр и сеттинг в тренде"
 	return ""
 
 
@@ -105,14 +108,17 @@ static func replays(staff: Array[StaffMember], t: StaffTuning) -> int:
 ## Случайный соискатель: роль равновероятно из тех, что ещё что-то дадут штату, грейд по весам.
 ## Уникальная роль не приходит грейдом не выше нанятого, тимлид не приходит при потолке повторов.
 static func roll(staff: Array[StaffMember], t: StaffTuning, rng: RandomNumberGenerator, until: int) -> StaffMember:
-	var total := 0.0
-	for w in t.grade_weights:
-		total += w
 	for attempt in 20:
 		var role := rng.randi_range(0, Role.size() - 1) as Role
+		# Грейд по весам среди тех, которыми роль приходит (`min_grade`..`max_grade`).
+		var low := t.min_grade_of(role)
+		var high := mini(t.max_grade_of(role), t.grade_weights.size() - 1)
+		var total := 0.0
+		for g in range(low, high + 1):
+			total += t.grade_weights[g]
 		var pick := rng.randf() * total
-		var grade := Grade.JUNIOR
-		for g in t.grade_weights.size():
+		var grade := low as Grade
+		for g in range(low, high + 1):
 			pick -= t.grade_weights[g]
 			if pick <= 0.0:
 				grade = g as Grade

@@ -628,7 +628,7 @@ func _refresh(animate: bool) -> void:
 	var active := open and not danger
 	var on_button := focus_row == ROW_BUTTON
 	# Активная: тёмная в фокусе, `surface-2` с чернилами без фокуса; закрытая: `surface-2` с `ink-3`.
-	var bg := Style.INK if active and on_button else Style.SURFACE_2
+	var bg := Style.ACCENT if active and on_button else Style.SURFACE_2
 	if not (active and on_button):
 		# На сером поле сметы кнопка белая, закрытая светлее поля.
 		bg = Style.SURFACE_SOLID if active else Style.BG

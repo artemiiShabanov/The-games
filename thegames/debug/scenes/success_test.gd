@@ -10,20 +10,21 @@ const T := Game.Tech
 const S := Game.Setting
 ## Жанр, технология, сеттинг, q, баги, зрелищных, часть; затем ожидания: C, P0, хвосты, V, R.
 ## Ожидания из `python3 tools/model_run.py` (таблица «хорошие руки»); после правки `success.tres`
-## обновить отсюда: пересчитано под критиков 2026-11-17 (колено качества, вес синергии 8).
+## обновить отсюда: пересчитано 2026-11-18 (база критиков 0.85 без вклада технологии, жанры и
+## технологии бесплатные, содержание за них ×1.5).
 const RUN := [
-	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.6, 2, 1, 1, 8.3, 6573, 0, 65, 1.7],
-	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 1, 8.4, 4843, 3286, 47, 3.4],
-	[G.PLATFORMER, T.BIT8, S.SPACE, 0.6, 2, 1, 1, 7.4, 6177, 4549, 70, 4.6],
-	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 10.0, 5883, 5653, 51, 7.1],
-	[G.PLATFORMER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 8.7, 9887, 7119, 55, 9.0],
-	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 8.0, 4753, 10420, 38, 10.5],
-	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 5.3, 12105, 9132, 74, 11.6],
-	[G.SHOOTER, T.BIT8, S.PIRATES, 0.8, 1, 0, 2, 7.2, 7918, 10965, 47, 12.8],
-	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 7.2, 19255, 10491, 86, 14.9],
-	[G.PLATFORMER, T.LOWPOLY, S.PIRATES, 0.86, 1, 0, 3, 6.9, 13387, 16083, 66, 15.8],
-	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 7.5, 22334, 17043, 94, 18.1],
-	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 9.7, 32753, 21731, 100, 21.4],
+	[G.PLATFORMER, T.BIT8, S.ZOMBIES, 0.6, 2, 1, 1, 6.9, 5971, 0, 65, 0.9],
+	[G.SHOOTER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 1, 7.0, 4255, 2986, 47, 1.9],
+	[G.PLATFORMER, T.BIT8, S.SPACE, 0.6, 2, 1, 1, 6.0, 5231, 4046, 70, 2.4],
+	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 8.6, 4943, 4894, 51, 4.2],
+	[G.PLATFORMER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 2, 7.3, 8054, 6060, 55, 5.4],
+	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 6.3, 3696, 8646, 38, 6.0],
+	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 4.2, 9407, 7423, 74, 6.6],
+	[G.SHOOTER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 2, 5.8, 6003, 8728, 47, 7.0],
+	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 6.0, 14629, 8187, 86, 8.5],
+	[G.PLATFORMER, T.LOWPOLY, S.ZOMBIES, 0.86, 1, 0, 3, 5.8, 10080, 12341, 66, 8.9],
+	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 6.6, 17002, 12970, 94, 10.7],
+	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 8.8, 25131, 16539, 100, 13.6],
 ]
 
 var tuning: SuccessTuning

@@ -18,6 +18,11 @@ const PATH := "res://resources/staff.tres"
 @export var board_add := 2
 @export var board_stay := 3
 @export var grade_weights: Array[float] = [0.55, 0.32, 0.13]
+## Младший грейд, которым роль приходит на доску, по ролям (2026-11-17: тимлид только сеньор,
+## аналитик от мидла).
+@export var min_grade: Array[int] = [0, 0, 0, 0, 0, 0, 0, 2, 0, 1]
+## Старший грейд, которым роль приходит (2026-11-18: аналитик только мидл).
+@export var max_grade: Array[int] = [2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
 ## Повторов спринта за релиз не больше.
 @export var max_replays := 3
 ## Скидка сеньора-продюсера на разработку сиквелов и ремейков.
@@ -41,6 +46,14 @@ static func load_default() -> StaffTuning:
 func value(role: Staff.Role, grade: Staff.Grade) -> float:
 	var i := int(role) * 3 + int(grade)
 	return effect[i] if i < effect.size() else 0.0
+
+
+func min_grade_of(role: Staff.Role) -> int:
+	return min_grade[int(role)] if int(role) < min_grade.size() else 0
+
+
+func max_grade_of(role: Staff.Role) -> int:
+	return max_grade[int(role)] if int(role) < max_grade.size() else 2
 
 
 func price_of(role: Staff.Role, grade: Staff.Grade) -> int:

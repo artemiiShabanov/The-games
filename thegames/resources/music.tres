@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_music")
 genre_rate = Array[float]([1.0, 1.12, 1.06, 0.92, 1.04])
-hub_db = -24.0
+hub_db = -20.0
+menu_db = -12.0
 feed_db = -16.0
 hub_fade = 1.5

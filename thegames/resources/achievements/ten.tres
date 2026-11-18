@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_ach")
 id = &"ten"
-title = "Десятка"
-text = "Все три критика поставили игре 10"
+title = "Девять из десяти"
+text = "Все три критика поставили игре 9 и выше"
 setting = 4
 condition = 1
-threshold = 10
+threshold = 9
 ending = &""

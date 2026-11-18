@@ -31,6 +31,7 @@ var _confirm_yes: Control
 var _delete_pills: Array[Control] = []
 var _slot_row: HBoxContainer
 var _gallery: GalleryScreen
+var _bed: MusicBed
 ## Нижние пилюли меню: прячутся вместе с карточкой, иначе лежат под пилюлями галереи.
 var _hints: HBoxContainer
 var _options: OptionsScreen
@@ -65,9 +66,17 @@ func _ready() -> void:
 	_build()
 	_refresh()
 	card.raise_card()
+	# Заглавная тема Studio Running (2026-11-18); молчит, пока открыта галерея с демками.
+	_bed = MusicBed.main(Music.tuning().menu_db)
+	add_child(_bed)
 	# Автотест `--menu --settings`: экран сеттингов поверх меню.
 	if AutoTest.enabled and args.has("settings"):
 		_open_settings.call_deferred()
+
+
+func _process(_delta: float) -> void:
+	if _bed != null:
+		_bed.active = _gallery == null
 
 
 func _open_game(slot: int, save: RunSave) -> void:
@@ -301,10 +310,9 @@ func _build() -> void:
 	column.size = inner
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.content.add_child(column)
-	var title := _label("The Games", Style.FONT_VERB, Style.INK)
-	title.add_theme_font_override("font", Jelly.fun_font(800))
-	column.add_child(title)
-	column.add_child(_label("Симулятор игровой студии", Style.FONT_H2, Style.INK_2))
+	var logo := GameLogo.new()
+	logo.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	column.add_child(logo)
 	var filler := Control.new()
 	filler.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	filler.mouse_filter = Control.MOUSE_FILTER_IGNORE

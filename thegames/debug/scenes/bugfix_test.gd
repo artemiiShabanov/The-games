@@ -80,8 +80,8 @@ func _launch() -> void:
 	wallet = Wallet.new(cash)
 	state = StudioState.new()
 	if qa:
-		# Второе предложение багфикса даёт тестировщик в штате (раньше «Отдел QA»).
-		state.hire(StaffMember.make(Staff.Role.TESTER, Staff.Grade.JUNIOR))
+		# Второе предложение багфикса даёт тестировщик-сеньор в штате (раньше «Отдел QA»).
+		state.hire(StaffMember.make(Staff.Role.TESTER, Staff.Grade.SENIOR))
 	offers_shown = 0
 	_show_offer()
 

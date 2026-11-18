@@ -45,6 +45,8 @@ var base: BaseOption
 ## Конструктор открыт после экрана основы: Esc в нём возвращает к основе, а не на главный.
 var _via_base := false
 var report: StudioPhase.Report
+## Что бот купил из предложения этого релиза (игрок выбирает на главном экране).
+var _bought: UpgradeDef
 var bugfix_offers := 0
 
 ## Пиксельная студия фоном под всей оболочкой забега (#80).
@@ -635,17 +637,33 @@ func _open_studio() -> void:
 	report = run.settle(record)
 	_achieve()
 	_expected_cash += report.first_week + report.tails_total - report.shares_total - report.upkeep
-	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
-	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
-	screen.reserve_fn = run.cheapest_next
-	if record.score != null:
-		screen.set_critics(run.build_feed(record).only([FeedContent.Kind.CRITIC]).items)
-	screen.defer_offer = _defer_offer
+	_bought = null
+	# Итоги релиза (2026-11-18): полная лента релиза, сверху первая неделя и оценка студии.
+	# Ведомости денег и выбора жанра или технологии здесь нет: выбор ждёт на главном экране.
+	var feed := (load(FEED_PATH) as PackedScene).instantiate() as FeedScreen
+	feed.setup(run.build_feed(record), record, run.release, run.wallet.cash)
+	feed.summary = {"first_week": report.first_week,
+			"valuation": report.stats.valuation if report.stats != null else report.cash}
+	feed.allow_demo = false
+	feed.finished.connect(_after_results, CONNECT_ONE_SHOT)
+	_set_screen(feed)
+	_bot_timer = 0.0
+
+
+## После ленты итогов: экран студии только ради вставки или банкротства, иначе сразу дальше.
+func _after_results() -> void:
 	var offer := run.plan_event(report)
 	if report.rescue_due and (offer == null or offer.def.kind != EventDef.Kind.RESCUE):
 		# Спасти некому: банкротство сразу.
 		StudioPhase.after_rescue(report, run.wallet, run.studio, true)
 		offer = null
+	if offer == null and not report.bankrupt and not report.game_over:
+		_on_studio_finished()
+		return
+	var screen := (load(STUDIO_PATH) as PackedScene).instantiate() as StudioScreen
+	screen.setup(report, run.wallet, run.upkeep, run.studio, run.economy)
+	screen.reserve_fn = run.cheapest_next
+	screen.defer_offer = true
 	if offer != null:
 		AutoTest.note("event: релиз %d, %s" % [run.release, offer.def.id])
 		screen.set_event(offer, _apply_event.bind(offer))
@@ -683,10 +701,19 @@ func _achieve(ending: StringName = &"") -> void:
 
 
 func _on_studio_finished() -> void:
-	# Отказ от прокачки не сгорает до новой игры: кнопка «Прокачаться» на главном экране.
-	var screen := _screen as StudioScreen
+	# Бот без `--after` покупает сразу, как раньше в фазе студии: на этом стоят сверки модели.
+	if AutoTest.bot_active() and not _defer_offer and AutoTest.bot_mode == AutoTest.BotMode.WIN \
+			and report != null and not report.game_over:
+		for d in report.offer:
+			if run.wallet.can_afford(d.price(run.economy) + run.cheapest_next()) \
+					and StudioPhase.buy(d, run.wallet, run.upkeep, run.studio, run.economy):
+				_bought = d
+				_expected_cash -= d.price(run.economy)
+				_sync_studio()
+				break
+	# Жанр или технология не сгорают до новой игры: кнопка на главном экране.
 	run.pending_offer.clear()
-	if screen != null and screen.bought == null and report != null and not report.game_over:
+	if _bought == null and report != null and not report.game_over:
 		for d in report.offer:
 			run.pending_offer.append(d.id)
 	_clear_all()
@@ -897,6 +924,12 @@ func _process(delta: float) -> void:
 				if _defer_offer:
 					after_hub.place_bet(2)
 				after_hub.finish_after()
+		Stage.STUDIO:
+			# Ленту итогов бот пролистывает сразу; экран студии ведёт сам.
+			var results := _screen as FeedScreen
+			if results != null:
+				_bot_timer = -INF
+				results.finished.emit()
 		Stage.END:
 			_bot_timer = -INF
 			# Экран концовки ведёт бот сам; петля автотеста засчитывает конец.
@@ -1004,6 +1037,7 @@ func _write_ledger() -> void:
 		"viral": s.viral if s != null else false, "p0": s.sales_first if s != null else 0,
 		"tails": report.tails_total if report != null else 0, "upkeep": report.upkeep if report != null else 0,
 		"flows": flows, "bought": bought, "tail_sold": sold, "cash_after": run.wallet.cash,
+		"rep_events": run.market.event_reputation,
 		"cash_before": run.wallet.cash - flows.values().reduce(func(a: int, b: int) -> int: return a + b, 0),
 	})
 	var f := FileAccess.open(ProjectSettings.globalize_path("res://" + _ledger_path), FileAccess.WRITE)
@@ -1056,6 +1090,9 @@ func _skip_stage() -> void:
 			if s != null:
 				s.skip()
 				s.proceed()
+			var f := _screen as FeedScreen
+			if f != null:
+				f.finished.emit()
 		Stage.END:
 			_restart()
 

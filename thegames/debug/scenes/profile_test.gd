@@ -61,14 +61,14 @@ func _achievements() -> void:
 	var other := RunState.start(8, true)
 	other.profile = Profile.load_saved()
 	_expect(other.unlocked_settings().has(S.PIRATES), "пираты не открыты в другом забеге")
-	# Серии: без багов три подряд, окупились пять подряд; срыв серии обнуляет.
+	# Серии: без багов три подряд, окупились три подряд (2026-11-18, было пять); срыв серии обнуляет.
 	for i in 5:
 		var r := GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.LOWPOLY, i, "Игра %d" % i, S.SPACE)
 		r.score = ReleaseScore.new()
 		r.score.critics = 6.0
 		r.score.bugs = 1 if i == 1 else 0
 		r.cost = 1000
-		r.score.sales_first = 999 if i == 0 else 1000
+		r.score.sales_first = 999 if i == 2 else 1000
 		run.records.append(r)
 		var ids := run.check_achievements().map(func(a: AchievementDef) -> StringName: return a.id)
 		# Первая игра открывает космос, третья зомби (полировка 2026-11-17).
@@ -77,7 +77,7 @@ func _achievements() -> void:
 		if i == 0:
 			_expect(run.unlocked_settings().has(S.SPACE) and not run.unlocked_settings().has(S.ZOMBIES), "космос после первой игры")
 	_expect(run.check_achievements().is_empty(), "сладкая жизнь без окупаемости")
-	run.records[0].score.sales_first = 1000
+	run.records[2].score.sales_first = 1000
 	_expect(_ids(run.check_achievements()) == [&"sweet_life"], "сладкая жизнь")
 	# Трилогия: третья часть, ремейк не в счёт.
 	run.records[2].part = 3
@@ -92,14 +92,15 @@ func _achievements() -> void:
 	run.records[4].tech = Game.Tech.THREED
 	run.records[3].tech = Game.Tech.LOWPOLY
 	_expect(_ids(run.check_achievements()) == [&"five_techs"], "пять технологий")
-	# Десятка: все критики 10. Общая 10 без багов на ретро с новизной даёт её, 9.5 нет.
+	# «Девять из десяти» (id ten): все критики от 9 (2026-11-18, было 10). Общая 9 без багов на ретро
+	# с новизной даёт её, 8.5 нет: у Игната (без багов +0.4) там 8.9.
 	var top := run.records[1]
 	top.tech = Game.Tech.BIT8
 	top.score.bugs = 0
 	top.score.novelty = 1.0
-	top.score.critics = 9.5
-	_expect(run.check_achievements().is_empty(), "десятка на 9.5")
-	top.score.critics = 10.0
+	top.score.critics = 8.5
+	_expect(run.check_achievements().is_empty(), "девятка на 8.5")
+	top.score.critics = 9.0
 	_expect(_ids(run.check_achievements()) == [&"ten"], "десятка: низшая %d" % Achievements._lowest_critic(top, run))
 	# Концовка.
 	_expect(run.check_achievements(null, &"sale").is_empty(), "офис за продажу")
@@ -152,11 +153,20 @@ func _staff() -> void:
 		_expect(is_equal_approx(run.t_for(graphics), run.t_value() * 0.72) and is_equal_approx(run.t_for(other), run.t_value()),
 				"художники упрощают только графику: %.3f и %.3f" % [run.t_for(graphics), run.t_for(other)])
 	_expect(st.replays() == 0 and st.bugfix_offers() == 1 and not st.sequels_unlocked() and st.insider_level() == 0, "пустые эффекты")
-	st.hire(StaffMember.make(R.LEAD, G.MIDDLE))
 	st.hire(StaffMember.make(R.LEAD, G.SENIOR))
-	_expect(st.replays() == t.max_replays, "повторов %d" % st.replays())
+	_expect(st.replays() == 1, "тимлид-сеньор: повторов %d" % st.replays())
 	st.hire(StaffMember.make(R.TESTER, G.JUNIOR))
-	_expect(st.bugfix_offers() == 2 and is_equal_approx(st.bugfix_discount(), t.value(R.TESTER, G.JUNIOR)), "тестировщик")
+	_expect(st.bugfix_offers() == 1 and is_equal_approx(st.bugfix_discount(), t.value(R.TESTER, G.JUNIOR)), "тестировщик-джуниор")
+	st.hire(StaffMember.make(R.TESTER, G.SENIOR))
+	_expect(st.bugfix_offers() == 2, "тестировщик-сеньор: второй спринт багфикса")
+	var lead_rng := RandomNumberGenerator.new()
+	lead_rng.seed = 7
+	var low_ok := true
+	for k in 300:
+		var m := Staff.roll([], t, lead_rng, 0)
+		if (m.role == R.LEAD and m.grade != G.SENIOR) or (m.role == R.ANALYST and m.grade != G.MIDDLE):
+			low_ok = false
+	_expect(low_ok, "тимлид приходит только сеньором, аналитик только мидлом")
 	st.hire(StaffMember.make(R.PRODUCER, G.JUNIOR))
 	_expect(st.sequels_unlocked() and not st.remakes_unlocked() and st.producer_discount() == 0.0, "продюсер-джуниор")
 	st.hire(StaffMember.make(R.PRODUCER, G.SENIOR))

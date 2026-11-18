@@ -16,6 +16,8 @@ extends Resource
 ## Название франшизы → число выпущенных частей.
 @export var franchise_parts: Dictionary[String, int] = {}
 @export var reputation := 0.0
+## Сколько репутации за забег дали и сняли вставки (для ведомости сверки с моделью).
+@export var event_reputation := 0.0
 @export var mood := 1.0
 
 

@@ -94,7 +94,7 @@ func _sort_entries() -> void:
 
 
 ## Забеги для вкладки «Студии»: законченные из профиля и все, у кого есть игры в галерее,
-## новые сверху.
+## новые сверху; незаконченные (без концовки: идёт или брошен) в самом низу (2026-11-18).
 static func build_studios(games: Array[GalleryEntry], runs: Array[Dictionary]) -> Array[Dictionary]:
 	var by_run := {}
 	for r in runs:
@@ -124,7 +124,12 @@ static func build_studios(games: Array[GalleryEntry], runs: Array[Dictionary]) -
 		d["releases"] = maxi(int(d["releases"]), int(d["games"]))
 		d["avg_critics"] = float(d["sum_critics"]) / int(d["games"]) if int(d["games"]) > 0 else 0.0
 		out.append(d)
-	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["run"]) > int(b["run"]))
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var fa := StringName(a["ending"]) != &""
+		var fb := StringName(b["ending"]) != &""
+		if fa != fb:
+			return fa
+		return int(a["run"]) > int(b["run"]))
 	return out
 
 
@@ -385,7 +390,8 @@ func _fill() -> void:
 	_play_hint.visible = games and not entries.is_empty()
 	for t in _tabs.size():
 		var on := t == int(tab)
-		var sb := Style.flat(Style.INK if on else Style.SURFACE_SOLID, Style.R_PILL, Color.TRANSPARENT, 0)
+		# Активная вкладка фирменным красным (2026-11-18).
+		var sb := Style.flat(Style.ACCENT if on else Style.SURFACE_SOLID, Style.R_PILL, Color.TRANSPARENT, 0)
 		sb.content_margin_left = 24
 		sb.content_margin_right = 24
 		_tabs[t].add_theme_stylebox_override("panel", sb)
@@ -578,8 +584,11 @@ func _studio_row(d: Dictionary, w: float) -> PanelContainer:
 		right.add_child(score)
 	else:
 		# Без концовки: последний забег ещё идёт, более ранний брошен.
-		var latest := studios.is_empty() or int(d["run"]) >= int(studios[0]["run"])
-		right.add_child(_pill("идёт" if latest else "не закончен", Style.SURFACE_SOLID, Style.INK_2, 0.0, Style.FONT_BODY))
+		var latest := true
+		for other in studios:
+			latest = latest and int(d["run"]) >= int(other["run"])
+		right.add_child(_pill("идёт" if latest else "не закончен", Style.TINT_ACCENT if latest else Style.SURFACE_SOLID,
+				Style.ACCENT if latest else Style.INK_2, 0.0, Style.FONT_BODY))
 	return c
 
 

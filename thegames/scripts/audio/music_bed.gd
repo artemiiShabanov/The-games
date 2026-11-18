@@ -1,7 +1,8 @@
 class_name MusicBed
 extends Node
-## Тема игры фоном в оболочке (#87): на главном экране забега тихо и без ударных, в ленте под
-## клипом стримера. Появляется и уходит плавно; молчит, пока `active` снят или хозяин скрыт.
+## Музыка фоном в оболочке (#87): в ленте тема игры под клипом стримера, в меню и на главном
+## экране забега заглавная тема (`MusicBed.main`, 2026-11-18). Появляется и уходит плавно;
+## молчит, пока `active` снят или хозяин скрыт.
 
 var active := true
 
@@ -15,6 +16,14 @@ func _init(record: GameRecord = null, volume_db := -24.0, drums := false) -> voi
 	if record != null:
 		_player = Music.for_record(record, -80.0, drums)
 		add_child(_player)
+
+
+## Заглавная тема Studio Running.
+static func main(volume_db: float) -> MusicBed:
+	var bed := MusicBed.new(null, volume_db)
+	bed._player = Music.main_theme(-80.0)
+	bed.add_child(bed._player)
+	return bed
 
 
 func _process(delta: float) -> void:

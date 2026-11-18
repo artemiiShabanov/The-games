@@ -161,7 +161,7 @@ func _cell(s: Game.Setting, entry: CatalogEntry) -> PanelContainer:
 	sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(sl)
 	if detail != "":
-		col.add_child(_label(detail, Style.FONT_CAPTION, Style.FOCUS if in_run else Style.INK_3))
+		col.add_child(_label(detail, Style.FONT_CAPTION, Style.ACCENT if in_run else Style.INK_3))
 	return cell
 
 

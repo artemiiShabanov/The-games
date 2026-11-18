@@ -26,7 +26,8 @@ static func make(text: String) -> HintPill:
 
 ## Пилюля-подложка под шапку над карточкой (плейтест 2026-11-06: на пиксельной студии текст
 ## без подложки сольётся): `surface`, текст `ink-2` размером `body`.
-static func header(text: String) -> PanelContainer:
+## `lamp`: слева от текста лампа «в эфире» (`RunningLamp`), у названия студии в забеге.
+static func header(text: String, lamp := false) -> PanelContainer:
 	var pill := PanelContainer.new()
 	var sb := Style.flat(Style.SURFACE, Style.R_PILL, Color.TRANSPARENT, 0)
 	sb.content_margin_left = 20
@@ -41,7 +42,18 @@ static func header(text: String) -> PanelContainer:
 	label.add_theme_font_size_override("font_size", Style.FONT_BODY)
 	label.add_theme_color_override("font_color", Style.INK_2)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pill.add_child(label)
+	if lamp:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var l := RunningLamp.new()
+		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(l)
+		row.add_child(label)
+		pill.add_child(row)
+		sb.content_margin_left = 14
+	else:
+		pill.add_child(label)
 	Jelly.attach_pill(pill)
 	return pill
 
