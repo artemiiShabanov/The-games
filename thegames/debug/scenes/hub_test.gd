@@ -201,9 +201,9 @@ func _check_after() -> void:
 			only_tweets = only_tweets and it.kind == FeedContent.Kind.TWEET
 	_expect(hub.window == RunHub.Pop.RELEASE and only_tweets, "лента после первой волны: только твиты")
 	hub._close_window(false)
-	# Кнопка внизу сначала показывает всё, потом ведёт к итогам.
-	hub.start_new_game()
-	_expect(hub.waves_left() == 0 and not _finished, "первое нажатие показало все волны")
+	# Оставшиеся волны сразу (кнопка «Итоги релиза» делает то же и идёт дальше, 2026-11-18).
+	hub.show_all_waves()
+	_expect(hub.waves_left() == 0 and not _finished, "все волны пришли сразу")
 	_expect(hub._wave_nodes.has(RunHub.Wave.SALES) and hub._wave_nodes.has(RunHub.Wave.CRITICS), "карточки критиков и продаж на месте")
 	# Оценки критиков закрыты, пока не нажата их карточка: в общей ленте нет ни их, ни цифр.
 	_expect(_bets.is_empty() and not _record.bet_done, "рецензии пришли закрытыми, ставка ещё не сыграла")
