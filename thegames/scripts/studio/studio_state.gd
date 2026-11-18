@@ -62,12 +62,6 @@ func ease(aspect: int) -> float:
 	return Staff.ease(staff, aspect, StaffTuning.load_default())
 
 
-## Повторов проваленного спринта за релиз: от тимлидов.
-func replays() -> int:
-	var t := StaffTuning.load_default()
-	return mini(Staff.replays(staff, t) + int(has(&"replay")) + int(has(&"replay2")), t.max_replays)
-
-
 ## Предложений багфикса за релиз: с тестировщиком-сеньором два.
 func bugfix_offers() -> int:
 	return 2 if has(&"qa") or Staff.best_grade(staff, Staff.Role.TESTER) >= Staff.Grade.SENIOR else 1

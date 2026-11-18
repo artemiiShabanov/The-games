@@ -2,13 +2,15 @@ extends Minigame
 ## «Разгони» (mash, технология вектор), каталог `docs/specs/minigames_catalog.md`. Бегунок на
 ## полосе привязан резинкой к столбику на старте: резинка тянет назад тем сильнее, чем дальше он
 ## ушёл. Каждое нажатие стрелки в другую сторону, чем прошлое (← → ← →), толкает его вперёд;
-## та же стрелка дважды не толкает. Дотянуть до финиша до таймера, иначе провал «не дотянул».
+## та же стрелка дважды не толкает. Дотянуть до финиша до таймера. Счёт (2026-11-18): дотянул
+## 1, не дотянул доля пути `PARTIAL_MAX * (лучшая позиция / финиш)²` (девять десятых пути около
+## 0,7); каждая стрелка дважды подряд снимает `DOUBLE_PENALTY`.
 ## Образ технологии: клавиши ← → крупно под полосой, следующая подсвечена, за бегунком след
 ## из `»` моноширинным шрифтом. Параметры от `t` в `resources/minigames/mash.tres`: pull
 ## (жёсткость резинки), finish (финиш долей полосы).
 ## Мармелад: бегунок мягкое тело, от толчка вздрагивает и наклоняется вперёд, клавиши
-## поджимаются от нажатия, резинка от натяжения всё сильнее дрожит и во второй половине краснеет; на финише брызги, на
-## провале резинка утаскивает бегунка к столбику.
+## поджимаются от нажатия, резинка от натяжения всё сильнее дрожит и во второй половине краснеет. Конец
+## без вердикта: бегунок встаёт, где был, и вздрагивает.
 ## Мышь (#83): левая кнопка ←, правая →, чередовать.
 
 const TRACK_W := 1200.0
@@ -31,6 +33,9 @@ const BAND_RED_FROM := 0.5
 const BAND_BUZZ_FROM := 0.2
 const BAND_BUZZ_PX := 11.0
 const BAND_POINTS := 24
+## Счёт без финиша: потолок и штраф за ту же стрелку дважды (толчка нет, это ошибка ритма).
+const PARTIAL_MAX := 0.85
+const DOUBLE_PENALTY := 0.05
 
 var pull := 0.45
 var finish_at := 0.6
@@ -40,18 +45,15 @@ var vel := 0.0
 ## Последняя стрелка: -1 ←, 1 →, 0 ещё не жали.
 var last_dir := 0
 var presses := 0
+## Стрелка дважды подряд и лучшая позиция за игру (для счёта).
+var doubles := 0
+var best := 0.0
 
 var _steps: Array[AudioStreamPlayer] = []
 var _miss: AudioStreamPlayer
-var _win: AudioStreamPlayer
 var _runner: JellyShape
 var _key_springs: Array[JellySpring] = [JellySpring.new(), JellySpring.new()]
 var _lean := JellySpring.new()
-var _rings := RingFx.new()
-var _splash := SplashFx.new()
-var _outcome := 0
-var _end_age := 0.0
-var _end_from := 0.0
 var _bot_timer := 0.0
 var _bot_dir := -1
 
@@ -64,9 +66,7 @@ func _on_start() -> void:
 		add_child(p)
 		_steps.append(p)
 	_miss = MiniSfx.tap(180.0)
-	_win = MiniSfx.win()
 	add_child(_miss)
-	add_child(_win)
 	_runner = JellyShape.circle(RUNNER_R)
 	_runner.snap(_runner_pos())
 	queue_redraw()
@@ -94,6 +94,7 @@ func _mouse_action(button: MouseButton, _pos: Vector2) -> StringName:
 func _press(dir: int) -> void:
 	_key_springs[0 if dir < 0 else 1].kick(-260.0)
 	if dir == last_dir:
+		doubles += 1
 		_miss.play()
 		if _runner != null:
 			_runner.push(Vector2(-40.0, 0.0), Vector2.RIGHT)
@@ -113,17 +114,20 @@ func _on_tick(delta: float) -> void:
 	if pos < 0.0:
 		pos = 0.0
 		vel = maxf(vel, 0.0)
+	best = maxf(best, pos)
 	if pos >= finish_at:
 		pos = finish_at
-		_win.play()
-		finish(true)
+		best = finish_at
+		finish_score(_score())
 		return
 	queue_redraw()
 
 
-## Время вышло: не дотянул.
-func _on_timeout() -> bool:
-	return false
+## Счёт: дотянул 1, нет доля пути в квадрате под потолком `PARTIAL_MAX`; минус двойные.
+func _score() -> float:
+	var progress := clampf(best / finish_at, 0.0, 1.0)
+	var s := 1.0 if progress >= 1.0 else PARTIAL_MAX * progress * progress
+	return clampf(s - DOUBLE_PENALTY * doubles, 0.0, 1.0)
 
 
 ## Бот жмёт ← → по очереди с темпом режима: WIN успевает, LOSE нет.
@@ -136,19 +140,10 @@ func _bot_step(delta: float) -> bool:
 	return false
 
 
-func _on_finish(success: bool) -> void:
-	_outcome = 1 if success else -1
-	_end_age = 0.0
-	_end_from = pos
-	if _runner == null:
-		return
-	var at := _runner_pos()
-	if success:
-		_runner.poke(260.0)
-		_rings.add(at, RUNNER_R, RUNNER_R * 2.6, Color(Style.SUCCESS, 0.35), 2, 0.6)
-		_splash.burst(at, 10, 560.0, 0.0, 1.2, Color(Style.accent(2), 0.8), 3.0, 7.0)
-	else:
-		_runner.poke(-200.0)
+## Конец одинаковый при любом счёте: бегунок вздрагивает там, где стоит.
+func _on_finish(_success: bool) -> void:
+	if _runner != null:
+		_runner.poke(200.0)
 
 
 # --- Геометрия и мармелад ---------------------------------------------------------------------
@@ -157,11 +152,8 @@ func _track_rect() -> Rect2:
 	return Rect2(size.x / 2.0 - TRACK_W / 2.0, size.y / 2.0 - TRACK_H / 2.0 - 60.0, TRACK_W, TRACK_H)
 
 
-## Где бегунок по позиции; после провала резинка утаскивает его к столбику.
+## Где бегунок по позиции.
 func _shown_pos() -> float:
-	if _outcome < 0:
-		var e := 1.0 - pow(1.0 - clampf(_end_age / 0.45, 0.0, 1.0), 3.0)
-		return lerpf(_end_from, 0.0, e)
 	return pos
 
 
@@ -188,15 +180,11 @@ func _process(delta: float) -> void:
 	super(delta)
 	if _runner == null or paused or def == null:
 		return
-	if _outcome != 0:
-		_end_age += delta
 	var tu := Jelly.tuning()
 	for s in _key_springs:
 		s.step(delta, tu.spring_stiffness, tu.spring_damping)
 	_lean.step(delta, tu.spring_stiffness, tu.spring_damping)
 	_runner.follow(delta, _runner_pos(), clampf(_lean.value / 1600.0, -0.25, 0.25))
-	_rings.step(delta)
-	_splash.step(delta, func(_x: float) -> float: return INF)
 	if not running:
 		queue_redraw()
 
@@ -253,12 +241,8 @@ func _draw() -> void:
 			draw_string(mono, Vector2(x, r.get_center().y + Style.FONT_H1 * 0.35), "»", HORIZONTAL_ALIGNMENT_LEFT, -1, Style.FONT_H1, Color(Style.INK_2, a))
 	# Бегунок.
 	var color := Style.accent(0)
-	if _outcome < 0:
-		color = color.lerp(Style.INK_3, clampf(_end_age / 0.4, 0.0, 1.0))
 	if jelly:
-		_rings.draw(self)
 		_runner.draw(self, color)
-		_splash.draw_air(self, Vector2.ZERO)
 	else:
 		draw_circle(rp, RUNNER_R, color)
 	# Клавиши ← →: следующая залита, нажатая поджимается.

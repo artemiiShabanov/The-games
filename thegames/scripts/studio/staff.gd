@@ -9,7 +9,8 @@ extends RefCounted
 ## - пять специалистов по аспектам упрощают мини-игры своего аспекта (сложность `t` ниже на
 ##   долю); одинаковые складываются сложным процентом, как и скидки;
 ## - менеджер: спринт дешевле; тестировщик: багфикс дешевле, сеньор ещё и второй спринт багфикса;
-## - тимлид (только сеньор): повтор проваленного спринта;
+## - тимлид снят 2026-11-18 вместе с повтором спринта: роль осталась в перечне ради старых
+##   сохранений, на доску не приходит и ничего не даёт;
 ## - продюсер: сиквелы (джуниор), ещё и ремейки (мидл), ещё и скидка на них (сеньор);
 ## - аналитик (только мидл): тренд жанра и сеттинга.
 ## Здесь чистые функции от списка людей и чисел `StaffTuning`.
@@ -55,9 +56,6 @@ static func effect_line(role: Role, grade: Grade, t: StaffTuning) -> String:
 			if grade == Grade.SENIOR:
 				return Lang.t("Багфикс на %s дешевле, второй спринт багфикса за релиз") % pct
 			return Lang.t("Багфикс на %s дешевле") % pct
-		Role.LEAD:
-			var n := roundi(v)
-			return Lang.t("Повторов проваленного спринта за релиз: %d") % n
 		Role.PRODUCER:
 			if grade == Grade.JUNIOR:
 				return Lang.t("Сиквелы в конструкторе")
@@ -101,16 +99,8 @@ static func best_grade(staff: Array[StaffMember], role: Role) -> int:
 	return best
 
 
-static func replays(staff: Array[StaffMember], t: StaffTuning) -> int:
-	var n := 0.0
-	for m in staff:
-		if m.role == Role.LEAD:
-			n += t.value(m.role, m.grade)
-	return mini(roundi(n), t.max_replays)
-
-
 ## Случайный соискатель: роль равновероятно из тех, что ещё что-то дадут штату, грейд по весам.
-## Уникальная роль не приходит грейдом не выше нанятого, тимлид не приходит при потолке повторов.
+## Уникальная роль не приходит грейдом не выше нанятого, тимлид не приходит совсем.
 static func roll(staff: Array[StaffMember], t: StaffTuning, rng: RandomNumberGenerator, until: int) -> StaffMember:
 	for attempt in 20:
 		var role := rng.randi_range(0, Role.size() - 1) as Role
@@ -129,7 +119,7 @@ static func roll(staff: Array[StaffMember], t: StaffTuning, rng: RandomNumberGen
 				break
 		if is_unique(role) and best_grade(staff, role) >= int(grade):
 			continue
-		if role == Role.LEAD and replays(staff, t) >= t.max_replays:
+		if role == Role.LEAD:
 			continue
 		return StaffMember.make(role, grade, until)
 	return StaffMember.make(Role.PROGRAMMER, Grade.JUNIOR, until)

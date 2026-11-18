@@ -30,7 +30,7 @@ var grounded := true
 var falling := false
 
 
-func setup(pits_: Array[Vector2], pillars_: Array[Vector2], finish_x_: float, dot_r_: float, pillar_h_: float, fail_marks: int, seed_: int) -> void:
+func setup(pits_: Array[Vector2], pillars_: Array[Vector2], finish_x_: float, dot_r_: float, pillar_h_: float, seed_: int) -> void:
 	pits = pits_
 	pillars = pillars_
 	finish_x = finish_x_
@@ -43,8 +43,6 @@ func setup(pits_: Array[Vector2], pillars_: Array[Vector2], finish_x_: float, do
 		pillar_shear.append(JellySpring.new())
 		pillar_squash.append(JellySpring.new())
 		pillar_brushed.append(false)
-	for i in fail_marks:
-		pops.append(JellySpring.new())
 
 
 ## Высота поверхности под X в мире, INF над ямой.
@@ -86,7 +84,10 @@ func fall(at: Vector2, pit: Vector2, pillar: int, fail_index: int) -> void:
 	falling = true
 	grounded = false
 	fx.break_trail()
-	if fail_index >= 0 and fail_index < pops.size():
+	# Крестики падений без предела: пружина на каждый набранный.
+	while pops.size() <= fail_index:
+		pops.append(JellySpring.new())
+	if fail_index >= 0:
 		pops[fail_index].kick(300.0)
 	if pillar >= 0:
 		var r := pillar_rect(pillar)

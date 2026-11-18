@@ -1,7 +1,8 @@
 extends Minigame
 ## «Прыгай» (runner, платформер), каталог `docs/specs/minigames_catalog.md`.
 ## Точка бежит сама по линии, A прыжок, высота по длине нажатия (отпустил раньше: короче),
-## впереди ямы и столбики. Добежать до конца дорожки, провал при двух падениях. Хитбоксы
+## впереди ямы и столбики. Добежать до конца дорожки. Счёт (2026-11-18): доля пробежанной
+## дорожки минус `FALL_PENALTY` за каждое падение, предела падений нет. Хитбоксы
 ## меньше картинки, чтобы прощать касания (плейтест 2026-11-05). С `t` препятствия плотнее, появляются широкие ямы и столбики
 ## подряд. Абстрактно, в стиле оболочки: линия, круг, прямоугольники.
 ## Параметры от `t` в `resources/minigames/runner.tres`: speed, gap, combo_share.
@@ -14,7 +15,8 @@ class Obstacle:
 	var w := 100.0
 
 const RUN_SECONDS := 16.0
-const FAIL_AT := 2
+## Счёт: падение стоит столько. Прежний «еле прошёл» это одно падение, 0,8.
+const FALL_PENALTY := 0.2
 const DOT_R := 28.0
 const DOT_SCREEN_X := 0.3
 const JUMP_DISTANCE := 300.0
@@ -88,7 +90,7 @@ func _setup_jelly() -> void:
 		else:
 			pillars.append(Vector2(o.x, o.w))
 	jelly = RunnerJelly.new()
-	jelly.setup(pits, pillars, track_length, DOT_R, PILLAR_H, FAIL_AT, rng.randi())
+	jelly.setup(pits, pillars, track_length, DOT_R, PILLAR_H, rng.randi())
 	jelly.ground_y = size.y - GROUND_FROM_BOTTOM
 
 
@@ -197,12 +199,19 @@ func _on_tick(delta: float) -> void:
 		reached = true
 		_finish_sound.play()
 		jelly.finish()
-		finish(true)
+		finish_score(_score())
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return reached
+## Счёт: доля дорожки минус падения.
+func _score() -> float:
+	var progress := 1.0 if reached else clampf(world_x / track_length, 0.0, 1.0)
+	return clampf(progress - FALL_PENALTY * falls, 0.0, 1.0)
+
+
+func _on_finish(_success: bool) -> void:
+	if AutoTest.enabled:
+		AutoTest.note("runner: t %.2f, счёт %.2f, дорожка %.0f %%, падений %d, %.1f с" % [t, score, 100.0 * clampf(world_x / track_length, 0.0, 1.0), falls, elapsed])
 
 
 ## Бот: WIN прыгает, когда препятствие близко, LOSE бежит в ямы.
@@ -240,8 +249,6 @@ func _fall(o: Obstacle) -> void:
 	fall_left = FALL_SECONDS
 	fall_from = Vector2(world_x, dot_y)
 	_fall_sound.play()
-	if falls >= FAIL_AT:
-		fall_left = FALL_SECONDS * 0.8
 	var pillar := -1
 	if o.kind == Kind.PILLAR:
 		pillar = jelly.pillars.find(Vector2(o.x, o.w))
@@ -256,9 +263,6 @@ func _fall(o: Obstacle) -> void:
 
 func _respawn() -> void:
 	jelly.respawn(Vector2(world_x, size.y - GROUND_FROM_BOTTOM - DOT_R))
-	if falls >= FAIL_AT:
-		finish(false)
-		return
 	dot_y = 0.0
 	vel_y = 0.0
 	grounded = true
@@ -357,6 +361,6 @@ func _draw_hud() -> void:
 	draw_circle(Vector2(bar_x + bar_w * clampf(world_x / track_length, 0.0, 1.0), 60.0), 7.0, Style.INK)
 	var pops: Array[float] = []
 	if Jelly.on() and jelly != null:
-		for i in FAIL_AT:
-			pops.append(clampf(jelly.pops[i].value * 0.04, -0.5, 1.0))
-	draw_mistakes(falls, FAIL_AT, 0, pops)
+		for p in jelly.pops:
+			pops.append(clampf(p.value * 0.04, -0.5, 1.0))
+	draw_mistakes(falls, 0, 0, pops)

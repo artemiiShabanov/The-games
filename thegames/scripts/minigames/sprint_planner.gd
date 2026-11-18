@@ -9,10 +9,8 @@ extends RefCounted
 
 
 static func plan(n: int, genre: Game.Genre, tech: Game.Tech, pool: Array[MinigameDef],
-		tuning: SprintTuning, rng: RandomNumberGenerator, avoid_first: StringName = &"",
-		replays := 0) -> SprintPlan:
+		tuning: SprintTuning, rng: RandomNumberGenerator, avoid_first: StringName = &"") -> SprintPlan:
 	var result := SprintPlan.new()
-	result.replay_left = replays
 	var picked: Array[MinigameDef] = []
 
 	var tech_def := _find(pool, MinigameDef.Kind.TECH, tech)

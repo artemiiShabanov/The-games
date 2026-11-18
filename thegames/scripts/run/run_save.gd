@@ -52,6 +52,7 @@ static var test_files := false
 ## Текущий релиз: запись, план спринтов, сколько спринтов сыграно, предложений багфикса.
 @export var current: GameRecord
 @export var plan_ids: Array[StringName] = []
+## Остаток повторов спринта; повтор снят 2026-11-18, поле осталось для старых сохранений.
 @export var replay_left := 0
 @export var sprint_index := 0
 @export var bugfix_offers := 0

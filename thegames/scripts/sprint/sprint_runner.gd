@@ -1,31 +1,25 @@
 class_name SprintRunner
 extends Control
-## Раннер спринтов релиза, спека `docs/specs/minigames.md`. Каждый спринт идёт в одной большой
-## карточке `CardFrame` поверх студии (решение 2026-11-05): карточка всплывает снизу с интро,
-## внутри неё интро → мини-игра → результат сменяются сдвигом справа налево, после результата
-## карточка уезжает вниз, пауза под анимацию студии (в M0 пустой фон), следующая всплывает.
-## Результат только «успех» или «провал», без названия бага: баг игрок встречает в демке, а
-## штампы видит на итоге релиза (решение 2026-11-06). Интро, результат и пауза пропускаются
-## любой клавишей, `Debug.skip_cards` убирает ожидания и анимации. Содержимое карточек по
-## концептам `02a`, `03a`, `03b`. Переигровка (#29, возможность студии, плейтест 2026-11-08):
-## пока `plan.replay_left > 0`, после провала карточка результата ждёт `replay_offer_seconds`
-## с тонкой полосой таймера сверху: B переиграть ту же мини-игру с новым сидом, любая другая
-## клавиша или конец таймера дальше; результат переигровки окончательный, `sprint_finished`
-## приходит один раз на спринт, `sprint_replayed` на каждую переигровку.
-## Хозяин (петля релиза или тестовая сцена) зовёт `run()` и слушает сигналы.
+## Раннер спринтов релиза, спека `docs/specs/minigames.md`. Спринты идут цепочкой в одной большой
+## карточке `CardFrame` поверх студии (решение 2026-11-05): карточка всплывает снизу с первым
+## интро и держится до конца релиза, внутри интро → мини-игра → короткий вдох → следующее интро
+## сменяются сдвигом справа налево (темп, 2026-11-18: без карточки результата и без паузы на
+## студию между спринтами). Исход скрыт: мини-игра отдаёт счёт 0..1, баг разыгрывается по кривой
+## `SprintTuning.bug_chance` от своего сида спринта, игрок встречает его в демке, а штампы видит
+## на итоге релиза. Каждый следующий спринт релиза сложнее на `chain_t_step`. Интро и вдох
+## пропускаются любой клавишей, `Debug.skip_cards` убирает ожидания и анимации. Повтор спринта
+## (тимлид) снят 2026-11-18. Хозяин (петля релиза или тестовая сцена) зовёт `run()` и слушает
+## сигналы.
 
 signal sprint_started(def: MinigameDef)
+## `success`: спринт без бага (разыграно по счёту); `score` счёт мини-игры.
 signal sprint_finished(def: MinigameDef, success: bool)
-signal sprint_replayed(def: MinigameDef)
+signal sprint_scored(def: MinigameDef, score: float, success: bool)
 signal plan_finished(results: Array[bool])
 ## Игрок вышел в меню из паузы мини-игры (#71).
 signal menu_requested
 
-enum Phase { IDLE, INTRO, PLAY, OFFER, RESULT, STUDIO }
-
-## Сдвиг сида переигровки: другая раскладка той же мини-игры.
-const REPLAY_SEED_STEP := 7919
-const BOT_OFFER_SECONDS := 0.3
+enum Phase { IDLE, INTRO, PLAY, RESULT, STUDIO }
 
 const PLACEHOLDER := preload("res://scenes/minigames/placeholder_minigame.tscn")
 
@@ -39,6 +33,8 @@ var first_release := false
 var seed_base := 0
 var game_title := ""
 var results: Array[bool] = []
+## Счёт каждого сыгранного спринта этого запуска.
+var scores: Array[float] = []
 
 var phase := Phase.IDLE
 var index := -1
@@ -46,10 +42,6 @@ var index := -1
 var _minigame: Minigame
 var _view: Control
 var _skip := false
-## Ответ на предложение переигровки: -1 ждём, 0 дальше, 1 переиграть.
-var _offer_answer := -1
-## Пилюля «переиграть» на карточке результата: клик по ней равен B.
-var _offer_pill: Control
 ## Свой сплошной фон. В забеге выключен: карточка спринта стоит поверх пиксельной студии
 ## (плейтест 2026-11-11); тестовым сценам без студии нужен.
 var own_background := true
@@ -113,18 +105,9 @@ func current_def() -> MinigameDef:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var click := MouseUi.is_click(event)
-	if phase == Phase.OFFER and (GameInput.is_any_press(event) or click):
-		answer_offer(GameInput.is_b(event) or (click and MouseUi.hit(_offer_pill, event)))
-		get_viewport().set_input_as_handled()
-	elif phase in [Phase.INTRO, Phase.RESULT, Phase.STUDIO] and (GameInput.is_any_press(event) or click):
+	if phase in [Phase.INTRO, Phase.RESULT, Phase.STUDIO] and (GameInput.is_any_press(event) or click):
 		_skip = true
 		get_viewport().set_input_as_handled()
-
-
-## Ответ на предложение переигровки (ввод, бот, тест).
-func answer_offer(replay: bool) -> void:
-	if phase == Phase.OFFER and _offer_answer < 0:
-		_offer_answer = 1 if replay else 0
 
 
 func _next() -> void:
@@ -145,79 +128,60 @@ func _next() -> void:
 func _run_sprint(def: MinigameDef) -> void:
 	phase = Phase.INTRO
 	sprint_started.emit(def)
-	_set_view(_make_intro_card(def))
-	await _frame.raise_card()
+	var intro := _make_intro_card(def)
+	if not _frame.shown:
+		_set_view(intro)
+		await _frame.raise_card()
+	else:
+		await _switch_view(intro)
 	await _wait(tuning.intro_seconds)
 
-	var attempt := 0
-	var success := false
-	var result_card: Control
-	while true:
-		phase = Phase.PLAY
-		var scene: PackedScene = def.scene if def.scene != null else PLACEHOLDER
-		_minigame = scene.instantiate() as Minigame
-		if _minigame == null:
-			push_error("SprintRunner: сцена %s не Minigame" % def.id)
-			_minigame = PLACEHOLDER.instantiate() as Minigame
-		var mult := tuning.first_release_time_multiplier if first_release else 1.0
-		_minigame.setup(def, float(t_of.call(def)) if t_of.is_valid() else t, seed_base + index + attempt * REPLAY_SEED_STEP, mult)
-		_minigame.menu_requested.connect(func() -> void: menu_requested.emit())
-		await _switch_view(_minigame)
-		AutoTest.next_hand()
-		_minigame.start()
-		success = await _minigame.finished
-		AutoTest.end_hand()
-		var offer := not success and plan.replay_left > 0
-		result_card = _make_result_card(def, success, plan.replay_left if offer else 0)
-		await _switch_view(result_card, false)
-		_minigame = null
-		ShellSounds.play(&"done" if success else &"bug")
-		if not success and not Debug.skip_cards:
-			_frame.shake_card()
-		if not offer:
-			break
-		# Предложение переигровки: карточка ждёт ответа, полоса таймера убывает.
-		phase = Phase.OFFER
-		if not await _await_offer(result_card.get_node("OfferBar") as Control):
-			break
-		plan.replay_left -= 1
-		attempt += 1
-		sprint_replayed.emit(def)
+	phase = Phase.PLAY
+	var scene: PackedScene = def.scene if def.scene != null else PLACEHOLDER
+	_minigame = scene.instantiate() as Minigame
+	if _minigame == null:
+		push_error("SprintRunner: сцена %s не Minigame" % def.id)
+		_minigame = PLACEHOLDER.instantiate() as Minigame
+	var mult := tuning.first_release_time_multiplier if first_release else 1.0
+	var base_t := float(t_of.call(def)) if t_of.is_valid() else t
+	# Первая встреча с мини-игрой (t 0) темпом цепочки не усложняется.
+	var t_sprint := minf(base_t + tuning.chain_t_step * index, 1.0) if base_t > 0.0 else base_t
+	_minigame.setup(def, t_sprint, seed_base + index, mult)
+	_minigame.menu_requested.connect(func() -> void: menu_requested.emit())
+	await _switch_view(_minigame)
+	AutoTest.next_hand()
+	_minigame.start()
+	var score: float = await _minigame.finished
+	AutoTest.end_hand()
+	var success := roll_clean(score, seed_base + index)
+	scores.append(score)
 	results.append(success)
+	sprint_scored.emit(def, score, success)
 	sprint_finished.emit(def, success)
+	ShellSounds.play(&"done")
 
 	phase = Phase.RESULT
 	_dots.queue_redraw()
 	await _wait(tuning.result_seconds)
-	await _frame.drop_card()
-	_set_view(null)
-
-	phase = Phase.STUDIO
-	await _wait(tuning.studio_seconds)
+	_minigame = null
+	if index + 1 >= plan.size():
+		await _frame.drop_card()
+		_set_view(null)
+		phase = Phase.STUDIO
+		await _wait(tuning.studio_seconds)
 	_next()
 
 
-## Ждать ответа на предложение переигровки до `replay_offer_seconds`; полоса `bar` убывает,
-## конец таймера это отказ. Бот отвечает «переиграть» после короткой паузы.
-func _await_offer(bar: Control) -> bool:
-	_offer_answer = -1
-	var total := tuning.replay_offer_seconds
-	var left := total
-	var full_width := bar.size.x if bar != null else 0.0
-	var bot_left := BOT_OFFER_SECONDS if not Debug.skip_cards else 0.0
-	while _offer_answer < 0:
-		await get_tree().process_frame
-		var dt := get_process_delta_time()
-		left -= dt
-		if bar != null:
-			bar.size.x = full_width * clampf(left / total, 0.0, 1.0)
-		if AutoTest.bot_active():
-			bot_left -= dt
-			if bot_left <= 0.0:
-				_offer_answer = 1
-		if left <= 0.0 and _offer_answer < 0:
-			_offer_answer = 0
-	return _offer_answer == 1
+## Спринт без бага: розыгрыш по счёту от сида спринта, одинаковый при продолжении сохранения.
+func roll_clean(score: float, sprint_seed: int) -> bool:
+	var chance := tuning.bug_chance(score)
+	if chance <= 0.0:
+		return true
+	if chance >= 1.0:
+		return false
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([sprint_seed, "bug"])
+	return r.randf() >= chance
 
 
 # --- Карточка и переходы ---------------------------------------------------------------------
@@ -290,38 +254,6 @@ func _make_intro_card(def: MinigameDef) -> Control:
 	return card
 
 
-## Карточка результата; `replays > 0`: под «провал» предложение переиграть с остатком.
-func _make_result_card(def: MinigameDef, success: bool, replays := 0) -> Control:
-	var card := _card_base()
-	var column := _center_column(card)
-	column.add_child(AspectIcon.for_def(def))
-	column.add_child(_spacer(40))
-	if success:
-		column.add_child(_label("успех", Style.FONT_VERB, Style.SUCCESS))
-	else:
-		column.add_child(_label("провал", Style.FONT_VERB, Style.BUG))
-	if replays > 0:
-		column.add_child(_spacer(16))
-		column.add_child(_label(tr("Повторить спринт? Осталось: %d") % replays, Style.FONT_H2, Style.INK_2))
-		var row := HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", 16)
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_offer_pill = HintPill.make(GameInput.hint(GameInput.B, tr("повторить")))
-		row.add_child(_offer_pill)
-		row.add_child(HintPill.make("другая клавиша: дальше"))
-		card.add_child(HintPill.bottom_bar(row))
-		# Полоса таймера по верхнему краю, как у мини-игр: убывает, пока карточка ждёт ответа.
-		var bar := ColorRect.new()
-		bar.name = "OfferBar"
-		bar.color = Style.INK_2
-		bar.position = Vector2.ZERO
-		bar.size = Vector2(_content.size.x, 6)
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(bar)
-	return card
-
-
 func _card_base() -> Control:
 	var card := Control.new()
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -355,8 +287,8 @@ func _spacer(h: int) -> Control:
 	return c
 
 
-## Точки спринтов справа сверху на подложке `surface`: зелёная успех, оранжевая баг, тёмная
-## текущий, светлая впереди.
+## Точки спринтов справа сверху на подложке `surface`: сыгранные серые (исход скрыт, 2026-11-18),
+## тёмная текущий, светлая впереди.
 func _draw_dots() -> void:
 	if plan == null or phase == Phase.IDLE:
 		return
@@ -371,7 +303,7 @@ func _draw_dots() -> void:
 	for i in range(n):
 		var c := Style.SURFACE_2
 		if i < results.size():
-			c = Style.SUCCESS if results[i] else Style.BUG
+			c = Style.INK_3
 		elif i == index and phase != Phase.IDLE:
 			c = Style.INK
 		_dots.draw_circle(Vector2(x0 + i * gap, y), r, c)

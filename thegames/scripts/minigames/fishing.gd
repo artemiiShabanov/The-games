@@ -2,13 +2,17 @@ extends Minigame
 ## «Удержи» (fishing, баланс), каталог `docs/specs/minigames_catalog.md`. Рыбалка как в Stardew
 ## Valley: вертикальная дорожка, по ней скачет шарик по своей кривой, у игрока столбик. Клавиша
 ## зажата (A или любая стрелка): столбик поднимается, отпущена: падает. Пока шарик внутри
-## столбика, шкала справа растёт, снаружи убывает. Заполнить шкалу до таймера, иначе провал.
+## столбика, шкала справа растёт, снаружи убывает. Заполнить шкалу до таймера. Счёт `_score`:
+## заполнил, 1 минус время, когда пойманный раз шарик был вне столбика; не заполнил, доля
+## пути шкалы от старта до полной, не выше заполненной.
 ## Параметры от `t` в `resources/minigames/fishing.tres`: sharp (резкость кривой шарика), bar
 ## (высота столбика долей дорожки).
 ## Мармелад (STYLE «Мармелад»): столбик и шарик мягкие тела `JellyShape` на тех же игровых
 ## позициях: в рывке тянутся, у края дорожки столбик плющится, нажатие поджимает его снизу.
 ## Шарик, попав в столбик, вздрагивает с кружком по воде; поимка: вздрог, два круга и пара
-## капель, шкала пружинит вширь; провал: всё сжимается, шарик сереет и тонет. Геймплей прежний.
+## капель, шкала пружинит вширь. Конец без вердикта (2026-11-18): и поимка, и конец времени
+## одинаково, столбик и шарик вздрагивают, по воде круг; ни победного звука, ни утопленного
+## шарика. Геймплей прежний.
 
 const TRACK_H := 600.0
 const TRACK_W := 72.0
@@ -22,6 +26,12 @@ const GRAVITY := 2.2
 const DAMPING := 2.4
 const BOUNCE := 0.35
 const BOT_LEAD := 0.12
+## Счёт: секунда вне столбика после первой поимки снимает столько; заполнил шкалу впритык к
+## таймеру (около 8,75 с снаружи, старый порог «еле прошёл») это 0,7, ниже него заполненная не
+## опускается. Незаполненная даёт `UNFILLED_MAX` за долю пути шкалы от старта до полной.
+const OUT_COST := 0.035
+const FILLED_MIN := 0.7
+const UNFILLED_MAX := 0.7
 
 var sharp := 0.4
 var bar_size := 0.28
@@ -36,33 +46,29 @@ var bar_vel := 0.0
 var gauge := GAUGE_START
 var inside := false
 var wobble := 0.0
+## Шарик хоть раз был в столбике и сколько секунд с тех пор он вне столбика.
+var caught_once := false
+var outside_time := 0.0
 var _tick: AudioStreamPlayer
-var _win: AudioStreamPlayer
 var _tick_timer := 0.0
 
 ## Мармелад: только рисунок, на геймплей не влияет.
 var _bar_jelly: JellyShape
 var _ball_jelly: JellyShape
 var _rings := RingFx.new()
-var _splash := SplashFx.new()
 var _gauge_spring := JellySpring.new()
 var _was_inside := false
 var _was_holding := false
 var _was_danger := false
 var _prev_bar_vel := 0.0
 var _poke_cooldown := 0.0
-## Исход для рисунка: 0 идёт игра, 1 поймал, -1 упустил; `_end_age` секунды после.
-var _outcome := 0
-var _end_age := 0.0
 
 
 func _on_start() -> void:
 	sharp = clampf(def.param(&"sharp", t, 0.4), 0.05, 1.0)
 	bar_size = clampf(def.param(&"bar", t, 0.28), 0.08, 0.6)
 	_tick = MiniSfx.tap(880.0, -8.0)
-	_win = MiniSfx.win()
 	add_child(_tick)
-	add_child(_win)
 	ball = 0.5
 	ball_target = 0.5
 	bar = 0.3
@@ -108,6 +114,9 @@ func _on_tick(delta: float) -> void:
 		bar = 1.0 - half
 		bar_vel = -absf(bar_vel) * BOUNCE
 	inside = absf(shown_ball - bar) <= half
+	caught_once = caught_once or inside
+	if caught_once and not inside:
+		outside_time += delta
 	gauge = clampf(gauge + (FILL_RATE if inside else -DRAIN_RATE) * delta, 0.0, 1.0)
 	if inside:
 		_tick_timer -= delta
@@ -115,14 +124,17 @@ func _on_tick(delta: float) -> void:
 			_tick_timer = 0.25
 			_tick.play()
 	if gauge >= 1.0:
-		_win.play()
-		finish(true)
+		finish_score(_score())
 		return
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return gauge >= 1.0
+## Счёт: шкала полна, 1 минус `OUT_COST` за секунду вне столбика (не ниже `FILLED_MIN`); не
+## полна, `UNFILLED_MAX` за долю пути от стартовой отметки до полной.
+func _score() -> float:
+	if gauge >= 1.0:
+		return maxf(1.0 - OUT_COST * outside_time, FILLED_MIN)
+	return UNFILLED_MAX * clampf((gauge - GAUGE_START) / (1.0 - GAUGE_START), 0.0, 1.0)
 
 
 var _bot_hold := false
@@ -151,32 +163,19 @@ func _shown_ball() -> float:
 	return ball + sin(wobble * 9.0) * 0.012 * sharp
 
 
-## Центр шарика на экране; после провала он тонет до дна дорожки.
+## Центр шарика на экране.
 func _ball_pos() -> Vector2:
 	var o := _track_origin()
-	var y := o.y + (1.0 - _shown_ball()) * TRACK_H
-	if _outcome < 0:
-		var e := 1.0 - pow(1.0 - clampf(_end_age / 0.6, 0.0, 1.0), 2.0)
-		y = minf(y + 40.0 * e, maxf(y, o.y + TRACK_H - BALL_R - 4.0))
-	return Vector2(o.x, y)
+	return Vector2(o.x, o.y + (1.0 - _shown_ball()) * TRACK_H)
 
 
-func _on_finish(success: bool) -> void:
-	_outcome = 1 if success else -1
-	_end_age = 0.0
+## Конец одинаковый при любом счёте: вздрог и круг по воде.
+func _on_finish(_success: bool) -> void:
 	if _bar_jelly == null:
 		return
-	var at := _ball_pos()
-	if success:
-		_bar_jelly.poke(260.0)
-		_ball_jelly.poke(200.0)
-		_gauge_spring.kick(160.0)
-		_rings.add(at, BALL_R, BALL_R * 2.4, Color(Style.accent(1), 0.35), 2, 0.6)
-		_splash.burst(at - Vector2(0.0, BALL_R), 8, 520.0, -PI / 2.0, 0.6, Color(Style.accent(1), 0.75), 3.0, 6.0)
-	else:
-		_bar_jelly.poke(-220.0)
-		_ball_jelly.poke(-180.0)
-		_rings.add(at, BALL_R, BALL_R * 1.8, Color(Style.INK, 0.12), 1, 0.7)
+	_bar_jelly.poke(200.0)
+	_ball_jelly.poke(160.0)
+	_rings.add(_ball_pos(), BALL_R, BALL_R * 2.0, Color(Style.INK, 0.14), 2, 0.6)
 
 
 ## Мармелад живёт и после финиша, пока сцена на экране; на паузе стоит.
@@ -187,8 +186,6 @@ func _process(delta: float) -> void:
 	var o := _track_origin()
 	var half := bar_size / 2.0
 	_poke_cooldown = maxf(_poke_cooldown - delta, 0.0)
-	if _outcome != 0:
-		_end_age += delta
 	# Удар о край дорожки: скорость сменила знак у края, бьющая сторона плющится.
 	var at_edge := bar <= half + 0.001 or bar >= 1.0 - half - 0.001
 	if at_edge and signf(bar_vel) != signf(_prev_bar_vel) and absf(_prev_bar_vel) > 0.15:
@@ -223,7 +220,6 @@ func _process(delta: float) -> void:
 	var tu := Jelly.tuning()
 	_gauge_spring.step(delta, tu.spring_stiffness, tu.spring_damping)
 	_rings.step(delta)
-	_splash.step(delta, func(_x: float) -> float: return INF)
 	if not running:
 		queue_redraw()
 
@@ -251,10 +247,7 @@ func _draw() -> void:
 		var bar_rect := Rect2(cx - TRACK_W / 2.0 + 6, bar_top, TRACK_W - 12, bar_size * TRACK_H)
 		Style.flat(Color(bar_color, 0.35), Style.R_CTL, Color.TRANSPARENT, 0).draw(get_canvas_item(), bar_rect)
 		draw_rect(bar_rect, bar_color, false, 4.0)
-	# Шарик; упущенный сереет.
 	var ball_color := Style.accent(1)
-	if _outcome < 0:
-		ball_color = ball_color.lerp(Style.INK_3, clampf(_end_age / 0.4, 0.0, 1.0))
 	if jelly:
 		var mid := Vector2.ZERO
 		for p in _ball_jelly.blob.points:
@@ -262,7 +255,6 @@ func _draw() -> void:
 		mid /= maxf(1.0, _ball_jelly.blob.points.size())
 		_ball_jelly.draw(self, ball_color)
 		draw_circle(mid + Vector2(-6, -6), 5.0, Color(1, 1, 1, 0.7))
-		_splash.draw_air(self, Vector2.ZERO)
 	else:
 		var by := top + (1.0 - _shown_ball()) * TRACK_H
 		draw_circle(Vector2(cx, by), BALL_R, ball_color)

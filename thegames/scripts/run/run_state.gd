@@ -149,7 +149,6 @@ func to_save(stage: StringName) -> RunSave:
 	if last_plan != null:
 		for d in last_plan.defs:
 			s.plan_ids.append(d.id)
-		s.replay_left = last_plan.replay_left
 	return s
 
 
@@ -191,7 +190,6 @@ static func from_save(s: RunSave) -> RunState:
 			var d := MinigamePool.find(r.minigames, id)
 			if d != null:
 				r.last_plan.defs.append(d)
-		r.last_plan.replay_left = s.replay_left
 	return r
 
 
@@ -367,7 +365,7 @@ func start_development(config: GameConfig) -> GameRecord:
 	record.cost = config.total_cost()
 	_apply_contracts(record)
 	last_plan = SprintPlanner.plan(economy.sprints(record.tech), record.genre, record.tech, minigames,
-			sprint_tuning, rng, last_first, studio.replays())
+			sprint_tuning, rng, last_first)
 	if last_plan.size() > 0:
 		last_first = last_plan.defs[0].id
 	return record

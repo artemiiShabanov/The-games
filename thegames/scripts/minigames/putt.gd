@@ -3,7 +3,8 @@ extends Minigame
 ## земле, лунка (выемка в земле) на расстоянии, которое меняется каждый удар. Держи ␣: от шара
 ## по земле тянется полоса силы, её конец показывает, куда упадёт шар. Отпустил: шар летит по
 ## дуге и падает туда, куда показывал конец полосы, плюс снос. Упал в ширину лунки: лунка
-## засчитана, иначе промах. 5 лунок за время мини-игры, провал при 2 промахах или по таймеру.
+## засчитана, иначе промах. Цель 5 лунок за время мини-игры; промахи не кончают игру. Счёт
+## (2026-11-18): доля забитых лунок минус `MISS_COST` за промах.
 ## Полоса доходит до конца шкалы и сжимается обратно (держать дальше можно, это стоит времени).
 ## Снос (с ростом `t`): шар в полёте сдувает вбок на показанную величину; над лункой стрелка от
 ## точки, куда целить, до лунки. Шар в полёте на финише засчитывается, если летит в лунку.
@@ -19,7 +20,9 @@ extends Minigame
 enum Phase { READY, CHARGE, FLIGHT, RESULT }
 
 const HOLES := 5
-const MAX_MISSES := 2
+## Счёт: промах снижает на столько (ударов мало, поэтому штраф крупнее: пять лунок с одним
+## промахом, прежнее «еле прошёл», дают 0,8, с двумя 0,6).
+const MISS_COST := 0.2
 ## Логическая длина шкалы: сила 1 кладёт шар на `REACH` от старта (без сноса).
 const REACH := 1280.0
 ## Запас поля за концом шкалы под снос и подскок промаха, лог. px.
@@ -129,8 +132,6 @@ func _on_start() -> void:
 		add_child(p)
 	for i in HOLES:
 		_dots.append(JellySpring.new())
-	for i in MAX_MISSES:
-		_slots.append(JellySpring.new())
 	_ball = JellyShape.circle(BALL_R, 32)
 	_next_cup()
 	_enter(Phase.READY)
@@ -237,29 +238,36 @@ func _land() -> void:
 	else:
 		misses += 1
 		_miss_sound.play()
+		_slots.append(JellySpring.new())
 		_slots[misses - 1].kick(14.0)
 	_land_fx()
 	_enter(Phase.RESULT)
 	if holes >= HOLES:
-		finish(true)
-	elif misses >= MAX_MISSES:
-		finish(false)
+		finish_score(_score())
 
 
-## Время вышло: засчитан, если 5 лунок уже есть или последний шар в полёте летит в лунку.
-func _on_timeout() -> bool:
-	return holes + (1 if phase == Phase.FLIGHT and hit else 0) >= HOLES
+## Счёт: доля лунок минус промахи. По таймеру шар в полёте считается, куда летит: в лунку
+## лункой, мимо промахом.
+func _score() -> float:
+	var h := holes
+	var m := misses
+	if phase == Phase.FLIGHT and running:
+		if hit:
+			h += 1
+		else:
+			m += 1
+	return float(mini(h, HOLES)) / HOLES - MISS_COST * m
 
 
-func _on_finish(success: bool) -> void:
+func _on_finish(_success: bool) -> void:
 	if AutoTest.enabled:
-		AutoTest.note("putt: t %.2f, %s, лунок %d, промахов %d, ударов %d, %.1f с" % [t, "успех" if success else "провал", holes, misses, shots, elapsed])
+		AutoTest.note("putt: t %.2f, счёт %.2f, лунок %d, промахов %d, ударов %d, %.1f с" % [t, score, holes, misses, shots, elapsed])
 
 
 ## Бот: через `BOT_WAIT` после готовности зажимает; WIN отпускает, когда конец полосы в точке
 ## «лунка минус снос» с ошибкой до `BOT_ERROR` полуширины лунки (отпускание точно между
 ## кадрами, иначе на ускоренном времени конец перескакивает лунку). LOSE целит в
-## `BOT_SHORT` нужной силы: недолёт, два промаха.
+## `BOT_SHORT` нужной силы: недолёт, все удары мимо.
 func _bot_step(delta: float) -> bool:
 	match phase:
 		Phase.READY:
@@ -506,4 +514,4 @@ func _draw_slots() -> void:
 	var pops: Array[float] = []
 	for sp in _slots:
 		pops.append(sp.value)
-	draw_mistakes(misses, MAX_MISSES, 0, pops)
+	draw_mistakes(misses, 0, 0, pops)

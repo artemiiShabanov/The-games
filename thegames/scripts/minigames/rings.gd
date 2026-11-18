@@ -7,7 +7,8 @@ extends Minigame
 ## `JAM_SECONDS` (все кольца красные, трясутся), потом все крутятся снова и начинать с внешнего:
 ## промах стоит времени, а при узких вырезах и таймера. Все три
 ## выреза под стрелкой: засов выезжает по каналу, замок щёлкает, следующий замок с новыми
-## кольцами. 3 замка за 20 с, иначе провал по таймеру.
+## кольцами. 3 замка за 20 с. Счёт (2026-11-18): доля открытого (замки и вставшие кольца
+## текущего) минус `JAM_PENALTY` за каждый клин; клины крестиками справа сверху.
 ## Параметры от `t` в `resources/minigames/rings.tres`: speed (скорость вращения, °/с; у колец
 ## множители `SPEED_MULTS` в случайном порядке), gap (ширина выреза, °), reverse (вероятность,
 ## что кольцо крутится против часовой).
@@ -41,6 +42,8 @@ const DOT_R := 12.0
 const DOT_GAP := 44.0
 ## Бот WIN: не раньше этого после подсветки кольца; ошибка до такой доли полувыреза.
 const BOT_READY := 0.25
+## Счёт: клин стоит столько. Еле открыть три замка к таймеру это три-четыре клина, около 0,7.
+const JAM_PENALTY := 0.1
 const BOT_ERROR := 0.5
 
 var speed := 180.0
@@ -193,7 +196,7 @@ func _open() -> void:
 		_hub.poke(-220.0)
 		_dots[locks - 1].kick(14.0)
 	if locks >= LOCKS:
-		finish(true)
+		finish_score(_score())
 
 
 func _on_tick(delta: float) -> void:
@@ -212,19 +215,21 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return locks >= LOCKS
+## Счёт: открытые замки и вставшие кольца текущего по доле, минус клины.
+func _score() -> float:
+	var progress := (locks + (float(active) / RINGS if locks < LOCKS else 0.0)) / LOCKS
+	return clampf(progress - JAM_PENALTY * jams, 0.0, 1.0)
 
 
-func _on_finish(success: bool) -> void:
+func _on_finish(_success: bool) -> void:
 	if AutoTest.enabled:
-		AutoTest.note("rings: t %.2f, %s, замков %d, остановок %d, клинов %d, против часовой %d, %.1f с" % [t, "успех" if success else "провал", locks, stops, jams, reversed, elapsed])
+		AutoTest.note("rings: t %.2f, счёт %.2f, замков %d, остановок %d, клинов %d, против часовой %d, %.1f с" % [t, score, locks, stops, jams, reversed, elapsed])
 
 
 ## Бот: WIN останавливает кольцо, когда середина выреза проходит стрелку (с ошибкой до
 ## `BOT_ERROR` полувыреза), не раньше `BOT_READY` после подсветки; момент между кадрами, чтобы
 ## на ускоренном времени не перескочить. LOSE жмёт, когда вырез напротив стрелки: каждое
-## нажатие клин, ни одного замка, провал по таймеру.
+## нажатие клин, ни одного замка, счёт 0.
 func _bot_step(delta: float) -> bool:
 	if phase != Phase.PLAY or ring_state[active] != RingState.SPIN or active_time < BOT_READY:
 		return false
@@ -325,6 +330,7 @@ func _draw() -> void:
 	if Jelly.on():
 		_splash.draw_air(self, Vector2.ZERO)
 	_draw_dots()
+	draw_mistakes(jams)
 
 
 ## Кольцо дугой без выреза; концы скруглены внутрь дуги, так что видимый вырез равен

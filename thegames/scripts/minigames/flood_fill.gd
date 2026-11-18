@@ -3,8 +3,10 @@ extends Minigame
 ## Сетка крупных пикселей трёх-четырёх цветов, внизу палитра. ← → выбирают цвет, A заливает из
 ## левого верхнего угла: связная область угла перекрашивается и поглощает соседей того же цвета.
 ## Сделать сетку одноцветной за ограниченное число заливок. Две картинки: первая элементарная,
-## вторая настоящая. Провал: ходы кончились или время вышло. Запас ходов считается жадным
-## решателем, так что решение в запас гарантировано.
+## вторая настоящая. Запас ходов считается жадным решателем, так что решение в запас
+## гарантировано. Предела нет: заливать можно и сверх запаса до конца времени, но каждая
+## заливка сверх запаса и каждая заливка цветом угла (впустую) это ошибка. Счёт `_score`: доля
+## собранного (картинки с весами, недоделанная по доле сетки у угла) минус ошибки.
 ## Параметры от `t` в `resources/minigames/flood_fill.tres`: size, colors, slack.
 ## Мармелад (STYLE «Мармелад»): статичный вид прежний, а перекрашенная клетка шлёпается
 ## пружиной масштаба, и волна заливки бежит по сетке плюхами; новая картинка всплывает волной из
@@ -23,6 +25,10 @@ const SWATCH_R := 34.0
 const SWATCH_GAP := 36.0
 const DONE_PAUSE := 0.6
 const BOT_STEP := 0.4
+## Счёт: вес картинок (первая элементарная), ошибка (заливка впустую или сверх запаса) снимает
+## `ERROR_COST`; одна лишняя заливка (старый порог: ходы кончились) даёт 0,85, две 0,7.
+const PICTURE_WEIGHT: Array[float] = [0.3, 0.7]
+const ERROR_COST := 0.15
 # Мармелад: только рисунок. Пружина клетки жёстче и глуше пружины предметов: плотно, коротко.
 const CELL_STIFF_GAIN := 2.2
 const CELL_DAMP_GAIN := 3.0
@@ -56,6 +62,8 @@ var used := 0
 var sel := 0
 var done_left := 0.0
 var finished_all := false
+## Заливки впустую (цветом угла) и сверх запаса, за обе картинки.
+var errors := 0
 var _bot_timer := 0.0
 var _fill_sound: AudioStreamPlayer
 var _done_sound: AudioStreamPlayer
@@ -189,15 +197,23 @@ func _on_tick(delta: float) -> void:
 		done_left -= delta
 		if done_left <= 0.0:
 			if finished_all:
-				finish(true)
+				finish_score(_score())
 			else:
 				picture += 1
 				_new_picture()
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return finished_all
+## Счёт: собранные картинки по весу, текущая по доле сетки в области угла, минус
+## `ERROR_COST` за ошибку.
+func _score() -> float:
+	var done := 0.0
+	for p in PICTURES:
+		if p < picture or (p == picture and _uniform(grid)):
+			done += PICTURE_WEIGHT[p]
+		elif p == picture:
+			done += PICTURE_WEIGHT[p] * float(_region(grid).size()) / (n * n)
+	return done - ERROR_COST * errors
 
 
 ## Бот: WIN заливает жадно лучшим цветом, LOSE льёт цвет угла, тратя ходы впустую.
@@ -217,9 +233,11 @@ func _bot_step(delta: float) -> bool:
 
 
 func _fill(color: int) -> void:
-	if done_left > 0.0 or used >= budget:
+	if done_left > 0.0:
 		return
 	used += 1
+	if used > budget or color == grid[0]:
+		errors += 1
 	var region := _region(grid)
 	_jelly_fill(region, color, color == grid[0])
 	if color == grid[0]:
@@ -235,9 +253,6 @@ func _fill(color: int) -> void:
 		_done_sound.play()
 		finished_all = picture >= PICTURES - 1
 		done_left = DONE_PAUSE + n * WAVE_STEP * 2.0
-	elif used >= budget:
-		done_left = 0.0
-		finish(false)
 
 
 # --- Решатель и геометрия сетки ------------------------------------------------------------
@@ -381,6 +396,8 @@ func _draw() -> void:
 			c = Style.INK
 		var pv := _picture_spring[p].value if p < _picture_spring.size() else 0.0
 		draw_circle(Vector2(x0 - 60.0 - (PICTURES - 1 - p) * gap, 60.0), r * (1.0 + pv), c)
+	# Ошибки крестиками под ходами.
+	draw_mistakes(errors, 0, 1)
 
 
 ## Центр кружка палитры `c` в покое (без бортика).

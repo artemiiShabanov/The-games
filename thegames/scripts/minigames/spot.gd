@@ -2,14 +2,18 @@ extends Minigame
 ## «Найди отличие» (spot, графика), каталог `docs/specs/minigames_catalog.md`. Заменила «Наведи»
 ## (beam) по плейтесту 2026-11-14, #131. Две пиксельные картинки рядом отличаются одной клеткой. Курсор стрелками ходит
 ## по правой картинке (на левой бледная рамка показывает ту же клетку), A отмечает. Угадал:
-## следующая пара. Две неверные отметки или таймер: провал.
+## следующая пара. Счёт (2026-11-18): доля найденных пар минус `ERROR_PENALTY` за каждую
+## неверную отметку, предела нет; неверные крестиками справа сверху.
 ## Клетка всегда отличается цветом палитры (оттенки сняты плейтестом 2026-11-14).
 ## Параметры от `t` в `resources/minigames/spot.tres`: size (сторона сетки, 6 → 8), pairs
 ## (пар, одно число на всех `t`), mirror (от 0.5 правая картинка зеркальная).
 
 const GRID_PX := 480.0
 const CELL_GAP := 4.0
-const MAX_ERRORS := 2
+## Счёт: неверная отметка стоит столько. Прежний «еле прошёл» это одна неверная, 0,8.
+const ERROR_PENALTY := 0.2
+## Бот LOSE: столько неверных отметок, потом просто водит рамку.
+const BOT_LOSE_ERRORS := 5
 const FOUND_SECONDS := 0.6
 const BOT_STEP := 0.08
 ## Фон, чернила и три акцента палитры игрока (a1..a3): пять цветов клеток.
@@ -133,8 +137,6 @@ func _mark() -> void:
 		errors += 1
 		_shake.kick(70.0)
 		sfx(MiniSfx.Kind.MISS)
-		if errors >= MAX_ERRORS:
-			finish(false)
 	queue_redraw()
 
 
@@ -143,18 +145,24 @@ func _on_tick(delta: float) -> void:
 		_found_left -= delta
 		if _found_left <= 0.0:
 			if found >= pairs_total:
-				sfx(MiniSfx.Kind.WIN)
-				finish(true)
+				finish_score(_score())
 			else:
 				_new_pair()
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return false
+## Счёт: найденные пары минус неверные отметки.
+func _score() -> float:
+	return clampf(float(found) / pairs_total - ERROR_PENALTY * errors, 0.0, 1.0)
 
 
-## Бот: WIN идёт курсором к отличию и отмечает, LOSE отмечает клетку без отличия.
+func _on_finish(_success: bool) -> void:
+	if AutoTest.enabled:
+		AutoTest.note("spot: t %.2f, счёт %.2f, пар %d из %d, неверных %d, %.1f с" % [t, score, found, pairs_total, errors, elapsed])
+
+
+## Бот: WIN идёт курсором к отличию и отмечает, LOSE отмечает клетки без отличия
+## (`BOT_LOSE_ERRORS` раз), потом водит рамку мимо.
 func _bot_step(delta: float) -> bool:
 	if _found_left > 0.0:
 		return false
@@ -164,7 +172,7 @@ func _bot_step(delta: float) -> bool:
 	_bot_timer = 0.0
 	var goal := _picture_cell(diff)
 	if AutoTest.bot_mode != AutoTest.BotMode.WIN:
-		if cursor == goal:
+		if cursor == goal or errors >= BOT_LOSE_ERRORS:
 			_move(Vector2i.RIGHT if cursor.x < n - 1 else Vector2i.LEFT)
 		else:
 			_mark()
@@ -235,9 +243,4 @@ func _draw() -> void:
 	for j in pairs_total:
 		draw_circle(Vector2(size.x - 48.0 - (pairs_total - 1 - j) * 28.0, 92.0), 7.0,
 				Style.SUCCESS if j < found else Style.SURFACE_2)
-	var cr := 7.0
-	for j in MAX_ERRORS:
-		var col := Style.DANGER if j < errors else Style.SURFACE_2
-		var px := size.x - 48.0 - (MAX_ERRORS - 1 - j) * 28.0
-		draw_line(Vector2(px - cr, 60.0 - cr), Vector2(px + cr, 60.0 + cr), col, 3.0, true)
-		draw_line(Vector2(px - cr, 60.0 + cr), Vector2(px + cr, 60.0 - cr), col, 3.0, true)
+	draw_mistakes(errors)

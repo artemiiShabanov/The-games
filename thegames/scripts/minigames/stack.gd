@@ -2,8 +2,10 @@ extends Minigame
 ## «Поставь» (stack, технология 16/32-bit), каталог `docs/specs/minigames_catalog.md`. Блок
 ## ездит влево-вправо над башней, A роняет его: блок падает прямо вниз. Что легло на верхний
 ## этаж, остаётся, что свесилось за его край, отрезается и падает, башня сужается. Промахнулся
-## целиком: провал. Поставить `FLOORS` этажей до таймера. Попал почти точно (свес меньше
-## `PERFECT`): блок встаёт ровно и ничего не теряет.
+## целиком: блок улетает вниз, крестик, следующий той же ширины. Поставить `FLOORS` этажей до
+## таймера. Попал почти точно (свес меньше `PERFECT`): блок встаёт ровно и ничего не теряет.
+## Счёт (2026-11-18): доля этажей минус `MISS_PENALTY` за промах и `NARROW_PENALTY` по доле
+## потерянной ширины, предела промахов нет.
 ## Параметры от `t` в `resources/minigames/stack.tres`: speed (скорость блока, пикселей в
 ## секунду), width (ширина первого блока), flip (шанс, что блок на проходе развернётся на лету).
 ## Разворот на лету бывает не раньше, чем блок дойдёт передним краем до дальнего края основания
@@ -14,10 +16,10 @@ extends Minigame
 ## 2026-11-11). Мармелад: блоки мягкие тела `JellyShape`, едущий блок тянется за движением и
 ## стоит на бортике как текущий элемент, от посадки вздрагивает он и этаж под ним, а башня
 ## качается на пружине; обрезок сереет и падает, кувыркаясь; точная посадка брызгает неяркими
-## каплями, промах сереет в `ink-3` и улетает вниз.
+## каплями, промах сереет в `ink-3` и улетает вниз, как обрезок.
 ## Мышь (#83): клик роняет блок, как A.
 
-enum Phase { RIDE, FALL, MISS }
+enum Phase { RIDE, FALL }
 
 const FLOORS := 8
 const BLOCK_H := 44.0
@@ -40,12 +42,17 @@ const DOT_GAP := 34.0
 const LIFT := 8.0
 ## Бот LOSE роняет блок через столько после его появления: блок ещё у края, мимо башни.
 const BOT_LOSE_WAIT := 0.05
+## Счёт: промах целиком стоит столько; башня, сузившаяся до нуля, стоила бы `NARROW_PENALTY`.
+## Прежний «еле прошёл» это восемь этажей без промахов на узкой башне, около 0,75.
+const MISS_PENALTY := 0.15
+const NARROW_PENALTY := 0.3
 
 var speed := 380.0
 var start_width := 340.0
 var flip_chance := 0.0
 var phase := Phase.RIDE
 var placed := 0
+var misses := 0
 ## Этажи башни снизу вверх: x середины и ширина.
 var floors_x: Array[float] = []
 var floors_w: Array[float] = []
@@ -66,9 +73,7 @@ var _splash := SplashFx.new()
 var _steps: Array[AudioStreamPlayer] = []
 var _cut: AudioStreamPlayer
 var _miss: AudioStreamPlayer
-var _win: AudioStreamPlayer
 var _turn: AudioStreamPlayer
-var _miss_y := 0.0
 var _bot_wait := 0.0
 
 
@@ -82,9 +87,8 @@ func _on_start() -> void:
 		_steps.append(p)
 	_cut = MiniSfx.tap(260.0)
 	_miss = MiniSfx.miss()
-	_win = MiniSfx.win()
 	_turn = MiniSfx.squish(140.0, -3.0)
-	var players: Array[AudioStreamPlayer] = [_cut, _miss, _win, _turn]
+	var players: Array[AudioStreamPlayer] = [_cut, _miss, _turn]
 	for p in players:
 		add_child(p)
 	for i in FLOORS:
@@ -134,9 +138,10 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-## Время вышло: башня не достроена.
-func _on_timeout() -> bool:
-	return false
+## Счёт: этажи по доле минус промахи и потерянная ширина.
+func _score() -> float:
+	var narrow := 1.0 - floors_w[floors_w.size() - 1] / start_width
+	return clampf(float(placed) / FLOORS - MISS_PENALTY * misses - NARROW_PENALTY * narrow, 0.0, 1.0)
 
 
 ## Новый блок выезжает с края; ширина как у верхнего этажа.
@@ -167,13 +172,14 @@ func _land() -> void:
 	var left := maxf(block_x - block_w / 2.0, top_x - top_w / 2.0)
 	var right := minf(block_x + block_w / 2.0, top_x + top_w / 2.0)
 	if right - left < MIN_OVERLAP:
-		phase = Phase.MISS
-		phase_time = 0.0
-		_miss_y = 0.0
+		# Промах: блок сереет и улетает вниз обрезком, следующий выезжает той же ширины.
+		misses += 1
 		_miss.play()
 		if _block != null:
 			_block.poke(-200.0)
-		finish(false)
+			var side := signf(block_x - top_x)
+			_scraps.append([_block, _block_center(), Vector2(side * 60.0, 200.0), 0.0, side * 0.5])
+		_spawn()
 		return
 	var perfect := absf(block_x - top_x) <= PERFECT
 	var new_x := top_x if perfect else (left + right) / 2.0
@@ -206,8 +212,7 @@ func _land() -> void:
 			_splash.pop(_floor_center(floors_x.size() - 1) - Vector2(0.0, BLOCK_H / 2.0), _floor_color(floors_x.size() - 1), 5, 360.0, 0.5)
 	if placed >= FLOORS:
 		_block = null
-		_win.play()
-		finish(true)
+		finish_score(_score())
 		return
 	_spawn()
 
@@ -226,11 +231,9 @@ func _bot_step(delta: float) -> bool:
 	return false
 
 
-func _on_finish(success: bool) -> void:
-	if success and Jelly.on():
-		for i in _shapes.size():
-			_shapes[i].poke(200.0)
-		_splash.pop(_floor_center(floors_x.size() - 1) - Vector2(0.0, BLOCK_H), Style.SUCCESS, 8, 460.0, 0.6)
+func _on_finish(_success: bool) -> void:
+	if AutoTest.enabled:
+		AutoTest.note("stack: t %.2f, счёт %.2f, этажей %d, промахов %d, ширина %.0f из %.0f, %.1f с" % [t, score, placed, misses, floors_w[floors_w.size() - 1], start_width, elapsed])
 
 
 # --- Геометрия и мармелад ---------------------------------------------------------------------
@@ -246,15 +249,13 @@ func _floor_center(i: int) -> Vector2:
 	return Vector2(size.x / 2.0 + floors_x[i] + sway, _floor_y(i))
 
 
-## Середина едущего блока: над башней, в падении опускается на неё, промах улетает вниз.
+## Середина едущего блока: над башней, в падении опускается на неё.
 func _block_center() -> Vector2:
 	var rest := _floor_y(floors_x.size())
 	var y := rest - HOVER
 	if phase == Phase.FALL:
 		var k := clampf(phase_time / FALL_SECONDS, 0.0, 1.0)
 		y = lerpf(rest - HOVER, rest, k * k)
-	elif phase == Phase.MISS:
-		y = rest + _miss_y
 	return Vector2(size.x / 2.0 + block_x, y)
 
 
@@ -272,10 +273,6 @@ func _process(delta: float) -> void:
 		d.step(delta, tu.spring_stiffness, tu.spring_damping)
 	for i in _shapes.size():
 		_shapes[i].follow(delta, _floor_center(i))
-	if phase == Phase.MISS:
-		# Промах улетает вниз и после финиша: таймер мини-игры уже стоит.
-		phase_time += delta
-		_miss_y += (900.0 + 2400.0 * phase_time) * delta
 	if _block != null:
 		_block.follow(delta, _block_center())
 	for i in range(_scraps.size() - 1, -1, -1):
@@ -314,11 +311,9 @@ func _draw() -> void:
 	# Обрезки серые.
 	for s in _scraps:
 		(s[0] as JellyShape).draw(self, Style.INK_3)
-	# Едущий блок: текущий элемент на бортике; промах сереет.
+	# Едущий блок: текущий элемент на бортике.
 	if _block != null:
 		var color := _floor_color(floors_x.size())
-		if phase == Phase.MISS:
-			color = color.lerp(Style.INK_3, clampf(phase_time / 0.2, 0.0, 1.0))
 		if jelly:
 			if phase == Phase.RIDE:
 				_block.draw_lifted(self, color, LIFT)
@@ -330,6 +325,7 @@ func _draw() -> void:
 	if jelly:
 		_splash.draw_air(self, Vector2.ZERO)
 	_draw_dots()
+	draw_mistakes(misses)
 
 
 ## Кружки этажей сверху по центру: поставленные `success`.

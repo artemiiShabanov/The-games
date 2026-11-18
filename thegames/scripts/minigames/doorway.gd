@@ -3,7 +3,9 @@ extends Minigame
 ## стоит в центре, на неё надвигается стена с вырезом той же фигуры, но повёрнутым: вырез
 ## сначала большой и сжимается к фигуре. Влево и вправо вращают фигуру свободно, без шагов.
 ## Стена дошла: если фигура повёрнута под вырез с точностью до зазора, стена проходит сквозь с
-## хлопком, иначе бьётся о фигуру. `WALLS` стен, две непройденные это провал.
+## хлопком, иначе бьётся о фигуру. `WALLS` стен, все доходят до фигуры; предела промахов нет,
+## счёт `_score` снижает каждая непройденная стена. Конец без вердикта: ни победного звука, ни
+## брызг на финише.
 ## Параметры от `t` в `resources/minigames/doorway.tres`: travel (сколько секунд едет стена), gap
 ## (зазор, градусы в каждую сторону), hard (доля фигур без симметрии: стрелка, уголок, домик
 ## и другие), tricky (доля сложных фигур, плейтест 2026-11-14, #131: обманки, симметричные с
@@ -14,7 +16,9 @@ extends Minigame
 ## Мышь (#83): колесо крутит фигуру шагами, ведение с зажатой левой кнопкой крутит плавно.
 
 const WALLS := 6
-const MAX_MISSES := 2
+## Счёт: каждая непройденная стена (отбитая или не дошедшая до конца времени) снимает столько;
+## одна из шести (старый порог «еле прошёл») даёт 0,75, четыре и больше 0.
+const MISS_COST := 0.25
 const FIGURE_R := 150.0
 ## Вырез на подходе во столько раз больше фигуры и чуть больше неё в момент прохода.
 const HOLE_FAR := 2.4
@@ -179,7 +183,6 @@ var _splash := SplashFx.new()
 var _dragging := false
 var _pass_sfx: Array[AudioStreamPlayer] = []
 var _bump_sfx: AudioStreamPlayer
-var _win_sfx: AudioStreamPlayer
 
 
 func _on_start() -> void:
@@ -193,9 +196,7 @@ func _on_start() -> void:
 		add_child(p)
 		_pass_sfx.append(p)
 	_bump_sfx = MiniSfx.miss()
-	_win_sfx = MiniSfx.win()
 	add_child(_bump_sfx)
-	add_child(_win_sfx)
 	_next_wall()
 	queue_redraw()
 
@@ -259,18 +260,15 @@ func _arrive() -> void:
 		if Jelly.on():
 			_shake.kick(60.0)
 	wall += 1
-	if missed >= MAX_MISSES:
-		finish(false)
-	elif wall >= WALLS:
-		_win_sfx.play()
-		finish(true)
+	if wall >= WALLS:
+		finish_score(_score())
 	else:
 		_next_wall()
 
 
-## Время вышло раньше стен: не засчитано.
-func _on_timeout() -> bool:
-	return false
+## Счёт: 1 за все стены, каждая непройденная (и не дошедшая к концу времени) `MISS_COST`.
+func _score() -> float:
+	return 1.0 - MISS_COST * (WALLS - passed)
 
 
 ## Колесо крутит шагами, ведение с зажатой левой кнопкой плавно; клик сам ничего не жмёт.
@@ -311,14 +309,11 @@ func _hold(action: StringName, on: bool) -> void:
 		send_action(action, on)
 
 
-func _on_finish(success: bool) -> void:
+func _on_finish(_success: bool) -> void:
 	_dragging = false
 	for action: StringName in [GameInput.LEFT, GameInput.RIGHT]:
 		if AutoTest.bot_active() and Input.is_action_pressed(action):
 			Input.action_release(action)
-	if success and Jelly.on():
-		_pop.kick(8.0)
-		_splash.pop(size / 2.0, Style.SUCCESS, 9, 480.0, 0.6)
 
 
 func _process(delta: float) -> void:
@@ -404,4 +399,4 @@ func _draw_dots() -> void:
 		var r := DOT_R * (1.3 if i == wall and running else 1.0)
 		r *= clampf(1.0 + _dots[i].value, 0.5, 1.8)
 		draw_circle(Vector2(x0 + i * DOT_GAP, y), r, c)
-	draw_mistakes(missed, MAX_MISSES)
+	draw_mistakes(missed)

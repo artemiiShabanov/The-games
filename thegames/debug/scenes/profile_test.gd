@@ -165,9 +165,7 @@ func _staff() -> void:
 				"на капе жанр и технология %.2f, аспекты %.2f" % [run.t_for(owner), run.t_value()])
 		run.release = release
 		_expect(is_equal_approx(run.t_for(owner), run.tuning.t_start), "жанр и технология на первом релизе %.2f" % run.t_for(owner))
-	_expect(st.replays() == 0 and st.bugfix_offers() == 1 and not st.sequels_unlocked() and st.insider_level() == 0, "пустые эффекты")
-	st.hire(StaffMember.make(R.LEAD, G.SENIOR))
-	_expect(st.replays() == 1, "тимлид-сеньор: повторов %d" % st.replays())
+	_expect(st.bugfix_offers() == 1 and not st.sequels_unlocked() and st.insider_level() == 0, "пустые эффекты")
 	st.hire(StaffMember.make(R.TESTER, G.JUNIOR))
 	_expect(st.bugfix_offers() == 1 and is_equal_approx(st.bugfix_discount(), t.value(R.TESTER, G.JUNIOR)), "тестировщик-джуниор")
 	st.hire(StaffMember.make(R.TESTER, G.SENIOR))
@@ -177,9 +175,9 @@ func _staff() -> void:
 	var low_ok := true
 	for k in 300:
 		var m := Staff.roll([], t, lead_rng, 0)
-		if (m.role == R.LEAD and m.grade != G.SENIOR) or (m.role == R.ANALYST and m.grade != G.MIDDLE):
+		if m.role == R.LEAD or (m.role == R.ANALYST and m.grade != G.MIDDLE):
 			low_ok = false
-	_expect(low_ok, "тимлид приходит только сеньором, аналитик только мидлом")
+	_expect(low_ok, "тимлид не приходит (снят 2026-11-18), аналитик только мидлом")
 	st.hire(StaffMember.make(R.PRODUCER, G.JUNIOR))
 	_expect(st.sequels_unlocked() and not st.remakes_unlocked() and st.producer_discount() == 0.0, "продюсер-джуниор")
 	st.hire(StaffMember.make(R.PRODUCER, G.SENIOR))

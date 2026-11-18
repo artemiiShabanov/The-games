@@ -5,7 +5,8 @@ extends Minigame
 ## цвета («синее»). Правил про стороны фигуры нет (сняты плейтестом 2026-11-14, #131): форма
 ## фигуры только для вида. Карточка въезжает в зону решения
 ## по центру и ждёт там `card_seconds`: ↑ принимает, любая другая стрелка отклоняет; не
-## дождалась, уезжает вправо, это ошибка. Две ошибки: провал. Подходящих и неподходящих
+## дождалась, уезжает вправо, это ошибка. Предела ошибок нет: решаются все карточки, счёт
+## `_score` снижает каждая ошибка и нерешённая карточка. Подходящих и неподходящих
 ## карточек поровну. С `t` растёт только сложность правила (плейтест 2026-11-14, #131):
 ## правило из двух условий («розовое и ≤ 30»), затем оно меняется посреди раунда; число
 ## карточек и время на решение одни на всех `t`. Параметры в
@@ -49,7 +50,10 @@ class Card:
 const COLOR_COUNT := 3
 const CARD_W := 220.0
 const CARD_H := 280.0
-const FAIL_AT := 2
+## Счёт: каждая ошибка (неверное решение или просроченная карточка) и каждая нерешённая к
+## концу времени карточка снимают столько; одна ошибка из восьми (старый порог «еле прошёл»)
+## даёт 0,75, четыре (наугад) 0.
+const ERROR_COST := 0.25
 const FLY_SECONDS := 0.5
 const ENTER_SECONDS := 0.35
 const GAP_SECONDS := 0.2
@@ -230,9 +234,6 @@ func _decide(accept: bool) -> void:
 	else:
 		errors += 1
 		_bad.play()
-		if errors >= FAIL_AT:
-			finish(false)
-			return
 	_after_decision()
 
 
@@ -244,7 +245,7 @@ func _after_decision() -> void:
 		_rule_pop.kick(RULE_POP)
 		_swap.play()
 	if decided >= cards_total:
-		finish(errors < FAIL_AT)
+		finish_score(_score())
 
 
 func _on_tick(delta: float) -> void:
@@ -279,9 +280,6 @@ func _on_tick(delta: float) -> void:
 			errors += 1
 			_jelly_decided(c)
 			_bad.play()
-			if errors >= FAIL_AT:
-				finish(false)
-				return
 			_after_decision()
 			if not running:
 				return
@@ -290,8 +288,9 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return errors < FAIL_AT and decided >= cards_total
+## Счёт: 1 за все карточки без ошибок, каждая ошибка или нерешённая карточка `ERROR_COST`.
+func _score() -> float:
+	return 1.0 - ERROR_COST * (errors + cards_total - decided)
 
 
 ## Бот: WIN отвечает по правилу, LOSE наоборот.
@@ -433,14 +432,7 @@ func _draw() -> void:
 	_draw_rule(font)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	# Ошибки крестиками справа сверху, карточки точками.
-	var r := 7.0
-	var gap := 28.0
-	var ex := size.x - 48.0 - (FAIL_AT - 1) * gap
-	for j in FAIL_AT:
-		var col := Style.DANGER if j < errors else Style.SURFACE_2
-		var px := ex + j * gap
-		draw_line(Vector2(px - r + 1, 60.0 - r + 1), Vector2(px + r - 1, 60.0 + r - 1), col, 3.0, true)
-		draw_line(Vector2(px - r + 1, 60.0 + r - 1), Vector2(px + r - 1, 60.0 - r + 1), col, 3.0, true)
+	draw_mistakes(errors)
 	var dx := size.x - 48.0 - (cards_total - 1) * 20.0
 	for j in cards_total:
 		draw_circle(Vector2(dx + j * 20.0, 92.0), 5.0, Style.INK if j < decided else Style.SURFACE_2)

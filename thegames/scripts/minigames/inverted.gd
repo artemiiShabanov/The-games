@@ -5,8 +5,9 @@ extends Minigame
 ## вправо: лабиринт уехал вправо, точка оказалась в клетке левее). Стены не пускают в обоих
 ## режимах, удар о стену блокирует движение на полсекунды. Какой режим сейчас, видно по тому,
 ## что движется, и по цвету: управляемое синее (акцент), остальное чёрное; выход это кольцо в
-## цвете стен, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с;
-## провал, если не прошёл их до таймера. Параметры от `t` в `resources/minigames/inverted.tres`:
+## цвете стен, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с. Счёт
+## (2026-11-18): доля пройденных лабиринтов, недопройденный идёт половиной доли пройденного в
+## нём пути; каждый удар о стену снимает `BUMP_PENALTY`. Параметры от `t` в `resources/minigames/inverted.tres`:
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
 ## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется). Смена
 ## посреди лабиринта выключена числом в ресурсе (плейтест 2026-11-14, #131: бесит), режим
@@ -37,6 +38,9 @@ const SHAKE_SECONDS := 0.25
 const BUMP_LOCK_SECONDS := 0.5
 const FLASH_SECONDS := 0.4
 const BOT_STEP := 0.16
+## Счёт: удар о стену это ошибка; недопройденный лабиринт засчитывается с этим весом.
+const BUMP_PENALTY := 0.06
+const PARTIAL_WEIGHT := 0.5
 ## Стены клетки битами: верх, право, низ, лево.
 const DIRS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
 
@@ -60,6 +64,9 @@ var shake := 0.0
 var shake_dir := Vector2.ZERO
 var lock := 0.0
 var flash := 0.0
+## Удары о стену за игру и длина пути от старта до выхода в текущем лабиринте, шагов.
+var bumps := 0
+var maze_path := 1
 var _bot_timer := 0.0
 var _step_sound: AudioStreamPlayer
 var _bump: AudioStreamPlayer
@@ -175,6 +182,7 @@ func _new_maze() -> void:
 	exit_cell = corners[rng.randi_range(0, 3)]
 	mode = Mode.MAZE if maze_index % 2 == 1 else Mode.DOT
 	moves_in_mode = 0
+	maze_path = maxi(_path_to_exit().size() - 1, 1)
 	_place_switches()
 	anim_from = Vector2(cell)
 	anim_to = anim_from
@@ -248,6 +256,7 @@ func _press(d: int) -> void:
 		shake = SHAKE_SECONDS
 		shake_dir = Vector2(DIRS[d])
 		lock = BUMP_LOCK_SECONDS
+		bumps += 1
 		_bump.play()
 		return
 	anim_from = Vector2(cell)
@@ -278,7 +287,7 @@ func _arrived() -> void:
 			var at := _origin + (Vector2(exit_cell) + Vector2(0.5, 0.5)) * CELL
 			_fx.pop(at, _dot_color(), POP_EXIT, POP_EXIT_SPEED)
 		if maze_index >= mazes_total:
-			finish(true)
+			finish_score(_score())
 			return
 		_new_maze()
 		return
@@ -290,8 +299,13 @@ func _arrived() -> void:
 		_flip_mode()
 
 
-func _on_timeout() -> bool:
-	return maze_index >= mazes_total
+## Счёт: пройденные лабиринты плюс доля пути в текущем с весом `PARTIAL_WEIGHT`, минус удары.
+func _score() -> float:
+	var done := float(maze_index)
+	if maze_index < mazes_total:
+		var left := maxi(_path_to_exit().size() - 1, 0)
+		done += PARTIAL_WEIGHT * clampf(1.0 - float(left) / maze_path, 0.0, 1.0)
+	return clampf(done / mazes_total - BUMP_PENALTY * bumps, 0.0, 1.0)
 
 
 ## Бот: WIN идёт по кратчайшему пути с учётом режима, LOSE стоит.
@@ -598,3 +612,5 @@ func _draw() -> void:
 		elif j == maze_index:
 			col = Style.INK
 		draw_circle(Vector2(x0 + j * gap, 60.0), r, col)
+	# Под ними удары о стену крестиками, без предела.
+	draw_mistakes(bumps, 0, 1)

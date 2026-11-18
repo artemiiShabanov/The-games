@@ -1,8 +1,9 @@
 extends Minigame
 ## «Повтори» (repeat, управление), каталог `docs/specs/minigames_catalog.md`.
 ## Шесть клавиш-площадок: крестовина слева, A и B справа. Последовательность из 4-7 клавиш
-## показывается вспышками, у каждой клавиши свой тон, затем игрок повторяет. Четыре раунда до
-## конца таймера; провал, если не успел или набрал `MAX_ERRORS` ошибок (плейтест 2026-11-06).
+## показывается вспышками, у каждой клавиши свой тон, затем игрок повторяет. Три раунда до
+## конца таймера (плейтест 2026-11-06). Счёт (2026-11-18): доля пройденных раундов минус
+## `ERROR_COST` за ошибку; ошибки не кончают игру.
 ## Неверная клавиша: ошибка в счётчик слева сверху, она дрожит красным, после короткой паузы
 ## та же последовательность показывается заново, во время показа ввод не принимается, затем
 ## ввод с первой клавиши (плейтесты 2026-11-05 и 2026-11-06).
@@ -20,7 +21,8 @@ const KEYS: Array[StringName] = [GameInput.LEFT, GameInput.UP, GameInput.DOWN, G
 const TONES: Array[float] = [392.0, 440.0, 494.0, 523.0, 587.0, 659.0]
 ## Три раунда на то же время, что раньше четыре (плейтест 2026-11-14, #131).
 const ROUNDS := 3
-const MAX_ERRORS := 4
+## Счёт: ошибка снижает на столько (три ошибки при всех раундах, прежнее «еле прошёл», 0,7).
+const ERROR_COST := 0.1
 const PAD := 140.0
 const PAD_GAP := 20.0
 const GAP_SECONDS := 0.12
@@ -87,9 +89,6 @@ func _on_start() -> void:
 	for j in ROUNDS:
 		_round_pop.append(JellySpring.new())
 		_round_state.append(0)
-	for j in MAX_ERRORS:
-		_err_pop.append(JellySpring.new())
-		_err_state.append(0)
 	queue_redraw()
 
 
@@ -151,8 +150,13 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return rounds_done >= ROUNDS
+func _score() -> float:
+	return float(rounds_done) / ROUNDS - ERROR_COST * errors
+
+
+func _on_finish(_success: bool) -> void:
+	if AutoTest.enabled:
+		AutoTest.note("repeat: t %.2f, счёт %.2f, раундов %d, ошибок %d, %.1f с" % [t, score, rounds_done, errors, elapsed])
 
 
 ## Бот: WIN жмёт нужную клавишу каждые `BOT_STEP`, LOSE жмёт не ту.
@@ -224,7 +228,7 @@ func _press(key: int) -> void:
 		if step >= sequence.size():
 			rounds_done += 1
 			if rounds_done >= ROUNDS:
-				finish(true)
+				finish_score(_score())
 				return
 			phase = Phase.PAUSE
 			pause_left = ROUND_PAUSE
@@ -237,9 +241,6 @@ func _press(key: int) -> void:
 		_miss_sound.play()
 		_pads[key].push(Vector2(-260.0, 0.0))
 		_pads[key].poke(-120.0)
-		if errors >= MAX_ERRORS:
-			finish(false)
-			return
 		_replay = true
 		_seq_snapshot = sequence.duplicate()
 		phase = Phase.PAUSE
@@ -320,7 +321,10 @@ func _pop_dots(delta: float, moving: bool) -> void:
 		_kick_on_change(_dot_pop[j], _dot_state, j, _dot_color_id(j))
 	for j in ROUNDS:
 		_kick_on_change(_round_pop[j], _round_state, j, _round_color_id(j))
-	for j in MAX_ERRORS:
+	while _err_pop.size() < errors:
+		_err_pop.append(JellySpring.new())
+		_err_state.append(0)
+	for j in _err_pop.size():
 		_kick_on_change(_err_pop[j], _err_state, j, 1 if j < errors else 0)
 	var tu := Jelly.tuning()
 	for group: Array[JellySpring] in [_dot_pop, _round_pop, _err_pop]:
@@ -449,7 +453,7 @@ func _draw() -> void:
 			elif phase == Phase.SHOW and j <= step:
 				c = Style.accent(0)
 			draw_circle(Vector2(x0 + j * gap, y), 8.0 * _pop_scale(_dot_pop, j), c)
-	# Раунды справа сверху, под ними ошибки крестиками: пустые серые, набранные `danger`.
+	# Раунды справа сверху, под ними ошибки крестиками без предела (`draw_mistakes`).
 	var r := 7.0
 	var gap2 := 28.0
 	var rx := size.x - 48.0 - (ROUNDS - 1) * gap2
@@ -460,11 +464,7 @@ func _draw() -> void:
 		elif j == rounds_done and phase != Phase.PAUSE:
 			c = Style.INK
 		draw_circle(Vector2(rx + j * gap2, 60.0), r * _pop_scale(_round_pop, j), c)
-	var ex := size.x - 48.0 - (MAX_ERRORS - 1) * gap2
-	for j in MAX_ERRORS:
-		var c := Style.DANGER if j < errors else Style.SURFACE_2
-		var cx := ex + j * gap2
-		var cy := 60.0 + gap2
-		var d := (r - 1.0) * _pop_scale(_err_pop, j)
-		draw_line(Vector2(cx - d, cy - d), Vector2(cx + d, cy + d), c, 3.0, true)
-		draw_line(Vector2(cx - d, cy + d), Vector2(cx + d, cy - d), c, 3.0, true)
+	var pops: Array[float] = []
+	for j in errors:
+		pops.append(_err_pop[j].value if j < _err_pop.size() else 0.0)
+	draw_mistakes(errors, 0, 1, pops)

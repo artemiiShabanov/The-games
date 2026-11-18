@@ -1,9 +1,8 @@
 class_name SprintPlan
 extends RefCounted
-## Упорядоченный список мини-игр релиза и остаток переигровок. Строит `SprintPlanner`.
+## Упорядоченный список мини-игр релиза. Строит `SprintPlanner`.
 
 var defs: Array[MinigameDef] = []
-var replay_left := 0
 
 
 func size() -> int:

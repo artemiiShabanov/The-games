@@ -125,6 +125,7 @@ step "feed fighting lowpoly" sh tools/autotest.sh --scene=feed_test --genre=figh
 step "demo fighting" sh tools/autotest.sh --scene=demo_test --genre=fighting --frames=7000
 step "demo fighting bugs" sh tools/autotest.sh --scene=demo_test --genre=fighting --bugs --frames=9000
 step "feed fighting" sh tools/autotest.sh --scene=feed_test --genre=fighting --frames=400
+step "minigame rating" env TIMEOUT=600 sh tools/autotest.sh --scene=minigame_rating_test --time-scale=4 --frames=12000
 step "loop M1" sh tools/autotest.sh --loop --time-scale=4 --frames=6500
 step "loop M1 en" sh tools/autotest.sh --loop --lang=en --time-scale=4 --frames=6500
 step "loop after release" sh tools/autotest.sh --loop --after --time-scale=4 --frames=6500

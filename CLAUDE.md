@@ -106,7 +106,10 @@
   ботов без окна текстом `debug/tools/dump_fray.gd -- <seed> [count]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
   `--input` это `кадр:look=DXxDY`. Весь план из 8 с проверкой багов: без `--minigame`,
-  `--time-scale=4 --frames=4500` (с переигровками `--replays=2 --frames=4500`). Багфикс:
+  `--time-scale=4 --frames=4500`. Оценка мини-игр руками (баланс, 2026-11-18): `Godot --path
+  thegames -- --scene=minigame_rating_test [--t=0.5] [--all] [--only=id,id]`, оценки в
+  `thegames/debug/ratings/minigame_ratings.json`; ботом `--scene=minigame_rating_test --time-scale=4
+  --frames=12000` (`TIMEOUT=600`, кадр карточки оценки `--only=<id> --hold`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks
   --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`). Палитра смысловых цветов и

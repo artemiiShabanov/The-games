@@ -597,21 +597,6 @@ msgstr "← → choose · %s confirm · %s release as is"
 msgid "Спринт %d из %d"
 msgstr "Sprint %d of %d"
 
-msgid "успех"
-msgstr "success"
-
-msgid "провал"
-msgstr "fail"
-
-msgid "Повторить спринт? Осталось: %d"
-msgstr "Sprint retry? %d left"
-
-msgid "повторить"
-msgstr "retry"
-
-msgid "другая клавиша: дальше"
-msgstr "other key: next"
-
 
 # --- штат ---
 msgid "Программист"
@@ -655,9 +640,6 @@ msgstr "Bugfix %s cheaper, a second bugfix sprint per release"
 
 msgid "Багфикс на %s дешевле"
 msgstr "Bugfix %s cheaper"
-
-msgid "Повторов проваленного спринта за релиз: %d"
-msgstr "Failed sprint retries per release: %d"
 
 msgid "Сиквелы в конструкторе"
 msgstr "Sequels in the game builder"

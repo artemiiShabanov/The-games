@@ -4,7 +4,8 @@ extends Minigame
 ## нужный размер и гаснет, как только шар начали надувать (плейтест 2026-11-13: до этого она
 ## видна сколько угодно): размер надо запомнить. Отпустил у метки с точностью до допуска: засчитано. Не додул
 ## или перешёл за метку: шар лопнул (перейти нельзя и на зажатой кнопке, шар лопается сам).
-## `BALLOONS` шаров, два неудачных это провал.
+## `BALLOONS` шаров, все доигрываются. Счёт (2026-11-18): 1 минус `MISS_PENALTY` за каждый
+## неудачный или не сыгранный к таймеру шар; один неудачный (прежний порог) даёт 0,7.
 ## Параметры от `t` в `resources/minigames/inflate.tres`: speed (как быстро растёт радиус,
 ## пикселей в секунду), reach (насколько метка бывает дальше от начального размера), show
 ## (сколько секунд метка гаснет после начала надувания: на лёгком ещё мгновение видна).
@@ -14,7 +15,8 @@ extends Minigame
 ## Мышь (#83): левая кнопка это A, держать и отпустить.
 
 const BALLOONS := 5
-const MAX_MISSES := 2
+## Сколько счёта стоит неудачный шар: шаров всего пять, каждый крупная доля.
+const MISS_PENALTY := 0.3
 ## Начальный радиус шара и самый малый радиус метки.
 const START_R := 46.0
 const MARK_MIN := 110.0
@@ -61,7 +63,6 @@ var _grow_sfx: AudioStreamPlayer
 var _ok_sfx: Array[AudioStreamPlayer] = []
 var _pop_sfx: AudioStreamPlayer
 var _low_sfx: AudioStreamPlayer
-var _win_sfx: AudioStreamPlayer
 
 
 func _on_start() -> void:
@@ -75,9 +76,8 @@ func _on_start() -> void:
 		_ok_sfx.append(p)
 	_pop_sfx = MiniSfx.miss()
 	_low_sfx = MiniSfx.miss(160.0)
-	_win_sfx = MiniSfx.win()
 	_grow_sfx = Sfx.player(Sfx.hiss(0.2, 0.08))
-	for p: AudioStreamPlayer in [_pop_sfx, _low_sfx, _win_sfx, _grow_sfx]:
+	for p: AudioStreamPlayer in [_pop_sfx, _low_sfx, _grow_sfx]:
 		add_child(p)
 	_next_balloon()
 	queue_redraw()
@@ -166,21 +166,18 @@ func _settle(ok: bool, burst: bool) -> void:
 	rest = REST
 
 
-## После паузы: конец игры или следующий шар.
+## После паузы: конец игры или следующий шар. Конец одинаковый при любом счёте.
 func _advance() -> void:
 	balloon += 1
-	if missed >= MAX_MISSES:
-		finish(false)
-	elif balloon >= BALLOONS:
-		_win_sfx.play()
-		finish(true)
+	if balloon >= BALLOONS:
+		finish_score(_score())
 	else:
 		_next_balloon()
 
 
-## Время вышло раньше шаров: не засчитано.
-func _on_timeout() -> bool:
-	return false
+## Счёт: каждый шар не у метки (лопнул, не додут или не сыгран к таймеру) снимает `MISS_PENALTY`.
+func _score() -> float:
+	return clampf(1.0 - MISS_PENALTY * (BALLOONS - passed), 0.0, 1.0)
 
 
 ## Бот: WIN зажимает и отпускает точно у метки; LOSE держит, пока шар не лопнет.
@@ -196,12 +193,9 @@ func _bot_step(_delta: float) -> bool:
 	return false
 
 
-func _on_finish(success: bool) -> void:
+func _on_finish(_success: bool) -> void:
 	if AutoTest.bot_active() and Input.is_action_pressed(GameInput.A):
 		Input.action_release(GameInput.A)
-	if success and Jelly.on():
-		_pop.kick(8.0)
-		_splash.pop(size / 2.0, Style.SUCCESS, 9, 480.0, 0.6)
 
 
 func _process(delta: float) -> void:
@@ -295,4 +289,4 @@ func _draw_dots() -> void:
 		var r := DOT_R * (1.3 if i == balloon and running else 1.0)
 		r *= clampf(1.0 + _dots[i].value, 0.5, 1.8)
 		draw_circle(Vector2(x0 + i * DOT_GAP, y), r, c)
-	draw_mistakes(missed, MAX_MISSES)
+	draw_mistakes(missed)

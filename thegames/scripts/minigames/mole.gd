@@ -2,9 +2,9 @@ extends Minigame
 ## «Бей» (mole, шутер), каталог `docs/specs/minigames_catalog.md`. Четыре лунки по сторонам от
 ## центра (вверх, вправо, вниз, влево). Кружки выскакивают из лунок и через `up` секунд прячутся;
 ## стрелка в сторону лунки с кружком бьёт его, пока он снаружи. Кружок спрятался небитым:
-## упущен. 4 упущенных провал, иначе успех по таймеру (14 с; плейтест 2026-11-14, #131: было
-## 5 за 20 с, игра затянута).
-## Стрелка в пустую лунку: промах без штрафа к счёту, но молоток в центре на `stun` секунд
+## упущен. Игра идёт до конца таймера (14 с; плейтест 2026-11-14, #131: было 5 за 20 с, игра
+## затянута). Счёт (2026-11-18): 1 минус `MISS_COST` за упущенный и `WHIFF_COST` за промах.
+## Стрелка в пустую лунку: промах, немного снижает счёт, и молоток в центре на `stun` секунд
 ## сереет и не бьёт (иначе выигрывает долбёжка всеми четырьмя стрелками). С `t` 0,5 промах стоит
 ## кружка: реакция около 0,3 с плюс `stun` не короче времени кружка снаружи. Стрелка в лунку, где
 ## кружок уже прячется (после удара или упущенный), ничего не делает.
@@ -22,7 +22,11 @@ enum State { EMPTY, UP, HIT, MISSED }
 const DIRS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 const KEYS: Array[StringName] = [GameInput.UP, GameInput.RIGHT, GameInput.DOWN, GameInput.LEFT]
 const HOLES := 4
-const MAX_MISSED := 4
+## Счёт: упущенный кружок снижает на столько (три упущенных, прежнее «еле прошёл», дают 0,7;
+## за игру выскакивает 16-20 кружков, ничего не бить около нуля), промах в пустую лунку на
+## столько (он и так стоит кружка через блокировку молотка).
+const MISS_COST := 0.1
+const WHIFF_COST := 0.05
 ## Первый выскок после старта, с.
 const FIRST_POP := 0.6
 ## После пары следующий выскок позже во столько раз.
@@ -104,8 +108,6 @@ func _on_start() -> void:
 		_bot_at.append(0.0)
 		_bot_done.append(true)
 		_moles.append(JellyShape.circle(MOLE_R, 36))
-	for i in MAX_MISSED:
-		_slots.append(JellySpring.new())
 	_hammer = JellyShape.circle(HAMMER_R, 32)
 	queue_redraw()
 
@@ -189,9 +191,8 @@ func _miss(i: int) -> void:
 	missed += 1
 	_set_state(i, State.MISSED)
 	_miss_sound.play()
+	_slots.append(JellySpring.new())
 	_slots[missed - 1].kick(14.0)
-	if missed >= MAX_MISSED:
-		finish(false)
 
 
 ## Выскок: один кружок или с вероятностью `pair` два сразу, в свободные лунки.
@@ -220,22 +221,22 @@ func _pop() -> void:
 	next_pop = interval * (PAIR_GAP if n == 2 else 1.0) * rng.randf_range(1.0 - JITTER, 1.0 + JITTER)
 
 
-func _on_timeout() -> bool:
-	return missed < MAX_MISSED
+func _score() -> float:
+	return 1.0 - MISS_COST * missed - WHIFF_COST * whiffs
 
 
-func _on_finish(success: bool) -> void:
+func _on_finish(_success: bool) -> void:
 	# Кружки, что ещё снаружи, прячутся без счёта (сплющиваются в лунку).
 	for i in HOLES:
 		if state[i] == State.UP:
 			_set_state(i, State.HIT)
 	if AutoTest.enabled:
-		AutoTest.note("mole: t %.2f, %s, выскоков %d (пар %d), попаданий %d, упущено %d, мимо %d, %.1f с" % [t, "успех" if success else "провал", pops, pairs, hits, missed, whiffs, elapsed])
+		AutoTest.note("mole: t %.2f, счёт %.2f, выскоков %d (пар %d), попаданий %d, упущено %d, мимо %d, %.1f с" % [t, score, pops, pairs, hits, missed, whiffs, elapsed])
 
 
 ## Бот: WIN бьёт кружок через `BOT_REACTION` после выскока (второй кружок пары позже на
 ## `BOT_SECOND`). LOSE в то же время бьёт в пустую лунку (промах, молоток сереет), кружки не
-## трогает: пять упущенных.
+## трогает: всё упущено, счёт около нуля.
 func _bot_step(_delta: float) -> bool:
 	for i in HOLES:
 		if _bot_done[i] or not is_up(i) or state_time[i] < _bot_at[i]:
@@ -385,9 +386,9 @@ func _draw_count() -> void:
 	draw_string(mono, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Style.SURFACE_SOLID)
 
 
-## Упущенные крестиками справа сверху (`draw_mistakes`).
+## Упущенные крестиками справа сверху (`draw_mistakes`), без предела.
 func _draw_slots() -> void:
 	var pops: Array[float] = []
 	for sp in _slots:
 		pops.append(sp.value)
-	draw_mistakes(missed, MAX_MISSED, 0, pops)
+	draw_mistakes(missed, 0, 0, pops)

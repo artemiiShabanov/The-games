@@ -4,16 +4,30 @@ extends Resource
 ## жанрам и технологиям. Ресурс `res://resources/sprints.tres`.
 
 @export var intro_seconds := 1.0
-@export var result_seconds := 1.0
-@export var studio_seconds := 2.5
-## Сколько карточка результата ждёт ответа на переигровку; по истечении дальше без неё (#29).
-@export var replay_offer_seconds := 3.0
+## Вдох после мини-игры перед следующим интро (2026-11-18: цепочка без карточки результата и
+## без паузы на студию).
+@export var result_seconds := 0.4
+## Пауза на студию после последнего спринта, перед плейтестом.
+@export var studio_seconds := 1.0
+## Исход спринта по счёту мини-игры (2026-11-18): от `clean_score` и выше бага нет, до
+## `bug_score` и ниже баг точно, между ними шанс бага падает линейно.
+@export var clean_score := 0.95
+@export var bug_score := 0.45
+## Темп цепочки: каждый следующий спринт релиза сложнее на столько (`t`, до 1).
+@export var chain_t_step := 0.03
 ## Время мини-игр в первом релизе × это.
 @export var first_release_time_multiplier := 1.5
 ## Индекс = `Game.Genre`.
 @export var genre_weights: Array[AspectWeights] = []
 ## Индекс = `Game.Tech`.
 @export var tech_weights: Array[AspectWeights] = []
+
+
+## Шанс бага по счёту мини-игры 0..1.
+func bug_chance(score: float) -> float:
+	if clean_score <= bug_score:
+		return 0.0 if score >= clean_score else 1.0
+	return clampf((clean_score - score) / (clean_score - bug_score), 0.0, 1.0)
 
 
 ## Сумма весов пары для аспекта.

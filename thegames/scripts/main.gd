@@ -611,8 +611,8 @@ func _on_bugfix_sprint(def: MinigameDef, success: bool) -> void:
 		_runner = null
 	# Что починено и сколько осталось, не говорим: игрок узнаёт по отзывам.
 	AutoTest.note("bugfix: %s, починено %s, осталось %d" % [success, fixed, record.bug_ids.size()])
-	_show_card("Багфикс", ["Успех. Багов стало меньше, если они были." if success
-			else "Провал. Баги остались."], "")
+	# Исход скрыт, как у спринтов (2026-11-18): что починено, игрок видит в игре.
+	_show_card("Багфикс", ["Багфикс сделан. Что починено, видно в игре."], "")
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	_clear_card()
 	_offer_bugfix()

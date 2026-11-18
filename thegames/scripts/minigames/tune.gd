@@ -3,7 +3,9 @@ extends Minigame
 ## друг на друга: эталон и своя. Влево и вправо меняют частоту своей, вверх и вниз амплитуду,
 ## шагами; зажатая стрелка через `HOLD_DELAY` шагает сама раз в `HOLD_REPEAT`. Совпавшая волна
 ## фиксируется сама, простояв совпавшей `FIX_DELAY` (дольше шага автоповтора, чтобы зажатая
-## стрелка проезжала мимо). Три волны за раунд, нужны все три (плейтест 2026-11-14, #131).
+## стрелка проезжала мимо). Три волны за раунд, по очереди (плейтест 2026-11-14, #131).
+## Счёт (2026-11-18): доля совпавших волн (текущая по тому, насколько подошла) минус
+## `WRONG_PENALTY` за каждый шаг прочь от эталона; такие шаги крестиками справа сверху.
 ## Обе волны звучат: своя и эталон как два мягких тона, которые вспыхивают на шаге и затихают
 ## до тихого фона; при сближении слышны биения.
 ## Параметры от `t` в `resources/minigames/tune.tres`: offset (на сколько шагов эталон дальше
@@ -16,7 +18,6 @@ extends Minigame
 ## засчитанная вздрагивает с кругом и каплей-другой. Геймплей на настоящих числах.
 
 const WAVES := 3
-const NEED := 3
 const FREQ_MIN := 2.0
 const FREQ_MAX := 10.0
 const FREQ_STEP := 0.5
@@ -41,6 +42,9 @@ const TONE_SLEW := 0.002
 const DOT_R := 7.0
 const DOT_GAP := 28.0
 const SPLASH_CRESTS := 5
+## Счёт: шаг прочь от эталона (по оси, где волны уже совпали, тоже) стоит столько. Прежний «еле
+## успел три волны» это семь-восемь таких шагов, около 0,7.
+const WRONG_PENALTY := 0.04
 
 ## Мышь: сколько пикселей ведения на шаг частоты и амплитуды.
 const DRAG_FREQ_PX := 36.0
@@ -52,6 +56,10 @@ var tolerance := 1
 
 var wave_index := 0
 var matches := 0
+## Шаги прочь от эталона за всю игру.
+var wrong := 0
+## Расстояние своей волны от эталона в шагах в начале текущей волны.
+var start_dist := 1
 var ref_freq := 4.0
 var ref_amp := 96.0
 var freq := 4.0
@@ -122,6 +130,7 @@ func _new_wave() -> void:
 		ref_amp = clampf(amp + adir * maxi(offset_steps - 1, 1) * AMP_STEP, AMP_MIN, AMP_MAX)
 		if is_equal_approx(ref_amp, amp):
 			ref_amp = clampf(amp - adir * maxi(offset_steps - 1, 1) * AMP_STEP, AMP_MIN, AMP_MAX)
+	start_dist = maxi(_dist(), 1)
 	# Новая волна не перетекает из прошлой, а встаёт сразу.
 	_jelly_freq.value = freq
 	_jelly_freq.velocity = 0.0
@@ -129,6 +138,11 @@ func _new_wave() -> void:
 	_jelly_amp.velocity = 0.0
 	_jelly_bend.value = 0.0
 	_jelly_bend.velocity = 0.0
+
+
+## Расстояние своей волны от эталона в шагах по обеим осям.
+func _dist() -> int:
+	return roundi(absf(freq - ref_freq) / FREQ_STEP) + roundi(absf(amp - ref_amp) / AMP_STEP)
 
 
 func matched() -> bool:
@@ -191,6 +205,7 @@ func _adjust(df: float, da: float) -> void:
 		return
 	var was_freq := freq
 	var was_amp := amp
+	var was_dist := _dist()
 	freq = clampf(snappedf(freq + df, FREQ_STEP), FREQ_MIN, FREQ_MAX)
 	amp = clampf(snappedf(amp + da, AMP_STEP), AMP_MIN, AMP_MAX)
 	match_time = 0.0
@@ -198,6 +213,10 @@ func _adjust(df: float, da: float) -> void:
 	# Струна выгибается серединой в сторону шага; упёрлась в край — лёгкий вздрог.
 	if not is_equal_approx(was_freq, freq) or not is_equal_approx(was_amp, amp):
 		_jelly_bend.kick(140.0 * (signf(df) if df != 0.0 else -signf(da)))
+		if _dist() > was_dist:
+			# Шаг прочь: крестик, струну толкает вбок.
+			wrong += 1
+			_jelly_side.kick(-120.0 * (signf(df) if df != 0.0 else 1.0))
 	else:
 		_jelly_swell.kick(-1.2)
 	queue_redraw()
@@ -224,7 +243,7 @@ func _on_tick(delta: float) -> void:
 		if merge <= 0.0:
 			wave_index += 1
 			if wave_index >= WAVES:
-				finish(matches >= NEED)
+				finish_score(_score())
 				return
 			_new_wave()
 			_jelly_dots[wave_index].poke(180.0)
@@ -249,13 +268,19 @@ func _hold_steps(held: float) -> int:
 	return 0 if held < HOLD_DELAY else floori((held - HOLD_DELAY) / HOLD_REPEAT) + 1
 
 
-func _on_timeout() -> bool:
-	return matches >= NEED
+## Счёт: совпавшие волны и доля пути текущей минус шаги прочь.
+func _score() -> float:
+	var part := 0.0
+	if wave_index < WAVES and not done_this:
+		part = clampf(1.0 - float(_dist()) / start_dist, 0.0, 1.0)
+	return clampf((matches + part) / WAVES - WRONG_PENALTY * wrong, 0.0, 1.0)
 
 
 func _on_finish(_success: bool) -> void:
 	if _player != null:
 		_player.stop()
+	if AutoTest.enabled:
+		AutoTest.note("tune: t %.2f, счёт %.2f, волн %d из %d, шагов прочь %d, %.1f с" % [t, score, matches, WAVES, wrong, elapsed])
 
 
 ## Два тона: эталон и свой, громкость по амплитуде; при близких частотах слышны биения.
@@ -411,3 +436,4 @@ func _draw() -> void:
 			_jelly_dots[j].draw_lifted(self, c, lift if j == wave_index and not done_this else 0.0)
 		else:
 			draw_circle(_dot_pos(j), DOT_R, c)
+	draw_mistakes(wrong, 0, 1)

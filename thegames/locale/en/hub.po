@@ -96,11 +96,8 @@ msgstr "Bugfix · %s"
 msgid "Багфикс"
 msgstr "Bugfix"
 
-msgid "Успех. Багов стало меньше, если они были."
-msgstr "Success. Fewer bugs now, if there were any."
-
-msgid "Провал. Баги остались."
-msgstr "Failed. The bugs are still there."
+msgid "Багфикс сделан. Что починено, видно в игре."
+msgstr "Bugfix done. Play the game to see what got fixed."
 
 msgid "продать студию"
 msgstr "sell the studio"

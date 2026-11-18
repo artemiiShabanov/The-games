@@ -7,7 +7,8 @@ extends Minigame
 ## Совпали цвет и стороны: влетает, трафарет пружинит. Нет: фигура и трафарет трясутся, фигура
 ## тонет. Не успел: тонет. Под конец ожидания фигура погружается обратно тем же ходом, что
 ## всплывала (мутнеет и уменьшается), и промах засчитывается, когда она скрылась; пока видна,
-## её ещё можно отправить (плейтест 2026-11-14, #131). Провал при двух непопавших. (Компоновка и анимации: решения
+## её ещё можно отправить (плейтест 2026-11-14, #131). Предела промахов нет: всплывают все
+## фигуры, счёт `_score` снижает каждая непопавшая. (Компоновка и анимации: решения
 ## 2026-11-05 по плейтесту.)
 ## Параметры от `t` в `resources/minigames/fit_frame.tres`: shapes, rise, hold, sides_max.
 
@@ -30,7 +31,9 @@ const GAP_SECONDS := 0.3
 const FLASH_SECONDS := 0.3
 const BOUNCE_SECONDS := 0.45
 const SHAKE_SECONDS := 0.35
-const FAIL_AT := 2
+## Счёт: каждая непопавшая фигура (не та, не успел, не всплыла до конца времени) снимает
+## столько; один промах (старый порог «еле прошёл») даёт 0,75, четыре и больше 0.
+const MISS_COST := 0.25
 const BOT_REACTION := 0.25
 
 var shapes_total := 6
@@ -140,8 +143,9 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return misses < FAIL_AT
+## Счёт: 1 за все фигуры в трафаретах, каждая непопавшая `MISS_COST`.
+func _score() -> float:
+	return 1.0 - MISS_COST * (shapes_total - hits)
 
 
 ## Насколько фигура уже ушла обратно в глубину, 0..1: последние `rise_seconds` ожидания она
@@ -211,10 +215,8 @@ func _miss(next: State) -> void:
 func _resolve() -> void:
 	state = State.NONE
 	gap_left = GAP_SECONDS
-	if misses >= FAIL_AT:
-		finish(false)
-	elif spawned >= shapes_total:
-		finish(true)
+	if spawned >= shapes_total:
+		finish_score(_score())
 
 
 # --- Рисование ----------------------------------------------------------------------------
@@ -273,7 +275,7 @@ func _draw_dots() -> void:
 		elif i == results.size() and state != State.NONE:
 			c = Style.INK
 		draw_circle(Vector2(x0 + i * gap, 60.0), r, c)
-	draw_mistakes(misses, FAIL_AT, 1)
+	draw_mistakes(misses, 0, 1)
 
 
 ## Дрейф на волнах: мелкое частое покачивание около места всплытия (плейтест 2026-11-05).

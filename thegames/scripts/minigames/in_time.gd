@@ -1,7 +1,9 @@
 extends Minigame
 ## «В такт» (in_time, звук), каталог `docs/specs/minigames_catalog.md`.
 ## Три дорожки, как в Guitar Hero: ←, ↓, →. Ноты бегут сверху к метке, нужная стрелка в такт.
-## Длинные ноты зажать и держать до конца. 16 нот, провал при менее чем 11 попаданиях.
+## Длинные ноты зажать и держать до конца. 16 нот, игра идёт, пока все не решатся. Счёт
+## (2026-11-18): доля попаданий минус штраф за каждое ложное нажатие; 11 попаданий из 16 без
+## ложных (прежний порог) дают около 0,7.
 ## С `t` быстрее темп, появляются длинные ноты, затем аккорды из двух дорожек.
 ## Ложное нажатие (нет ноты в окне) это ошибка: метка дрожит, звучит промах (плейтест
 ## 2026-11-05). Метроном тикает каждую долю с упреждением на задержку вывода звука, метки
@@ -30,7 +32,6 @@ const LANES := 3
 const LANE_ACTIONS: Array[StringName] = [GameInput.LEFT, GameInput.DOWN, GameInput.RIGHT]
 const LANE_GLYPHS: Array[String] = ["←", "↓", "→"]
 const TOTAL_NOTES := 16
-const NEED_HITS := 11
 const COUNT_IN_BEATS := 2
 const LANE_W := 150.0
 const LANE_GAP := 30.0
@@ -44,7 +45,8 @@ const LANE_PAD_BOTTOM := 24.0
 const POP_SECONDS := 0.25
 const SHAKE_SECONDS := 0.35
 const PULSE_SECONDS := 0.18
-const MAX_ERRORS := TOTAL_NOTES - NEED_HITS
+## Ложное нажатие стоит в счёте столько же, сколько пропущенная нота.
+const FALSE_PRESS_PENALTY := 1.0 / TOTAL_NOTES
 const BOT_PRECISION := 0.03
 const RING_R := NOTE_R + 10.0
 const MISS_SECONDS := 0.4
@@ -183,14 +185,13 @@ func _on_tick(delta: float) -> void:
 				if elapsed >= n.time + n.length:
 					_hit(n)
 	queue_redraw()
-	if misses + false_presses > MAX_ERRORS:
-		finish(false)
-	elif hits + misses >= TOTAL_NOTES:
-		finish(misses + false_presses <= MAX_ERRORS)
+	if hits + misses >= TOTAL_NOTES:
+		finish_score(_score())
 
 
-func _on_timeout() -> bool:
-	return hits >= NEED_HITS and misses + false_presses <= MAX_ERRORS
+## Счёт: доля попаданий минус ложные нажатия; нерешённые к таймеру ноты не попадания.
+func _score() -> float:
+	return clampf(float(hits) / TOTAL_NOTES - FALSE_PRESS_PENALTY * false_presses, 0.0, 1.0)
 
 
 ## Бот: WIN жмёт в такт и держит длинные, LOSE молчит.
@@ -451,5 +452,5 @@ func _draw() -> void:
 			c = Style.INK_3
 		var bounce := _dots[n.order].value if n.order < _dots.size() else 0.0
 		draw_circle(Vector2(x0 + n.order * gap, 60.0), r * clampf(1.0 + bounce, 0.5, 1.8), c)
-	# Под нотами допустимые ошибки: промахи и лишние нажатия вместе.
-	draw_mistakes(mini(misses + false_presses, MAX_ERRORS), MAX_ERRORS, 1)
+	# Под нотами ошибки: промахи и лишние нажатия вместе, без предела.
+	draw_mistakes(misses + false_presses, 0, 1)

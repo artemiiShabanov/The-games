@@ -5,8 +5,9 @@ extends Minigame
 ## вверх или вниз; когда сдвинутый блок под курсором, стрелка в сторону ленты (сдвинут вверх:
 ## ↓, вниз: ↑) ставит его на место со щелчком и пружинкой. С ростом `t` появляются блоки с
 ## двойным сдвигом: дальше от ленты, с двойной стрелкой, нужны два нажатия, соседи у него
-## всегда на месте. Неверная стрелка
-## только дёргает блок. Три блока проехали непоправленными: провал. Доля сдвинутых растёт по
+## всегда на месте. Неверная стрелка дёргает блок. Лента идёт до конца таймера; счёт
+## (2026-11-18): 1 минус `MISS_COST` за каждый проехавший непоправленным блок и `WRONG_COST`
+## за неверную стрелку (иначе проходит долбёжка обеими). Доля сдвинутых растёт по
 ## ходу раунда и с `t`, темп ленты с `t`. Параметры в `resources/minigames/patch_line.tres`:
 ## speed, shift, shift_end, double. Мармелад (STYLE «Мармелад»): блоки мягкие тела
 ## `JellyShape`, на место садятся с вытяжкой, сплющиванием и вздрогом, от неверной стрелки
@@ -43,7 +44,10 @@ const SHIFT_PX := 84.0
 const DOUBLE_PX := 150.0
 ## Первый блок ленты стартует на этом расстоянии правее курсора.
 const LEAD := 2.0 * (128.0 + 20.0)
-const FAIL_AT := 3
+## Счёт: проехавший непоправленным снижает на столько (два, прежнее «еле прошёл», дают 0,7;
+## сдвинутых за ленту 10-15, ничего не делать около нуля), неверная стрелка на столько.
+const MISS_COST := 0.15
+const WRONG_COST := 0.05
 const CURSOR_X := 0.42
 const POP_SECONDS := 0.3
 const SHAKE_SECONDS := 0.25
@@ -76,6 +80,9 @@ var shift_end := 0.6
 var double_share := 0.0
 var blocks: Array[Block] = []
 var misses := 0
+var wrongs := 0
+## Мармелад крестиков: по пружинке на ошибку (проехавший или неверная стрелка).
+var _err_pops: Array[JellySpring] = []
 var fixed_count := 0
 var _bot_timer := 0.0
 var _click: AudioStreamPlayer
@@ -207,6 +214,8 @@ func _press(dir: int) -> void:
 	if under == null or under.fixed or under.missed:
 		return
 	under.shake = SHAKE_SECONDS
+	wrongs += 1
+	_kick_mistake()
 	_wrong.play()
 	_jelly_wrong(under, dir)
 
@@ -225,17 +234,26 @@ func _on_tick(delta: float) -> void:
 		if b.shift != 0 and not b.missed and b.x + BLOCK < cx - BLOCK / 2.0:
 			b.missed = true
 			misses += 1
+			_kick_mistake()
 			_miss_sound.play()
-			if misses >= FAIL_AT:
-				finish(false)
-				return
 	while not blocks.is_empty() and blocks[0].x < -BLOCK * 2.0:
 		blocks.remove_at(0)
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return misses < FAIL_AT
+func _score() -> float:
+	return 1.0 - MISS_COST * misses - WRONG_COST * wrongs
+
+
+func _kick_mistake() -> void:
+	var sp := JellySpring.new()
+	sp.kick(14.0)
+	_err_pops.append(sp)
+
+
+func _on_finish(_success: bool) -> void:
+	if AutoTest.enabled:
+		AutoTest.note("patch_line: t %.2f, счёт %.2f, поправлено %d, проехало %d, неверных %d" % [t, score, fixed_count, misses, wrongs])
 
 
 ## Бот: WIN жмёт нужную стрелку, когда сдвинутый блок под курсором, LOSE ничего не делает.
@@ -283,6 +301,8 @@ func _process(delta: float) -> void:
 	var lift_rate := tu.lift_px / LIFT_SECONDS * delta
 	_fx.step(delta, Callable())
 	_rail.step(delta, tu.spring_stiffness * 2.0, tu.spring_damping * 1.5)
+	for sp in _err_pops:
+		sp.step(delta, tu.spring_stiffness, tu.spring_damping)
 	for b in blocks:
 		b.sway.step(delta, tu.spring_stiffness, tu.spring_damping)
 		b.lift = move_toward(b.lift, tu.lift_px if b == under else 0.0, lift_rate)
@@ -390,15 +410,11 @@ func _draw() -> void:
 	# Прогнутый кусок рельса поверх блоков: иначе севший блок, вытянутый посадкой, его прячет.
 	_draw_rail_bow(rail)
 	_fx.draw_air(self, Vector2.ZERO)
-	# Промахи крестиками справа сверху.
-	var r := 7.0
-	var gap2 := 28.0
-	var ex := size.x - 48.0 - (FAIL_AT - 1) * gap2
-	for j in FAIL_AT:
-		var col := Style.DANGER if j < misses else Style.SURFACE_2
-		var px := ex + j * gap2
-		draw_line(Vector2(px - r + 1, 60.0 - r + 1), Vector2(px + r - 1, 60.0 + r - 1), col, 3.0, true)
-		draw_line(Vector2(px - r + 1, 60.0 + r - 1), Vector2(px + r - 1, 60.0 - r + 1), col, 3.0, true)
+	# Ошибки (проехавшие и неверные стрелки) крестиками справа сверху, без предела.
+	var pops: Array[float] = []
+	for sp in _err_pops:
+		pops.append(sp.value)
+	draw_mistakes(misses + wrongs, 0, 0, pops)
 
 
 func _block_color(b: Block) -> Color:

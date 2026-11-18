@@ -1,7 +1,11 @@
 class_name Minigame
 extends Control
 ## Базовый класс сцены мини-игры. Раннер делает `setup()`, добавляет в дерево и зовёт
-## `start()`; мини-игра заканчивается `finish(success)` сама или по таймеру.
+## `start()`; мини-игра заканчивается `finish_score(score)` сама (цель выполнена) или по
+## таймеру (`_score()`). Исход (2026-11-18): не порог «успех/провал», а счёт 0..1, насколько
+## чисто сыграно; баг из счёта разыгрывает раннер по кривой (`SprintTuning.bug_chance`), игрок
+## исхода не видит до демки. Предела ошибок нет: промахи считаются и снижают счёт, мини-игра
+## доигрывается до цели или до конца времени. `finish(success)` старый вход: 1 или 0.
 ## Общий обвес у всех двадцати (STYLE): полоса таймера сверху, значок владельца в углу,
 ## пилюля ввода внизу. Наследник переопределяет `_on_start`, `_on_tick`, `_on_timeout`,
 ## `_on_finish` и, когда появится настоящий бот, `_bot_step`. Пауза на Esc (плейтест
@@ -15,7 +19,7 @@ extends Control
 ## точке поля, в `_mouse_action`, а колесо, наведение и перетаскивание разбирает сам в
 ## `_on_mouse`. Действие доходит до `_unhandled_input` наследника так же, как клавиша.
 
-signal finished(success: bool)
+signal finished(score: float)
 ## «В меню» из паузы (#71): хозяин уходит в главное меню, сохранение на начало спринта.
 signal menu_requested
 
@@ -43,6 +47,8 @@ var mouse_last_action := &""
 var _mouse_held: Dictionary[int, StringName] = {}
 
 var _done := false
+## Счёт, с которым мини-игра кончилась (−1 пока идёт).
+var score := -1.0
 var _sfx: Dictionary[Vector2, AudioStreamPlayer] = {}
 var _timer_bar: ColorRect
 var _pause_overlay: Control
@@ -89,14 +95,21 @@ func start() -> void:
 	_on_start()
 
 
-func finish(success: bool) -> void:
+## Конец мини-игры со счётом 0..1: 1 чисто, 0 ничего не сделано.
+func finish_score(s: float) -> void:
 	if _done:
 		return
 	_done = true
 	running = false
+	score = clampf(s, 0.0, 1.0)
 	_release_mouse()
-	_on_finish(success)
-	finished.emit(success)
+	_on_finish(score >= 0.5)
+	finished.emit(score)
+
+
+## Старый вход: успех как счёт 1, провал как 0.
+func finish(success: bool) -> void:
+	finish_score(1.0 if success else 0.0)
 
 
 ## Пауза: таймер стоит, ввод мини-игры выключен, поле закрыто карточкой правил.
@@ -185,7 +198,7 @@ func _process(delta: float) -> void:
 		return
 	_on_tick(delta)
 	if running and time_left <= 0.0:
-		finish(_on_timeout())
+		finish_score(_score())
 
 
 # --- Переопределяемое -----------------------------------------------------------------------
@@ -199,7 +212,12 @@ func _on_tick(_delta: float) -> void:
 	pass
 
 
-## Время вышло: засчитан ли спринт. По умолчанию провал.
+## Время вышло: счёт 0..1 по сыгранному. По умолчанию из старого `_on_timeout`.
+func _score() -> float:
+	return 1.0 if _on_timeout() else 0.0
+
+
+## Старое: засчитан ли спринт по времени. Новые мини-игры переопределяют `_score`.
 func _on_timeout() -> bool:
 	return false
 
@@ -297,7 +315,7 @@ func _exit_tree() -> void:
 ## забирает кадр (возвращает true). Настоящий бот нажимает действия и возвращает false.
 func _bot_step(_delta: float) -> bool:
 	if elapsed >= BOT_DELAY:
-		finish(AutoTest.bot_mode == AutoTest.BotMode.WIN)
+		finish_score(1.0 if AutoTest.bot_mode == AutoTest.BotMode.WIN else 0.0)
 	return true
 
 
@@ -305,16 +323,20 @@ func _bot_step(_delta: float) -> bool:
 
 const MISTAKE_GAP := 28.0
 const MISTAKE_R := 7.0
+## Крестиков на экране не больше стольких: дальше ряд уходил бы через поле (2026-11-18).
+const MISTAKES_SHOWN := 12
 
 
-## Допустимые ошибки крестиками справа сверху (2026-11-18: у всех мини-игр с лимитом ошибок):
-## пустые серые, набранные `danger`. `row` ряд сверху вниз (0 на высоте 60), `pops` значения
-## пружин мармелада по одной на крестик (подпрыгивает набранный).
-func draw_mistakes(made: int, limit: int, row := 0, pops: Array[float] = []) -> void:
+## Ошибки крестиками справа сверху (2026-11-18). С тех пор как исход это счёт, предела нет и
+## пустых крестиков тоже: рисуются только сделанные, `limit` остался в подписи и не
+## используется. `row` ряд сверху вниз (0 на высоте 60), `pops` значения пружин мармелада по
+## одной на крестик (подпрыгивает набранный).
+func draw_mistakes(made: int, _limit := 0, row := 0, pops: Array[float] = []) -> void:
+	made = mini(made, MISTAKES_SHOWN)
 	var y := 60.0 + row * MISTAKE_GAP
-	var x0 := size.x - 48.0 - (limit - 1) * MISTAKE_GAP
-	for j in limit:
-		var c := Style.DANGER if j < made else Style.SURFACE_2
+	var x0 := size.x - 48.0 - (made - 1) * MISTAKE_GAP
+	for j in made:
+		var c := Style.DANGER
 		var s := clampf(1.0 + pops[j], 0.5, 1.8) if j < pops.size() else 1.0
 		var d := (MISTAKE_R - 1.0) * s
 		var p := Vector2(x0 + j * MISTAKE_GAP, y)

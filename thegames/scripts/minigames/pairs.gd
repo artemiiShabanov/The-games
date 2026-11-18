@@ -1,7 +1,10 @@
 extends Minigame
 ## «Запомни» (pairs, технология 8-bit), каталог `docs/specs/minigames_catalog.md`. Поле
 ## закрытых карточек с пиктограммами, курсор стрелками, A открывает; две одинаковые остаются
-## открытыми, разные закрываются через паузу. Собрать все пары до таймера, иначе провал. С `t`
+## открытыми, разные закрываются через паузу. Цель собрать все пары до таймера. Счёт
+## (2026-11-18): доля собранных пар минус `FORGET_COST` за ошибку памяти: непарная, в которой
+## вторая карточка уже была видна или пара первой уже была видна (разведка двух новых карточек
+## не ошибка). Ошибки крестиками справа сверху под парами. С `t`
 ## карточек больше (8 → 14) и они закрываются быстрее. Параметры в
 ## `resources/minigames/pairs.tres`: cards (число карточек, округляется до чётного), close
 ## (секунды до закрытия непарных). Раскладка стремится к квадрату (плейтест 2026-11-14, #131):
@@ -20,6 +23,8 @@ const CARD := 128.0
 const GAP := 16.0
 const FLIP_SECONDS := 0.16
 const BOT_STEP := 0.3
+## Счёт: ошибка памяти снижает на столько (три ошибки при всех парах 0,7).
+const FORGET_COST := 0.1
 ## Заливки карточек: закрытая (рубашка) тёплый серый темнее `surface-2`, открытая `surface-2`,
 ## собранная `surface-2` с оттенком успеха. Все читаются на белой карточке спринта.
 const HIDDEN_COLOR := Color("#DFDAD1")
@@ -45,6 +50,10 @@ var first := -1
 var second := -1
 var close_timer := 0.0
 var pairs_done := 0
+## Ошибки памяти (см. заголовок) и какие карточки уже были открыты.
+var errors := 0
+var seen: Array[bool] = []
+var _err_pops: Array[JellySpring] = []
 var _bot_timer := 0.0
 var _bot_memory: Array[int] = []
 var _flip_sound: AudioStreamPlayer
@@ -87,6 +96,7 @@ func _on_start() -> void:
 		open.append(false)
 		matched.append(false)
 		flip.append(0.0)
+		seen.append(false)
 		_bot_memory.append(-1)
 	cursor = Vector2i(row_sizes[0] / 2, row_sizes.size() / 2)
 	cursor.x = mini(cursor.x, row_sizes[cursor.y] - 1)
@@ -191,6 +201,7 @@ func _open(i: int) -> void:
 		first = i
 		return
 	second = i
+	var was_first := first
 	if kinds[first] == kinds[second]:
 		matched[first] = true
 		matched[second] = true
@@ -199,9 +210,24 @@ func _open(i: int) -> void:
 		first = -1
 		second = -1
 		if pairs_done * 2 >= kinds.size():
-			finish(true)
+			finish_score(_score())
 	else:
+		if seen[second] or _partner_seen(first):
+			errors += 1
+			var sp := JellySpring.new()
+			sp.kick(14.0)
+			_err_pops.append(sp)
 		close_timer = close_seconds
+	seen[was_first] = true
+	seen[i] = true
+
+
+## Была ли уже видна пара карточки `i` (другая карточка того же вида).
+func _partner_seen(i: int) -> bool:
+	for j in kinds.size():
+		if j != i and kinds[j] == kinds[i] and seen[j]:
+			return true
+	return false
 
 
 func _on_tick(delta: float) -> void:
@@ -220,8 +246,14 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-func _on_timeout() -> bool:
-	return pairs_done * 2 >= kinds.size()
+## Счёт: доля собранных пар минус ошибки памяти. И по таймеру, и когда все пары собраны.
+func _score() -> float:
+	return float(pairs_done * 2) / kinds.size() - FORGET_COST * errors
+
+
+func _on_finish(_success: bool) -> void:
+	if AutoTest.enabled:
+		AutoTest.note("pairs: t %.2f, счёт %.2f, пар %d из %d, ошибок памяти %d, %.1f с" % [t, score, pairs_done, kinds.size() / 2, errors, elapsed])
 
 
 ## Бот: WIN помнит всё увиденное и открывает известную пару, иначе разведывает; LOSE раз в
@@ -325,6 +357,11 @@ func _draw() -> void:
 	var x0 := size.x - 48.0 - (total - 1) * gap
 	for j in total:
 		draw_circle(Vector2(x0 + j * gap, 60.0), r, Style.SUCCESS if j < pairs_done else Style.SURFACE_2)
+	# Ошибки памяти крестиками рядом ниже, без предела.
+	var pops: Array[float] = []
+	for sp in _err_pops:
+		pops.append(sp.value)
+	draw_mistakes(errors, 0, 1, pops)
 
 
 func _kind_color(kind: int) -> Color:
@@ -438,6 +475,8 @@ func _process(delta: float) -> void:
 	var moving := Jelly.on()
 	var cur := _index(cursor)
 	_fx.step(delta, Callable())
+	for sp in _err_pops:
+		sp.step(delta, tu.spring_stiffness, tu.spring_damping)
 	for i in _cards.size():
 		if flip[i] > _prev_flip[i] + 0.0001 and open[i]:
 			# Открыли: карточка вдавливается в бортик, как кнопка.

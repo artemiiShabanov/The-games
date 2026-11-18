@@ -342,10 +342,6 @@ func _build(state: StudioState, start_tech: int, start_genre: int) -> void:
 		caps[&"sequels"] = true
 	if state.remakes_unlocked():
 		caps[&"remakes"] = true
-	if state.replays() >= 1:
-		caps[&"replay"] = true
-	if state.replays() >= 2:
-		caps[&"replay2"] = true
 	var specials := int(caps.has(&"qa")) + int(caps.has(&"manager")) + int(caps.has(&"insider"))
 	var desk_people := clampi(state.people - specials, 1, DESK_ORDER.size())
 	_has_board = desk_people >= 3
