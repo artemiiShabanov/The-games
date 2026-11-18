@@ -33,7 +33,7 @@ step "options_test" sh tools/autotest.sh --scene=options_test --frames=30
 step "studio_test" sh tools/autotest.sh --scene=studio_test --frames=600
 step "studio_backdrop_test" sh tools/autotest.sh --scene=studio_backdrop_test --frames=30
 step "bugfix_test" sh tools/autotest.sh --scene=bugfix_test --time-scale=4 --frames=3000
-step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=4 --frames=4500
+step "sprint plan" sh tools/autotest.sh --scene=sprint_runner_test --time-scale=4 --frames=6500
 step "demo bugs" sh tools/autotest.sh --scene=demo_test --bugs --frames=3000
 step "minigame mash" sh tools/autotest.sh --scene=sprint_runner_test --minigame=mash --frames=1500
 step "minigame stack" sh tools/autotest.sh --scene=sprint_runner_test --minigame=stack --frames=2500

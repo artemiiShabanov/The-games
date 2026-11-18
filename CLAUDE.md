@@ -106,7 +106,7 @@
   ботов без окна текстом `debug/tools/dump_fray.gd -- <seed> [count]`. Обзор
   мышью и стиком (#109): `--scene=lowpoly_test --look --frames=600`; движение захваченной мыши в
   `--input` это `кадр:look=DXxDY`. Весь план из 8 с проверкой багов: без `--minigame`,
-  `--time-scale=4 --frames=4500`. Оценка мини-игр руками (баланс, 2026-11-18): `Godot --path
+  `--time-scale=4 --frames=6500`. Оценка мини-игр руками (баланс, 2026-11-18): `Godot --path
   thegames -- --scene=minigame_rating_test [--t=0.5] [--all] [--only=id,id]`, оценки в
   `thegames/debug/ratings/minigame_ratings.json`; ботом `--scene=minigame_rating_test --time-scale=4
   --frames=12000` (`TIMEOUT=600`, кадр карточки оценки `--only=<id> --hold`). Багфикс:
@@ -183,6 +183,11 @@
 - Язык (2026-11-18): переводы `thegames/locale/<id>.po`, ключ это русский текст, `Lang` в
   `scripts/menu/lang.gd`. Под автотестом `--lang=en` у любой сцены; экран выбора языка первого
   запуска `--menu --first-launch --frames=60`.
+- Сборки (2026-11-18): `sh tools/build.sh [macos|windows]` пишет `builds/macos/Studio Running.zip`
+  (universal arm64 + x86_64, ad-hoc подпись: на другом маке первый запуск через «Открыть» в
+  контекстном меню) и `builds/windows/StudioRunning.exe` (x86_64, один файл). Пресеты
+  `thegames/export_presets.cfg`, шаблоны экспорта Godot 4.7.2 в `~/Library/Application
+  Support/Godot/export_templates/4.7.2.stable` (`macos.zip` из официального .tpz).
 - Всё разом: `sh tools/ci.sh` (модель экономики `python3 tools/model_run.py --check` и
   автотесты систем без окна, пара минут).
 - Перед коммитом: автотест зелёный, нет ошибок в выводе Godot.

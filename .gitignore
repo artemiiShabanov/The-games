@@ -16,3 +16,6 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# Сборки игры (tools/build.sh)
+builds/
