@@ -16,6 +16,8 @@ signal demo_requested
 signal finished
 
 const COLUMN_WIDTH := 880
+## Размер чисел в карточках итогов релиза.
+const SUMMARY_NUMBER := 44
 ## Запас по бокам колонки, чтобы тени карточек не резались.
 const SHADOW_PAD := 32
 const ITEM_GAP := 32
@@ -40,6 +42,7 @@ var _button_lifts: Array[JellyLift] = []
 var _items: Array[Control] = []
 var _item_lifts: Array[Array] = []
 var _revealed := false
+var _sales_figure: SalesFigure
 var archive := false
 ## Кнопка «Играть» (на экране итогов релиза её нет: демку там не запустить).
 var allow_demo := true
@@ -229,7 +232,7 @@ func _build() -> void:
 		var top := HBoxContainer.new()
 		top.add_theme_constant_override("separation", Style.GAP_CARDS)
 		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		top.add_child(_number_card(tr("Продажи первой недели"), Style.format_money(int(summary.get("first_week", 0))), Style.MONEY))
+		top.add_child(_sales_card(int(summary.get("first_week", 0))))
 		top.add_child(_number_card(tr("Оценка студии"), Style.format_money(int(summary.get("valuation", 0))), Style.INK))
 		_column.add_child(top)
 		_items.append(top)
@@ -303,6 +306,10 @@ func _reveal() -> void:
 	_revealed = true
 	if Debug.skip_cards:
 		return
+	if _sales_figure != null:
+		var tw := create_tween()
+		tw.tween_interval(stagger if stagger > 0.3 else 0.0)
+		tw.tween_callback(_sales_figure.play)
 	for i in _items.size():
 		var n := _items[i]
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
@@ -455,9 +462,23 @@ func _number_card(caption: String, value: String, color: Color) -> Control:
 	col.add_theme_constant_override("separation", 8)
 	panel.add_child(col)
 	col.add_child(_label(caption, Style.FONT_CAPTION, Style.INK_2))
-	var v := _label(value, 44, color)
+	var v := _label(value, SUMMARY_NUMBER, color)
 	v.add_theme_font_override("font", Style.mono_font())
 	col.add_child(v)
+	return panel
+
+
+## Первая неделя в итогах релиза: число по ступени продаж (`SalesGrade`), слово ступени в
+## подписи; отыгрывает итог, когда карточка проявилась.
+func _sales_card(sales: int) -> Control:
+	var grade := SalesGrade.of(sales)
+	var panel := _number_card(tr("Продажи первой недели · %s") % SalesGrade.word(grade), "", Style.MONEY)
+	var col := panel.get_child(0)
+	var old := col.get_child(1)
+	col.remove_child(old)
+	old.free()
+	_sales_figure = SalesFigure.make(sales, grade, SUMMARY_NUMBER)
+	col.add_child(_sales_figure)
 	return panel
 
 

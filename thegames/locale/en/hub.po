@@ -719,3 +719,24 @@ msgstr "Piano"
 
 msgid "Окно:n"
 msgstr "Window"
+
+msgid "Продажи первой недели · %s"
+msgstr "First-week sales · %s"
+
+msgid "первая неделя · %s"
+msgstr "first week · %s"
+
+msgid "провал"
+msgstr "flop"
+
+msgid "слабо"
+msgstr "weak"
+
+msgid "неплохо"
+msgstr "decent"
+
+msgid "хит"
+msgstr "hit"
+
+msgid "суперхит"
+msgstr "smash hit"

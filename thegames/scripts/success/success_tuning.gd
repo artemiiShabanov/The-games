@@ -122,6 +122,11 @@ func quality_points(q: float) -> float:
 @export var views_spread := 0.25
 @export var online_divisor := 40.0
 
+@export_group("Ступени продаж")  # i18n: skip
+## Удались ли продажи (`SalesGrade`): постоянные пороги первой недели в долларах. Ниже
+## первого провал, дальше слабо, неплохо, хит, суперхит.
+@export var sales_grades: Array[int] = [4000, 6000, 10000, 20000]
+
 @export_group("Оценка студии")  # i18n: skip
 @export var valuation_tail := 4.0
 @export var valuation_reputation := 1500.0

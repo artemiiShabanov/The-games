@@ -28,6 +28,7 @@ func _register_debug() -> void:
 		ids.append(String(id))
 	Debug.add_choice(&"Оболочка", "Палитра", ids, func() -> String: return String(Options.palette),
 			_set_palette, true)
+	SalesGrade.register_debug()
 
 
 func _set_palette(v: String) -> void:

@@ -488,6 +488,11 @@ func _game_row(e: GalleryEntry, w: float) -> PanelContainer:
 	var critics := _label("%.1f" % e.critics, Style.FONT_H2, Style.INK)
 	critics.add_theme_font_override("font", Style.mono_font())
 	row.add_child(critics)
+	if e.sales_first > 0:
+		# Первая неделя по ступени продаж: цвет, размер и жирность говорят, удалась ли игра.
+		var fig := SalesFigure.make(e.sales_first, SalesGrade.of(e.sales_first), Style.FONT_BODY)
+		fig.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(fig)
 	if e.viral:
 		row.add_child(_pill("вирусная", Style.TINT_PLUS, Style.MONEY, 0.0))
 	for id in e.bug_ids:

@@ -65,6 +65,9 @@ const GAME_BUTTON := Vector2(200, 72)
 const BOX_GROW := Vector2(2, 8)
 const BOX_TIP_GAP := 4.0
 const WAVE_CARD := Vector2(400, 96)
+## Число продаж на карточке волны крупнее остальных строк, частиц от него вдвое больше.
+const SALES_NUMBER := 38
+const SALES_DROPS_GAIN := 2.0
 const WAVES_TOP := 196.0
 const WAVE_NAMES: Array[String] = ["Ставка", "Твиты", "Стрим", "Критики", "Первая неделя"]
 const BET_NAMES: Array[String] = ["Низкая", "Средняя", "Высокая"]
@@ -113,6 +116,7 @@ var _offer_lifts: Array[JellyLift] = []
 var _offer_defs: Array[UpgradeDef] = []
 var _offer_focus := 0
 var _offer_halo: Panel
+var _sales_figure: SalesFigure
 var _pills: HBoxContainer
 var _chrome: Control
 var _hints: HBoxContainer
@@ -956,7 +960,16 @@ func _money_rows() -> Array[Control]:
 			var note := str(e.get("note", ""))
 			if note != "":
 				text += " · " + tr(note)
-			rows.append(_money_row(text, int(e["delta"]), false))
+			var row := _money_row(text, int(e["delta"]), false)
+			if reason == "sales" and r >= 1 and r <= run.records.size():
+				# Первая неделя игры: число по ступени продаж.
+				var old := row.get_child(1)
+				row.remove_child(old)
+				old.free()
+				var fig := SalesFigure.make(int(e["delta"]), SalesGrade.of_record(run.records[r - 1]), Style.FONT_BODY, "+ ")
+				fig.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+				row.add_child(fig)
+			rows.append(row)
 	return rows
 
 
@@ -1149,6 +1162,17 @@ func _games_window_rows() -> Array[Control]:
 		score.add_theme_font_override("font", Style.mono_font())
 		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		right.add_child(score)
+		if r.score != null:
+			var sales := VBoxContainer.new()
+			sales.alignment = BoxContainer.ALIGNMENT_CENTER
+			h.add_child(sales)
+			var grade := SalesGrade.of_record(r)
+			var sc := _label(tr("первая неделя · %s") % SalesGrade.word(grade), Style.FONT_CAPTION, Style.INK_3)
+			sc.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			sales.add_child(sc)
+			var fig := SalesFigure.make(r.score.sales_first, grade, Style.FONT_BODY)
+			fig.size_flags_horizontal = Control.SIZE_SHRINK_END
+			sales.add_child(fig)
 		rows.append(row)
 		_offer_rows.append(row)
 		_offer_lifts.append(Jelly.button(row, Style.R_CTL))
@@ -1251,6 +1275,11 @@ func _refresh_offer() -> void:
 		var price := (h.get_child(2) as VBoxContainer).get_child(1) as Label
 		var ok := _offer_affordable(i)
 		price.add_theme_color_override("font_color", (Style.SURFACE_SOLID if on else Style.INK) if ok else Style.DANGER)
+		if h.get_child_count() > 3:
+			# Окно игр: подпись и число первой недели, на тёмной строке фокуса светлее.
+			var sales := h.get_child(3) as VBoxContainer
+			(sales.get_child(0) as Label).add_theme_color_override("font_color", Style.SURFACE_2 if on else Style.INK_3)
+			(sales.get_child(1) as SalesFigure).on_dark = on
 
 
 func _shake(node: Control) -> void:
@@ -1402,6 +1431,8 @@ func _rebuild_keeping_focus(fresh: Wave = Wave.BET) -> void:
 		node.modulate.a = 0.0
 		create_tween().tween_property(node, "modulate:a", 1.0, Style.SWITCH_SECONDS)
 		Jelly.poke.call_deferred(node, 1.6)
+		if fresh == Wave.SALES and _sales_figure != null:
+			_sales_figure.play.call_deferred()
 
 
 func _build() -> void:
@@ -1511,6 +1542,7 @@ func _build_waves() -> void:
 	col.add_theme_constant_override("separation", 12)
 	col.position = Vector2(Style.EDGE, WAVES_TOP)
 	_chrome.add_child(col)
+	_sales_figure = null
 	for kind in _waves_shown:
 		var c := _wave_card(kind)
 		col.add_child(c)
@@ -1567,13 +1599,17 @@ func _wave_card(kind: Wave) -> PanelContainer:
 				caption = "Критики · рецензии вышли"
 				text = "Открыть оценки"
 		Wave.SALES:
-			text = Style.format_money(after_content.sales_first)
-			color = Style.MONEY
-			mono = true
+			caption = tr("Первая неделя · %s") % SalesGrade.word(SalesGrade.of_record(after_record))
 	var cl := _label(caption, Style.FONT_CAPTION, Style.INK_3)
 	cl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	cl.clip_text = true
 	col.add_child(cl)
+	if kind == Wave.SALES:
+		# Число продаж по ступени: цвет, размер, жирность; при приходе волны отыгрывает итог.
+		_sales_figure = SalesFigure.make(after_content.sales_first, SalesGrade.of_record(after_record), SALES_NUMBER)
+		_sales_figure.drops_gain = SALES_DROPS_GAIN
+		col.add_child(_sales_figure)
+		return c
 	var tl := _label(text, Style.FONT_BODY, color)
 	tl.add_theme_font_override("font", Style.mono_font() if mono else Jelly.fun_font(800))
 	tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

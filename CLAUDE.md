@@ -117,7 +117,7 @@
   `--scene=mouse_test --frames=1500`.
   Главный экран забега: `--scene=hub_test --frames=60`, кадр `--no-checks
   [--past=N] [--pop=money|upgrades|release|offer|stream|box|board|staff]` (`board` доска соискателей, `staff` штат); экран после релиза (#133) `--after`
-  (`--after=all` все волны отклика сразу, `--pop=bet|wave`; `--pop=game` карточка игры с полки). Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
+  (`--after=all` все волны отклика сразу, `--pop=bet|wave`; `--pop=game` карточка игры с полки; `--sales-grade=0..4` у любой сцены ставит ступень продаж всем числам, анимация прихода «Первой недели» `--after --sales-grade=4 --frames=1022`). Галерея: `--scene=gallery_test --time-scale=4 --frames=2500`,
   кадр `--no-checks [--empty] [--studios]`; профиль `--scene=profile_test --frames=30`. Петля M1 целиком (три релиза ботом со сверкой денег): `sh tools/autotest.sh --loop
   --time-scale=4 --frames=6500` (`--releases=N` другое число, `--draw` разыгрывает стартовую пару как в игре, `--cap=N` свой кап, `--broke-at=N` банкротство перед фазой студии релиза N, `--remake` студия с вектором и «Ремейками», бот берёт ремейк (`--remake=lowpoly` с 3D вместо вектора), `--techs` студия со всеми четырьмя купленными технологиями, `--start-tech=N` старт с технологии N, `--refuse-events`
   бот отвечает на вставки последним вариантом; `--after` бот идёт путём игрока после релиза: ставит на критиков, прокачка ждёт на главном экране; `--slot=N` сохранять в тестовый слот, `--resume`
