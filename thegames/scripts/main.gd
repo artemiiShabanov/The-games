@@ -15,7 +15,7 @@ extends Control
 ## покупка прокачки, пропуск этапа. Под ботом с `--loop` проходит `--releases=N` релизов
 ## (по умолчанию три) и сверяет деньги с ведомостью.
 
-enum Stage { START, HUB, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, FEED, FEED_DEMO, STUDIO, YEAR, END }
+enum Stage { START, HUB, BASE, CONSTRUCTOR, SPRINTS, PLAYTEST, BUGFIX, FIXING, COVER, FEED, FEED_DEMO, STUDIO, YEAR, END }
 
 const SECTION: StringName = &"Состояние"  # i18n: skip
 const CONSTRUCTOR_PATH := "res://scenes/constructor.tscn"
@@ -522,38 +522,49 @@ func _run_demo(source: StringName, caption: String) -> void:
 		_capture_shot(record, _demo)
 
 
-## Кадр демки плейтеста для галереи: через `SHOT_SECONDS` после старта, без пилюли шапки,
-## только поле демки, шириной `SHOT_SIZE.x`, PNG в каталоге кадров профиля. Без окна не снимается.
+## Кадры демки плейтеста: первый через `SHOT_SECONDS` после старта идёт в галерею, остальные
+## (`CoverTuning.shot_seconds`) вместе с ним в окна оборота обложки. Только поле демки, шириной
+## `SHOT_SIZE.x`, PNG в каталоге кадров профиля. Без окна не снимается.
 func _capture_shot(r: GameRecord, demo: Demo) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	await get_tree().create_timer(SHOT_SECONDS).timeout
-	if demo != _demo or not is_instance_valid(demo):
-		return
-	if _demo_header != null:
-		_demo_header.visible = false
-	await RenderingServer.frame_post_draw
-	await RenderingServer.frame_post_draw
-	if demo != _demo or not is_instance_valid(demo):
-		return
-	var img := get_viewport().get_texture().get_image()
-	if _demo_header != null:
-		_demo_header.visible = true
-	if img == null or img.is_empty():
-		return
-	# Только поле демки, без карточки и студии вокруг: кадр в пикселях окна.
-	if demo.screen != null:
-		var k := float(img.get_width()) / Style.SCREEN.x
-		var area := demo.screen.get_global_rect()
-		var px := Rect2i(Vector2i(area.position * k), Vector2i(area.size * k)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
-		if px.has_area():
-			img = img.get_region(px)
-	img.resize(SHOT_SIZE.x, roundi(SHOT_SIZE.x * float(img.get_height()) / img.get_width()), Image.INTERPOLATE_LANCZOS)
-	DirAccess.make_dir_recursive_absolute(Profile.shots_dir())
-	var path := Profile.shots_dir() + "run%d_release%d_%d.png" % [run.run_number, run.release, r.seed]
-	if img.save_png(path) == OK:
-		r.shot = path
-		AutoTest.note("shot: %s" % path)
+	var times: Array[float] = CoverData.tuning().shot_seconds.duplicate()
+	if times.is_empty():
+		times = [SHOT_SECONDS]
+	times[0] = SHOT_SECONDS
+	var waited := 0.0
+	for i in times.size():
+		await get_tree().create_timer(maxf(times[i] - waited, 0.05)).timeout
+		waited = times[i]
+		if demo != _demo or not is_instance_valid(demo):
+			return
+		# Шапка над карточкой в поле демки не попадает, но первый кадр снимается без неё, как раньше.
+		if i == 0 and _demo_header != null:
+			_demo_header.visible = false
+		await RenderingServer.frame_post_draw
+		await RenderingServer.frame_post_draw
+		if demo != _demo or not is_instance_valid(demo):
+			return
+		var img := get_viewport().get_texture().get_image()
+		if _demo_header != null:
+			_demo_header.visible = true
+		if img == null or img.is_empty():
+			return
+		# Только поле демки, без карточки и студии вокруг: кадр в пикселях окна.
+		if demo.screen != null:
+			var k := float(img.get_width()) / Style.SCREEN.x
+			var area := demo.screen.get_global_rect()
+			var px := Rect2i(Vector2i(area.position * k), Vector2i(area.size * k)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+			if px.has_area():
+				img = img.get_region(px)
+		img.resize(SHOT_SIZE.x, roundi(SHOT_SIZE.x * float(img.get_height()) / img.get_width()), Image.INTERPOLATE_LANCZOS)
+		DirAccess.make_dir_recursive_absolute(Profile.shots_dir())
+		var path := Profile.shots_dir() + "run%d_release%d_%d%s.png" % [run.run_number, run.release, r.seed, "" if i == 0 else "_%d" % i]
+		if img.save_png(path) == OK:
+			if i == 0:
+				r.shot = path
+				AutoTest.note("shot: %s" % path)
+			r.shots.append(path)
 
 
 func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
@@ -571,7 +582,7 @@ func _on_demo_finished(_r: GameRecord, _reached: bool) -> void:
 ## должен сам, отсутствие предложения их выдавало); с «Отделом QA» два.
 func _offer_bugfix() -> void:
 	if bugfix_offers >= Bugfix.offers(run.studio):
-		_finish_release()
+		_open_cover()
 		return
 	stage = Stage.BUGFIX
 	_save(&"bugfix")
@@ -579,7 +590,7 @@ func _offer_bugfix() -> void:
 	var offer := (load(BUGFIX_PATH) as PackedScene).instantiate() as BugfixOffer
 	offer.setup(record, run.catalog, run.bugfix_price(record), run.wallet.cash)
 	offer.accepted.connect(_on_bugfix_accepted)
-	offer.declined.connect(_finish_release)
+	offer.declined.connect(_open_cover)
 	_set_screen(offer)
 	_bot_timer = 0.0
 
@@ -616,6 +627,20 @@ func _on_bugfix_sprint(def: MinigameDef, success: bool) -> void:
 	await get_tree().create_timer(CARD_SECONDS if not Debug.skip_cards else 0.05).timeout
 	_clear_card()
 	_offer_bugfix()
+
+
+## Обложка коробки (`docs/specs/cover.md`): спокойный этап между багфиксом и выходом игры.
+## Открывается уже собранной, «Готово» в фокусе; на продажи не влияет.
+func _open_cover() -> void:
+	_clear_all()
+	stage = Stage.COVER
+	_save(&"cover")
+	var editor := CoverEditor.new()
+	editor.shot_name = "run%d_release%d_%d_cover" % [run.run_number, run.release, record.seed]
+	editor.setup(record, run.studio_name, run.release)
+	editor.finished.connect(_finish_release)
+	_set_screen(editor)
+	_bot_timer = 0.0
 
 
 ## Релиз выпущен: отклик посчитан, лента.
@@ -821,6 +846,8 @@ func _resume(s: RunSave) -> void:
 			_begin_playtest()
 		&"bugfix":
 			_offer_bugfix()
+		&"cover":
+			_open_cover()
 		&"feed":
 			_open_after()
 		&"studio":
@@ -916,6 +943,12 @@ func _process(delta: float) -> void:
 			var offer := _screen as BugfixOffer
 			if offer != null:
 				offer.decline()
+		Stage.COVER:
+			# Бот берёт обложку как есть: она уже собрана от сида игры.
+			_bot_timer = -INF
+			var cover_editor := _screen as CoverEditor
+			if cover_editor != null:
+				cover_editor.finish()
 		Stage.FEED:
 			_bot_timer = -INF
 			var after_hub := _screen as RunHub
@@ -1082,7 +1115,11 @@ func _skip_stage() -> void:
 			if _demo != null:
 				_demo.quit_demo()
 		Stage.BUGFIX:
-			_finish_release()
+			_open_cover()
+		Stage.COVER:
+			var cover_editor := _screen as CoverEditor
+			if cover_editor != null:
+				cover_editor.finish()
 		Stage.FEED:
 			_open_studio()
 		Stage.STUDIO:

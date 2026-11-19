@@ -21,6 +21,10 @@ extends Resource
 @export var studio := ""
 ## Кадр демки (`GameRecord.shot`), пусто: в галерее заглушка цвета жанра.
 @export var shot := ""
+## Обложка коробки и её картинка (`GameRecord.cover`, `cover_shot`); с картинкой галерея
+## показывает коробку вместо кадра.
+@export var cover := {}
+@export var cover_shot := ""
 
 
 static func of(r: GameRecord, run_number_: int, release_: int, studio_: String) -> GalleryEntry:
@@ -42,6 +46,8 @@ static func of(r: GameRecord, run_number_: int, release_: int, studio_: String) 
 	e.release = release_
 	e.studio = studio_
 	e.shot = r.shot
+	e.cover = r.cover.duplicate(true)
+	e.cover_shot = r.cover_shot
 	return e
 
 
@@ -56,4 +62,7 @@ func to_record() -> GameRecord:
 	r.score.sales_first = sales_first
 	r.score.streamers = streamers
 	r.score.viral = viral
+	r.shot = shot
+	r.cover = cover.duplicate(true)
+	r.cover_shot = cover_shot
 	return r

@@ -1545,6 +1545,9 @@ var _parcel := false
 ## Цвет статуэтки игры на полке: случайный (полировка 2026-11-17, раньше цвет жанра), но свой у
 ## каждой игры и тот же после загрузки слота: от сида и названия записи.
 static func box_color(record: GameRecord) -> Color:
+	# С обложкой (`docs/specs/cover.md`) коробка на полке цвета своего пластика.
+	if record.cover.get("case") is String:
+		return CoverData.color(record.cover, "case")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([record.seed, record.title])
 	return Color.from_hsv(rng.randf(), rng.randf_range(0.5, 0.8), rng.randf_range(0.75, 0.95))

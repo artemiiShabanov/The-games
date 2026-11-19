@@ -23,6 +23,9 @@ enum Tab { GAMES, STUDIOS }
 const ROW_HEIGHT := 200
 const STUDIO_ROW_HEIGHT := 140
 const SHOT := Vector2(320, 180)
+## Карточка игры на главном экране с живой коробкой (`docs/specs/cover.md`).
+const LIVE_ROW_HEIGHT := 360
+const LIVE_BOX := Vector2(300, 340)
 const STRIPE := 10
 const ROW_GAP := 20
 const BOT_SECONDS := 0.6
@@ -427,12 +430,13 @@ func _add_row(c: PanelContainer) -> void:
 
 
 ## Карточка игры как строка галереи, но вне экрана галереи (главный экран забега, #133).
-static func game_card(e: GalleryEntry, w: float) -> PanelContainer:
+## С записью `live` на месте кадра живая коробка игры в объёме (`CoverBox`), карточка выше.
+static func game_card(e: GalleryEntry, w: float, live: GameRecord = null) -> PanelContainer:
 	var g := GalleryScreen.new()
 	for k in [CatalogEntry.Kind.GENRE, CatalogEntry.Kind.TECH, CatalogEntry.Kind.SETTING]:
 		g._catalogs.append(Catalog.load_kind(k))
 	g._bugs = BugCatalog.load_default()
-	var c := g._game_row(e, w)
+	var c := g._game_row(e, w, live)
 	g.free()
 	return c
 
@@ -451,8 +455,8 @@ func _row_panel(w: float, h: float) -> PanelContainer:
 
 ## Строка игры: слева полоски тройки, тройка словами, название, критики и штампы, забег;
 ## справа кадр демки.
-func _game_row(e: GalleryEntry, w: float) -> PanelContainer:
-	var c := _row_panel(w, ROW_HEIGHT)
+func _game_row(e: GalleryEntry, w: float, live: GameRecord = null) -> PanelContainer:
+	var c := _row_panel(w, ROW_HEIGHT if live == null else LIVE_ROW_HEIGHT)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 28)
 	c.add_child(h)
@@ -500,8 +504,22 @@ func _game_row(e: GalleryEntry, w: float) -> PanelContainer:
 		row.add_child(_pill(tr(bug.stamp_for(e.genre, e.tech, e.setting)) if bug != null else String(id), Style.BUG, Style.SURFACE_SOLID, -4.0))
 	col.add_child(_label(tr("Забег %d · релиз %d%s") % [e.run_number, e.release, ((" · “%s”" if Lang.english() else " · «%s»") % e.studio) if e.studio != "" else ""],
 			Style.FONT_CAPTION, Style.INK_3))
-	h.add_child(_shot_view(e))
+	h.add_child(_shot_view(e) if live == null else _box_view(live, e.studio))
 	return c
+
+
+## Живая коробка игры: обложка записи, а без неё собранная от сида (игры до обложек).
+func _box_view(record: GameRecord, studio: String) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = LIVE_BOX
+	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := CoverBox.new()
+	box.setup(record, studio)
+	box.cover = record.cover if not record.cover.is_empty() else CoverData.default_for(record)
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	holder.add_child(box)
+	return holder
 
 
 ## Кадр демки 16:9; файла нет: заглушка цвета жанра с технологией.
@@ -513,6 +531,18 @@ func _shot_view(e: GalleryEntry) -> Control:
 	var genre := _catalogs[0].by_value(int(e.genre))
 	var color := genre.color if genre != null else Style.INK_3
 	frame.add_theme_stylebox_override("panel", Style.flat(color, Style.R_CTL, Color.TRANSPARENT, 0))
+	# С обложкой (`docs/specs/cover.md`) на месте кадра стоит коробка игры на нейтральном поле.
+	var box := _load_shot(e.cover_shot)
+	if box != null:
+		frame.add_theme_stylebox_override("panel", Style.flat(Style.SURFACE_SOLID, Style.R_CTL, Color.TRANSPARENT, 0))
+		var view := TextureRect.new()
+		view.texture = box
+		view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		view.custom_minimum_size = SHOT
+		view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(view)
+		return frame
 	var tex := _load_shot(e.shot)
 	if tex != null:
 		var r := TextureRect.new()

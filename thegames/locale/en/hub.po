@@ -740,3 +740,152 @@ msgstr "hit"
 
 msgid "суперхит"
 msgstr "smash hit"
+
+# --- обложка коробки (scripts/cover) ---
+
+msgid "Цвет"
+msgstr "Color"
+
+msgid "Градиент"
+msgstr "Gradient"
+
+msgid "Полосы"
+msgstr "Stripes"
+
+msgid "Точки"
+msgstr "Dots"
+
+msgid "Лучи"
+msgstr "Rays"
+
+msgid "Блёстки"
+msgstr "Glitter"
+
+msgid "Голограмма"
+msgstr "Hologram"
+
+msgid "Фольга"
+msgstr "Foil"
+
+msgid "Без обводки"
+msgstr "No outline"
+
+msgid "Белая обводка"
+msgstr "White outline"
+
+msgid "Тёмная обводка"
+msgstr "Dark outline"
+
+msgid "Тень"
+msgstr "Shadow"
+
+msgid "Жирный"
+msgstr "Bold"
+
+msgid "Лёгкий"
+msgstr "Light"
+
+msgid "Наклонный"
+msgstr "Slanted"
+
+msgid "Узкий"
+msgstr "Narrow"
+
+msgid "С засечками"
+msgstr "Serif"
+
+msgid "Машинка"
+msgstr "Typewriter"
+
+msgid "Плакат"
+msgstr "Poster"
+
+msgid "От руки"
+msgstr "Handwritten"
+
+msgid "Фон"
+msgstr "Background"
+
+msgid "Название"
+msgstr "Title"
+
+msgid "Стикеры"
+msgstr "Stickers"
+
+msgid "Оборот"
+msgstr "Back"
+
+msgid "Лицевая"
+msgstr "Front"
+
+msgid "Случайно"
+msgstr "Random"
+
+msgid "Обложка"
+msgstr "Cover"
+
+msgid "Сторона"
+msgstr "Side"
+
+msgid "Эффект"
+msgstr "Effect"
+
+msgid "Цвет фона"
+msgstr "Background color"
+
+msgid "Второй цвет"
+msgstr "Second color"
+
+msgid "Цвет коробки"
+msgstr "Case color"
+
+msgid "Шрифт"
+msgstr "Font"
+
+msgid "Стиль"
+msgstr "Style"
+
+msgid "Размер"
+msgstr "Size"
+
+msgid "Поворот"
+msgstr "Rotation"
+
+msgid "Положение"
+msgstr "Position"
+
+msgid "Новый стикер"
+msgstr "New sticker"
+
+msgid "Стикер"
+msgstr "Sticker"
+
+msgid "Убрать стикер"
+msgstr "Remove sticker"
+
+msgid "Кадр 1"
+msgstr "Shot 1"
+
+msgid "Кадр 2"
+msgstr "Shot 2"
+
+msgid "Стикеров максимум"
+msgstr "Sticker limit reached"
+
+msgid "Двигать стрелками"
+msgstr "Move with arrows"
+
+msgid "← → ↑ ↓ двигать · %s готово"
+msgstr "← → ↑ ↓ move · %s done"
+
+msgid "↑ ↓ строка · ← → изменить · %s применить · R случайно"
+msgstr "↑ ↓ row · ← → change · %s apply · R random"
+
+msgid "Нет кадров"
+msgstr "No shots"
+
+msgid "Из игры"
+msgstr "From the game"
+
+msgid "Картинка"
+msgstr "Image"

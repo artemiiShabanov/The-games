@@ -498,7 +498,7 @@ func _open_game(index: int) -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 20)
 	panel.add_child(col)
-	col.add_child(GalleryScreen.game_card(GalleryEntry.of(record, run.run_number, index + 1, run.studio_name), GAME_CARD_WIDTH))
+	col.add_child(GalleryScreen.game_card(GalleryEntry.of(record, run.run_number, index + 1, run.studio_name), GAME_CARD_WIDTH, record))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 16)

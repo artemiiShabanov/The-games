@@ -112,7 +112,7 @@
   --frames=12000` (`TIMEOUT=600`, кадр карточки оценки `--only=<id> --hold`). Багфикс:
   `--scene=bugfix_test --time-scale=4 --frames=3000`. Вставки: `--scene=event_test --frames=600`; одна на скриншот
   `--no-checks --event=<id> [--mood=N]`; поверх фазы студии `--scene=studio_test --no-checks
-  --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`). Палитра смысловых цветов и
+  --past=4 --event=<id> --frames=20`. Настройки: `--scene=options_test --frames=30` (кадр `--no-checks`). Обложка коробки (`docs/specs/cover.md`): `--scene=cover_test --frames=60`, кадр `--no-checks [--genre=racing] [--tech=vector|bit8|bit16|lowpoly|threed] [--setting=N] [--seed=N] [--tab=0..3] [--side=back] [--fx=0..8] [--art=N] [--random=N]`. Палитра смысловых цветов и
   акцентов мини-игр под автотестом `--palette=paper|fog|lacquer|contrast` у любой сцены. Мышь в мини-играх:
   `--scene=mouse_test --frames=1500`.
   Главный экран забега: `--scene=hub_test --frames=60`, кадр `--no-checks
