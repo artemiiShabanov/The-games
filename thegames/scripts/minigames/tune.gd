@@ -5,7 +5,7 @@ extends Minigame
 ## фиксируется сама, простояв совпавшей `FIX_DELAY` (дольше шага автоповтора, чтобы зажатая
 ## стрелка проезжала мимо). Три волны за раунд, по очереди (плейтест 2026-11-14, #131).
 ## Счёт (2026-11-18): доля совпавших волн (текущая по тому, насколько подошла) минус
-## `WRONG_PENALTY` за каждый шаг прочь от эталона; такие шаги крестиками справа сверху.
+## ничего (2026-11-19: наказание это время) за каждый шаг прочь от эталона; такие шаги крестиками справа сверху.
 ## Обе волны звучат: своя и эталон как два мягких тона, которые вспыхивают на шаге и затихают
 ## до тихого фона; при сближении слышны биения.
 ## Параметры от `t` в `resources/minigames/tune.tres`: offset (на сколько шагов эталон дальше
@@ -44,7 +44,6 @@ const DOT_GAP := 28.0
 const SPLASH_CRESTS := 5
 ## Счёт: шаг прочь от эталона (по оси, где волны уже совпали, тоже) стоит столько. Прежний «еле
 ## успел три волны» это семь-восемь таких шагов, около 0,7.
-const WRONG_PENALTY := 0.04
 
 ## Мышь: сколько пикселей ведения на шаг частоты и амплитуды.
 const DRAG_FREQ_PX := 36.0
@@ -278,7 +277,7 @@ func _score() -> float:
 	var part := 0.0
 	if wave_index < WAVES and not done_this:
 		part = clampf(1.0 - float(_dist()) / start_dist, 0.0, 1.0)
-	return clampf((matches + part) / WAVES - WRONG_PENALTY * wrong, 0.0, 1.0)
+	return clampf((matches + part) / WAVES, 0.0, 1.0)
 
 
 func _on_finish(_success: bool) -> void:
@@ -441,4 +440,3 @@ func _draw() -> void:
 			_jelly_dots[j].draw_lifted(self, c, lift if j == wave_index and not done_this else 0.0)
 		else:
 			draw_circle(_dot_pos(j), DOT_R, c)
-	draw_mistakes(wrong, 0, 1)

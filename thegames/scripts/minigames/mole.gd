@@ -3,7 +3,7 @@ extends Minigame
 ## центра (вверх, вправо, вниз, влево). Кружки выскакивают из лунок и через `up` секунд прячутся;
 ## стрелка в сторону лунки с кружком бьёт его, пока он снаружи. Кружок спрятался небитым:
 ## упущен. Игра идёт до конца таймера (14 с; плейтест 2026-11-14, #131: было 5 за 20 с, игра
-## затянута). Счёт (2026-11-18): 1 минус `MISS_COST` за упущенный и `WHIFF_COST` за промах.
+## затянута). Счёт (2026-11-18): 1 минус штраф по порогу `GRACE` за упущенный и штраф по порогу `GRACE` за промах.
 ## Стрелка в пустую лунку: промах, немного снижает счёт, и молоток в центре на `stun` секунд
 ## сереет и не бьёт (иначе выигрывает долбёжка всеми четырьмя стрелками). С `t` 0,5 промах стоит
 ## кружка: реакция около 0,3 с плюс `stun` не короче времени кружка снаружи. Стрелка в лунку, где
@@ -25,8 +25,9 @@ const HOLES := 4
 ## Счёт: упущенный кружок снижает на столько (три упущенных, прежнее «еле прошёл», дают 0,7;
 ## за игру выскакивает 16-20 кружков, ничего не бить около нуля), промах в пустую лунку на
 ## столько (он и так стоит кружка через блокировку молотка).
-const MISS_COST := 0.1
-const WHIFF_COST := 0.05
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 3
 ## Первый выскок после старта, с.
 const FIRST_POP := 0.6
 ## После пары следующий выскок позже во столько раз.
@@ -154,6 +155,9 @@ func _press(i: int) -> void:
 			_jelly_hit(i)
 		State.EMPTY:
 			whiffs += 1
+			# Удар мимо тоже ошибка с крестиком (2026-11-19).
+			_slots.append(JellySpring.new())
+			_slots.back().kick(14.0)
 			stun = stun_seconds
 			_shake = SHAKE_SECONDS
 			_whiff_sound.play()
@@ -192,7 +196,7 @@ func _miss(i: int) -> void:
 	_set_state(i, State.MISSED)
 	_miss_sound.play()
 	_slots.append(JellySpring.new())
-	_slots[missed - 1].kick(14.0)
+	_slots.back().kick(14.0)
 
 
 ## Выскок: один кружок или с вероятностью `pair` два сразу, в свободные лунки.
@@ -227,7 +231,7 @@ func summary() -> String:
 
 
 func _score() -> float:
-	return 1.0 - MISS_COST * missed - WHIFF_COST * whiffs
+	return 1.0 - mistake_loss(missed + whiffs, GRACE)
 
 
 func _on_finish(_success: bool) -> void:
@@ -391,9 +395,9 @@ func _draw_count() -> void:
 	draw_string(mono, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, COUNT_SIZE, Style.SURFACE_SOLID)
 
 
-## Упущенные крестиками справа сверху (`draw_mistakes`), без предела.
+## Упущенные и удары мимо крестиками справа сверху (`draw_mistakes`), без предела.
 func _draw_slots() -> void:
 	var pops: Array[float] = []
 	for sp in _slots:
 		pops.append(sp.value)
-	draw_mistakes(missed, 0, 0, pops)
+	draw_mistakes(missed + whiffs, 0, 0, pops)

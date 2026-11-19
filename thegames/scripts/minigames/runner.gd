@@ -2,7 +2,7 @@ extends Minigame
 ## «Прыгай» (runner, платформер), каталог `docs/specs/minigames_catalog.md`.
 ## Точка бежит сама по линии, A прыжок, высота по длине нажатия (отпустил раньше: короче),
 ## впереди ямы и столбики. Добежать до конца дорожки. Счёт (2026-11-18): доля пробежанной
-## дорожки минус `FALL_PENALTY` за каждое падение, предела падений нет. Хитбоксы
+## дорожки минус штраф по порогу `GRACE` за каждое падение, предела падений нет. Хитбоксы
 ## меньше картинки, чтобы прощать касания (плейтест 2026-11-05). С `t` препятствия плотнее, появляются широкие ямы и столбики
 ## подряд. Абстрактно, в стиле оболочки: линия, круг, прямоугольники.
 ## Параметры от `t` в `resources/minigames/runner.tres`: speed, gap, combo_share.
@@ -17,7 +17,9 @@ class Obstacle:
 ## 12,5 с оценки 2026-11-18 («длинно»: 16 с дорожки), запас таймера под падения прежний.
 const RUN_SECONDS := 12.5
 ## Счёт: падение стоит столько. Прежний «еле прошёл» это одно падение, 0,8.
-const FALL_PENALTY := 0.2
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 1
 const DOT_R := 28.0
 const DOT_SCREEN_X := 0.3
 const JUMP_DISTANCE := 300.0
@@ -212,7 +214,7 @@ func summary() -> String:
 
 func _score() -> float:
 	var progress := 1.0 if reached else clampf(world_x / track_length, 0.0, 1.0)
-	return clampf(progress - FALL_PENALTY * falls, 0.0, 1.0)
+	return progress - mistake_loss(falls, GRACE)
 
 
 func _on_finish(_success: bool) -> void:

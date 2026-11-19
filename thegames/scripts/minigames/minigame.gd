@@ -29,6 +29,9 @@ const BOT_DELAY := 0.3
 ## Звуки мини-игр тише на 30 % (плейтест 2026-11-14, #131): каждый плеер, добавленный в
 ## мини-игру, приглушается на столько децибел.
 const SFX_TRIM_DB := -3.1
+const SPRINTS_PATH := "res://resources/sprints.tres"
+
+static var _sprints: SprintTuning
 
 var def: MinigameDef
 ## Сложность 0..1.
@@ -105,6 +108,15 @@ func finish_score(s: float) -> void:
 	_release_mouse()
 	_on_finish(score >= 0.5)
 	finished.emit(score)
+
+
+## Потеря счёта за `n` ошибок при пороге `grace` (2026-11-19): до порога ошибка стоит мало,
+## после него каждая резко поднимает шанс бага. Числа в `SprintTuning` (`mistake_soft`,
+## `mistake_hard`).
+static func mistake_loss(n: int, grace: int) -> float:
+	if _sprints == null:
+		_sprints = load(SPRINTS_PATH) as SprintTuning
+	return _sprints.mistake_loss(n, grace)
 
 
 ## Старый вход: успех как счёт 1, провал как 0.

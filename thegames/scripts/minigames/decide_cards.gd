@@ -53,7 +53,9 @@ const CARD_H := 280.0
 ## Счёт: каждая ошибка (неверное решение или просроченная карточка) и каждая нерешённая к
 ## концу времени карточка снимают столько; одна ошибка из восьми (старый порог «еле прошёл»)
 ## даёт 0,75, четыре (наугад) 0.
-const ERROR_COST := 0.25
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 2
 const FLY_SECONDS := 0.5
 const ENTER_SECONDS := 0.35
 const GAP_SECONDS := 0.2
@@ -288,9 +290,9 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-## Счёт: 1 за все карточки без ошибок, каждая ошибка или нерешённая карточка `ERROR_COST`.
+## Счёт: 1 за все карточки без ошибок, каждая ошибка или нерешённая карточка штраф по порогу `GRACE`.
 func _score() -> float:
-	return 1.0 - ERROR_COST * (errors + cards_total - decided)
+	return 1.0 - mistake_loss(errors + cards_total - decided, GRACE)
 
 
 ## Бот: WIN отвечает по правилу, LOSE наоборот.

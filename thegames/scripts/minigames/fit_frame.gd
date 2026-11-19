@@ -33,7 +33,9 @@ const BOUNCE_SECONDS := 0.45
 const SHAKE_SECONDS := 0.35
 ## Счёт: каждая непопавшая фигура (не та, не успел, не всплыла до конца времени) снимает
 ## столько; один промах (старый порог «еле прошёл») даёт 0,75, четыре и больше 0.
-const MISS_COST := 0.25
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 1
 const BOT_REACTION := 0.25
 
 var shapes_total := 6
@@ -143,9 +145,9 @@ func _on_tick(delta: float) -> void:
 	queue_redraw()
 
 
-## Счёт: 1 за все фигуры в трафаретах, каждая непопавшая `MISS_COST`.
+## Счёт: 1 за все фигуры в трафаретах, каждая непопавшая штраф по порогу `GRACE`.
 func _score() -> float:
-	return 1.0 - MISS_COST * (shapes_total - hits)
+	return 1.0 - mistake_loss(shapes_total - hits, GRACE)
 
 
 ## Насколько фигура уже ушла обратно в глубину, 0..1: последние `rise_seconds` ожидания она

@@ -13,6 +13,10 @@ extends Resource
 ## `bug_score` и ниже баг точно, между ними шанс бага падает линейно.
 @export var clean_score := 0.95
 @export var bug_score := 0.45
+## Цена ошибки в шансе бага (2026-11-19): до порога мини-игры каждая ошибка добавляет
+## `mistake_soft`, каждая следующая за порогом `mistake_hard`.
+@export var mistake_soft := 0.06
+@export var mistake_hard := 0.45
 ## Темп цепочки: каждый следующий спринт релиза сложнее на столько (`t`, до 1).
 @export var chain_t_step := 0.03
 ## Время мини-игр в первом релизе × это.
@@ -28,6 +32,15 @@ func bug_chance(score: float) -> float:
 	if clean_score <= bug_score:
 		return 0.0 if score >= clean_score else 1.0
 	return clampf((clean_score - score) / (clean_score - bug_score), 0.0, 1.0)
+
+
+## Сколько счёта снимают `n` ошибок мини-игры с порогом `grace`: столько, чтобы шанс бага
+## вышел `mistake_soft` за ошибку до порога и `mistake_hard` за каждую после.
+func mistake_loss(n: int, grace: int) -> float:
+	if n <= 0:
+		return 0.0
+	var chance := mistake_soft * mini(n, grace) + mistake_hard * maxi(n - grace, 0)
+	return (1.0 - clean_score) + chance * (clean_score - bug_score)
 
 
 ## Сумма весов пары для аспекта.

@@ -46,7 +46,9 @@ const POP_SECONDS := 0.25
 const SHAKE_SECONDS := 0.35
 const PULSE_SECONDS := 0.18
 ## Ложное нажатие стоит в счёте столько же, сколько пропущенная нота.
-const FALSE_PRESS_PENALTY := 1.0 / TOTAL_NOTES
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 4
 const BOT_PRECISION := 0.03
 const RING_R := NOTE_R + 10.0
 const MISS_SECONDS := 0.4
@@ -196,7 +198,7 @@ func summary() -> String:
 
 
 func _score() -> float:
-	return clampf(float(hits) / TOTAL_NOTES - FALSE_PRESS_PENALTY * false_presses, 0.0, 1.0)
+	return 1.0 - mistake_loss(TOTAL_NOTES - hits + false_presses, GRACE)
 
 
 ## Бот: WIN жмёт в такт и держит длинные, LOSE молчит.

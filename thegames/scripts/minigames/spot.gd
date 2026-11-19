@@ -2,7 +2,7 @@ extends Minigame
 ## «Найди отличие» (spot, графика), каталог `docs/specs/minigames_catalog.md`. Заменила «Наведи»
 ## (beam) по плейтесту 2026-11-14, #131. Две пиксельные картинки рядом отличаются одной клеткой. Курсор стрелками ходит
 ## по правой картинке (на левой бледная рамка показывает ту же клетку), A отмечает. Угадал:
-## следующая пара. Счёт (2026-11-18): доля найденных пар минус `ERROR_PENALTY` за каждую
+## следующая пара. Счёт (2026-11-18): доля найденных пар минус штраф по порогу `GRACE` за каждую
 ## неверную отметку, предела нет; неверные крестиками справа сверху.
 ## Клетка всегда отличается цветом палитры (оттенки сняты плейтестом 2026-11-14).
 ## Параметры от `t` в `resources/minigames/spot.tres`: size (сторона сетки, 6 → 8), pairs
@@ -11,7 +11,9 @@ extends Minigame
 const GRID_PX := 480.0
 const CELL_GAP := 4.0
 ## Счёт: неверная отметка стоит столько. Прежний «еле прошёл» это одна неверная, 0,8.
-const ERROR_PENALTY := 0.2
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 1
 ## Бот LOSE: столько неверных отметок, потом просто водит рамку.
 const BOT_LOSE_ERRORS := 5
 const FOUND_SECONDS := 0.6
@@ -158,7 +160,7 @@ func summary() -> String:
 
 
 func _score() -> float:
-	return clampf(float(found) / pairs_total - ERROR_PENALTY * errors, 0.0, 1.0)
+	return float(found) / pairs_total - mistake_loss(errors, GRACE)
 
 
 func _on_finish(_success: bool) -> void:

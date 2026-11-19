@@ -26,9 +26,11 @@ const SWATCH_GAP := 36.0
 const DONE_PAUSE := 0.6
 const BOT_STEP := 0.4
 ## Счёт: вес картинок (первая элементарная), ошибка (заливка впустую или сверх запаса) снимает
-## `ERROR_COST`; одна лишняя заливка (старый порог: ходы кончились) даёт 0,85, две 0,7.
+## штраф по порогу `GRACE`; одна лишняя заливка (старый порог: ходы кончились) даёт 0,85, две 0,7.
 const PICTURE_WEIGHT: Array[float] = [0.3, 0.7]
-const ERROR_COST := 0.15
+## Сколько ошибок стоят мало (`Minigame.mistake_loss`, 2026-11-19): каждая следующая резко
+## поднимает шанс бага.
+const GRACE := 2
 # Мармелад: только рисунок. Пружина клетки жёстче и глуше пружины предметов: плотно, коротко.
 const CELL_STIFF_GAIN := 2.2
 const CELL_DAMP_GAIN := 3.0
@@ -205,7 +207,7 @@ func _on_tick(delta: float) -> void:
 
 
 ## Счёт: собранные картинки по весу, текущая по доле сетки в области угла, минус
-## `ERROR_COST` за ошибку.
+## штраф по порогу `GRACE` за ошибку.
 func _score() -> float:
 	var done := 0.0
 	for p in PICTURES:
@@ -213,7 +215,7 @@ func _score() -> float:
 			done += PICTURE_WEIGHT[p]
 		elif p == picture:
 			done += PICTURE_WEIGHT[p] * float(_region(grid).size()) / (n * n)
-	return done - ERROR_COST * errors
+	return done - mistake_loss(errors, GRACE)
 
 
 ## Бот: WIN заливает жадно лучшим цветом, LOSE льёт цвет угла, тратя ходы впустую.

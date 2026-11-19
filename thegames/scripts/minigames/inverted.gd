@@ -7,7 +7,7 @@ extends Minigame
 ## что движется, и по цвету: управляемое синее (акцент), остальное чёрное; выход это кольцо в
 ## цвете стен, в которое садится точка (плейтест 2026-11-07). 2-3 лабиринта за 20 с. Счёт
 ## (2026-11-18): доля пройденных лабиринтов, недопройденный идёт половиной доли пройденного в
-## нём пути; каждый удар о стену снимает `BUMP_PENALTY`. Параметры от `t` в `resources/minigames/inverted.tres`:
+## нём пути; каждый удар о стену снимает ничего (2026-11-19: наказание это время). Параметры от `t` в `resources/minigames/inverted.tres`:
 ## mazes (число), twist (запутанность: 0 длинные коридоры, 1 частые развилки), flip (через
 ## сколько ходов режим меняется посреди лабиринта; от `FLIP_NEVER` и выше не меняется). Смена
 ## посреди лабиринта выключена числом в ресурсе (плейтест 2026-11-14, #131: бесит), режим
@@ -39,7 +39,6 @@ const BUMP_LOCK_SECONDS := 0.5
 const FLASH_SECONDS := 0.4
 const BOT_STEP := 0.16
 ## Счёт: удар о стену это ошибка; недопройденный лабиринт засчитывается с этим весом.
-const BUMP_PENALTY := 0.06
 const PARTIAL_WEIGHT := 0.5
 ## Стены клетки битами: верх, право, низ, лево.
 const DIRS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
@@ -305,7 +304,7 @@ func _score() -> float:
 	if maze_index < mazes_total:
 		var left := maxi(_path_to_exit().size() - 1, 0)
 		done += PARTIAL_WEIGHT * clampf(1.0 - float(left) / maze_path, 0.0, 1.0)
-	return clampf(done / mazes_total - BUMP_PENALTY * bumps, 0.0, 1.0)
+	return clampf(done / mazes_total, 0.0, 1.0)
 
 
 ## Бот: WIN идёт по кратчайшему пути с учётом режима, LOSE стоит.
@@ -612,5 +611,3 @@ func _draw() -> void:
 		elif j == maze_index:
 			col = Style.INK
 		draw_circle(Vector2(x0 + j * gap, 60.0), r, col)
-	# Под ними удары о стену крестиками, без предела.
-	draw_mistakes(bumps, 0, 1)
