@@ -3,7 +3,8 @@ extends Control
 ## Экран настроек (#81) поверх меню или паузы: карточка со строками языка (2026-11-18), громкости (общая, музыка,
 ## звуки), полного экрана, движения интерфейса, палитры (название и десять образцов: пять смысловых
 ## цветов и пять акцентов мини-игр), подписей клавиш и чувствительности обзора мышью
-## и стиком (#109), внизу «Готово». ↑ ↓ строка,
+## и стиком (#109), выгрузки статистики мини-игр (`MinigameStats`, 2026-11-20: ␣ или клик пишет
+## таблицу CSV в «Загрузки» и показывает файл), внизу «Готово». ↑ ↓ строка,
 ## ← → меняют значение (громкость шагом 10 %), ␣ переключает или закрывает на «Готово».
 ## Мышь: наведение берёт строку, клик по полосе громкости ставит значение по месту, клик по
 ## переключателю меняет его, колесо и тачпад над строкой крутят значение. Esc или Ctrl
@@ -15,18 +16,19 @@ signal closed
 signal language_changed
 
 const WIDTH := 880.0
-const ROW_HEIGHT := 50.0
+const ROW_HEIGHT := 46.0
 const BAR := Vector2(320, 12)
 const STEP := 0.1
 ## Зазор между строками (плейтест 2026-11-11: строки слипались; 2026-11-18 строка языка,
-## строки ниже и зазоры меньше, чтобы карточка не легла на подсказки).
-const ROW_GAP := 12
+## строки ниже и зазоры меньше, чтобы карточка не легла на подсказки; 2026-11-20 строка
+## статистики, ещё плотнее).
+const ROW_GAP := 10
 
-enum Row { LANGUAGE, MASTER, MUSIC, SFX, FULLSCREEN, MOTION, PALETTE, GLYPHS, MOUSE_LOOK, STICK_LOOK, DONE }
+enum Row { LANGUAGE, MASTER, MUSIC, SFX, FULLSCREEN, MOTION, PALETTE, GLYPHS, MOUSE_LOOK, STICK_LOOK, STATS, DONE }
 
 ## Строка языка на двух языках сразу: найдётся, даже если язык переключили случайно.
 const TITLES: Array[String] = ["Язык / Language", "Громкость", "Музыка", "Звуки", "Полный экран", "Анимация интерфейса", "Палитра", "Подписи клавиш",
-		"Обзор мышью", "Обзор стиком", "Готово"]
+		"Обзор мышью", "Обзор стиком", "Статистика мини-игр", "Готово"]
 ## Строки с полосой: громкости и чувствительность обзора.
 const BARS: Array[int] = [Row.MASTER, Row.MUSIC, Row.SFX, Row.MOUSE_LOOK, Row.STICK_LOOK]
 ## Образцы палитры в строке «Палитра»: квадрат и зазор; между смысловыми и акцентами зазор шире.
@@ -41,6 +43,10 @@ var _bars: Array[Control] = []
 var _fills: Array[ColorRect] = []
 var _lifts: Array[JellyLift] = []
 var _chips: Array[Panel] = []
+## Итог выгрузки статистики для подписи строки: пусто, пока не выгружали.
+var _stats_note := ""
+## Полный путь последней выгрузки.
+var stats_file := ""
 
 
 func _ready() -> void:
@@ -112,6 +118,8 @@ func change(row: int, dir: int) -> void:
 			Options.mouse_look = _step(Options.mouse_look, dir)
 		Row.STICK_LOOK:
 			Options.stick_look = _step(Options.stick_look, dir)
+		Row.STATS:
+			_export_stats()
 		_:
 			return
 	Options.apply()
@@ -138,6 +146,17 @@ func set_volume(row: int, v: float) -> void:
 	Options.apply()
 	ShellSounds.play(&"tick")
 	_refresh()
+
+
+## Выгрузка статистики мини-игр таблицей в «Загрузки»; файл показывается в проводнике.
+func _export_stats() -> void:
+	stats_file = MinigameStats.export_csv()
+	if stats_file == "":
+		_stats_note = tr("пусто") if MinigameStats.count() == 0 else tr("не вышло")
+		return
+	_stats_note = tr("в «Загрузках»")
+	if not AutoTest.enabled:
+		OS.shell_show_in_file_manager(stats_file)
 
 
 func close() -> void:
@@ -182,6 +201,8 @@ func _value_text(row: int) -> String:
 			return tr(Options.GLYPH_NAMES[Options.glyphs])
 		Row.MOUSE_LOOK, Row.STICK_LOOK:
 			return "%d %%" % roundi(_volume_of(row) * 100.0)
+		Row.STATS:
+			return _stats_note if _stats_note != "" else tr("выгрузить")
 	return ""
 
 
@@ -199,7 +220,7 @@ func _input(event: InputEvent) -> void:
 	var w := MouseUi.wheel(event)
 	if w != 0:
 		var at := _row_at(event)
-		if at >= 0 and at != Row.DONE:
+		if at >= 0 and at != Row.DONE and at != Row.STATS:
 			index = at
 			change(at, -w)
 		MouseUi.consume(viewport)
@@ -230,9 +251,11 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed(GameInput.DOWN, true):
 		_move(1)
 	elif event.is_action_pressed(GameInput.LEFT, true):
-		change(index, -1)
+		if index != Row.STATS:
+			change(index, -1)
 	elif event.is_action_pressed(GameInput.RIGHT, true):
-		change(index, 1)
+		if index != Row.STATS:
+			change(index, 1)
 	elif GameInput.is_a(event) and not event.is_echo():
 		if index == Row.DONE:
 			close()

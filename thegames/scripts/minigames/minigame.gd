@@ -43,6 +43,11 @@ var running := false
 var elapsed := 0.0
 
 var paused := false
+## Для журнала статистики (`MinigameStats`): ошибки и порог из последнего `mistake_loss`
+## (−1, если мини-игра ошибок не считает) и число пауз.
+var mistakes := -1
+var mistake_grace := -1
+var pauses := 0
 
 ## Последнее действие, нажатое мышью (проверка `debug/scenes/mouse_test`).
 var mouse_last_action := &""
@@ -113,7 +118,9 @@ func finish_score(s: float) -> void:
 ## Потеря счёта за `n` ошибок при пороге `grace` (2026-11-19): до порога ошибка стоит мало,
 ## после него каждая резко поднимает шанс бага. Числа в `SprintTuning` (`mistake_soft`,
 ## `mistake_hard`).
-static func mistake_loss(n: int, grace: int) -> float:
+func mistake_loss(n: int, grace: int) -> float:
+	mistakes = n
+	mistake_grace = grace
 	if _sprints == null:
 		_sprints = load(SPRINTS_PATH) as SprintTuning
 	return _sprints.mistake_loss(n, grace)
@@ -129,6 +136,7 @@ func pause() -> void:
 	if paused or not running or _done:
 		return
 	paused = true
+	pauses += 1
 	running = false
 	_release_mouse()
 	set_process_unhandled_input(false)

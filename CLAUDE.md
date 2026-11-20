@@ -136,6 +136,10 @@
   [--all-bought] --frames=240` (под `--fixed-fps` снимок отстаёт от сцены, поэтому экран
   без `--animate` стоит с первого кадра). Кривые параметров и сцена в ресурс мини-игры:
   `Godot --headless --path thegames -s debug/tools/set_params.gd -- <id> tscn=res://... key=from:to`.
+- Статистика мини-игр (2026-11-20): `MinigameStats` пишет строку на каждую сыгранную мини-игру в
+  `user://minigame_stats.jsonl` (под автотестом `minigame_stats_autotest.jsonl`, папка
+  `~/Library/Application Support/Godot/app_userdata/The Games/`); выгрузка CSV в «Загрузки» из
+  настроек или дебаг-меню «Мини-игры».
 - Мармелад: лист кадров в движении `sh tools/autotest.sh --scene=jelly_test [--game=fit_frame]
   [--screen [--locked]] [--lose] --from=N --every=N --count=N [--crop=x,y,w,h]
   ["--actions=40:down,80:click=710x680"] ["--set=ui_press:0"] --frames=N`, лист в

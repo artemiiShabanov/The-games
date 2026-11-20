@@ -25,6 +25,8 @@ func _ready() -> void:
 	pool = MinigamePool.load_all()
 	tuning = MinigamePool.load_tuning()
 	catalog = BugCatalog.load_default()
+	if AutoTest.enabled:
+		MinigameStats.clear()
 	for d in pool:
 		ids.append(String(d.id))
 	runner = SprintRunner.new()
@@ -139,6 +141,15 @@ func _check(results: Array[bool]) -> void:
 			_expect(_started == 2 * n and _finished == 2 * n, "LOSE: сигналов %d/%d" % [_started, _finished])
 			_expect(_scores.size() == n and _scores.max() <= tuning.bug_score, "%s LOSE: счёт %s выше верного бага %.2f" % [what, _scores, tuning.bug_score])
 			AutoTest.note("%s LOSE: счёт %s" % [what, _scores])
+			# Журнал статистики: по строке на каждую сыгранную мини-игру, WIN без бага, LOSE с багом.
+			var stats := MinigameStats.rows()
+			_expect(stats.size() == 2 * n, "статистика: строк %d, не %d" % [stats.size(), 2 * n])
+			if stats.size() == 2 * n:
+				var first: Dictionary = stats[0]
+				var last: Dictionary = stats[2 * n - 1]
+				_expect(not first["bug"] and last["bug"] and float(last["score"]) <= tuning.bug_score
+						and String(last["minigame"]) != "" and float(last["time_spent"]) > 0.0
+						and int(last["sprints"]) == n, "статистика: %s … %s" % [first, last])
 			if not single:
 				# План из 8 провалов платформера × 8-bit даёт ровно восемь багов: по одному на пять
 				# аспектов, второй баг графики за её второй спринт (#38), баг жанра и баг

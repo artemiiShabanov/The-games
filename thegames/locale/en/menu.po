@@ -96,6 +96,18 @@ msgstr "Mouse look"
 msgid "Обзор стиком"
 msgstr "Stick look"
 
+msgid "Статистика мини-игр"
+msgstr "Minigame stats"
+
+msgid "выгрузить"
+msgstr "export"
+
+msgid "в «Загрузках»"
+msgstr "in Downloads"
+
+msgid "не вышло"
+msgstr "failed"
+
 msgid "Готово"
 msgstr "Done"
 

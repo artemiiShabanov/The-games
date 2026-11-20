@@ -329,6 +329,12 @@ func _register_builtin() -> void:
 			func(v: bool) -> void: minigame_loop = v)
 	add_action(SECTION_MINIGAMES, "Оценка мини-игр (все по очереди)", func() -> void:
 		run_test_scene("minigame_rating_test"))
+	add_action(SECTION_MINIGAMES, "Статистика: выгрузить CSV", func() -> void:
+		var file := MinigameStats.export_csv()
+		print("MinigameStats: %s" % (file if file != "" else "журнал пуст"))
+		if file != "":
+			OS.shell_show_in_file_manager(file))
+	add_action(SECTION_MINIGAMES, "Статистика: очистить журнал", func() -> void: MinigameStats.clear())
 	add_action(SECTION_MINIGAMES, "Запустить мини-игру", func() -> void:
 		minigame_single = true
 		run_test_scene(MINIGAME_SCENE))

@@ -73,11 +73,25 @@ func _check() -> void:
 	_expect(is_equal_approx(Options.stick_look, 1.0), "обзор стиком за границей: %.2f" % Options.stick_look)
 	Options.mouse_look = look
 	Options.stick_look = 0.5
+	# Выгрузка статистики мини-игр: пустой журнал не пишет файл, строка журнала уходит в CSV.
+	MinigameStats.clear()
+	screen.change(OptionsScreen.Row.STATS, 1)
+	_expect(screen.stats_file == "", "пустая статистика выгрузилась: %s" % screen.stats_file)
+	var f := FileAccess.open(MinigameStats.path(), FileAccess.WRITE)
+	f.store_line(JSON.stringify({"minigame": "stack", "t": 0.5, "mistakes": 2, "bug": true, "details": "a, b"}))
+	f.close()
+	screen.change(OptionsScreen.Row.STATS, 1)
+	var csv := FileAccess.get_file_as_string(screen.stats_file).split("\n", false)
+	_expect(csv.size() == 2 and csv[0].begins_with("time,session,context") and csv[1].contains("stack")
+			and csv[1].contains(",0.5,") and csv[1].contains("\"a, b\""), "выгрузка статистики: %s" % [csv])
+	if screen.stats_file != "":
+		DirAccess.remove_absolute(screen.stats_file)
+	MinigameStats.clear()
 	screen.close()
 	_expect(_closed, "«Готово» закрывает")
 	_expect(not FileAccess.file_exists(Options.PATH) or FileAccess.get_modified_time(Options.PATH) < Time.get_unix_time_from_system() - 5,
 			"файл настроек под автотестом не тронут")
-	AutoTest.note("options: шины, громкость, тишина, движение, палитра, язык, подписи, обзор мышью и стиком, закрытие")
+	AutoTest.note("options: шины, громкость, тишина, движение, палитра, язык, подписи, обзор мышью и стиком, выгрузка статистики, закрытие")
 	AutoTest.fulfill("options checks")
 
 

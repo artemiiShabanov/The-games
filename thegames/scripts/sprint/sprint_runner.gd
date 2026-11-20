@@ -33,6 +33,9 @@ var first_release := false
 var seed_base := 0
 ## Множитель шанса бага технологии релиза (`SprintTuning.bug_mult`); хозяин ставит до `run()`.
 var bug_mult := 1.0
+## Контекст для журнала статистики (`MinigameStats.record`): `context`, `release`, `genre`,
+## `tech`, `setting`. Ставит хозяин; без него строка пишется как тестовая.
+var stats_context := {}
 var game_title := ""
 var results: Array[bool] = []
 ## Счёт каждого сыгранного спринта этого запуска.
@@ -156,6 +159,8 @@ func _run_sprint(def: MinigameDef) -> void:
 	var score: float = await _minigame.finished
 	AutoTest.end_hand()
 	var success := roll_clean(score, seed_base + index)
+	MinigameStats.record(_minigame, stats_context, index + 1, plan.size(), seed_base + index,
+			tuning.bug_chance(score, bug_mult), not success)
 	scores.append(score)
 	results.append(success)
 	sprint_scored.emit(def, score, success)
