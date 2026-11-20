@@ -454,6 +454,7 @@ func _start_runner(from: int) -> void:
 	_runner.own_background = false
 	_runner.tuning = run.sprint_tuning
 	_runner.t_of = _t_for
+	_runner.bug_mult = run.sprint_tuning.bug_mult(record.tech)
 	_runner.sprint_finished.connect(_on_sprint_finished)
 	_runner.plan_finished.connect(_on_plan_finished)
 	_runner.menu_requested.connect(_to_menu)
@@ -606,6 +607,7 @@ func _on_bugfix_accepted() -> void:
 	_runner.own_background = false
 	_runner.tuning = run.sprint_tuning
 	_runner.t_of = _t_for
+	_runner.bug_mult = run.sprint_tuning.bug_mult(record.tech)
 	_runner.sprint_finished.connect(_on_bugfix_sprint)
 	add_child(_runner)
 	_runner.run(Bugfix.plan_for(def), run.t_value(), false, run.rng.randi(), tr("Багфикс · %s") % record.title)

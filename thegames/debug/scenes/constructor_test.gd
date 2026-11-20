@@ -204,7 +204,7 @@ func _expect(ok: bool, what: String) -> void:
 
 func _run_checks() -> void:
 	var e := constructor.estimate
-	_expect(e != null and e.sprints == 5 and e.sprint_price == 1400 and e.total == 7000 and e.remainder == cash - 7000,
+	_expect(e != null and e.sprints == 7 and e.sprint_price == 1000 and e.total == 7000 and e.remainder == cash - 7000,
 			"смета стартовой тройки: %s" % e)
 	_expect(constructor.title != "", "название пустое")
 	var t0 := constructor.title
@@ -235,11 +235,11 @@ func _run_checks() -> void:
 	_expect(got.size() == 1, "подтверждение не отдало конфигурацию")
 	if got.size() == 1:
 		var c: GameConfig = got[0]
-		_expect(c.sprints == 5 and c.sprint_cost == 1400 and c.title == constructor.title if constructor else true,
+		_expect(c.sprints == 7 and c.sprint_cost == 1000 and c.title == constructor.title if constructor else true,
 				"конфигурация: %s" % c)
 		_expect(wallet.cash == cash - 7000, "кошелёк после старта %d" % wallet.cash)
 	var q := Constructor.quick_config(Game.Genre.SHOOTER, Game.Tech.VECTOR, Game.Setting.SPACE, economy, 7)
-	_expect(q.sprints == 4 and q.sprint_cost == 1160 and q.title != "", "quick_config: %s" % q)
+	_expect(q.sprints == 7 and q.sprint_cost == 660 and q.title != "", "quick_config: %s" % q)
 	_expect(Style.format_money(12000) == "$ 12 000" and Style.format_money(-2600) == "− $ 2 600" and Style.format_money(900) == "$ 900",
 			"формат денег: %s / %s" % [Style.format_money(12000), Style.format_money(-2600)])
 	_check_demo_lock()
@@ -337,7 +337,7 @@ func _check_effects() -> void:
 	insider = true
 	_launch()
 	var e := constructor.estimate
-	_expect(e.sprint_price == 1260 and e.total == 6300, "смета с менеджером: %s" % e)
+	_expect(e.sprint_price == 900 and e.total == 6300, "смета с менеджером: %s" % e)
 	_expect(constructor.market_tag(0, Game.Genre.PLATFORMER) == "в тренде · недавно было"
 			and constructor.market_tag(2, Game.Setting.SPACE) == "в тренде", "метки с инсайдером: %s" % [constructor.market_tags])
 	manager = false

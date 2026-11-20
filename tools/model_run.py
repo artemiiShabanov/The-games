@@ -76,6 +76,9 @@ def parse_value(raw):
 
 E = load_tres(RES / "economy.tres")
 S = load_tres(RES / "success.tres")
+# Из `sprints.tres` модели нужна только лесенка шанса бага (остальное там подресурсы).
+SPR = {"bug_mult_by_tech": parse_value(re.search(
+    r"^bug_mult_by_tech = (.*)$", (RES / "sprints.tres").read_text(encoding="utf-8"), re.M).group(1))}
 
 
 # --- Экономика, как EconomyTuning -------------------------------------------------------------
@@ -638,7 +641,8 @@ SWEET_STREAK = 3
 
 
 def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
-    """Жадный забег M4 со случайными руками: спринт удаётся с вероятностью `p`, провал даёт баг,
+    """Жадный забег M4 со случайными руками: спринт удаётся с вероятностью `p` (на простой
+    технологии чаще, `bug_mult_by_tech`), провал даёт баг,
     один багфикс (тоже с `p`) снимает один баг. Доля забегов, в которых выполнено достижение:
     «Десятка» (все три критика 10, `ten_streak` игр подряд), «Без следа» (3 релиза подряд без
     багов), «Сладкая жизнь» (5 подряд окупились первой неделей), «Сокровище» ($200 000 на счету),
@@ -672,9 +676,11 @@ def achievements_mc(start, p, runs=4000, seed=1, ten_streak=1):
                 break
             _, g, t, x, cost = best
             n_sprints = int(E["sprints_by_tech"][TECHS.index(t)])
-            wins = sum(1 for _k in range(n_sprints) if rnd_.random() < p)
+            # Лесенка технологий (2026-11-20): провал спринта и багфикса реже на простой технологии.
+            fail = (1.0 - p) * SPR["bug_mult_by_tech"][TECHS.index(t)]
+            wins = sum(1 for _k in range(n_sprints) if rnd_.random() >= fail)
             bugs = n_sprints - wins
-            if bugs > 0 and rnd_.random() < p:
+            if bugs > 0 and rnd_.random() >= fail:
                 bugs -= 1
             q = wins / n_sprints
             nov = novelty(g, t, x, 1, games)

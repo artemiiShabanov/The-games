@@ -31,6 +31,8 @@ var t := 0.0
 var t_of: Callable
 var first_release := false
 var seed_base := 0
+## Множитель шанса бага технологии релиза (`SprintTuning.bug_mult`); хозяин ставит до `run()`.
+var bug_mult := 1.0
 var game_title := ""
 var results: Array[bool] = []
 ## Счёт каждого сыгранного спринта этого запуска.
@@ -174,7 +176,7 @@ func _run_sprint(def: MinigameDef) -> void:
 
 ## Спринт без бага: розыгрыш по счёту от сида спринта, одинаковый при продолжении сохранения.
 func roll_clean(score: float, sprint_seed: int) -> bool:
-	var chance := tuning.bug_chance(score)
+	var chance := tuning.bug_chance(score, bug_mult)
 	if chance <= 0.0:
 		return true
 	if chance >= 1.0:

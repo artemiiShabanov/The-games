@@ -8,6 +8,8 @@ const SECTION: StringName = &"Успех"
 const G := Game.Genre
 const T := Game.Tech
 const S := Game.Setting
+## Спринты по технологиям, при которых считана таблица модели `RUN`.
+const MODEL_SPRINTS: Array[int] = [4, 5, 6, 7, 8]
 ## Жанр, технология, сеттинг, q, баги, зрелищных, часть; затем ожидания: C, P0, хвосты, V, R.
 ## Ожидания из `python3 tools/model_run.py` (таблица «хорошие руки»); после правки `success.tres`
 ## обновить отсюда: пересчитано 2026-11-18 (база критиков 0.85 без вклада технологии, жанры и
@@ -112,8 +114,9 @@ func _simulate() -> void:
 					rec.parent = p
 					rec.title = p.franchise_title()
 		# Качество через результаты спринтов: модель считала q из спринтов технологии (3/5, 4/7),
-		# для средних рук берётся ближайшая дробь.
-		var sprints: int = EconomyTuning.load_default().sprints(r[1])
+		# для средних рук берётся ближайшая дробь. Таблица модели считана при 4-8 спринтах по
+		# технологии, сверка держит те же дроби, хотя в игре спринтов теперь семь (2026-11-20).
+		var sprints: int = MODEL_SPRINTS[r[1]]
 		var ok := int(round(q * sprints))
 		for k in sprints:
 			rec.add_sprint(k < ok)

@@ -165,7 +165,7 @@ func _expect(ok: bool, what: String) -> void:
 
 ## Фаза 1: функции и отказ; затем покупка с WIN, потом с LOSE.
 func _run_checks() -> void:
-	_expect(Bugfix.price(record, economy) == 1400, "цена %d" % Bugfix.price(record, economy))
+	_expect(Bugfix.price(record, economy) == 1000, "цена %d" % Bugfix.price(record, economy))
 	_expect(Bugfix.fix_count(record) == 2, "починит %d из 3" % Bugfix.fix_count(record))
 	var one := GameRecord.create(Game.Genre.PLATFORMER, Game.Tech.BIT8, 1)
 	one.add_bug(catalog.bugs[0].id)
@@ -174,7 +174,7 @@ func _run_checks() -> void:
 	_expect(d != null and d.kind == MinigameDef.Kind.ASPECT and d.scene != null, "выбор мини-игры %s" % (d.id if d else ""))
 	# Нехватка денег держит кнопку.
 	var poor := (load(OFFER_PATH) as PackedScene).instantiate() as BugfixOffer
-	poor.setup(record, catalog, 1400, 500)
+	poor.setup(record, catalog, 1000, 500)
 	var got: Array[String] = []
 	poor.accepted.connect(func() -> void: got.append("acc"))
 	poor.declined.connect(func() -> void: got.append("dec"))
@@ -196,7 +196,7 @@ func _run_checks() -> void:
 	AutoTest.bot_mode = AutoTest.BotMode.WIN
 	_launch()
 	offer.confirm()
-	_expect(wallet.cash == cash - 1400, "списание %d" % wallet.cash)
+	_expect(wallet.cash == cash - 1000, "списание %d" % wallet.cash)
 
 
 func _check(success: bool) -> void:
@@ -224,7 +224,7 @@ func _check(success: bool) -> void:
 			if offer != null:
 				offer.confirm()
 		5:
-			_expect(success and record.bug_ids.is_empty() and wallet.cash == cash - 2 * 1400, "QA второй: осталось %d, деньги %s" % [record.bug_ids.size(), wallet])
+			_expect(success and record.bug_ids.is_empty() and wallet.cash == cash - 2 * 1000, "QA второй: осталось %d, деньги %s" % [record.bug_ids.size(), wallet])
 			_phase = 6
 			await get_tree().process_frame
 			_expect(offer == null, "QA: третье предложение")

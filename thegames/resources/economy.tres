@@ -6,8 +6,8 @@
 script = ExtResource("1_economy")
 start_cash = 36000
 upkeep_base = 800
-sprints_by_tech = Array[int]([4, 5, 6, 7, 8])
-sprint_base_by_tech = Array[int]([1000, 1400, 1900, 2000, 2800])
+sprints_by_tech = Array[int]([7, 7, 7, 7, 7])
+sprint_base_by_tech = Array[int]([570, 1000, 1630, 2000, 3200])
 genre_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.15])
 setting_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.1, 1.05, 1.0, 1.05, 1.1, 1.0])
 unlock_price_by_tech = Array[int]([0, 0, 0, 0, 0])

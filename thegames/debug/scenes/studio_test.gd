@@ -326,7 +326,7 @@ func _run_checks() -> void:
 		sum += t.tick
 	_expect(sum == report.tails_total and report.tails.size() == 2, "сумма хвостов")
 	_expect(report.upkeep == 800, "содержание %d" % report.upkeep)
-	_expect(report.cheapest == 4000, "дешёвый релиз %d" % report.cheapest)
+	_expect(report.cheapest == 3990, "дешёвый релиз %d" % report.cheapest)
 	_expect(not report.bankrupt and not report.rescue_due and not report.game_over, "банкрот без причины")
 	_expect(report.cash == 20000 + report.first_week + report.tails_total - 800 and wallet.cash == report.cash,
 			"деньги %d" % report.cash)

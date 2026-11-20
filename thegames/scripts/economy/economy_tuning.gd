@@ -9,7 +9,8 @@ const PATH := "res://resources/economy.tres"
 
 @export var start_cash := 36000
 @export var upkeep_base := 800
-@export var sprints_by_tech: Array[int] = [4, 5, 6, 7, 8]
+## Полный набор у любой технологии (2026-11-20): пять аспектных, технологическая и жанровая.
+@export var sprints_by_tech: Array[int] = [7, 7, 7, 7, 7]
 @export var sprint_base_by_tech: Array[int] = [1000, 1400, 1900, 2500, 3200]
 @export var genre_cost_mult: Array[float] = [1.0, 1.1, 1.05, 1.0, 1.15]
 @export var setting_cost_mult: Array[float] = [1.0, 1.1, 1.05, 1.0, 1.1, 1.05, 1.0, 1.05, 1.1, 1.0]
@@ -31,7 +32,7 @@ static func load_default() -> EconomyTuning:
 	return t if t != null else EconomyTuning.new()
 
 
-## Число спринтов релиза задаёт технология.
+## Число спринтов релиза: с 2026-11-20 одинаковое у всех технологий, полный набор.
 func sprints(tech: Game.Tech) -> int:
 	return sprints_by_tech[tech]
 

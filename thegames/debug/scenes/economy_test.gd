@@ -161,17 +161,19 @@ func _expect(ok: bool, what: String) -> void:
 
 func _run_checks() -> void:
 	_expect(tuning.start_cash == 36000, "стартовый бюджет %d" % tuning.start_cash)
-	var prices := [1000, 1400, 1900, 2000, 2800]
-	var costs := [4000, 7000, 11400, 14000, 22400]
+	# Семь спринтов у любой технологии (2026-11-20): цена спринта пересчитана под прежнюю цену релиза.
+	var prices := [570, 1000, 1630, 2000, 3200]
+	var costs := [3990, 7000, 11410, 14000, 22400]
 	for t in T.values():
 		_expect(tuning.sprint_price(G.PLATFORMER, t, S.PIRATES) == prices[t], "цена спринта %s" % Game.tech_name(t))
 		_expect(tuning.release_cost(G.PLATFORMER, t, S.PIRATES) == costs[t], "релиз %s" % Game.tech_name(t))
-	# Двенадцать релизов модели: таблица округлена до сотен, цена спринта до 10.
+	# Двенадцать релизов модели: таблица округлена до сотен, цена спринта до 10 (на семи
+	# спринтах это до 35 в цене релиза).
 	for r in RELEASES:
 		var c := tuning.release_cost(r[0], r[1], r[2])
-		_expect(absi(c - int(r[3])) <= 50, "релиз %s×%s×%s стоит %d, в модели %d" % [
+		_expect(absi(c - int(r[3])) <= 85, "релиз %s×%s×%s стоит %d, в модели %d" % [
 				Game.genre_name(r[0]), Game.tech_name(r[1]), Game.setting_name(r[2]), c, r[3]])
-	_expect(tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE) == 28320, "самая дорогая пара %d" % tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE))
+	_expect(tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE) == 28350, "самая дорогая пара %d" % tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE))
 	var all_g: Array[G] = []
 	var all_t: Array[T] = []
 	var all_s: Array[S] = []
@@ -181,7 +183,7 @@ func _run_checks() -> void:
 		all_t.append(t)
 	for s in S.values():
 		all_s.append(s)
-	_expect(tuning.cheapest_release(all_g, all_t, all_s) == 4000, "самый дешёвый релиз")
+	_expect(tuning.cheapest_release(all_g, all_t, all_s) == 3990, "самый дешёвый релиз")
 	_expect(tuning.start_cash > 32400, "бюджета не хватает на самую дорогую пару")
 	# Содержание по плану покупок.
 	_reset()
@@ -193,7 +195,7 @@ func _run_checks() -> void:
 	_expect(wallet.cash == 36000 - 6000 - 5000, "списания покупок: %d" % wallet.cash)
 	# Банкротство: 1 500 после шестого релиза средних рук меньше 4 000, минус тоже.
 	var cheapest := tuning.cheapest_release([G.PLATFORMER, G.SHOOTER], [T.VECTOR, T.BIT8], all_s)
-	_expect(cheapest == 4000, "дешёвый релиз средних рук %d" % cheapest)
+	_expect(cheapest == 3990, "дешёвый релиз средних рук %d" % cheapest)
 	_expect(tuning.is_bankrupt(1500, cheapest) and tuning.is_bankrupt(-200, cheapest) and not tuning.is_bankrupt(4000, cheapest),
 			"порог банкротства")
 	# Сигнал кошелька.
@@ -202,8 +204,8 @@ func _run_checks() -> void:
 	wallet.earn(500, &"tail")
 	wallet.spend(200, &"upkeep")
 	_expect(got.size() == 2 and got[1][1] == -200 and got[1][2] == &"upkeep", "сигнал money_changed: %s" % [got])
-	_expect(tuning.bugfix_price(G.PLATFORMER, T.BIT8, S.PIRATES) == 1400, "цена багфикса")
-	_expect(tuning.sprint_price(G.PLATFORMER, T.BIT8, S.PIRATES, tuning.manager_discount) == 1260, "скидка менеджера")
+	_expect(tuning.bugfix_price(G.PLATFORMER, T.BIT8, S.PIRATES) == 1000, "цена багфикса")
+	_expect(tuning.sprint_price(G.PLATFORMER, T.BIT8, S.PIRATES, tuning.manager_discount) == 900, "скидка менеджера")
 	_reset()
 	_refresh()
 	AutoTest.fulfill("economy checks")
