@@ -140,7 +140,8 @@ func _staff() -> void:
 	var st := run.studio
 	st.hire(StaffMember.make(R.ARTIST, G.JUNIOR))
 	st.hire(StaffMember.make(R.ARTIST, G.MIDDLE))
-	_expect(is_equal_approx(st.ease(Game.Aspect.GRAPHICS), 1.0 - 0.9 * 0.8) and st.ease(Game.Aspect.SOUND) == 0.0,
+	var keep: float = (1.0 - t.effect[R.ARTIST * 3 + G.JUNIOR]) * (1.0 - t.effect[R.ARTIST * 3 + G.MIDDLE])
+	_expect(is_equal_approx(st.ease(Game.Aspect.GRAPHICS), 1.0 - keep) and st.ease(Game.Aspect.SOUND) == 0.0,
 			"два художника сложным процентом: %.3f" % st.ease(Game.Aspect.GRAPHICS))
 	var graphics: MinigameDef = null
 	var other: MinigameDef = null
@@ -150,7 +151,7 @@ func _staff() -> void:
 		elif d.kind == MinigameDef.Kind.ASPECT and other == null:
 			other = d
 	if graphics != null and other != null:
-		_expect(is_equal_approx(run.t_for(graphics), run.t_value() * 0.72) and is_equal_approx(run.t_for(other), run.t_value()),
+		_expect(is_equal_approx(run.t_for(graphics), run.t_value() * keep) and is_equal_approx(run.t_for(other), run.t_value()),
 				"художники упрощают только графику: %.3f и %.3f" % [run.t_for(graphics), run.t_for(other)])
 	# Жанр и технология (2026-11-18): от `t_start` до `t_owner_max` на капе, аспектные до 1.
 	var owner: MinigameDef = null

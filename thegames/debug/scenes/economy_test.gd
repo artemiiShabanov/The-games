@@ -13,8 +13,8 @@ const S := Game.Setting
 
 ## План покупок модели: вид, что. Содержание после каждой из таблицы «Хорошие руки».
 const PLAN := [
-	["genre", G.SHOOTER, 1200], ["cap", &"replay", 1350], ["tech", T.VECTOR, 1800],
-	["cap", &"sequels", 1950], ["tech", T.LOWPOLY, 3000], ["genre", G.RACING, 3400], ["tech", T.THREED, 4750]]
+	["genre", G.SHOOTER, 2350], ["cap", &"replay", 2500], ["tech", T.VECTOR, 3000],
+	["cap", &"sequels", 3150], ["tech", T.LOWPOLY, 4300], ["genre", G.RACING, 4750], ["tech", T.THREED, 6250]]
 ## Двенадцать релизов модели: тройка и стоимость из таблицы (округлена до сотен).
 const RELEASES := [
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 7000], [G.SHOOTER, T.BIT8, S.PIRATES, 7350],
@@ -22,7 +22,7 @@ const RELEASES := [
 	[G.PLATFORMER, T.BIT8, S.PIRATES, 7000], [G.PLATFORMER, T.VECTOR, S.CASTLES, 4200],
 	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 15470], [G.SHOOTER, T.BIT8, S.PIRATES, 7350],
 	[G.RACING, T.LOWPOLY, S.SPACE, 16940], [G.PLATFORMER, T.LOWPOLY, S.PIRATES, 14000],
-	[G.RACING, T.THREED, S.CASTLES, 25840], [G.SHOOTER, T.THREED, S.SPACE, 25840]]
+	[G.RACING, T.THREED, S.CASTLES, 22610], [G.SHOOTER, T.THREED, S.SPACE, 22610]]
 
 var tuning: EconomyTuning
 var genre := G.PLATFORMER
@@ -162,8 +162,8 @@ func _expect(ok: bool, what: String) -> void:
 func _run_checks() -> void:
 	_expect(tuning.start_cash == 36000, "стартовый бюджет %d" % tuning.start_cash)
 	# Семь спринтов у любой технологии (2026-11-20): цена спринта пересчитана под прежнюю цену релиза.
-	var prices := [570, 1000, 1630, 2000, 3200]
-	var costs := [3990, 7000, 11410, 14000, 22400]
+	var prices := [570, 1000, 1630, 2000, 2800]
+	var costs := [3990, 7000, 11410, 14000, 19600]
 	for t in T.values():
 		_expect(tuning.sprint_price(G.PLATFORMER, t, S.PIRATES) == prices[t], "цена спринта %s" % Game.tech_name(t))
 		_expect(tuning.release_cost(G.PLATFORMER, t, S.PIRATES) == costs[t], "релиз %s" % Game.tech_name(t))
@@ -173,7 +173,7 @@ func _run_checks() -> void:
 		var c := tuning.release_cost(r[0], r[1], r[2])
 		_expect(absi(c - int(r[3])) <= 85, "релиз %s×%s×%s стоит %d, в модели %d" % [
 				Game.genre_name(r[0]), Game.tech_name(r[1]), Game.setting_name(r[2]), c, r[3]])
-	_expect(tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE) == 28350, "самая дорогая пара %d" % tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE))
+	_expect(tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE) == 24780, "самая дорогая пара %d" % tuning.release_cost(G.FIGHTING, T.THREED, S.SPACE))
 	var all_g: Array[G] = []
 	var all_t: Array[T] = []
 	var all_s: Array[S] = []
@@ -184,10 +184,10 @@ func _run_checks() -> void:
 	for s in S.values():
 		all_s.append(s)
 	_expect(tuning.cheapest_release(all_g, all_t, all_s) == 3990, "самый дешёвый релиз")
-	_expect(tuning.start_cash > 32400, "бюджета не хватает на самую дорогую пару")
+	_expect(tuning.start_cash > 24780, "бюджета не хватает на самую дорогую пару")
 	# Содержание по плану покупок.
 	_reset()
-	_expect(upkeep.total() == 800, "содержание на старте %d" % upkeep.total())
+	_expect(upkeep.total() == 1900, "содержание на старте %d" % upkeep.total())
 	for item in PLAN:
 		_buy_next()
 		_expect(upkeep.total() == int(item[2]), "содержание после %s: %d, в модели %d" % [item[1], upkeep.total(), item[2]])

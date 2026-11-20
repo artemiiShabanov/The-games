@@ -8,7 +8,7 @@ extends Resource
 const PATH := "res://resources/economy.tres"
 
 @export var start_cash := 36000
-@export var upkeep_base := 800
+@export var upkeep_base := 1900
 ## Полный набор у любой технологии (2026-11-20): пять аспектных, технологическая и жанровая.
 @export var sprints_by_tech: Array[int] = [7, 7, 7, 7, 7]
 @export var sprint_base_by_tech: Array[int] = [1000, 1400, 1900, 2500, 3200]

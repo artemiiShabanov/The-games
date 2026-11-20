@@ -144,6 +144,11 @@
   [--screen [--locked]] [--lose] --from=N --every=N --count=N [--crop=x,y,w,h]
   ["--actions=40:down,80:click=710x680"] ["--set=ui_press:0"] --frames=N`, лист в
   `debug/playtest/jelly_sheet.png`. Сцена без автотеста: `Godot --path thegames -- --scene=jelly_test`.
+- Симулятор игрока (баланс, 2026-11-20): `python3 tools/player_sim.py --runs=2000 --score`
+  таблица «руки × наём → концовки» и расстояние до цели, `--hands=weak|mid|strong
+  --hire=none|juniors|all|seniors|useful`, один забег текстом `--trace`, число на пробу `--set
+  economy.upkeep_base=2000`, шаг ci `--check`; подгонка `python3 tools/player_tune.py
+  --iters=N --runs=400 --out=point.json`, `--from=point.json --show|--diff`.
 - Сверка модели (#72): `sh tools/autotest.sh --loop --calm --hands=0.75 --refuse-events --cap=12
   --releases=12 --ledger=debug/playtest/ledger_m2.json --time-scale=4 --frames=40000` (долго,
   `TIMEOUT=1500`), затем `python3 tools/model_run.py --replay thegames/debug/playtest/ledger_m2.json`;

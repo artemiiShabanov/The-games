@@ -5,15 +5,15 @@
 [resource]
 script = ExtResource("1_economy")
 start_cash = 36000
-upkeep_base = 800
+upkeep_base = 1900
 sprints_by_tech = Array[int]([7, 7, 7, 7, 7])
-sprint_base_by_tech = Array[int]([570, 1000, 1630, 2000, 3200])
+sprint_base_by_tech = Array[int]([570, 1000, 1630, 2000, 2800])
 genre_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.15])
 setting_cost_mult = Array[float]([1.0, 1.1, 1.05, 1.0, 1.1, 1.05, 1.0, 1.05, 1.1, 1.0])
 unlock_price_by_tech = Array[int]([0, 0, 0, 0, 0])
-unlock_upkeep_by_tech = Array[int]([450, 600, 750, 1050, 1350])
+unlock_upkeep_by_tech = Array[int]([500, 650, 850, 1150, 1500])
 genre_unlock_price = 0
-genre_unlock_upkeep = 400
+genre_unlock_upkeep = 450
 capability_prices = Dictionary[StringName, int]({
 &"insider": 4000,
 &"manager": 8000,

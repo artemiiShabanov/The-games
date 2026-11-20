@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_success")
-p_base = 6000.0
+p_base = 5750.0
 tech_sales = Array[float]([0.62, 0.7, 0.85, 1.1, 1.2])
 tech_critics = Array[float]([0.0, 0.0, 0.0, 0.0, 0.0])
 tech_spectacle = Array[float]([0.5, 0.6, 0.68, 0.85, 0.95])
@@ -19,7 +19,7 @@ critics_synergy = 8.0
 critics_synergy_center = 1.02
 critics_quality_knee = 0.8
 critics_quality_top = 2.0
-critics_bug = 0.4
+critics_bug = 0.5
 critics_fatigue = 1.0
 critics_noise = 1.0
 novelty_new = 1.0
@@ -41,7 +41,7 @@ streamers_quality = 0.3
 streamers_spectacular_bug = 15.0
 streamers_noise = 0.15
 noticed_threshold = 35.0
-viral_threshold = 70.0
+viral_threshold = 82.5
 viral_mult = 1.5
 tail_base = 0.45
 tail_quality = 0.25

@@ -16,6 +16,7 @@ step() {
   fi
 }
 step "model_run --check" python3 tools/model_run.py --check
+step "player_sim --check" python3 tools/player_sim.py --check
 step "settings check" python3 tools/check_settings.py --check
 step "i18n check" python3 tools/i18n.py --check
 export HEADLESS=1

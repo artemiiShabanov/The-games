@@ -7,7 +7,7 @@ extends Resource
 
 const PATH := "res://resources/success.tres"
 
-@export var p_base := 6000.0
+@export var p_base := 5750.0
 @export var tech_sales: Array[float] = [0.62, 0.7, 0.85, 1.0, 1.2]
 @export var tech_critics: Array[float] = [0.6, 0.3, 0.1, 0.0, -0.3]
 @export var tech_spectacle: Array[float] = [0.5, 0.6, 0.68, 0.9, 1.0]
@@ -44,7 +44,7 @@ const PATH := "res://resources/success.tres"
 ## единицу: одной чистой игрой 10 не взять, нужно удачное сочетание или везение.
 @export var critics_quality_knee := 1.0
 @export var critics_quality_top := 6.0
-@export var critics_bug := 0.4
+@export var critics_bug := 0.5
 @export var critics_fatigue := 1.0
 @export var critics_noise := 0.5
 
@@ -78,7 +78,7 @@ func quality_points(q: float) -> float:
 @export var streamers_spectacular_bug := 15.0
 @export var streamers_noise := 0.15
 @export var noticed_threshold := 35.0
-@export var viral_threshold := 70.0
+@export var viral_threshold := 82.5
 @export var viral_mult := 1.5
 
 @export_group("Хвост")  # i18n: skip

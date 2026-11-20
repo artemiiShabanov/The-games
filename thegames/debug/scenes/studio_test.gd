@@ -27,8 +27,8 @@ const RUN := [
 	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1],
 ]
 ## Хвосты и P0 по таблице модели для релизов 2 и 3 (пересчитано 2026-11-18).
-const MODEL_TAILS := [0, 2986, 4046]
-const MODEL_P0 := [5971, 4255, 5231]
+const MODEL_TAILS := [0, 2822, 3829]
+const MODEL_P0 := [5643, 4030, 4905]
 
 var past_count := 2
 var cash := 20000
@@ -325,10 +325,10 @@ func _run_checks() -> void:
 	for t in report.tails:
 		sum += t.tick
 	_expect(sum == report.tails_total and report.tails.size() == 2, "сумма хвостов")
-	_expect(report.upkeep == 800, "содержание %d" % report.upkeep)
+	_expect(report.upkeep == economy.upkeep_base, "содержание %d" % report.upkeep)
 	_expect(report.cheapest == 3990, "дешёвый релиз %d" % report.cheapest)
 	_expect(not report.bankrupt and not report.rescue_due and not report.game_over, "банкрот без причины")
-	_expect(report.cash == 20000 + report.first_week + report.tails_total - 800 and wallet.cash == report.cash,
+	_expect(report.cash == 20000 + report.first_week + report.tails_total - economy.upkeep_base and wallet.cash == report.cash,
 			"деньги %d" % report.cash)
 	_expect(report.stats != null and report.stats.valuation > report.cash, "оценка")
 	_expect(report.offer.size() == 3, "предложение %s" % [report.offer])

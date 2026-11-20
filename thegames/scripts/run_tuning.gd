@@ -37,11 +37,11 @@ const PATH := "res://resources/run.tres"
 ## Пороги концовок (`docs/specs/run.md`, #65; черновые до сверки моделью в #72).
 ## Корпорация: сиквелов не меньше, игр с живым хвостом не меньше, суммарный тик хвостов от.
 @export var corp_sequels := 2
-@export var corp_live_tails := 4
-@export var corp_tick := 3500
+@export var corp_live_tails := 6
+@export var corp_tick := 70000
 ## Легенда: средняя критиков трёх лучших от или вирусных игр не меньше.
-@export var legend_critics := 9.0
-@export var legend_viral := 3
+@export var legend_critics := 9.4
+@export var legend_viral := 7
 ## Легенда не раньше стольких выпущенных игр (полировка 2026-11-17: приходила после четырёх).
 @export var legend_min_games := 8
 ## После релиза (#133): отклик приходит на главный экран волнами. Первая волна через

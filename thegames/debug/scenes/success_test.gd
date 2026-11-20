@@ -12,21 +12,21 @@ const S := Game.Setting
 const MODEL_SPRINTS: Array[int] = [4, 5, 6, 7, 8]
 ## Жанр, технология, сеттинг, q, баги, зрелищных, часть; затем ожидания: C, P0, хвосты, V, R.
 ## Ожидания из `python3 tools/model_run.py` (таблица «хорошие руки»); после правки `success.tres`
-## обновить отсюда: пересчитано 2026-11-18 (база критиков 0.85 без вклада технологии, жанры и
-## технологии бесплатные, содержание за них ×1.5).
+## обновить отсюда: пересчитано 2026-11-20 (баланс под три вида рук: база продаж 5750, штраф
+## критиков за баг 0.5, порог вирусности 82.5).
 const RUN := [
-	[G.PLATFORMER, T.BIT8, S.ZOMBIES, 0.6, 2, 1, 1, 6.9, 5971, 0, 65, 0.9],
-	[G.SHOOTER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 1, 7.0, 4255, 2986, 47, 1.9],
-	[G.PLATFORMER, T.BIT8, S.SPACE, 0.6, 2, 1, 1, 6.0, 5231, 4046, 70, 2.4],
-	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 8.6, 4943, 4894, 51, 4.2],
-	[G.PLATFORMER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 2, 7.3, 8054, 6060, 55, 5.4],
-	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 6.3, 3696, 8646, 38, 6.0],
-	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 4.2, 9407, 7423, 74, 6.6],
-	[G.SHOOTER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 2, 5.8, 6003, 8728, 47, 7.0],
-	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 6.0, 14629, 8187, 86, 8.5],
-	[G.PLATFORMER, T.LOWPOLY, S.ZOMBIES, 0.86, 1, 0, 3, 5.8, 10080, 12341, 66, 8.9],
-	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 6.6, 17002, 12970, 94, 10.7],
-	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 8.8, 25131, 16539, 100, 13.6],
+	[G.PLATFORMER, T.BIT8, S.ZOMBIES, 0.6, 2, 1, 1, 6.7, 5643, 0, 65, 0.8],
+	[G.SHOOTER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 1, 6.9, 4030, 2822, 47, 1.8],
+	[G.PLATFORMER, T.BIT8, S.SPACE, 0.6, 2, 1, 1, 5.8, 4905, 3829, 70, 2.2],
+	[G.SHOOTER, T.VECTOR, S.SPACE, 1.0, 0, 0, 1, 8.6, 4684, 4608, 51, 4.0],
+	[G.PLATFORMER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 2, 7.2, 7587, 5728, 55, 5.1],
+	[G.PLATFORMER, T.VECTOR, S.CASTLES, 0.75, 1, 0, 1, 6.2, 3475, 8158, 38, 5.7],
+	[G.SHOOTER, T.LOWPOLY, S.CASTLES, 0.57, 3, 1, 1, 3.9, 5777, 7000, 74, 5.1],
+	[G.SHOOTER, T.BIT8, S.ZOMBIES, 0.8, 1, 0, 2, 5.7, 5388, 6860, 47, 5.5],
+	[G.RACING, T.LOWPOLY, S.SPACE, 0.71, 2, 1, 1, 5.8, 13020, 6952, 86, 6.9],
+	[G.PLATFORMER, T.LOWPOLY, S.ZOMBIES, 0.86, 1, 0, 3, 5.7, 9033, 10864, 66, 7.2],
+	[G.RACING, T.THREED, S.CASTLES, 0.75, 2, 1, 1, 6.4, 15119, 11546, 94, 8.9],
+	[G.SHOOTER, T.THREED, S.SPACE, 0.875, 1, 1, 1, 8.7, 22534, 14777, 100, 11.8],
 ]
 
 var tuning: SuccessTuning
@@ -190,16 +190,17 @@ func _run_checks() -> void:
 		_expect(absi(int(row["tails"]) - int(e[2])) <= 60, "релиз %d: хвосты %d, в модели %d" % [i, row["tails"], e[2]])
 		_expect(absi(sc.streamers - int(e[3])) <= 1, "релиз %d: V %d, в модели %d" % [i, sc.streamers, e[3]])
 		_expect(absf(float(row["R"]) - e[4]) <= 0.1, "релиз %d: R %.2f, в модели %.1f" % [i, row["R"], e[4]])
-	# Релиз 3: V 69.7, в таблице округлён до 70 со звёздочкой, но порог не взят.
+	# Порог вирусности 82.5: релизы 3 и 7 (V 70 и 74) его не берут, девятый (86) берёт.
 	var first: ReleaseScore = rows[0]["score"]
 	var third: ReleaseScore = rows[2]["score"]
 	var seventh: ReleaseScore = rows[6]["score"]
+	var ninth: ReleaseScore = rows[8]["score"]
 	_expect(first.streamers_word(tuning) == "заметили" and third.streamers_word(tuning) == "заметили"
-			and seventh.streamers_word(tuning) == "вирусно", "слова стримеров")
+			and seventh.streamers_word(tuning) == "заметили" and ninth.streamers_word(tuning) == "вирусно", "слова стримеров")
 	_expect(market.saturation_label(0.1, tuning) == "" and market.saturation_label(0.4, tuning) == "недавно было"
 			and market.saturation_label(0.7, tuning) == "надоело", "метки насыщения")
 	var stats := Success.run_stats(records, market, 10000, tuning)
-	_expect(stats.sequels == 3 and stats.viral_count == 4 and stats.franchises == 2, "итоги: %s" % stats)
+	_expect(stats.sequels == 3 and stats.viral_count == 3 and stats.franchises == 2, "итоги: %s" % stats)
 	_expect(stats.valuation % tuning.valuation_round == 0 and stats.valuation > 10000, "оценка студии %d" % stats.valuation)
 	# Шум не ломает диапазоны.
 	noise = true

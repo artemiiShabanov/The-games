@@ -236,6 +236,12 @@ func _condition_checks() -> void:
 				ctx.reputation = meta.sale_reputation + 1.0
 				ctx.reputation_before = ctx.reputation
 			&"corporation":
+				while ctx.records.size() < run_tuning.corp_live_tails:
+					var extra := GameRecord.create(G.PLATFORMER, T.BIT8, ctx.records.size(), "Игра %d" % (ctx.records.size() + 1), Game.Setting.PIRATES)
+					extra.score = ReleaseScore.new()
+					extra.score.critics = 6.0
+					extra.score.sales_first = 6000
+					ctx.records.append(extra)
 				for i in ctx.records.size():
 					ctx.records[i].score.last_tick = run_tuning.corp_tick / run_tuning.corp_live_tails + 100
 					ctx.records[i].part = 2 if i < run_tuning.corp_sequels else 1
